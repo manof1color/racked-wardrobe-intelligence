@@ -1,0 +1,27 @@
+{
+  "dataset": "Racked three-view garment test set",
+  "version": "1.0.0",
+  "classification": "fully synthetic",
+  "license": "project test fixture",
+  "records": [
+    {
+      "id": "northstar-overshirt-001",
+      "sku": "NA-OW-1042",
+      "brand": "Northstar Atelier",
+      "brandSlug": "northstar-atelier",
+      "category": "outerwear",
+      "color": "sienna",
+      "material": "100% cotton",
+      "views": {
+        "front": "/test-uploads/northstar-overshirt-front.png",
+        "back": "/test-uploads/northstar-overshirt-back.png",
+        "label": "/test-uploads/northstar-overshirt-label.png"
+      },
+      "expected": {
+        "confidence": 96,
+        "brandMatched": true,
+        "evidenceViews": 3
+      }
+    }
+  ]
+}
