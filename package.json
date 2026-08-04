@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "audit:prod": "pnpm audit --prod --audit-level high"
   },
   "dependencies": {
     "next": "15.5.22",

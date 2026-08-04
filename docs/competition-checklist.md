@@ -44,6 +44,7 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] `.env.example` contains placeholders only; `.env.local` is ignored.
 - [x] Tests cover score calculation, grounding, privacy threshold, field stripping, sessions, agents, three-view uploads, social privacy, and all four partner dashboards.
 - [x] Security hardening includes constant-time session signature comparison, early upload-set size rejection, bounded agent inputs, and category-only Brand aggregates.
+- [x] Production dependencies pass `pnpm audit:prod`; patched transitive versions are pinned and the audit runs on every GitHub Actions verification.
 - [x] README and focused architecture, AI, privacy, dataset, demo, and deployment documents.
 - [x] GitHub Actions workflow runs lint, test, and build.
 - [x] Public repository and checkpoint history: [`manof1color/racked-wardrobe-intelligence`](https://github.com/manof1color/racked-wardrobe-intelligence).
