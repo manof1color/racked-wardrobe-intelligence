@@ -71,6 +71,10 @@ pnpm dev
 
 Open `http://localhost:3000`. Never commit `.env.local`.
 
+## Install on a phone
+
+Racked includes a standalone web-app manifest, 192/512px and Apple icons, an install prompt, and a privacy-safe offline shell. On iPhone, open the HTTPS deployment in Safari and choose **Share → Add to Home Screen**. On Android, open it in Chrome and choose **Install app** or **Add to Home screen**. The local Wi-Fi preview can be saved as a temporary shortcut, but the permanent install should use the eventual HTTPS AWS address so service-worker updates and offline handling are available.
+
 ## Verification
 
 ```bash
