@@ -6,8 +6,8 @@ No AWS credentials or paid actions are required to review this repository. These
 
 - **AWS Amplify Hosting:** Next.js 15 SSR, static landing pages, and API routes. AWS’s [Next.js deployment guide](https://docs.aws.amazon.com/amplify/latest/userguide/deploy-nextjs-app.html) uses a `next build` script and `.next` artifact directory.
 - **Amazon Cognito:** production OIDC authentication and Consumer/Brand/Admin groups. AWS recommends authorization-code flow with PKCE for public clients in its [app-client guidance](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-client-apps.html).
-- **Amazon DynamoDB:** structured user, wardrobe, wear, outfit, catalog, consent, and match records.
-- **Amazon S3:** private temporary garment uploads with encryption, public-access blocking, and lifecycle deletion.
+- **Amazon DynamoDB:** structured user, wardrobe, wear, outfit, catalog, consent, match, and Brand registration records.
+- **Amazon S3:** separate private Consumer temporary uploads and Brand-authorized catalog assets, with encryption and public-access blocking.
 - **AWS Budgets/CloudWatch:** spend alerting and operational logs that exclude secrets and images.
 
 ## Stage 0 — account safety
@@ -46,6 +46,8 @@ No AWS credentials or paid actions are required to review this repository. These
 3. Replace the demo auth adapter with Cognito OIDC verification and group-to-role mapping.
 4. Replace seed repositories with DynamoDB and private S3 adapters while keeping the pure matching module unchanged.
 5. Configure S3 upload URLs server-side with content type, size, ownership, and short expiration.
+6. Store Brand registration assets under an organization-scoped prefix, retain their SHA-256 hashes in DynamoDB, and audit every catalog mutation.
+7. Add OCR behind a server-only adapter; require corrected label text and a Brand + SKU/MPN or GTIN match before linking.
 
 ## Stage 3 — Amplify deployment
 

@@ -1,12 +1,13 @@
 import { seedCommunityPosts } from "../community-data.ts";
 import { wardrobe } from "../demo-data.ts";
-import type { OutfitPost } from "../platform-types.ts";
+import { seedBrandProducts } from "../product-registry.ts";
+import type { BrandProductRegistration, OutfitPost } from "../platform-types.ts";
 
-interface DemoStore { posts:OutfitPost[]; wearCounts:Map<string,number>; }
+interface DemoStore { posts:OutfitPost[]; wearCounts:Map<string,number>; brandProducts:BrandProductRegistration[]; }
 const globalStore = globalThis as typeof globalThis & { __rackedDemoStore?:DemoStore };
 
 function createStore(): DemoStore {
-  return { posts:structuredClone(seedCommunityPosts),wearCounts:new Map(wardrobe.map((item)=>[item.id,item.wearCount])) };
+  return { posts:structuredClone(seedCommunityPosts),wearCounts:new Map(wardrobe.map((item)=>[item.id,item.wearCount])),brandProducts:structuredClone(seedBrandProducts) };
 }
 
 export function getDemoStore() { return globalStore.__rackedDemoStore ??= createStore(); }
@@ -33,3 +34,13 @@ export function recordOutfitWears(itemIds:string[]) {
   return Object.fromEntries(unique.map((id)=>[id,recordWear(id)]));
 }
 export function getWearCount(itemId:string) { return getDemoStore().wearCounts.get(itemId) ?? 0; }
+export function listBrandProducts(ownerSubject?:string) { return structuredClone(ownerSubject?getDemoStore().brandProducts.filter((item)=>item.ownerSubject===ownerSubject):getDemoStore().brandProducts); }
+export function registerBrandProduct(product:BrandProductRegistration) {
+  const duplicateIndex=getDemoStore().brandProducts.findIndex((item)=>item.brandSlug===product.brandSlug && item.sku===product.sku);
+  if (duplicateIndex>=0) {
+    if (getDemoStore().brandProducts[duplicateIndex].source!=="seed") throw new Error("That brand and SKU are already registered.");
+    getDemoStore().brandProducts.splice(duplicateIndex,1);
+  }
+  getDemoStore().brandProducts.unshift(structuredClone(product));
+  return structuredClone(product);
+}

@@ -18,7 +18,7 @@ Public landing/login
   → three-view analysis + public community/partner routes
 ```
 
-This mode requires no cloud credentials or model key. Session changes reset on reload by design and are labeled as demo behavior.
+This mode requires no cloud credentials or model key. Demo mutations survive browser reloads for the life of the Next.js process and reset when the server restarts.
 
 ### AWS target
 
@@ -44,6 +44,7 @@ AWS documents managed Next.js SSR/API-route hosting through Amplify and OIDC ide
 | WearEvent | Garment use timestamp | Owner-only; aggregate-only to brands |
 | Outfit / OutfitItem | Pairing relationships | Owner-only; aggregate-only to brands |
 | Brand / Product / ProductAttribute | Brand catalog and confirmed product facts | Brand-owned |
+| BrandProductRegistration | Account-bound brand, SKU/GTIN, aliases, approved label text, and three image hashes | Brand-owned writes; identity fields available to Consumer matching |
 | MatchResult / ScoreComponent / MatchReason | Auditable score and grounded explanation | Consumer-owned or thresholded segment aggregate |
 | Segment | Minimum-size anonymous cohort | Suppressed below 25 members |
 | PublicOutfitPost | Opt-in caption, outfit items, and brand links | Public allowlist only; no raw wardrobe or email |
@@ -58,6 +59,8 @@ The demo implements these concepts in typed seed structures; `infra/template.yam
 4. Uploads are allowlisted to JPG/PNG/WebP, limited to 5 MB, renamed server-side, scanned in a production extension, and deleted after attribute extraction.
 5. Explanations consume stored score components. They cannot make new predictions.
 6. Aggregate release is gated by `MINIMUM_COHORT_SIZE = 25`.
+7. Brand enrollment ignores a client-supplied brand identity and binds the record to the authenticated Brand organization.
+8. A registry hit is traceability evidence, not proof that a separately photographed physical garment is authentic; appearance-only matches stay unverified.
 
 ## Reliability strategy
 
@@ -69,4 +72,4 @@ The demo implements these concepts in typed seed structures; `infra/template.yam
 
 ## Deliberate MVP exclusions
 
-No payments, virtual try-on, full Shopify integration, demographic targeting, sales forecasting, or production PII. Community posts and partner dashboards are working simulations; the project does not claim real commerce or brand integrations.
+No payments, photorealistic virtual try-on, full Shopify integration, demographic targeting, sales forecasting, or production PII. The avatar is an owned-piece outfit visualizer, not a body measurement or fit prediction. Community posts and partner dashboards are working simulations.

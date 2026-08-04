@@ -1,34 +1,38 @@
-# Dataset provenance and test-data decision
+# Dataset provenance and product identity
 
-## What is checked into this repository
+## Checked-in test data
 
-Racked uses a small, deterministic, fully synthetic dataset:
+Racked uses a deterministic, fully synthetic judge dataset: one Consumer with 12 wardrobe items, one fictional Northstar Atelier catalog with 8 SKUs, 136 wear events, 3 outfits, four partner verticals, and a generated front/back/label fixture. No real customer data or copied catalog content is committed.
 
-- one fictional Consumer with 12 wardrobe items, 136 wear events, and 3 outfits;
-- one fictional brand, **Northstar Atelier**, with 8 products;
-- fictional SKUs, prices, product names, identities, segment sizes, and behavior;
-- one synthetic three-image set (front, back, label) generated specifically for this project;
-- four fictional partner dashboard datasets for vintage, clothing, shoes, and jewelry;
-- no real customer data or copied catalog text.
+- Product table: [`../data/demo-products.csv`](../data/demo-products.csv)
+- Three-view manifest: [`../data/three-view-test-dataset.json`](../data/three-view-test-dataset.json)
+- Brand import contract: [`../data/brand-registry-import-template.csv`](../data/brand-registry-import-template.csv)
 
-The normalized product table is available in [`../data/demo-products.csv`](../data/demo-products.csv). Synthetic data is the safest default for a public competition demo because judges can reproduce the workflow and no person or real brand is misrepresented.
+## External dataset research
 
-The three-view manifest is [`../data/three-view-test-dataset.json`](../data/three-view-test-dataset.json). Its label intentionally contains the fictional brand **Northstar Atelier** and SKU `NA-OW-1042`. The three PNG files are in `public/test-uploads/` and were created with OpenAI image generation for this demo; they do not depict a real catalog product or endorsement.
+No reviewed source guarantees all of: garment front, garment back, physical label, authoritative real brand, and SKU/GTIN. Racked therefore separates visual research data from authoritative Brand enrollment.
 
-## Recommended external candidate: Amazon Berkeley Objects (ABO)
+| Source | Useful fields | Limitation | Racked decision |
+| --- | --- | --- | --- |
+| [Amazon Berkeley Objects (ABO)](https://registry.opendata.aws/amazon-berkeley-objects/) | 147,702 listings, brand/model metadata, 398,212 catalog images, and thousands of multi-angle turntables | CC BY-NC 4.0; apparel and label coverage are not guaranteed | Best noncommercial scale and multi-view research source; import metadata by reference with attribution |
+| [DeepFashion2](https://github.com/switchablenorms/DeepFashion2) | 491K fashion images, shop/consumer pairs, and front versus side/back viewpoint annotations | No authoritative brand, SKU, GTIN, or physical-label identity | Use only to evaluate garment retrieval and viewpoint handling |
+| [Open Icecat](https://icecat.com/structured-data-content-users/) | Brand-approved product datasheets, brand information, images, and structured identifiers | Free-brand and apparel coverage varies; front/back/label views are not guaranteed | Strongest optional catalog-enrichment candidate after account and license review |
 
-The [Registry of Open Data on AWS](https://registry.opendata.aws/amazon-berkeley-objects/) describes ABO as 147,702 product listings with multilingual metadata and 398,212 catalog images, stored in public S3. Metadata resources are available as compressed CSV/JSON and the bucket can be read without an AWS account. It is licensed **CC BY-NC 4.0**, so it is suitable for a noncommercial educational prototype with attribution, but not automatically suitable for a commercial Racked launch.
+Icecat recommends matching by **Brand + Manufacturer Part Number** or **GTIN**. Racked implements the same identifier hierarchy and adds exact Brand-enrolled image hashes. Appearance alone never proves brand ownership.
 
-ABO provides product identifiers plus fields such as item name, product type, brand, model number, color, and linked images. For an optional test import, filter to apparel product types, retain only the minimum metadata fields, preserve the original item identifier as `source_id`, generate a local demo SKU, and display attribution. Do not copy the full dataset into GitHub.
+## Brand-authoritative registry implemented in Racked
 
-## Apparel-specific alternative
+The Brand workspace enrolls a front image, back image, label image, product name, account-bound verified brand, SKU/MPN, optional GTIN, category, label aliases, and approved label text. The demo backend stores SHA-256 hashes and metadata. Consumer uploads resolve in this order:
 
-The 2026 [harmonized fast-fashion garment-variant dataset on Zenodo](https://zenodo.org/records/20006389) contains 47,522 H&M/Uniqlo garment variants with product metadata, source/timestamp, color, material composition, and harmonized categories. It intentionally does not redistribute product images. Its real brand names are source identifiers and trademarks, not endorsements. Review the dataset’s included license files before use.
+1. exact enrolled label-image hash;
+2. exact enrolled three-image set;
+3. exact GTIN found in corrected/OCR label text;
+4. Brand alias plus SKU/MPN found together in label text.
 
-## Decision for judging
+Unmatched records fail closed and require human correction. A registry hit is traceability evidence; it is not proof that a separately photographed physical garment is authentic.
 
-Use the checked-in fictional catalog during the live demo. Discuss ABO as the AWS-native scale test and the Zenodo dataset as an apparel/material research option. This separates a reproducible judge flow from licensing uncertainty and prevents real-brand performance claims.
+## Judge and production decision
 
-## Import contract
+Use the synthetic catalog during the live demo. First enroll the fixture in the Brand workspace, then scan it as the Consumer and show the `label-image-hash` result. Discuss ABO and DeepFashion2 as research sources and Icecat as a potential production enrichment source. Real trademarks remain source identifiers, not endorsements.
 
-Any future dataset importer must output: `sku`, `source_id`, `brand`, `name`, `category`, `color`, `style_tags`, `season`, `price`, `image_reference`, `license`, and `attribution`. Records missing license/provenance are rejected.
+Records missing license, attribution, brand, SKU/MPN or GTIN, and source provenance are rejected. Dataset imports may enrich search, but only a verified Brand account can create an authoritative Racked registry record.

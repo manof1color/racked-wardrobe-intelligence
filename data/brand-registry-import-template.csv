@@ -1,0 +1,2 @@
+source_dataset,source_id,brand,brand_aliases,product_name,sku_mpn,gtin,category,front_image_url,back_image_url,label_image_url,license,attribution
+example-only,replace-me,Verified Brand,"Brand Alias|Brand Legal Name",Product Name,SKU-001,,outerwear,https://example.invalid/front.jpg,https://example.invalid/back.jpg,https://example.invalid/label.jpg,REPLACE_WITH_LICENSE,REPLACE_WITH_REQUIRED_ATTRIBUTION

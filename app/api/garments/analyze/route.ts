@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { analyzeThreeViewSet, MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
+import { listBrandProducts } from "@/lib/server/demo-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 
 export const runtime = "nodejs";
+
+async function describeFile(view:GarmentView,file:File):Promise<UploadDescriptor> {
+  const hash=await crypto.subtle.digest("SHA-256",await file.arrayBuffer());
+  return {view,fileName:file.name,contentType:file.type,size:file.size,sha256:Buffer.from(hash).toString("hex")};
+}
 
 export async function POST(request:Request) {
   const session=await getSession();
@@ -15,12 +21,14 @@ export async function POST(request:Request) {
   try {
     const form=await request.formData();
     const views:GarmentView[]=["front","back","label"];
-    const parts:UploadDescriptor[]=views.map((view)=>{
+    const files=views.map((view)=>{
       const value=form.get(view);
       if (!(value instanceof File)) throw new UploadValidationError(`Exactly one ${view} image is required.`);
-      return {view,fileName:value.name,contentType:value.type,size:value.size};
+      return {view,file:value};
     });
-    return NextResponse.json({analysis:analyzeThreeViewSet(parts),retention:"Images were validated in memory and were not persisted by the demo adapter."});
+    const parts=await Promise.all(files.map(({view,file})=>describeFile(view,file)));
+    const labelText=String(form.get("labelText") ?? "").slice(0,1000);
+    return NextResponse.json({analysis:analyzeThreeViewSet(parts,{registry:listBrandProducts(),labelText}),retention:"Images were hashed and validated in memory; raw consumer uploads were not persisted by the demo adapter."});
   } catch (error) {
     if (error instanceof UploadValidationError) return NextResponse.json({error:error.message},{status:error.status});
     return NextResponse.json({error:"The three-view set could not be analyzed."},{status:500});

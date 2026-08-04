@@ -1,4 +1,5 @@
-import type { GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
+import { matchBrandProduct, seedBrandProducts } from "./product-registry.ts";
+import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
 
 const allowedTypes = new Set(["image/jpeg","image/png","image/webp"]);
 const requiredViews: GarmentView[] = ["front","back","label"];
@@ -25,28 +26,32 @@ export function validateThreeViewUpload(parts: UploadDescriptor[]) {
   return true;
 }
 
-export function analyzeThreeViewSet(parts: UploadDescriptor[]): GarmentAnalysis {
+export function analyzeThreeViewSet(parts: UploadDescriptor[], options?:{registry?:BrandProductRegistration[];labelText?:string}): GarmentAnalysis {
   validateThreeViewUpload(parts);
-  const names = parts.map((part) => part.fileName.toLowerCase()).join(" ");
-  const northstarDemo = names.includes("northstar") && names.includes("overshirt");
-  if (northstarDemo) {
+  const labelText=options?.labelText?.trim().slice(0,1000) ?? "";
+  const match=matchBrandProduct(parts,labelText,options?.registry ?? seedBrandProducts);
+  if (match) {
+    const product=match.product;
+    const northstarDemo=product.sku==="NA-OW-1042";
     return {
-      provider:"deterministic-demo", fallback:true, confidence:96, dataSufficiency:"complete",
-      garment:{ name:"Sienna Soft Overshirt",category:"outerwear",color:"sienna",style:["minimal","casual","utility"],construction:["point collar","button front","two patch pockets","back yoke"],material:"100% cotton" },
-      label:{ brand:"Northstar Atelier",sku:"NA-OW-1042",brandSlug:"northstar-atelier",matched:true },
+      provider:"deterministic-demo", fallback:true, confidence:match.method==="label-image-hash"||match.method==="catalog-image-set"?98:96, dataSufficiency:"complete",
+      garment:northstarDemo
+        ? { name:product.name,category:product.category,color:"sienna",style:["minimal","casual","utility"],construction:["point collar","button front","two patch pockets","back yoke"],material:"100% cotton" }
+        : {name:product.name,category:product.category,color:"unconfirmed",style:[],construction:["front/back set validated"],material:"unconfirmed"},
+      label:{ brand:product.brand,sku:product.sku,brandSlug:product.brandSlug,matched:true,registryProductId:product.id,matchMethod:match.method },
       evidence:[
-        { view:"front",findings:["sienna woven overshirt","button front","two chest pockets"] },
-        { view:"back",findings:["matching color and silhouette","back yoke seam","consistent construction"] },
-        { view:"label",findings:["NORTHSTAR ATELIER","NA-OW-1042","100% COTTON"] },
+        { view:"front",findings:northstarDemo?["sienna woven overshirt","button front","two chest pockets"]:["front image validated","registered catalog view available"] },
+        { view:"back",findings:northstarDemo?["matching color and silhouette","back yoke seam","consistent construction"]:["back image validated","registered catalog view available"] },
+        { view:"label",findings:[product.brand,product.sku,`Registry match: ${match.method}`] },
       ],
-      warnings:["Demo fallback recognized the checked-in test filenames and manifest. Confirm all attributes before saving."],
+      warnings:["The product identity matched a brand-enrolled registry record. Confirm all attributes before saving; exact hashes prove identical files, not ownership of a separately photographed garment."],
     };
   }
   return {
     provider:"deterministic-demo",fallback:true,confidence:48,dataSufficiency:"complete",
     garment:{name:"Unconfirmed garment",category:"unknown",color:"unknown",style:[],construction:["three views received"],material:"unknown"},
-    label:{brand:"Unmatched label",sku:"UNCONFIRMED",brandSlug:null,matched:false},
+    label:{brand:"Unmatched label",sku:"UNCONFIRMED",brandSlug:null,matched:false,registryProductId:null,matchMethod:"none"},
     evidence:requiredViews.map((view)=>({view,findings:[`${view} image validated`]})),
-    warnings:["No external multimodal provider is configured. Enter or confirm the attributes manually."],
+    warnings:["No authoritative brand registry match was found. Add readable label text or configure OCR; never infer ownership from appearance alone."],
   };
 }

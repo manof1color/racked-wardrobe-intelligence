@@ -4,7 +4,9 @@ All mutation routes enforce a signed HTTP-only session on the server. Consumer a
 
 | Route | Access | Working behavior | Judge evidence |
 | --- | --- | --- | --- |
-| `POST /api/garments/analyze` | Consumer | Validates exactly one front, back, and label image (JPG/PNG/WebP, 5 MB each), then returns evidence, confidence, SKU, and brand match | Three-view uploader and `tests/three-view-upload.test.ts` |
+| `POST /api/garments/analyze` | Consumer | Validates and hashes front/back/label images, then resolves an enrolled label hash, three-view hash set, GTIN, or Brand + SKU label identity | Three-view uploader and registry tests |
+| `GET /api/brand/products` | Brand | Lists only products owned by the signed-in Brand subject | Brand registry panel |
+| `POST /api/brand/products` | Brand | Enrolls front/back/label hashes, account-bound brand, SKU/MPN, optional GTIN, aliases, and approved label text | Brand registry panel and `tests/product-registry.test.ts` |
 | `POST /api/agents/consumer` | Consumer | Uses wardrobe, wear, outfit, and weather tools to assemble a grounded outfit from owned pieces | Consumer Stylist Agent panel and `tests/agents.test.ts` |
 | `POST /api/agents/brand` | Brand | Uses product, aggregate wear, and privacy-threshold tools to return brand-safe wear intelligence | Brand dashboard Agent panel and `tests/agents.test.ts` |
 | `GET /api/community` | Public | Returns public fictional outfit posts and product/brand destinations | `/community` and `tests/community-store.test.ts` |
@@ -21,7 +23,7 @@ Use the **Load runnable test set** control in the Consumer upload dialog. It loa
 - `public/test-uploads/northstar-overshirt-back.png`
 - `public/test-uploads/northstar-overshirt-label.png`
 
-The checked-in manifest is `data/three-view-test-dataset.json`. All records, images, brands, SKUs, and behavioral data in this fixture are synthetic.
+The checked-in manifest is `data/three-view-test-dataset.json`. Enroll this set in the Brand workspace first; a subsequent Consumer scan resolves through the exact label-image hash. All fixture records and images are synthetic.
 
 ## Persistence boundary
 

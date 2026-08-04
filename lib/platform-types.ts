@@ -6,6 +6,23 @@ export interface UploadDescriptor {
   fileName: string;
   contentType: string;
   size: number;
+  sha256?: string;
+}
+
+export interface BrandProductRegistration {
+  id: string;
+  ownerSubject: string;
+  name: string;
+  brand: string;
+  brandSlug: string;
+  aliases: string[];
+  sku: string;
+  gtin: string | null;
+  category: string;
+  labelText: string;
+  views: Record<GarmentView, UploadDescriptor>;
+  enrolledAt: string;
+  source: "brand-enrolled" | "seed";
 }
 
 export interface GarmentAnalysis {
@@ -26,6 +43,8 @@ export interface GarmentAnalysis {
     sku: string;
     brandSlug: string | null;
     matched: boolean;
+    registryProductId: string | null;
+    matchMethod: "brand-sku" | "gtin" | "label-image-hash" | "catalog-image-set" | "none";
   };
   evidence: Array<{ view:GarmentView; findings:string[] }>;
   warnings: string[];
