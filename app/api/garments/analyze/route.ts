@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { analyzeThreeViewSet, MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
+import { analyzeFrontFirstSet, MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
 import { listBrandProducts } from "@/lib/server/demo-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 
@@ -21,16 +21,15 @@ export async function POST(request:Request) {
   try {
     const form=await request.formData();
     const views:GarmentView[]=["front","back","label"];
-    const files=views.map((view)=>{
+    const files=views.flatMap((view)=>{
       const value=form.get(view);
-      if (!(value instanceof File)) throw new UploadValidationError(`Exactly one ${view} image is required.`);
-      return {view,file:value};
+      return value instanceof File&&value.size>0?[{view,file:value}]:[];
     });
     const parts=await Promise.all(files.map(({view,file})=>describeFile(view,file)));
     const labelText=String(form.get("labelText") ?? "").slice(0,1000);
-    return NextResponse.json({analysis:analyzeThreeViewSet(parts,{registry:listBrandProducts(),labelText}),retention:"Images were hashed and validated in memory; raw consumer uploads were not persisted by the demo adapter."});
+    return NextResponse.json({analysis:analyzeFrontFirstSet(parts,{registry:listBrandProducts(),labelText}),retention:"Images were hashed and validated in memory; raw consumer uploads were not persisted by the demo adapter."});
   } catch (error) {
     if (error instanceof UploadValidationError) return NextResponse.json({error:error.message},{status:error.status});
-    return NextResponse.json({error:"The three-view set could not be analyzed."},{status:500});
+    return NextResponse.json({error:"The garment image set could not be analyzed."},{status:500});
   }
 }

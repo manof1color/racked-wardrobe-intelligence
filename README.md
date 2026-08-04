@@ -22,7 +22,7 @@ Both use password `demo2026`. These credentials protect fictional demo data only
 - **Consumer Stylist Agent:** builds an outfit only from owned pieces and current wardrobe/wear context; the result can be shared to the public community feed.
 - **Functional agent actions:** record every unique piece in the suggested outfit, publish the look, and visibly confirm the backend result.
 - **Brand Wear Intelligence Agent:** reports aggregate actual-wear signals, privacy suppression, and a grounded merchandising action without exposing identities.
-- **Three-view garment analysis:** submit front, back, and label images; the checked-in Northstar fixture resolves SKU `NA-OW-1042` to its public brand page. The analysis is review-first and never silently saves a model guess.
+- **Front-first garment analysis:** consumers can start with one front photo for quick wardrobe classification, then optionally add the back and label for a verified brand/SKU match. The checked-in Northstar evidence set resolves SKU `NA-OW-1042` to its public brand page. Every result is review-first and never silently saves a model guess.
 - **Brand product enrollment:** a Brand registers front/back/label hashes, SKU/MPN, optional GTIN, aliases, and approved label text before Consumer scans can trace the product.
 - **Consumer mobile foundation:** Today, Avatar, Closet, and Scan views, owned-piece avatar outfit recording, phone navigation, and an installable PWA manifest.
 - **Social discovery:** `/community` displays fictional outfit posts with product-to-brand links and backend-persisted demo likes.
