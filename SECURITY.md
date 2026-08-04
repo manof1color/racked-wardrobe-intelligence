@@ -20,4 +20,6 @@ Do not publish passwords other than the documented fictional demo password, sess
 
 ## Before public deployment
 
-Replace fictional demo authentication with Cognito, add rate limiting and CSRF review, persist consent versions, implement upload malware scanning, add dependency/security scanning, validate CloudFormation changes, and complete a focused authorization test against every write endpoint.
+Replace fictional demo authentication with Cognito, add rate limiting and CSRF review, persist consent versions, implement upload malware scanning, validate CloudFormation changes, and complete a focused authorization test against every write endpoint.
+
+Automated repository checks currently include production dependency auditing on every change, weekly Dependabot version updates, and CodeQL scanning on pushes, pull requests, and a weekly schedule. These checks complement rather than replace manual authorization and privacy review.

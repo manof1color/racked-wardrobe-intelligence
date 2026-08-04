@@ -1,0 +1,53 @@
+name: Feature request
+description: Propose a scoped improvement tied to user value and the competition rubric.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: user
+    attributes:
+      label: Primary user
+      options:
+        - Consumer
+        - Clothing brand
+        - Shoe brand
+        - Jewelry brand
+        - Vintage reseller
+        - Competition judge
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Explain the user need before describing the feature.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed outcome
+      description: Describe observable behavior and how success could be measured.
+    validations:
+      required: true
+  - type: dropdown
+    id: rubric
+    attributes:
+      label: Strongest rubric connection
+      options:
+        - Problem relevance
+        - Functionality and technical execution
+        - AI integration and innovation
+        - Code quality and documentation
+        - User experience and polish
+        - Business impact and presentation
+        - Ethics or accessibility bonus
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List the checks that would prove this is complete.
+    validations:
+      required: true
