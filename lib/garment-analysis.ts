@@ -26,6 +26,31 @@ export function validateThreeViewUpload(parts: UploadDescriptor[]) {
   return true;
 }
 
+export function validateFrontFirstUpload(parts: UploadDescriptor[]) {
+  const fronts=parts.filter((part)=>part.view==="front");
+  if (fronts.length!==1) throw new UploadValidationError("Exactly one front image is required.");
+  for (const view of requiredViews) {
+    if (parts.filter((part)=>part.view===view).length>1) throw new UploadValidationError(`Only one ${view} image can be analyzed.`);
+  }
+  for (const part of parts) {
+    if (!allowedTypes.has(part.contentType)) throw new UploadValidationError(`${part.view} must be JPG, PNG, or WebP.`);
+    if (part.size<=0||part.size>MAX_UPLOAD_BYTES) throw new UploadValidationError(`${part.view} must be larger than 0 bytes and no more than 5 MB.`);
+  }
+  return true;
+}
+
+export function analyzeFrontFirstSet(parts:UploadDescriptor[],options?:{registry?:BrandProductRegistration[];labelText?:string}):GarmentAnalysis {
+  validateFrontFirstUpload(parts);
+  if (requiredViews.every((view)=>parts.some((part)=>part.view===view))) return analyzeThreeViewSet(parts,options);
+  return {
+    provider:"deterministic-demo",fallback:true,confidence:76,dataSufficiency:"partial",
+    garment:{name:"Sienna overshirt",category:"outerwear",color:"sienna",style:["minimal","casual","utility"],construction:["point collar","button front","two patch pockets"],material:"unconfirmed"},
+    label:{brand:"Brand not verified",sku:"UNVERIFIED",brandSlug:null,matched:false,registryProductId:null,matchMethod:"none"},
+    evidence:[{view:"front",findings:["sienna woven overshirt","button front","two chest pockets","lightweight outerwear silhouette"]}],
+    warnings:["A front photo can classify visible attributes but cannot prove a brand or SKU. Add a label photo for identity verification; add the back when construction details matter."],
+  };
+}
+
 export function analyzeThreeViewSet(parts: UploadDescriptor[], options?:{registry?:BrandProductRegistration[];labelText?:string}): GarmentAnalysis {
   validateThreeViewUpload(parts);
   const labelText=options?.labelText?.trim().slice(0,1000) ?? "";

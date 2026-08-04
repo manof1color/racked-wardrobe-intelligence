@@ -12,7 +12,7 @@ Point out the four product principles below the hero: explainable matching, cons
 2. Point out the fictional identity and check the explicit opt-in box.
 3. Enter the workspace and identify the deterministic AI readout, data-sufficiency label, most/least-worn pieces, and outfit count.
 4. Click **+ Wear** on the white tee. Show the count and last-worn value update.
-5. Open the three-view uploader, choose **Load runnable test set**, and analyze the front, back, and label images. Show the per-view evidence and click the extracted Northstar brand link.
+5. Open the garment scanner and show that **Quick scan** needs only the front photo while keeping the brand unverified. Then switch to **Verified match**, load the full evidence set, and show the Northstar SKU and brand-page link.
 6. Ask the **Consumer Stylist Agent** for an outfit. Show its wardrobe/wear/outfit/weather tool list, then share the result to Community.
 7. Open **Community** and show the new outfit plus product-to-brand discovery links.
 

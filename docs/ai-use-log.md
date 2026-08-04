@@ -4,7 +4,7 @@
 
 ### 1. Garment attribute suggestion
 
-Intended production input: three validated garment images (front, back, and label). Intended output: category, primary color, style tags, construction, material, brand, SKU, and per-view evidence/confidence. The UI blocks saving until the Consumer confirms or corrects the fields. The checked-in demo recognizes a synthetic fixture through a deterministic adapter so it is credential-free and reliable.
+Intended production input: one validated front image for quick classification, with optional back and label evidence for product verification. Intended output: category, primary color, style tags, construction, material, brand, SKU, and per-view evidence/confidence. A front-only result never claims a brand or SKU. The UI blocks saving until the Consumer confirms or corrects the fields, and the checked-in demo remains credential-free and deterministic.
 
 Suggested system instruction:
 

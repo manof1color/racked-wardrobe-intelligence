@@ -4,7 +4,7 @@ All mutation routes enforce a signed HTTP-only session on the server. Consumer a
 
 | Route | Access | Working behavior | Judge evidence |
 | --- | --- | --- | --- |
-| `POST /api/garments/analyze` | Consumer | Validates and hashes front/back/label images, then resolves an enrolled label hash, three-view hash set, GTIN, or Brand + SKU label identity | Three-view uploader and registry tests |
+| `POST /api/garments/analyze` | Consumer | Accepts a front-only quick scan or a front/back/label verified scan. Quick scans classify visible attributes without claiming identity; verified scans can resolve an enrolled label hash, image set, GTIN, or Brand + SKU identity. | Front-first uploader and registry tests |
 | `GET /api/brand/products` | Brand | Lists only products owned by the signed-in Brand subject | Brand registry panel |
 | `POST /api/brand/products` | Brand | Enrolls front/back/label hashes, account-bound brand, SKU/MPN, optional GTIN, aliases, and approved label text | Brand registry panel and `tests/product-registry.test.ts` |
 | `POST /api/agents/consumer` | Consumer | Uses wardrobe, wear, outfit, and weather tools to assemble a grounded outfit from owned pieces | Consumer Stylist Agent panel and `tests/agents.test.ts` |
