@@ -11,6 +11,8 @@ export function AppShell({ role, children }: { role:Role; children:ReactNode }) 
       <div className={`mode-badge ${role}`}><i /> {role === "consumer" ? "CONSUMER MODE" : "BRAND MODE"}</div>
       <nav aria-label="Workspace navigation">
         <Link href={role === "consumer" ? "/consumer" : "/brand"}>Overview</Link>
+        <Link href="/community">Community</Link>
+        <Link href="/partners/clothing">Partners</Link>
         <Link href="/privacy">Privacy</Link>
         <Link className="switch-link" href="/login">Switch demo</Link>
         <button className="text-button" onClick={logout}>Sign out</button>

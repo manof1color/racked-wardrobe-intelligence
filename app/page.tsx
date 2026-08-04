@@ -7,6 +7,8 @@ export default function Home() {
         <Link className="wordmark" href="/">RACKED<span>.</span></Link>
         <div className="nav-links">
           <Link href="#how-it-works">How it works</Link>
+          <Link href="/community">Community</Link>
+          <Link href="/partners/clothing">Partners</Link>
           <Link href="/privacy">Privacy</Link>
           <Link className="button button-dark button-small" href="/login">Open demo</Link>
         </div>

@@ -4,6 +4,7 @@ import { AppShell } from "./app-shell";
 import { catalog, wardrobe } from "@/lib/demo-data";
 import { scoreProduct } from "@/lib/matching";
 import { calculateBrandMetrics } from "@/lib/metrics";
+import { BrandAgentPanel } from "./agent-panels";
 
 const demoWardrobes = [wardrobe, wardrobe.filter((_,i)=>i!==5), wardrobe.map((item,i)=>({...item,wearCount:item.wearCount+(i%3)})), wardrobe.filter((_,i)=>i!==3&&i!==7)];
 
@@ -17,6 +18,7 @@ export function BrandDashboard() {
   return <AppShell role="brand"><main className="workspace brand-workspace">
     <section className="workspace-heading"><div><div className="eyebrow">NORTHSTAR ATELIER · FICTIONAL BRAND</div><h1>Find the wardrobes<br />where this <em>belongs.</em></h1><p>Choose a product, run an explainable match, and turn grounded signals into a campaign brief.</p></div><button className="button button-dark" onClick={()=>setHasRun(true)}>Run product match ↗</button></section>
     <div className="privacy-banner"><span>◉</span><div><strong>Privacy boundary active</strong><p>Only anonymous demo segments above the minimum cohort threshold are visible. Names, emails, photos, and raw wardrobes stay hidden.</p></div><b>k ≥ 25</b></div>
+    <BrandAgentPanel productId={product.id}/>
     <section className="brand-layout">
       <aside className="catalog-panel"><div className="panel-heading"><div><div className="eyebrow">SEEDED CATALOG</div><h2>Choose a product</h2></div><span>{catalog.length} SKUs</span></div><div className="product-list">{catalog.map((item)=><button key={item.id} className={item.id===productId?"selected":""} onClick={()=>{setProductId(item.id);setHasRun(false);}}><span className={`tiny-swatch ${item.art}`} /><span><strong>{item.name}</strong><small>{item.sku} · ${item.price}</small></span><i>→</i></button>)}</div><button className="csv-button">+ Add product / import CSV</button></aside>
       <section className="match-panel">
