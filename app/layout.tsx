@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PwaInstall } from "@/components/pwa-install";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   manifest:"/manifest.webmanifest",
   applicationName:"Racked",
   appleWebApp:{capable:true,statusBarStyle:"black-translucent",title:"Racked"},
-  icons:{icon:"/icon.svg"},
+  icons:{icon:[{url:"/icon-192.png",sizes:"192x192",type:"image/png"},{url:"/icon-512.png",sizes:"512x512",type:"image/png"}],apple:[{url:"/apple-touch-icon.png",sizes:"180x180",type:"image/png"}]},
   openGraph: {
     title: "Racked — Sell what fits their real life.",
     description: "Explainable wardrobe intelligence for consumers and emerging apparel brands.",
@@ -33,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body>{children}</body>
+      <body>{children}<PwaInstall /></body>
     </html>
   );
 }
