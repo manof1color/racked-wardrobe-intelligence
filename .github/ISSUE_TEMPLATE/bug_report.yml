@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a reproducible problem in the Racked demo.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Racked. Never include credentials, PII, or private wardrobe images.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Consumer wardrobe and outfit agent
+        - Garment scan and matching
+        - Social wardrobe feed
+        - Brand wear intelligence
+        - Partner dashboards
+        - Authentication and access control
+        - Documentation or deployment
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: List the smallest sequence that consistently shows the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, device, route, and commit SHA if known.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, credentials, PII, and private images from this report.
+          required: true

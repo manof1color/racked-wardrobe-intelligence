@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security report
+    url: https://github.com/manof1color/racked-wardrobe-intelligence/security/policy
+    about: Report credentials, PII exposure, or exploitable security problems privately.
