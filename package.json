@@ -15,7 +15,7 @@
     "audit:prod": "pnpm audit --prod --audit-level high"
   },
   "dependencies": {
-    "next": "15.5.22",
+    "next": "16.2.12",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
