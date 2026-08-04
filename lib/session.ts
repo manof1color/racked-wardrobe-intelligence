@@ -1,4 +1,5 @@
 import type { Role } from "./types";
+import { timingSafeEqual } from "node:crypto";
 
 export interface SessionPayload { subject: string; role: Role; expiresAt: number; }
 const encoder = new TextEncoder();
@@ -22,7 +23,10 @@ export async function createSessionToken(payload: SessionPayload, secret: string
 export async function verifySessionToken(token: string, secret: string, now = Date.now()): Promise<SessionPayload | null> {
   try {
     const [body, supplied] = token.split(".");
-    if (!body || !supplied || supplied !== await signature(body, secret)) return null;
+    if (!body || !supplied) return null;
+    const suppliedBytes=Buffer.from(supplied,"base64url");
+    const expectedBytes=Buffer.from(await signature(body,secret),"base64url");
+    if (suppliedBytes.length!==expectedBytes.length || !timingSafeEqual(suppliedBytes,expectedBytes)) return null;
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as SessionPayload;
     if (!payload.subject || !["consumer","brand"].includes(payload.role) || payload.expiresAt <= now) return null;
     return payload;

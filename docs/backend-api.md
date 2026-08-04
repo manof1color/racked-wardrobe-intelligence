@@ -9,8 +9,9 @@ All mutation routes enforce a signed HTTP-only session on the server. Consumer a
 | `POST /api/agents/brand` | Brand | Uses product, aggregate wear, and privacy-threshold tools to return brand-safe wear intelligence | Brand dashboard Agent panel and `tests/agents.test.ts` |
 | `GET /api/community` | Public | Returns public fictional outfit posts and product/brand destinations | `/community` and `tests/community-store.test.ts` |
 | `POST /api/community` | Consumer | Publishes an outfit with allowlisted public fields | Consumer Agent “Share” flow |
-| `POST /api/wears` | Consumer | Records a demo wear event and returns the updated count | Consumer dashboard |
-| `GET /api/wears` | Brand | Returns aggregate counts only | Brand Wear Agent |
+| `PATCH /api/community` | Public | Persists a fictional inspiration/like count in the demo backend | Community cards and `tests/community-store.test.ts` |
+| `POST /api/wears` | Consumer | Records one wear or every unique piece in an agent-created outfit and returns updated counts | Consumer dashboard and Stylist Agent |
+| `GET /api/wears` | Brand | Returns category-level synthetic aggregates only; item IDs and identities are excluded | Brand Wear Agent |
 
 ## Three-view fixture
 

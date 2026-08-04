@@ -20,9 +20,10 @@ Both use password `demo2026`. These credentials protect fictional demo data only
 ### New end-to-end judge flows
 
 - **Consumer Stylist Agent:** builds an outfit only from owned pieces and current wardrobe/wear context; the result can be shared to the public community feed.
+- **Functional agent actions:** record every unique piece in the suggested outfit, publish the look, and visibly confirm the backend result.
 - **Brand Wear Intelligence Agent:** reports aggregate actual-wear signals, privacy suppression, and a grounded merchandising action without exposing identities.
 - **Three-view garment analysis:** submit front, back, and label images; the checked-in Northstar fixture resolves SKU `NA-OW-1042` to its public brand page. The analysis is review-first and never silently saves a model guess.
-- **Social discovery:** `/community` displays fictional outfit posts with product-to-brand links.
+- **Social discovery:** `/community` displays fictional outfit posts with product-to-brand links and backend-persisted demo likes.
 - **Four partner workspaces:** `/partners/vintage`, `/partners/clothing`, `/partners/shoes`, and `/partners/jewelry` show vertical-specific metrics, inventory, and agent briefs.
 
 ## Why the AI is substantive

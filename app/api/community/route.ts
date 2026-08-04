@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { catalog } from "@/lib/demo-data";
-import { addPost, listPosts } from "@/lib/server/demo-store";
+import { addPost, incrementPostLike, listPosts } from "@/lib/server/demo-store";
 
 export async function GET() { return NextResponse.json({posts:listPosts()}); }
 
@@ -16,4 +16,11 @@ export async function POST(request:Request) {
   const product=catalog.find((item)=>item.sku===(body?.sku ?? "NA-OW-1042")) ?? catalog[0];
   const post=addPost({outfitTitle:title,caption,image:"/test-uploads/northstar-overshirt-front.png",products:[{sku:product.sku,name:product.name,brand:product.brand,brandSlug:"northstar-atelier",category:product.category}]});
   return NextResponse.json({post},{status:201});
+}
+
+export async function PATCH(request:Request) {
+  const body=await request.json().catch(()=>null) as {postId?:string}|null;
+  if (!body?.postId) return NextResponse.json({error:"Community post ID is required."},{status:400});
+  try { return NextResponse.json({postId:body.postId,likes:incrementPostLike(body.postId)}); }
+  catch { return NextResponse.json({error:"Community post was not found."},{status:404}); }
 }

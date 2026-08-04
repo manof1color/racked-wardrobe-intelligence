@@ -20,6 +20,7 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] Wear recording with immediate metric and recommendation recalculation.
 - [x] Consumer Stylist Agent uses owned pieces; Brand Wear Agent uses privacy-safe aggregate actual-wear data.
 - [x] Public social outfit feed links pieces to brand pages without exposing private wardrobe records.
+- [x] Agent actions record an entire outfit, publish a post, and generate bounded brand/partner action plans; Community likes persist across reloads.
 - [x] Individual Vintage Reseller, Clothing Brand, Shoe Brand, and Jewelry Brand dashboards.
 - [x] 8 seeded brand products with SKUs and catalog selection.
 - [x] Product-to-segment match, score components, reasons, confidence, and campaign brief.
@@ -42,6 +43,7 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] TypeScript models separate product data, score components, matching, metrics, privacy, and sessions.
 - [x] `.env.example` contains placeholders only; `.env.local` is ignored.
 - [x] Tests cover score calculation, grounding, privacy threshold, field stripping, sessions, agents, three-view uploads, social privacy, and all four partner dashboards.
+- [x] Security hardening includes constant-time session signature comparison, early upload-set size rejection, bounded agent inputs, and category-only Brand aggregates.
 - [x] README and focused architecture, AI, privacy, dataset, demo, and deployment documents.
 - [x] GitHub Actions workflow runs lint, test, and build.
 - [x] Public repository and checkpoint history: [`manof1color/racked-wardrobe-intelligence`](https://github.com/manof1color/racked-wardrobe-intelligence).
