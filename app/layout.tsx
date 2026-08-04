@@ -8,6 +8,10 @@ export const metadata: Metadata = {
     template: "%s | Racked",
   },
   description: "Privacy-first AI wardrobe intelligence for people and emerging apparel brands.",
+  manifest:"/manifest.webmanifest",
+  applicationName:"Racked",
+  appleWebApp:{capable:true,statusBarStyle:"black-translucent",title:"Racked"},
+  icons:{icon:"/icon.svg"},
   openGraph: {
     title: "Racked — Sell what fits their real life.",
     description: "Explainable wardrobe intelligence for consumers and emerging apparel brands.",
@@ -28,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>{children}</body>
     </html>
   );

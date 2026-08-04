@@ -17,6 +17,8 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] 12 seeded garments, 136 seeded wear events, and 3 saved outfits.
 - [x] Garment image/manual intake, type/size guidance, AI suggestion review, mandatory confirmation.
 - [x] Runnable front/back/label fixture with strict validation, per-view evidence, SKU extraction, and public brand-page link.
+- [x] Brand-authoritative enrollment stores front/back/label hashes, SKU/MPN, optional GTIN, label aliases, and account-scoped ownership.
+- [x] Consumer mobile views include Today, Avatar outfit builder, Closet, Scan, and a PWA manifest.
 - [x] Wear recording with immediate metric and recommendation recalculation.
 - [x] Consumer Stylist Agent uses owned pieces; Brand Wear Agent uses privacy-safe aggregate actual-wear data.
 - [x] Public social outfit feed links pieces to brand pages without exposing private wardrobe records.
@@ -42,7 +44,7 @@ Use this page as the judge’s index. Every statement below points to working UI
 
 - [x] TypeScript models separate product data, score components, matching, metrics, privacy, and sessions.
 - [x] `.env.example` contains placeholders only; `.env.local` is ignored.
-- [x] Tests cover score calculation, grounding, privacy threshold, field stripping, sessions, agents, three-view uploads, social privacy, and all four partner dashboards.
+- [x] Tests cover score calculation, grounding, privacy threshold, field stripping, sessions, agents, three-view uploads, registry hash/label matching, social privacy, and all four partner dashboards.
 - [x] Security hardening includes constant-time session signature comparison, early upload-set size rejection, bounded agent inputs, and category-only Brand aggregates.
 - [x] Production dependencies pass `pnpm audit:prod`; patched transitive versions are pinned and the audit runs on every GitHub Actions verification.
 - [x] README and focused architecture, AI, privacy, dataset, demo, and deployment documents.
