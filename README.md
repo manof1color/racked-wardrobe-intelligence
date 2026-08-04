@@ -17,6 +17,14 @@ The app includes two fictional accounts and works without an external AI provide
 
 Both use password `demo2026`. These credentials protect fictional demo data only and are intentionally public for judging. Production authentication is designed for Amazon Cognito.
 
+### New end-to-end judge flows
+
+- **Consumer Stylist Agent:** builds an outfit only from owned pieces and current wardrobe/wear context; the result can be shared to the public community feed.
+- **Brand Wear Intelligence Agent:** reports aggregate actual-wear signals, privacy suppression, and a grounded merchandising action without exposing identities.
+- **Three-view garment analysis:** submit front, back, and label images; the checked-in Northstar fixture resolves SKU `NA-OW-1042` to its public brand page. The analysis is review-first and never silently saves a model guess.
+- **Social discovery:** `/community` displays fictional outfit posts with product-to-brand links.
+- **Four partner workspaces:** `/partners/vintage`, `/partners/clothing`, `/partners/shoes`, and `/partners/jewelry` show vertical-specific metrics, inventory, and agent briefs.
+
 ## Why the AI is substantive
 
 Racked combines seven stored signals: outfit pairing, color compatibility, style compatibility, wear relevance, season fit, wardrobe-gap bonus, and duplicate-category risk. Each score is weighted, inspectable, and tested. Explanations are generated only from these components and confirmed attributes—never from invented identity traits, preferences, outcomes, or sales claims.
@@ -29,7 +37,7 @@ When a multimodal provider is unavailable, the same workflow uses a visibly labe
 | --- | --- |
 | Problem & relevance — 20% | This README, [one-page summary](docs/one-page-summary.md), measurable brand metrics |
 | Functionality — 25% | Signed login, Consumer and Brand workflows, error/empty/success states, tests, [AWS plan](docs/aws-deployment.md) |
-| AI & innovation — 20% | [`lib/matching.ts`](lib/matching.ts), attribute-confirmation UI, score explanations, deterministic fallback |
+| AI & innovation — 20% | [`lib/matching.ts`](lib/matching.ts), [`lib/agents.ts`](lib/agents.ts), three-view analysis, score explanations, deterministic fallback |
 | Code, docs & GitHub — 15% | Typed modules, tests, CI, architecture/privacy documentation, checkpoint-ready history |
 | UX & polish — 10% | Responsive dual-mode interface, keyboard focus, semantic labels, reduced-motion support |
 | Business impact — 10% | Match opportunity, gap prevalence, duplicate risk, eligible segment size, campaign brief |
@@ -68,7 +76,7 @@ pnpm test
 pnpm build
 ```
 
-Tests cover signed/expired/tampered sessions, role claims, the seven-factor score, deterministic ordering, explanation grounding, minimum cohort enforcement, and removal of identity fields from brand-safe segments.
+Tests cover signed/expired/tampered sessions, role claims, the seven-factor score, deterministic ordering, explanation grounding, both agents, three-view validation and SKU linking, social privacy, four vertical dashboards, minimum cohort enforcement, and removal of identity fields from brand-safe segments.
 
 ## Documentation index
 
@@ -79,6 +87,7 @@ Tests cover signed/expired/tampered sessions, role claims, the seven-factor scor
 - [AI use log](docs/ai-use-log.md) — AI workflow, prompts, fallback, limitations
 - [Privacy and ethics](docs/privacy-and-ethics.md) — consent, retention, deletion, bias safeguards
 - [Dataset provenance](docs/dataset-provenance.md) — synthetic seeds and public data candidates
+- [Backend API](docs/backend-api.md) — routes, authorization, request shapes, and demo persistence
 - [AWS deployment](docs/aws-deployment.md) — exact staged deployment checklist
 - [Security policy](SECURITY.md) — secret handling and reporting
 

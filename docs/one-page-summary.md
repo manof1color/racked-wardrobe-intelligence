@@ -6,11 +6,11 @@ Apparel brands know what customers purchased, but rarely know what they actually
 
 ## Solution
 
-Racked is a privacy-first wardrobe-intelligence application. A consumer opts in, confirms garment attributes, tracks wears and outfits, and sees usage insights. A brand selects a product and receives ranked anonymous segments, an inspectable match score, three grounded reasons, and a campaign brief. The brand never sees names, emails, photos, or raw wardrobes.
+Racked is a privacy-first wardrobe-intelligence application. A consumer opts in, analyzes front/back/label images, confirms garment attributes, tracks wears and outfits, asks a Stylist Agent for owned-item outfits, and can share selected looks publicly. Product labels link viewers to a public brand page. A Brand Wear Intelligence Agent reports only aggregate actual-wear signals. Separate vintage, clothing, shoe, and jewelry dashboards demonstrate how the same platform adapts by partner type. The brand never sees names, emails, private photos, or raw wardrobes.
 
 ## AI use
 
-Garment intake is designed around a multimodal provider interface: a model may suggest category, color, style, and season, but the user must confirm or correct every field. Product matching combines seven explainable signals: category/outfit pairing, color, style, wear relevance, season, wardrobe gaps, and duplicate risk. Language generation is constrained to stored score components and confirmed attributes. If an external provider fails, a labeled deterministic fallback completes the demo without fabricating output.
+Garment intake is designed around a multimodal provider interface: a model may suggest category, color, style, construction, material, brand, and SKU from three views, but the user must confirm or correct every field. Product matching combines seven explainable signals: category/outfit pairing, color, style, wear relevance, season, wardrobe gaps, and duplicate risk. Both agents are tool-bounded and display their evidence. If an external provider fails, a labeled deterministic fallback completes the demo without fabricating output.
 
 ## Business value
 

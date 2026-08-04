@@ -7,9 +7,13 @@ Racked uses a small, deterministic, fully synthetic dataset:
 - one fictional Consumer with 12 wardrobe items, 136 wear events, and 3 outfits;
 - one fictional brand, **Northstar Atelier**, with 8 products;
 - fictional SKUs, prices, product names, identities, segment sizes, and behavior;
-- no real customer data, photos, or copied catalog text.
+- one synthetic three-image set (front, back, label) generated specifically for this project;
+- four fictional partner dashboard datasets for vintage, clothing, shoes, and jewelry;
+- no real customer data or copied catalog text.
 
 The normalized product table is available in [`../data/demo-products.csv`](../data/demo-products.csv). Synthetic data is the safest default for a public competition demo because judges can reproduce the workflow and no person or real brand is misrepresented.
+
+The three-view manifest is [`../data/three-view-test-dataset.json`](../data/three-view-test-dataset.json). Its label intentionally contains the fictional brand **Northstar Atelier** and SKU `NA-OW-1042`. The three PNG files are in `public/test-uploads/` and were created with OpenAI image generation for this demo; they do not depict a real catalog product or endorsement.
 
 ## Recommended external candidate: Amazon Berkeley Objects (ABO)
 

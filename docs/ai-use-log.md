@@ -4,7 +4,7 @@
 
 ### 1. Garment attribute suggestion
 
-Intended production input: one validated garment image. Intended output: category, primary color, style tags, season, and per-field confidence. The UI blocks saving until the Consumer confirms or corrects the fields. The checked-in demo simulates this provider result so it is credential-free and reliable.
+Intended production input: three validated garment images (front, back, and label). Intended output: category, primary color, style tags, construction, material, brand, SKU, and per-view evidence/confidence. The UI blocks saving until the Consumer confirms or corrects the fields. The checked-in demo recognizes a synthetic fixture through a deterministic adapter so it is credential-free and reliable.
 
 Suggested system instruction:
 
@@ -29,6 +29,10 @@ Weights sum to 100%. The score is clamped to 0–100 and every component is show
 ### 3. Explanation and campaign language
 
 The deterministic path selects language templates from score thresholds. A future text model may improve phrasing, but it may receive only product attributes, aggregate score components, and approved reason facts. It must not receive a name, email, image, or raw wardrobe and must not invent sales lift, likelihood to buy, demographic traits, or personal preferences.
+
+### 4. Two bounded agents
+
+The Consumer Stylist Agent can call wardrobe, wear-history, saved-outfit, and demo-weather tools. It may recommend only pieces in the user’s wardrobe. The Brand Wear Intelligence Agent can call catalog, aggregate-wear, and privacy-threshold tools. It cannot access a user identity or raw wardrobe. Both return their tool trace and limitations in the interface; their checked-in path is deterministic and tested.
 
 ## Confidence and fallback
 

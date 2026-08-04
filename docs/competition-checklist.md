@@ -16,7 +16,11 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] Explicit Consumer consent before entering the wardrobe workspace.
 - [x] 12 seeded garments, 136 seeded wear events, and 3 saved outfits.
 - [x] Garment image/manual intake, type/size guidance, AI suggestion review, mandatory confirmation.
+- [x] Runnable front/back/label fixture with strict validation, per-view evidence, SKU extraction, and public brand-page link.
 - [x] Wear recording with immediate metric and recommendation recalculation.
+- [x] Consumer Stylist Agent uses owned pieces; Brand Wear Agent uses privacy-safe aggregate actual-wear data.
+- [x] Public social outfit feed links pieces to brand pages without exposing private wardrobe records.
+- [x] Individual Vintage Reseller, Clothing Brand, Shoe Brand, and Jewelry Brand dashboards.
 - [x] 8 seeded brand products with SKUs and catalog selection.
 - [x] Product-to-segment match, score components, reasons, confidence, and campaign brief.
 - [x] Loading/disabled, empty, success, validation, and error states.
@@ -31,12 +35,13 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] Deterministic fallback is visible and produces the complete workflow without an API.
 - [x] Garment attributes require human confirmation before saving.
 - [x] The campaign brief prohibits invented lift or forecasting claims.
+- [x] Both agents disclose tool use, boundaries, and deterministic-demo status.
 
 ## 4. Code / docs / GitHub — 15%
 
 - [x] TypeScript models separate product data, score components, matching, metrics, privacy, and sessions.
 - [x] `.env.example` contains placeholders only; `.env.local` is ignored.
-- [x] Tests cover score calculation, grounding, privacy threshold, field stripping, and sessions.
+- [x] Tests cover score calculation, grounding, privacy threshold, field stripping, sessions, agents, three-view uploads, social privacy, and all four partner dashboards.
 - [x] README and focused architecture, AI, privacy, dataset, demo, and deployment documents.
 - [x] GitHub Actions workflow runs lint, test, and build.
 - [ ] Public remote and checkpoint commits—pending GitHub account connection.

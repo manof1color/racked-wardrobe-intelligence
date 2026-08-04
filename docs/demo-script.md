@@ -12,9 +12,9 @@ Point out the four product principles below the hero: explainable matching, cons
 2. Point out the fictional identity and check the explicit opt-in box.
 3. Enter the workspace and identify the deterministic AI readout, data-sufficiency label, most/least-worn pieces, and outfit count.
 4. Click **+ Wear** on the white tee. Show the count and last-worn value update.
-5. Click **Add a garment → Use simulated extraction instead**. Explain that a real multimodal provider can suggest attributes, but saving is blocked until the user confirms them.
-6. Confirm the new garment. Point out that the image is not retained by this demo.
-7. Scroll to the recommendations and read one grounded reason. Emphasize that the score changed from confirmed wardrobe facts, not inferred identity.
+5. Open the three-view uploader, choose **Load runnable test set**, and analyze the front, back, and label images. Show the per-view evidence and click the extracted Northstar brand link.
+6. Ask the **Consumer Stylist Agent** for an outfit. Show its wardrobe/wear/outfit/weather tool list, then share the result to Community.
+7. Open **Community** and show the new outfit plus product-to-brand discovery links.
 
 ## 2:45–5:30 — Brand workflow
 
@@ -26,6 +26,11 @@ Point out the four product principles below the hero: explainable matching, cons
 6. Show the seven weighted score components and three reasons.
 7. Point out the deterministic fallback label. Explain that a provider outage cannot break the judge demo.
 8. Read the campaign message and the instruction not to imply a sales outcome.
+9. Run the **Brand Wear Intelligence Agent**. Show that it uses aggregate wear and privacy-threshold tools, never a person-level wardrobe.
+
+## 5:30–6:00 — Partner views
+
+Open the partner navigation and briefly visit `/partners/vintage`, `/partners/clothing`, `/partners/shoes`, and `/partners/jewelry`. Each URL has vertical-specific operating metrics, inventory, and an agent recommendation.
 
 ## 5:30–6:30 — Technical and ethical proof
 

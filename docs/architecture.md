@@ -13,8 +13,9 @@ Public landing/login
   → POST /api/auth/demo validates fictional credentials + consent
   → signed HTTP-only SameSite session
   → server-enforced /consumer or /brand route
-  → typed deterministic seed data
-  → pure matching/metrics/privacy modules
+  → typed deterministic seed data + process-local demo store
+  → pure matching/metrics/privacy/agent modules
+  → three-view analysis + public community/partner routes
 ```
 
 This mode requires no cloud credentials or model key. Session changes reset on reload by design and are labeled as demo behavior.
@@ -45,6 +46,7 @@ AWS documents managed Next.js SSR/API-route hosting through Amplify and OIDC ide
 | Brand / Product / ProductAttribute | Brand catalog and confirmed product facts | Brand-owned |
 | MatchResult / ScoreComponent / MatchReason | Auditable score and grounded explanation | Consumer-owned or thresholded segment aggregate |
 | Segment | Minimum-size anonymous cohort | Suppressed below 25 members |
+| PublicOutfitPost | Opt-in caption, outfit items, and brand links | Public allowlist only; no raw wardrobe or email |
 
 The demo implements these concepts in typed seed structures; `infra/template.yaml` creates production storage boundaries. A DynamoDB single-table key design can use `PK=USER#<subject>` or `PK=BRAND#<id>` with typed sort-key prefixes. Separate aggregate partitions ensure brand requests never query raw consumer records.
 
@@ -67,4 +69,4 @@ The demo implements these concepts in typed seed structures; `infra/template.yam
 
 ## Deliberate MVP exclusions
 
-No social feed, resale marketplace, payments, virtual try-on, full Shopify integration, demographic targeting, sales forecasting, or production PII. These would dilute the competition’s core value proof and expand risk.
+No payments, virtual try-on, full Shopify integration, demographic targeting, sales forecasting, or production PII. Community posts and partner dashboards are working simulations; the project does not claim real commerce or brand integrations.
