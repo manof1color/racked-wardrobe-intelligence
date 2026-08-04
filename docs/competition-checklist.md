@@ -44,7 +44,7 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] Tests cover score calculation, grounding, privacy threshold, field stripping, sessions, agents, three-view uploads, social privacy, and all four partner dashboards.
 - [x] README and focused architecture, AI, privacy, dataset, demo, and deployment documents.
 - [x] GitHub Actions workflow runs lint, test, and build.
-- [ ] Public remote and checkpoint commits—pending GitHub account connection.
+- [x] Public repository and checkpoint history: [`manof1color/racked-wardrobe-intelligence`](https://github.com/manof1color/racked-wardrobe-intelligence).
 
 ## 5. UX / polish — 10%
 
