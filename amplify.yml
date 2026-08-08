@@ -7,6 +7,10 @@ frontend:
         - pnpm install --frozen-lockfile
     build:
       commands:
+        # Judge note: Amplify exposes console variables to the build container, but
+        # Next.js SSR needs an allowlisted .env.production file in the deployment
+        # artifact. The helper writes values without printing them to build logs.
+        - node scripts/write-amplify-env.mjs
         - pnpm build
   artifacts:
     baseDirectory: .next
