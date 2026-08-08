@@ -22,9 +22,9 @@ export default function Home() {
           <span className="hero-note">Private photos · confirmed attributes · anonymous brand insights</span>
         </div>
         <div className="hero-board" aria-label="Racked wardrobe intelligence overview">
-          <div className="hero-card hero-garment"><span className="garment-art coral">OVERSHIRT</span><small>Consumer wardrobe</small><strong>12 pieces understood</strong></div>
-          <div className="match-connector"><span>92</span><small>FIT SCORE</small></div>
-          <div className="hero-card hero-result"><div className="mini-label">WHY IT FITS</div><strong>Fills a lightweight layer gap</strong><p>Pairs with 4 frequently worn basics and adds a missing warm neutral.</p><div className="score-line"><i style={{width:"92%"}} /></div></div>
+          <div className="hero-card hero-garment"><span className="garment-art coral">YOUR ITEM</span><small>Private wardrobe</small><strong>Photo analyzed and confirmed</strong></div>
+          <div className="match-connector"><span>AI</span><small>EXPLAINED</small></div>
+          <div className="hero-card hero-result"><div className="mini-label">REAL ACCOUNT OUTPUT</div><strong>Recommendations grounded in your wardrobe</strong><p>Scores and wear insights appear only after a person adds and confirms their own garments.</p></div>
         </div>
       </section>
       <section className="proof-strip" aria-label="Product principles">
