@@ -1,6 +1,21 @@
 # AWS deployment checklist
 
-No AWS credentials or paid actions are required to review this repository. These steps intentionally stop before account-specific submission.
+**Deployment status:** live on AWS Amplify at [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com). No AWS credentials are required to review or judge the application.
+
+## Verified production smoke test — August 9, 2026
+
+| Judge-visible flow | Result |
+| --- | --- |
+| Public landing page over HTTPS | Passed |
+| Protected Consumer route redirects to login | Passed |
+| Consumer consent and signed demo session | Passed |
+| Front-photo fixture analysis and human confirmation | Passed — visible attributes saved; brand correctly remained unverified |
+| Consumer Stylist Agent | Passed — owned-garment outfit returned with four inspectable tools |
+| Brand dashboard and 8-SKU seeded catalog | Passed |
+| Privacy-thresholded segment, seven-factor score, reasons, and campaign brief | Passed |
+| PWA manifest, service worker, and offline page | Passed — all returned HTTP 200 |
+
+The deployment uses the tested deterministic fallback by default. Real multimodal analysis remains available when `AI_PROVIDER` and a server-only `AI_API_KEY` are configured. Amplify writes only an explicit allowlist of runtime values into the SSR build artifact; secret values are never printed or committed.
 
 ## Target services
 
@@ -56,7 +71,7 @@ No AWS credentials or paid actions are required to review this repository. These
 3. Allow Amplify to create a service role or select a narrowly scoped existing role.
 4. Confirm `amplify.yml` uses `pnpm install --frozen-lockfile`, `pnpm build`, and `.next` artifacts.
 5. Add `SESSION_SECRET` and non-secret resource IDs in Amplify settings.
-6. Save and deploy. Confirm the generated HTTPS URL.
+6. Save and deploy. Confirm the generated HTTPS URL. **Completed:** the `main` branch deploys automatically to the live URL above.
 
 ## Stage 4 — production smoke test
 
