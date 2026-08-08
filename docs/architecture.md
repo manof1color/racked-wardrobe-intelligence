@@ -1,75 +1,53 @@
-# Architecture
+# Production architecture and trust boundaries
 
-## Design goal
-
-Deliver one end-to-end wardrobe-to-product-to-explainable-match workflow that is reliable for judging and can migrate to production services without rewriting the scoring model.
-
-## Runtime views
-
-### Checked-in competition demo
+## Request path
 
 ```text
-Public landing/login
-  → POST /api/auth/demo validates fictional credentials + consent
-  → signed HTTP-only SameSite session
-  → server-enforced /consumer or /brand route
-  → typed deterministic seed data + process-local demo store
-  → pure matching/metrics/privacy/agent modules
-  → three-view analysis + public community/partner routes
+Phone/browser
+  → AWS Amplify HTTPS
+  → Next.js server routes
+      → DynamoDB (account-owned structured state)
+      → private S3 (authorized and consumer garment images)
+      → Amazon Bedrock Nova Lite (visible garment analysis)
 ```
 
-This mode requires no cloud credentials or model key. Demo mutations survive browser reloads for the life of the Next.js process and reset when the server restarts.
+## Identity
 
-### AWS target
+`POST /api/auth/register` creates a Consumer or Brand record. Email is normalized, passwords are salted and scrypt-hashed, and a signed HTTP-only session carries only the account subject, role, and expiry. Protected pages enforce the role on the server.
 
-```text
-Browser
-  → AWS Amplify Hosting (Next.js 15 SSR, static pages, API routes)
-  → Amazon Cognito user pool (OIDC identity; Consumer/Brand/Admin groups)
-  → server authorization boundary
-  → Amazon DynamoDB (structured records and score components)
-  → private Amazon S3 bucket (validated temporary uploads)
-  → optional multimodal provider adapter (server-only key)
-```
+## Consumer ownership boundary
 
-AWS documents managed Next.js SSR/API-route hosting through Amplify and OIDC identity through Cognito user pools. The precise owner-run sequence is in [aws-deployment.md](aws-deployment.md).
+All Consumer records use `PK=USER#<subject>` with typed sort keys such as `GARMENT#`, `OUTFIT#`, and `PROFILE`. An analyzed garment image is saved under `wardrobe/<subject>/…` in private S3. The confirmation API rejects an image outside that prefix and verifies a server HMAC over the account, key, garment fields, and registry result.
 
-## Domain model
+## Brand ownership boundary
 
-| Model | Purpose | Sensitive boundary |
-| --- | --- | --- |
-| User / Role | Identity and Consumer/Brand/Admin authorization | Cognito subject; email excluded from brand views |
-| Consent | Versioned opt-in, timestamp, withdrawal | Required before wardrobe analysis |
-| WardrobeItem | Confirmed attributes and optional private image key | Owner-only |
-| WearEvent | Garment use timestamp | Owner-only; aggregate-only to brands |
-| Outfit / OutfitItem | Pairing relationships | Owner-only; aggregate-only to brands |
-| Brand / Product / ProductAttribute | Brand catalog and confirmed product facts | Brand-owned |
-| BrandProductRegistration | Account-bound brand, SKU/GTIN, aliases, approved label text, and three image hashes | Brand-owned writes; identity fields available to Consumer matching |
-| MatchResult / ScoreComponent / MatchReason | Auditable score and grounded explanation | Consumer-owned or thresholded segment aggregate |
-| Segment | Minimum-size anonymous cohort | Suppressed below 25 members |
-| PublicOutfitPost | Opt-in caption, outfit items, and brand links | Public allowlist only; no raw wardrobe or email |
+Brand products use the same account partition with `PRODUCT#<id>` sort keys. The brand name comes from the authenticated account, not a submitted form field. Authorized product images are private. A cross-product registry index contains only product registry records needed for label/SKU resolution.
 
-The demo implements these concepts in typed seed structures; `infra/template.yaml` creates production storage boundaries. A DynamoDB single-table key design can use `PK=USER#<subject>` or `PK=BRAND#<id>` with typed sort-key prefixes. Separate aggregate partitions ensure brand requests never query raw consumer records.
+## Image and AI path
 
-## Trust boundaries
+1. Validate JPG/PNG/WebP and size before processing.
+2. Send only supplied views to Amazon Bedrock with instructions that prohibit person or demographic inference.
+3. Parse the structured visible-attribute result.
+4. Verify brand identity only against a brand-enrolled hash, GTIN, or brand-and-SKU record.
+5. Use Sharp to rotate, trim a plain background, resize, and encode an avatar-ready PNG.
+6. Store privately and return a one-hour signed link plus server confirmation token.
+7. Require human confirmation before creating the wardrobe record.
 
-1. The browser is untrusted. It does not receive `SESSION_SECRET`, model keys, or AWS credentials.
-2. Authentication is not authorization. Every protected page/API must verify the session and required role on the server.
-3. Raw Consumer records and private S3 keys are never returned by Brand endpoints.
-4. Uploads are allowlisted to JPG/PNG/WebP, limited to 5 MB, renamed server-side, scanned in a production extension, and deleted after attribute extraction.
-5. Explanations consume stored score components. They cannot make new predictions.
-6. Aggregate release is gated by `MINIMUM_COHORT_SIZE = 25`.
-7. Brand enrollment ignores a client-supplied brand identity and binds the record to the authenticated Brand organization.
-8. A registry hit is traceability evidence, not proof that a separately photographed physical garment is authentic; appearance-only matches stay unverified.
+In production, provider failure returns an error and creates no wardrobe record.
 
-## Reliability strategy
+## Brand analytics boundary
 
-- Matching and metrics are pure deterministic functions and have no network dependency.
-- External model output is treated as a suggestion requiring confirmation.
-- Missing or invalid sessions fail closed.
-- Empty/recalculation, validation, success, and provider-fallback states are visible.
-- Tests protect score weights, deterministic ordering, explanation boundaries, session integrity, and privacy suppression.
+Garments connected to an enrolled product are indexed by product ID. Brand metrics first confirm product ownership, then retrieve connected garments, batch-read only the relevant consent flags, remove non-opted-in owners, and enforce `k ≥ 25` before computing actual wears, active owners, or repeat-wear rate.
 
-## Deliberate MVP exclusions
+## AWS infrastructure
 
-No payments, photorealistic virtual try-on, full Shopify integration, demographic targeting, sales forecasting, or production PII. The avatar is an owned-piece outfit visualizer, not a body measurement or fit prediction. Community posts and partner dashboards are working simulations.
+`infra/template.yaml` provisions:
+
+- DynamoDB on-demand table with encryption, point-in-time recovery, and deletion protection;
+- private encrypted S3 bucket with public access blocked;
+- Cognito resources reserved for a future OIDC migration;
+- an Amplify compute role limited to required DynamoDB, S3-object, and Bedrock actions.
+
+## Explicit non-claims
+
+The avatar is an outfit visualizer, not photorealistic virtual try-on or body-fit prediction. Racked does not predict purchase likelihood, sales lift, identity, income, age, gender, ethnicity, or body measurements.

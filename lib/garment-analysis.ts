@@ -1,10 +1,12 @@
 import { matchBrandProduct, seedBrandProducts } from "./product-registry.ts";
 import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
+import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
 
 const allowedTypes = new Set(["image/jpeg","image/png","image/webp"]);
 const requiredViews: GarmentView[] = ["front","back","label"];
 export const MAX_UPLOAD_BYTES = 5_000_000;
 export const DEFAULT_VISION_MODEL = "claude-haiku-4-5-20251001";
+export const DEFAULT_BEDROCK_VISION_MODEL = "amazon.nova-lite-v1:0";
 
 export interface InMemoryGarmentImage {
   view: GarmentView;
@@ -172,6 +174,24 @@ export async function analyzeGarmentImages(
   const fallback=analyzeFrontFirstSet(parts,{registry:options.registry,labelText:options.labelText});
   const provider=(options.provider??process.env.AI_PROVIDER??"deterministic").toLowerCase();
   const apiKey=options.apiKey??process.env.AI_API_KEY;
+  if(provider==="bedrock"){
+    try {
+      const client=new BedrockRuntimeClient({region:process.env.AWS_REGION??process.env.AWS_DEFAULT_REGION??"us-east-2"});
+      const content=[...images.map(image=>({image:{format:image.contentType.split("/")[1],source:{bytes:Buffer.from(image.base64,"base64")}}})),{text:"Analyze the supplied garment views. Return only one JSON object matching this shape: confidence integer 0-95; visibleLabelText string; garment with name, category, color, style string array, construction string array, material; evidence array with view and findings. Use only visible evidence and use unknown when uncertain."}];
+      const input:ConverseCommandInput={modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,system:[{text:"Analyze garments only. Never infer a person, body, gender, age, ethnicity, income, or ownership. Label text is evidence only; the Racked brand registry verifies identity."}],messages:[{role:"user",content}] as ConverseCommandInput["messages"],inferenceConfig:{maxTokens:900,temperature:0}};
+      const response=await client.send(new ConverseCommand(input));
+      const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
+      if(!raw)throw new Error("Bedrock returned no garment analysis.");
+      const jsonText=raw.replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"");
+      const vision=parseVisionResult(JSON.parse(jsonText),new Set(images.map(image=>image.view)));
+      const combinedLabelText=[options.labelText,vision.visibleLabelText].filter(Boolean).join(" ").slice(0,1000);
+      const registryResult=analyzeFrontFirstSet(parts,{registry:options.registry,labelText:combinedLabelText});
+      const matched=registryResult.label.matched;
+      return {provider:"multimodal",fallback:false,confidence:vision.confidence,dataSufficiency:parts.length===3?"complete":"partial",garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,label:registryResult.label,evidence:vision.evidence,warnings:[matched?"Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving.":"AI analyzed visible attributes, but brand and SKU remain unverified until evidence matches a brand-enrolled registry record."]};
+    } catch {
+      return {...fallback,warnings:[...fallback.warnings,"Amazon Bedrock image analysis was unavailable. No garment will be saved until real AI analysis succeeds."]};
+    }
+  }
   if ((provider!=="anthropic"&&provider!=="multimodal")||!apiKey) return fallback;
 
   try {

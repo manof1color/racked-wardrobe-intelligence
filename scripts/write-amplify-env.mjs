@@ -8,6 +8,8 @@ const allowlist = [
   "AI_API_KEY",
   "AI_MODEL",
   "NEXT_PUBLIC_SITE_URL",
+  "RACKED_TABLE_NAME",
+  "RACKED_UPLOAD_BUCKET",
 ];
 
 const sessionSecret = process.env.SESSION_SECRET ?? "";

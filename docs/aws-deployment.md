@@ -1,90 +1,59 @@
-# AWS deployment checklist
+# AWS production deployment
 
-**Deployment status:** live on AWS Amplify at [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com). No AWS credentials are required to review or judge the application.
+Live app: [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com)
 
-## Verified production smoke test — August 9, 2026
+## Current infrastructure
 
-| Judge-visible flow | Result |
-| --- | --- |
-| Public landing page over HTTPS | Passed |
-| Protected Consumer route redirects to login | Passed |
-| Consumer consent and signed demo session | Passed |
-| Front-photo fixture analysis and human confirmation | Passed — visible attributes saved; brand correctly remained unverified |
-| Consumer Stylist Agent | Passed — owned-garment outfit returned with four inspectable tools |
-| Brand dashboard and 8-SKU seeded catalog | Passed |
-| Privacy-thresholded segment, seven-factor score, reasons, and campaign brief | Passed |
-| PWA manifest, service worker, and offline page | Passed — all returned HTTP 200 |
+The `racked-production` CloudFormation stack is deployed in `us-east-2` and provides:
 
-The deployment uses the tested deterministic fallback by default. Real multimodal analysis remains available when `AI_PROVIDER` and a server-only `AI_API_KEY` are configured. Amplify writes only an explicit allowlist of runtime values into the SSR build artifact; secret values are never printed or committed.
+- DynamoDB on-demand table with encryption, point-in-time recovery, and deletion protection;
+- private encrypted S3 bucket with public access blocked;
+- Cognito resources reserved for a later managed-identity migration;
+- Amplify compute role scoped to required DynamoDB, private S3-object, and Amazon Bedrock actions.
 
-## Target services
+Amplify is configured with the table and bucket names, the compute role, `AI_PROVIDER=bedrock`, and `AI_MODEL=amazon.nova-lite-v1:0`. Secret values are not printed or stored in GitHub.
 
-- **AWS Amplify Hosting:** Next.js 15 SSR, static landing pages, and API routes. AWS’s [Next.js deployment guide](https://docs.aws.amazon.com/amplify/latest/userguide/deploy-nextjs-app.html) uses a `next build` script and `.next` artifact directory.
-- **Amazon Cognito:** production OIDC authentication and Consumer/Brand/Admin groups. AWS recommends authorization-code flow with PKCE for public clients in its [app-client guidance](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-client-apps.html).
-- **Amazon DynamoDB:** structured user, wardrobe, wear, outfit, catalog, consent, match, and Brand registration records.
-- **Amazon S3:** separate private Consumer temporary uploads and Brand-authorized catalog assets, with encryption and public-access blocking.
-- **AWS Budgets/CloudWatch:** spend alerting and operational logs that exclude secrets and images.
+## Deployment path
 
-## Stage 0 — account safety
+1. GitHub `main` triggers AWS Amplify.
+2. `amplify.yml` installs from the lockfile and runs `scripts/write-amplify-env.mjs`.
+3. The helper copies only explicit server runtime variables into `.env.production` and never logs their values.
+4. `next build` creates the SSR/API artifact.
+5. Amplify compute assumes the scoped runtime role.
 
-1. Enable MFA on the root account and use an IAM administrative identity for setup.
-2. Create a small AWS Budget with email alerts before provisioning.
-3. Choose one region (the scaffold defaults to `us-east-1`).
-4. Review current AWS Free Tier and Amplify pricing; do not assume every service remains free.
-5. Never paste AWS access keys into the browser, source files, GitHub, or build logs.
+## Required runtime names
 
-## Stage 1 — backend resources
+```text
+SESSION_SECRET
+RACKED_TABLE_NAME
+RACKED_UPLOAD_BUCKET
+AI_PROVIDER=bedrock
+AI_MODEL=amazon.nova-lite-v1:0
+NEXT_PUBLIC_SITE_URL
+```
 
-1. Install/configure AWS CLI locally using an IAM identity with narrow temporary permissions.
-2. Validate `infra/template.yaml`:
+`AWS_REGION` is supplied by the AWS runtime and must not be added as an Amplify environment variable because the prefix is reserved.
 
-   ```bash
-   aws cloudformation validate-template --template-body file://infra/template.yaml
-   ```
+## Verification checklist
 
-3. Deploy to a non-production stack only after reviewing the change set:
+- [x] CloudFormation stack created successfully.
+- [x] Amplify compute role attached.
+- [x] DynamoDB and S3 runtime names configured.
+- [x] Amazon Bedrock model is available in `us-east-2`.
+- [x] Direct Bedrock response test passed.
+- [x] Local lint passed.
+- [x] All 40 automated tests passed.
+- [x] Production Next.js build passed.
+- [ ] Post-merge live account, photo, persistence, and brand enrollment smoke test.
 
-   ```bash
-   aws cloudformation deploy \
-     --template-file infra/template.yaml \
-     --stack-name racked-demo \
-     --parameter-overrides Environment=demo \
-     --capabilities CAPABILITY_NAMED_IAM
-   ```
+## Cost and safety
 
-4. Record stack outputs in a password manager—not in GitHub.
-
-## Stage 2 — application configuration
-
-1. Generate a unique `SESSION_SECRET` with at least 32 random bytes.
-2. Add runtime values in the Amplify console. Do not prefix secrets with `NEXT_PUBLIC_`.
-3. Replace the demo auth adapter with Cognito OIDC verification and group-to-role mapping.
-4. Replace seed repositories with DynamoDB and private S3 adapters while keeping the pure matching module unchanged.
-5. Configure S3 upload URLs server-side with content type, size, ownership, and short expiration.
-6. Store Brand registration assets under an organization-scoped prefix, retain their SHA-256 hashes in DynamoDB, and audit every catalog mutation.
-7. Add OCR behind a server-only adapter; require corrected label text and a Brand + SKU/MPN or GTIN match before linking.
-
-## Stage 3 — Amplify deployment
-
-1. Push the public GitHub repository without `.env.local`.
-2. In AWS Amplify choose **Create new app → GitHub → repository → main branch**.
-3. Allow Amplify to create a service role or select a narrowly scoped existing role.
-4. Confirm `amplify.yml` uses `pnpm install --frozen-lockfile`, `pnpm build`, and `.next` artifacts.
-5. Add `SESSION_SECRET` and non-secret resource IDs in Amplify settings.
-6. Save and deploy. Confirm the generated HTTPS URL. **Completed:** the `main` branch deploys automatically to the live URL above.
-
-## Stage 4 — production smoke test
-
-- Public landing page loads over HTTPS.
-- Anonymous requests to `/consumer` and `/brand` redirect to login.
-- Consumer cannot call Brand operations; Brand cannot retrieve raw Consumer records.
-- Consent is required before a wardrobe write.
-- JPG/PNG/WebP under 5 MB succeeds; other uploads fail.
-- Provider failure shows deterministic fallback.
-- Segment sizes under 25 return no aggregate.
-- Delete-my-data removes DynamoDB items and S3 objects.
-- CloudWatch logs contain no tokens, emails, or image payloads.
+- DynamoDB uses on-demand billing.
+- S3 is private and temporary objects under `temp/` expire after one day.
+- Bedrock is usage-billed; uploads are limited to control request size.
+- Create an AWS Budget alert and monitor Amplify, S3, DynamoDB, and Bedrock usage.
+- Never place access keys, session secrets, account identifiers, or private image URLs in GitHub issues or logs.
 
 ## Rollback
 
-Disconnect the Amplify branch, disable self-registration, retain logs needed for diagnosis, empty only the dedicated demo upload bucket after confirming its exact name, and delete the `racked-demo` CloudFormation stack. Never run broad recursive deletion commands.
+Revert the application PR first so the current Amplify build remains usable. Keep the protected table and retained bucket while investigating. Delete data only through exact, reviewed account-owned keys; never run a broad recursive bucket or table deletion.

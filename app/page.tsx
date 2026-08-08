@@ -10,7 +10,7 @@ export default function Home() {
           <Link href="/community">Community</Link>
           <Link href="/partners/clothing">Partners</Link>
           <Link href="/privacy">Privacy</Link>
-          <Link className="button button-dark button-small" href="/login">Open demo</Link>
+          <Link className="button button-dark button-small" href="/login">Sign in</Link>
         </div>
       </nav>
       <section className="hero">
@@ -18,17 +18,17 @@ export default function Home() {
         <h1>Sell what fits<br />their <em>real life.</em></h1>
         <p className="hero-copy">Racked turns opted-in wardrobe and wear patterns into explainable product matches—helping people buy less randomly and helping emerging brands market more precisely.</p>
         <div className="hero-actions">
-          <Link className="button button-accent" href="/login">Experience the judge demo <span aria-hidden="true">→</span></Link>
-          <span className="hero-note">Fictional data · deterministic fallback · no PII</span>
+          <Link className="button button-accent" href="/login">Create your wardrobe <span aria-hidden="true">→</span></Link>
+          <span className="hero-note">Private photos · confirmed attributes · anonymous brand insights</span>
         </div>
-        <div className="hero-board" aria-label="Example Racked match result">
+        <div className="hero-board" aria-label="Racked wardrobe intelligence overview">
           <div className="hero-card hero-garment"><span className="garment-art coral">OVERSHIRT</span><small>Consumer wardrobe</small><strong>12 pieces understood</strong></div>
           <div className="match-connector"><span>92</span><small>FIT SCORE</small></div>
           <div className="hero-card hero-result"><div className="mini-label">WHY IT FITS</div><strong>Fills a lightweight layer gap</strong><p>Pairs with 4 frequently worn basics and adds a missing warm neutral.</p><div className="score-line"><i style={{width:"92%"}} /></div></div>
         </div>
       </section>
       <section className="proof-strip" aria-label="Product principles">
-        <span>01 · Explainable matching</span><span>02 · Consent before insight</span><span>03 · Built for emerging brands</span><span>04 · Reliable without an AI call</span>
+        <span>01 · Explainable matching</span><span>02 · Consent before insight</span><span>03 · Built for emerging brands</span><span>04 · Private account-owned data</span>
       </section>
       <section className="story-section" id="how-it-works">
         <div><div className="eyebrow">THE OPPORTUNITY</div><h2>Purchase history says what sold.<br />A wardrobe says what belongs.</h2></div>
