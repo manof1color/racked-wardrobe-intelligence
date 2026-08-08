@@ -7,6 +7,7 @@ export interface UploadDescriptor {
   contentType: string;
   size: number;
   sha256?: string;
+  storageKey?: string;
 }
 
 export interface BrandProductRegistration {
@@ -23,6 +24,7 @@ export interface BrandProductRegistration {
   views: Record<GarmentView, UploadDescriptor>;
   enrolledAt: string;
   source: "brand-enrolled" | "seed";
+  imageUrls?: Partial<Record<GarmentView,string>>;
 }
 
 export interface GarmentAnalysis {
@@ -48,6 +50,13 @@ export interface GarmentAnalysis {
   };
   evidence: Array<{ view:GarmentView; findings:string[] }>;
   warnings: string[];
+  processedImage?: {
+    key: string;
+    url: string;
+    width: number;
+    height: number;
+    confirmationToken: string;
+  };
 }
 
 export interface OutfitPost {
@@ -58,7 +67,7 @@ export interface OutfitPost {
   image: string;
   createdAt: string;
   likes: number;
-  fictional: true;
+  fictional?: boolean;
   products: Array<{ sku:string; name:string; brand:string; brandSlug:string; category:string }>;
 }
 

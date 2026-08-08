@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Racked demo data, upload, and identity boundaries (no application secrets).
+Description: Racked production data, private upload, identity, and Amplify compute boundaries (no application secrets).
 
 Parameters:
   Environment:
     Type: String
-    Default: demo
+    Default: production
     AllowedPattern: "[a-z0-9-]+"
 
 Resources:
@@ -64,6 +64,7 @@ Resources:
           - Id: DeleteTemporaryUploads
             Status: Enabled
             ExpirationInDays: 1
+            Prefix: temp/
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -117,6 +118,45 @@ Resources:
       GroupName: Admin
       UserPoolId: !Ref UserPool
 
+  AmplifyComputeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: amplify.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: RackedRuntimeDataAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt RackedTable.Arn
+                  - !Sub "${RackedTable.Arn}/index/*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub "${UploadBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource:
+                  - "arn:aws:bedrock:*::foundation-model/amazon.nova-*"
+                  - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
+
 Outputs:
   TableName:
     Value: !Ref RackedTable
@@ -126,3 +166,5 @@ Outputs:
     Value: !Ref UserPool
   UserPoolClientId:
     Value: !Ref WebClient
+  AmplifyComputeRoleArn:
+    Value: !GetAtt AmplifyComputeRole.Arn

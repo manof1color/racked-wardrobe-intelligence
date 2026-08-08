@@ -10,6 +10,9 @@ export interface BrandMetrics {
   segmentSize: number;
   suppressed: boolean;
   minimumCohortSize: number;
+  actualWears?: number | null;
+  repeatWearRate?: number | null;
+  activeOwners?: number | null;
 }
 
 export function calculateBrandMetrics(product: Product, liveProfile?: LiveProfile | null): BrandMetrics {

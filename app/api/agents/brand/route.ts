@@ -1,21 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { runBrandRetentionAgent, runBrandWearAgent } from "@/lib/agents";
-import { getLiveConsumerProfile, recordAggregateQuery, wouldExceedEnumerationBudget } from "@/lib/server/demo-store";
+import { getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
+import type { AgentReply } from "@/lib/platform-types";
 
-export async function POST(request:Request) {
-  const session=await getSession();
-  if (!session) return NextResponse.json({error:"Sign in is required."},{status:401});
-  if (session.role!=="brand") return NextResponse.json({error:"Brand role required."},{status:403});
-  const body=await request.json().catch(()=>({})) as {productId?:string};
-  if ((body.productId?.length??0)>40) return NextResponse.json({error:"Product ID is invalid."},{status:400});
-  const productId = body.productId ?? "p1";
-  if (wouldExceedEnumerationBudget(session.subject, productId)) {
-    return NextResponse.json({error:"Too many distinct product segments were requested in a short window. This anti-enumeration limit prevents reconstructing a small cohort by querying many SKUs in sequence — try again shortly."},{status:429});
-  }
-  const liveProfile = getLiveConsumerProfile();
-  const reply = runBrandWearAgent(productId, liveProfile);
-  const retention = runBrandRetentionAgent(productId, liveProfile);
-  recordAggregateQuery(session.subject, productId);
-  return NextResponse.json({reply, retention});
-}
+export async function POST(request:Request){const session=await getSession();if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});const body=await request.json().catch(()=>null) as {productId?:string}|null;if(!body?.productId)return NextResponse.json({error:"Choose a product."},{status:400});try{const [metrics,products]=await Promise.all([getRealProductMetrics(session.subject,body.productId),listOwnedBrandProducts(session.subject)]);const product=products.find(item=>item.id===body.productId);if(!product)throw new Error("Product not found.");const reply:AgentReply=metrics.suppressed?{agent:"brand-wear-intelligence",message:`Wear intelligence for ${product.name} is protected because only ${metrics.segmentSize} qualifying owners are connected. Racked will release no aggregate until the cohort reaches ${metrics.minimumCohortSize}.`,confidence:"high",toolsUsed:["brand product registry","verified product links","consumer consent","privacy threshold"],actions:[],evidence:["No consumer identity queried","No raw wardrobe queried","Aggregate blocked before calculation"]}:{agent:"brand-wear-intelligence",message:`${product.name} has ${metrics.actualWears} confirmed wears across ${metrics.activeOwners} active owners, with a ${metrics.repeatWearRate}% repeat-wear rate.`,confidence:"high",toolsUsed:["brand product registry","verified product links","confirmed wear events","privacy threshold"],actions:[{label:"Create a wear-led campaign brief",type:"campaign",payload:{segment:"repeat-wear"}}],evidence:[`${metrics.segmentSize} eligible opted-in owners`,`${metrics.actualWears} confirmed wears`,`${metrics.repeatWearRate}% repeat-wear rate`]};return NextResponse.json({reply,retention:null});}catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Wear intelligence could not run."},{status:400});}}

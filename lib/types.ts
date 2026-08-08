@@ -5,6 +5,19 @@ export interface WardrobeItem {
   id: string; name: string; category: string; color: string; style: string[];
   season: Season; wearCount: number; lastWornDays: number;
   source: "manual" | "ai-confirmed"; art: string;
+  imageUrl?: string;
+  imageKey?: string;
+  brand?: string | null;
+  sku?: string | null;
+  createdAt?: string;
+}
+
+export interface SavedOutfit {
+  id: string;
+  name: string;
+  itemIds: string[];
+  createdAt: string;
+  wears: number;
 }
 
 export interface Product {
