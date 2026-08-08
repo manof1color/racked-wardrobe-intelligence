@@ -4,7 +4,9 @@
 
 ### 1. Garment attribute suggestion
 
-Intended production input: one validated front image for quick classification, with optional back and label evidence for product verification. Intended output: category, primary color, style tags, construction, material, brand, SKU, and per-view evidence/confidence. A front-only result never claims a brand or SKU. The UI blocks saving until the Consumer confirms or corrects the fields, and the checked-in demo remains credential-free and deterministic.
+Working input: one validated front image for quick classification, with optional back and label evidence for product verification. When `AI_PROVIDER=anthropic` and `AI_API_KEY` are configured server-side, `analyzeGarmentImages` sends the actual request-memory bytes to the pinned `claude-haiku-4-5-20251001` Messages API model. A JSON Schema constrains category, color, style, construction, material, confidence, OCR text, and per-view evidence. The route never writes raw bytes to disk.
+
+The model's label reading is evidence, not authority. Racked passes readable text into its own Brand registry matcher; only a matching enrolled SKU plus brand alias, GTIN, label hash, or catalog image set can produce `label.matched: true`. A front-only result never claims a brand or SKU. The UI blocks saving until the Consumer confirms or corrects the fields.
 
 Suggested system instruction:
 
@@ -43,7 +45,7 @@ The privacy-threshold tool is a real gate, not a label: `runBrandWearAgent` (in 
 - 10+ confirmed items: high data sufficiency.
 - 5–9 items: medium.
 - Fewer than 5: low; recommendations should be treated as exploratory.
-- Provider errors, timeouts, missing keys, or malformed output activate the visible deterministic fallback.
+- Missing configuration, provider errors, the 12-second timeout, refusals, truncated output, or malformed output activate the visible deterministic fallback. `tests/three-view-upload.test.ts` exercises both a real-provider-shaped success response and an HTTP failure without making a paid network call.
 
 ## Development transparency
 

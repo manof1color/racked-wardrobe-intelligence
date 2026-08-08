@@ -23,13 +23,15 @@ Both use password `demo2026`. These credentials protect fictional demo data only
 - **Functional agent actions:** record every unique piece in the suggested outfit, publish the look, and visibly confirm the backend result.
 - **Brand Wear Intelligence Agent:** reports aggregate actual-wear signals, privacy suppression, and a grounded merchandising action without exposing identities. The suppression is enforced in code against a *computed* cohort (a deterministic 160-profile synthetic population, not a hand-typed number) — select **Merlot Day Tote** (`NA-AC-6044`, computed cohort of 1 — below the `k ≥ 25` floor) in the Brand dashboard or call `POST /api/agents/brand` with `productId: "p7"` to see the agent return a suppression notice instead of a wear-rate figure. Both the agent route and the dashboard's own `POST /api/brand/metrics` share an anti-enumeration query budget, and a Consumer can revoke their own inclusion in any cohort live from their dashboard.
 - **Brand Retention Agent:** bundled into the same `POST /api/agents/brand` response, this reports an engagement *trend* — the same eligible cohort's wear frequency over the last 30 days vs. the 30 days before — instead of a single point-in-time rate, the same pattern used to flag a gym member at risk of cancelling before they actually do. Try **Moss Court Sneaker** (`p3`) for a genuinely "at-risk" (-30%) result, or **Cloud Merino Vest** (`p2`) for "softening" — both emergent from the underlying data, not staged.
-- **Front-first garment analysis:** consumers can start with one front photo for quick wardrobe classification, then optionally add the back and label for a verified brand/SKU match. The checked-in Northstar evidence set resolves SKU `NA-OW-1042` to its public brand page. Every result is review-first and never silently saves a model guess.
+- **Real multimodal garment analysis:** when `AI_PROVIDER=anthropic` and a server-only key are configured, Claude Haiku 4.5 analyzes the actual in-memory front/back/label bytes into a strict schema. Consumers may still start with one front photo. The model suggests visible attributes and OCR evidence, but only Racked's brand-enrolled registry can verify a brand/SKU. Missing keys, timeouts, refusals, malformed output, and provider errors visibly fall back to the tested deterministic path.
 - **Brand product enrollment:** a Brand registers front/back/label hashes, SKU/MPN, optional GTIN, aliases, and approved label text before Consumer scans can trace the product.
 - **Consumer mobile foundation:** Today, Avatar, Closet, and Scan views, owned-piece avatar outfit recording, phone navigation, and an installable PWA manifest.
 - **Social discovery:** `/community` displays fictional outfit posts with product-to-brand links and backend-persisted demo likes.
 - **Four partner workspaces:** `/partners/vintage`, `/partners/clothing`, `/partners/shoes`, and `/partners/jewelry` show vertical-specific metrics, inventory, and agent briefs.
 
 ## Why the AI is substantive
+
+**Judge note:** Racked now combines real multimodal image understanding with its inspectable matching system. Vision output is schema-constrained and requires human confirmation; only the Brand registry can verify product identity.
 
 Racked combines seven stored signals: outfit pairing, color compatibility, style compatibility, wear relevance, season fit, wardrobe-gap bonus, and duplicate-category risk. Each score is weighted, inspectable, and tested. Explanations are generated only from these components and confirmed attributes—never from invented identity traits, preferences, outcomes, or sales claims.
 
@@ -67,6 +69,7 @@ Requirements: Node.js 22+ and pnpm 10+.
 pnpm install --frozen-lockfile
 copy .env.example .env.local
 # Add a unique SESSION_SECRET with at least 32 characters.
+# Optional real vision: set AI_PROVIDER=anthropic and add AI_API_KEY server-side.
 pnpm dev
 ```
 

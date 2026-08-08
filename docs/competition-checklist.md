@@ -38,14 +38,16 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] Confidence/data sufficiency is visible.
 - [x] Deterministic fallback is visible and produces the complete workflow without an API.
 - [x] Garment attributes require human confirmation before saving.
+- [x] **Real vision AI:** `POST /api/garments/analyze` sends the actual in-memory image bytes to Claude Haiku 4.5 when configured, requests a strict JSON schema, and maps visible findings into the review UI. The model cannot independently verify brand ownership or SKU identity; only the Brand registry can.
+- [x] **Reliable AI fallback:** missing credentials, timeout, non-success response, refusal, truncated output, or malformed schema returns the complete labeled deterministic workflow rather than breaking the demo. Both success and failure paths are automated in `tests/three-view-upload.test.ts`.
 - [x] The campaign brief prohibits invented lift or forecasting claims.
-- [x] Both agents disclose tool use, boundaries, and deterministic-demo status.
+- [x] All three bounded agents disclose tool use and boundaries; the garment scanner separately discloses multimodal versus deterministic-fallback status.
 
 ## 4. Code / docs / GitHub — 15%
 
 - [x] TypeScript models separate product data, score components, matching, metrics, privacy, and sessions.
 - [x] `.env.example` contains placeholders only; `.env.local` is ignored.
-- [x] Tests cover score calculation, grounding, privacy threshold enforcement (suppressed and released cohorts, consent inclusion/exclusion, enumeration budget), field stripping, sessions, agents, front-only and three-view uploads, registry hash/label matching, social privacy, and all four partner dashboards.
+- [x] Tests cover score calculation, grounding, privacy threshold enforcement (suppressed and released cohorts, consent inclusion/exclusion, enumeration budget), field stripping, sessions, agents, real multimodal output, provider-failure fallback, front-only and three-view uploads, registry hash/label matching, social privacy, and all four partner dashboards.
 - [x] Security hardening includes constant-time session signature comparison, early upload-set size rejection, bounded agent inputs, and category-only Brand aggregates.
 - [x] Production dependencies pass `pnpm audit:prod`; patched transitive versions are pinned and the audit runs on every GitHub Actions verification.
 - [x] README and focused architecture, AI, privacy, dataset, demo, and deployment documents.

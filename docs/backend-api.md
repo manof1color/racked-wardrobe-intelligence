@@ -4,7 +4,7 @@ All mutation routes enforce a signed HTTP-only session on the server. Consumer a
 
 | Route | Access | Working behavior | Judge evidence |
 | --- | --- | --- | --- |
-| `POST /api/garments/analyze` | Consumer | Accepts a front-only quick scan or a front/back/label verified scan. Quick scans classify visible attributes without claiming identity; verified scans can resolve an enrolled label hash, image set, GTIN, or Brand + SKU identity. | Front-first uploader and registry tests |
+| `POST /api/garments/analyze` | Consumer | Accepts a front-only quick scan or front/back/label evidence. With server-only Anthropic configuration, actual image bytes are analyzed in request memory by Claude Haiku 4.5 using a strict JSON schema; no raw upload is written to disk. AI-visible label text is only evidence: an enrolled label hash, image set, GTIN, or Brand + SKU registry match is still required to verify identity. Every provider/configuration failure returns the deterministic demo result. | Scanner UI and multimodal/fallback/registry tests in `tests/three-view-upload.test.ts` |
 | `GET /api/brand/products` | Brand | Lists only products owned by the signed-in Brand subject | Brand registry panel |
 | `POST /api/brand/products` | Brand | Enrolls front/back/label hashes, account-bound brand, SKU/MPN, optional GTIN, aliases, and approved label text | Brand registry panel and `tests/product-registry.test.ts` |
 | `POST /api/agents/consumer` | Consumer | Uses wardrobe, wear, outfit, and weather tools to assemble a grounded outfit from owned pieces | Consumer Stylist Agent panel and `tests/agents.test.ts` |

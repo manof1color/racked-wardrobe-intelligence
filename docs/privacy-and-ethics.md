@@ -26,7 +26,7 @@ The score excludes age, gender, ethnicity, disability, body shape, income, addre
 
 | Data | Demo | Production target |
 | --- | --- | --- |
-| Uploaded image | Not retained | Private S3; delete after extraction or within 24 hours |
+| Uploaded image | Not retained by Racked; when optional vision is enabled, bytes are sent directly from request memory to the configured provider | Private S3 only if asynchronous processing is required; delete after extraction or within 24 hours; document provider retention separately |
 | Confirmed garment attributes | Seed/session only | Until user deletion or account closure |
 | Wear events/outfits | Seed/session only | Until user deletion or documented inactivity limit |
 | Match results | Recomputed | Short audit window, then aggregate/delete |
