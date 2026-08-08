@@ -29,7 +29,7 @@ Use this page as the judge’s index. Every statement below points to working UI
 - [x] Product-to-segment match, score components, reasons, confidence, and campaign brief.
 - [x] Loading/disabled, empty, success, validation, and error states.
 - [x] Automated tests and successful production build.
-- [ ] AWS deployment—exact owner-run steps are in [aws-deployment.md](aws-deployment.md).
+- [x] AWS Amplify deployment is live at [main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com); the verified smoke-test record is in [aws-deployment.md](aws-deployment.md).
 
 ## 3. AI integration / innovation — 20%
 

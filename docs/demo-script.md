@@ -2,7 +2,7 @@
 
 ## 0:00–0:45 — Frame the problem
 
-Open the landing page. Say: “Purchase history tells a brand what sold. It does not tell the brand what a customer actually uses, what pairs with their closet, or whether the next recommendation is a duplicate. Racked closes that gap with consent and explainable AI.”
+Open the [live AWS landing page](https://main.d2iv0khybuuaeh.amplifyapp.com). Say: “Purchase history tells a brand what sold. It does not tell the brand what a customer actually uses, what pairs with their closet, or whether the next recommendation is a duplicate. Racked closes that gap with consent and explainable AI.”
 
 Point out the four product principles below the hero: explainable matching, consent, emerging-brand focus, and fallback reliability.
 
@@ -47,4 +47,4 @@ Say: “Racked gives consumers a reason to trust the recommendation and gives sm
 
 - External model fails: keep the **DETERMINISTIC FALLBACK** label visible and continue.
 - Seed changes during demo: reload or sign out; the fictional baseline is restored.
-- AWS demo unavailable: run `pnpm dev` locally and explain that credentials were intentionally not committed.
+- AWS demo unavailable: confirm the Amplify `main` deployment status, then run `pnpm dev` locally; credentials remain intentionally absent from GitHub.

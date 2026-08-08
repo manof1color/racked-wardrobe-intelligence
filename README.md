@@ -8,6 +8,10 @@ Racked addresses a costly information gap: a purchase record shows what someone 
 
 ## Working demo
 
+**Live AWS demo:** [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com)
+
+> **Judge note:** The Amplify deployment was smoke-tested on August 9, 2026. Consumer access, the front-photo garment scan, wardrobe save, Stylist Agent, Brand dashboard, explainable product matching, and the install/offline PWA files all passed. The deployed demo intentionally uses the labeled deterministic AI fallback unless a server-only provider key is configured.
+
 The app includes two fictional accounts and works without an external AI provider:
 
 | Mode | Fictional account | What to demonstrate |
@@ -104,7 +108,7 @@ Tests cover signed/expired/tampered sessions, role claims, the seven-factor scor
 
 ## Current status
 
-The local competition MVP is implemented and verified. AWS deployment remains deliberately unexecuted because it requires the owner’s AWS/GitHub credentials and a supported production secret. The repository makes no claims of validated sales lift, model accuracy, or production readiness.
+The competition MVP is implemented, verified, and deployed through AWS Amplify from the public GitHub `main` branch. The August 9, 2026 production smoke test passed the primary Consumer, Brand, scanner, agent, and PWA flows. The repository makes no claims of validated sales lift, model accuracy, or production readiness.
 
 ## License and ownership
 
