@@ -18,7 +18,7 @@ self.addEventListener("fetch",(event)=>{
     event.respondWith(fetch(request).catch(()=>caches.match("/offline.html")));
     return;
   }
-  if (url.pathname.startsWith("/_next/static/")||url.pathname.startsWith("/test-uploads/")||/\.(?:png|jpg|jpeg|webp|svg|ico)$/.test(url.pathname)) {
+  if (url.pathname.startsWith("/_next/static/")||/\.(?:png|jpg|jpeg|webp|svg|ico)$/.test(url.pathname)) {
     event.respondWith(caches.match(request).then((cached)=>cached||fetch(request).then((response)=>{const copy=response.clone();caches.open(CACHE).then((cache)=>cache.put(request,copy));return response;})));
   }
 });
