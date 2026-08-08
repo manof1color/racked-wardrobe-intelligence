@@ -1,29 +1,25 @@
-# Racked — one-page competition summary
+# Racked — one-page summary
 
 ## Problem
 
-Apparel brands know what customers purchased, but rarely know what they actually wear, what pairs with their closet, or which product would duplicate an ignored category. Small direct-to-consumer brands therefore target broadly and consumers receive recommendations disconnected from real life. This wastes marketing effort and can encourage unnecessary purchases.
+Brands know what was purchased but usually cannot tell whether a product becomes part of real life. Consumers also lack a simple, private way to organize real garments, build outfits, and measure what they use.
 
 ## Solution
 
-Racked is a privacy-first wardrobe-intelligence application. A consumer opts in, analyzes front/back/label images, confirms garment attributes, tracks wears and outfits, asks a Stylist Agent for owned-item outfits, and can share selected looks publicly. Product labels link viewers to a public brand page. A Brand Wear Intelligence Agent reports only aggregate actual-wear signals. Separate vintage, clothing, shoe, and jewelry dashboards demonstrate how the same platform adapts by partner type. The brand never sees names, emails, private photos, or raw wardrobes.
+Racked is a two-sided wardrobe-intelligence application. A Consumer creates a private account, photographs real garments, confirms AI-visible attributes, saves avatar-ready images, builds and stores outfits, and records wear. A Brand creates its own account, enrolls authorized product and label evidence with SKU identity, and receives actual-wear intelligence only for its own connected products.
 
-## AI use
+## AI
 
-Garment intake is designed around a multimodal provider interface: a model may suggest category, color, style, construction, material, brand, and SKU from three views, but the user must confirm or correct every field. Product matching combines seven explainable signals: category/outfit pairing, color, style, wear relevance, season, wardrobe gaps, and duplicate risk. Both agents are tool-bounded and display their evidence. If an external provider fails, a labeled deterministic fallback completes the demo without fabricating output.
+Amazon Bedrock Nova Lite analyzes the supplied garment views under a prompt that prohibits person and demographic inference. Brand identity is never accepted from image similarity alone: Racked requires a brand-enrolled hash, GTIN, or brand-plus-SKU match. The Consumer confirms the result before saving. The Stylist Agent uses owned garments and wear context; the Brand Agent uses only product registry records and thresholded aggregates.
+
+## Data and security
+
+Accounts, garments, outfits, wears, consent, brand products, and posts persist in encrypted DynamoDB. Photos are encrypted in private S3 and exposed through one-hour signed links. Passwords are randomly salted and scrypt-hashed. A garment confirmation HMAC prevents a browser from substituting another account’s image or changing a verified registry result. Brand metrics remove non-opted-in owners and release no aggregate below 25 qualifying people.
 
 ## Business value
 
-For consumers, Racked makes an existing wardrobe easier to use and makes new-product recommendations more relevant. For brands, it exposes four actionable measures: product match opportunity, wardrobe-gap prevalence, duplicate-category risk, and eligible segment size. These can support better creative briefs and merchandising decisions. Racked does not claim sales lift until a real opt-in pilot validates it.
+Consumers receive a persistent wardrobe, repeat-use tracking, outfit storage, and grounded styling. Brands can measure actual wears, active owners, and repeat-wear rate instead of relying only on transactions. Early or low-volume products correctly show “insufficient cohort” rather than fabricated confidence.
 
-## Privacy and ethics
+## Current status and learning
 
-Consent is explicit. Protected demographic traits are excluded from matching. Brands receive aggregates only when a cohort has at least 25 participants. Inferred garment fields require human confirmation. Uploads are validated and production source images are scheduled for deletion after extraction. A documented delete-my-data workflow removes owned records and recomputes aggregates.
-
-## Technical approach
-
-The application uses Next.js and TypeScript with protected server-rendered routes, signed HTTP-only demo sessions, typed matching modules, tests, and deterministic seed data. The AWS design uses Amplify Hosting for the web application, Cognito for production identity, DynamoDB for structured state, and private S3 storage for temporary garment images. Infrastructure scaffolding and deployment steps are included in the public repository.
-
-## Key learning
-
-The strongest AI product was not the most open-ended model call. It was a reliable workflow in which model suggestions are confirmed, the important decision is inspectable, privacy changes what brands are allowed to see, and a deterministic path preserves usefulness when a provider is unavailable.
+The application is hosted on AWS Amplify with a deployed CloudFormation production stack and working Bedrock model access. The primary learning is that a useful AI feature needs an ownership and evidence system around it: image recognition alone cannot prove a SKU, and an aggregate alone is unsafe until consent and minimum-cohort rules are enforced.

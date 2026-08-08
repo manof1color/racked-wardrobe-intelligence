@@ -1,87 +1,82 @@
 # Racked
 
-**Privacy-first AI wardrobe intelligence for consumers and emerging apparel brands.**
+**Privacy-first wardrobe intelligence for real consumers and real brands.**
 
-Racked addresses a costly information gap: a purchase record shows what someone bought, but not what they actually use, what pairs with their closet, or what category is already overrepresented. With explicit consent, Racked converts confirmed wardrobe, wear, outfit, and product attributes into inspectable product-match scores. Consumers get more useful recommendations; brands get anonymous segment opportunities instead of raw personal data.
+Live application: [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com)
 
-> **Judge note:** This repository is intentionally organized around the CUA AI Vibe Coding Competition rubric. Start with the [competition checklist](docs/competition-checklist.md), then follow the [5–10 minute demo script](docs/demo-script.md).
+> **Judge note:** Racked no longer relies on public sample accounts, seeded wardrobes, test-upload buttons, or fictional brand metrics. New Consumer and Brand accounts begin empty and persist to account-owned AWS records. Start with the [competition checklist](docs/competition-checklist.md), then use the [presentation script](docs/demo-script.md).
 
-## Working demo
+## The problem
 
-**Live AWS demo:** [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com)
+Purchase history tells a brand what sold, but not whether the product is actually worn, repeats an ignored category, or works with what someone owns. Racked lets a consumer build a useful private wardrobe and lets a verified brand see only privacy-safe aggregate wear for its own products.
 
-> **Judge note:** The Amplify deployment was smoke-tested on August 9, 2026. Consumer access, the front-photo garment scan, wardrobe save, Stylist Agent, Brand dashboard, explainable product matching, and the install/offline PWA files all passed. The deployed demo intentionally uses the labeled deterministic AI fallback unless a server-only provider key is configured.
+## Working product flows
 
-The app includes two fictional accounts and works without an external AI provider:
+### Consumer
 
-| Mode | Fictional account | What to demonstrate |
-| --- | --- | --- |
-| Consumer | `consumer@demo.racked.local` | Consent, 12-piece wardrobe, wear tracking, garment extraction confirmation, usage insights, recommendations |
-| Brand | `brand@demo.racked.local` | 8-SKU catalog, product selection, anonymous segment match, seven score components, grounded reasons, campaign brief |
+1. Create a Consumer account with explicit image-processing consent.
+2. Upload a real front photo from the phone camera or photo library.
+3. Amazon Bedrock analyzes visible garment attributes.
+4. The server rotates, trims, and resizes the image into an avatar-ready private asset.
+5. The consumer confirms the result before it is stored in their wardrobe.
+6. The Avatar view layers saved garment photos, saves outfits, and records wear.
+7. The Stylist Agent builds only from that account’s owned pieces and recorded context.
+8. The consumer may separately opt in to anonymous brand aggregates and may publish a selected outfit to Community.
 
-Both use password `demo2026`. These credentials protect fictional demo data only and are intentionally public for judging. Production authentication is designed for Amazon Cognito.
+### Brand
 
-### New end-to-end judge flows
+1. Create a Brand account bound to the represented brand name.
+2. Enroll authorized front, back, and label images with SKU/MPN, optional GTIN, aliases, and approved label text.
+3. Consumer label evidence can connect a wardrobe item to the brand-authorized registry record.
+4. The Brand dashboard reports actual wears, active owners, and repeat-wear rate only when at least 25 opted-in owners qualify.
+5. The Brand Wear Intelligence Agent is restricted to the brand’s own products and the same thresholded aggregates.
 
-- **Consumer Stylist Agent:** builds an outfit only from owned pieces and current wardrobe/wear context; the result can be shared to the public community feed.
-- **Functional agent actions:** record every unique piece in the suggested outfit, publish the look, and visibly confirm the backend result.
-- **Brand Wear Intelligence Agent:** reports aggregate actual-wear signals, privacy suppression, and a grounded merchandising action without exposing identities. The suppression is enforced in code against a *computed* cohort (a deterministic 160-profile synthetic population, not a hand-typed number) — select **Merlot Day Tote** (`NA-AC-6044`, computed cohort of 1 — below the `k ≥ 25` floor) in the Brand dashboard or call `POST /api/agents/brand` with `productId: "p7"` to see the agent return a suppression notice instead of a wear-rate figure. Both the agent route and the dashboard's own `POST /api/brand/metrics` share an anti-enumeration query budget, and a Consumer can revoke their own inclusion in any cohort live from their dashboard.
-- **Brand Retention Agent:** bundled into the same `POST /api/agents/brand` response, this reports an engagement *trend* — the same eligible cohort's wear frequency over the last 30 days vs. the 30 days before — instead of a single point-in-time rate, the same pattern used to flag a gym member at risk of cancelling before they actually do. Try **Moss Court Sneaker** (`p3`) for a genuinely "at-risk" (-30%) result, or **Cloud Merino Vest** (`p2`) for "softening" — both emergent from the underlying data, not staged.
-- **Real multimodal garment analysis:** when `AI_PROVIDER=anthropic` and a server-only key are configured, Claude Haiku 4.5 analyzes the actual in-memory front/back/label bytes into a strict schema. Consumers may still start with one front photo. The model suggests visible attributes and OCR evidence, but only Racked's brand-enrolled registry can verify a brand/SKU. Missing keys, timeouts, refusals, malformed output, and provider errors visibly fall back to the tested deterministic path.
-- **Brand product enrollment:** a Brand registers front/back/label hashes, SKU/MPN, optional GTIN, aliases, and approved label text before Consumer scans can trace the product.
-- **Consumer mobile foundation:** Today, Avatar, Closet, and Scan views, owned-piece avatar outfit recording, phone navigation, and an installable PWA manifest.
-- **Social discovery:** `/community` displays fictional outfit posts with product-to-brand links and backend-persisted demo likes.
-- **Four partner workspaces:** `/partners/vintage`, `/partners/clothing`, `/partners/shoes`, and `/partners/jewelry` show vertical-specific metrics, inventory, and agent briefs.
+## Production architecture
 
-## Why the AI is substantive
+```text
+AWS Amplify Hosting (Next.js SSR and API routes)
+  ├─ signed HTTP-only Consumer and Brand sessions
+  ├─ Amazon Bedrock / Nova Lite multimodal garment analysis
+  ├─ DynamoDB account-owned users, garments, outfits, wear, catalog, consent, posts
+  └─ private encrypted S3 images returned through short-lived signed links
+```
 
-**Judge note:** Racked now combines real multimodal image understanding with its inspectable matching system. Vision output is schema-constrained and requires human confirmation; only the Brand registry can verify product identity.
+The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissions required by these flows. No AWS credentials or secrets are committed to GitHub.
 
-Racked combines seven stored signals: outfit pairing, color compatibility, style compatibility, wear relevance, season fit, wardrobe-gap bonus, and duplicate-category risk. Each score is weighted, inspectable, and tested. Explanations are generated only from these components and confirmed attributes—never from invented identity traits, preferences, outcomes, or sales claims.
+## Security and privacy boundaries
 
-When a multimodal provider is unavailable, the same workflow uses a visibly labeled deterministic fallback. This keeps the live demo reliable and makes the decision logic auditable. See [AI use and model boundaries](docs/ai-use-log.md).
+- Passwords are salted with a random value and hashed with scrypt.
+- Sessions are signed, expiring, secure, HTTP-only cookies.
+- Garment saves require a server-signed confirmation token tied to the account and private image key.
+- S3 public access is blocked; URLs expire after one hour.
+- Consumer photos and raw wardrobe records are never returned to brands.
+- Brand metrics count only opted-in owners and fail closed below `k ≥ 25`.
+- Production image analysis stops if Bedrock fails; it never saves invented fallback attributes.
+- Protected demographic attributes are excluded from image prompts, matching, and analytics.
 
 ## Rubric map
 
-| Criterion | Evidence |
+| Criterion | Judge evidence |
 | --- | --- |
-| Problem & relevance — 20% | This README, [one-page summary](docs/one-page-summary.md), measurable brand metrics |
-| Functionality — 25% | Signed login, Consumer and Brand workflows, error/empty/success states, tests, [AWS plan](docs/aws-deployment.md) |
-| AI & innovation — 20% | [`lib/matching.ts`](lib/matching.ts), [`lib/agents.ts`](lib/agents.ts), three-view analysis, score explanations, deterministic fallback |
-| Code, docs & GitHub — 15% | Typed modules, tests, CI, architecture/privacy documentation, checkpoint-ready history |
-| UX & polish — 10% | Responsive dual-mode interface, keyboard focus, semantic labels, reduced-motion support |
-| Business impact — 10% | Match opportunity, gap prevalence, duplicate risk, eligible segment size, campaign brief |
-| Bonus | Consent, k-anonymity threshold, bias boundaries, deletion workflow, WCAG-oriented controls |
-
-## Architecture
-
-```text
-Browser → AWS Amplify Hosting (Next.js SSR/API routes)
-        → Amazon Cognito (production identity and roles)
-        → Amazon DynamoDB (users, wardrobes, events, products, matches)
-        → private Amazon S3 (temporary garment uploads)
-        → optional multimodal provider through a server-only adapter
-```
-
-The checked-in demo uses signed HTTP-only sessions and deterministic in-memory seed data so it can be evaluated without credentials. The service boundaries are documented in [architecture.md](docs/architecture.md); AWS resource scaffolding lives in [`infra/template.yaml`](infra/template.yaml).
+| Problem & relevance — 20% | This README and [one-page summary](docs/one-page-summary.md) |
+| Functionality — 25% | Real accounts, uploads, persistent wardrobe/outfits, brand registry, live AWS URL |
+| AI & innovation — 20% | Bedrock vision, human confirmation, avatar preparation, two account-bounded agents |
+| Code, docs & GitHub — 15% | Typed modules, tests, CI/CodeQL, architecture/privacy/API documents, incremental PRs |
+| UX & polish — 10% | Responsive Consumer app, camera upload, empty/loading/error states, installable PWA |
+| Business impact — 10% | Actual-wear, active-owner, repeat-wear, brand registry, and thresholded intelligence |
+| Bonus | Consent, private object storage, k-anonymity, accessibility, cross-disciplinary analytics |
 
 ## Local setup
 
-Requirements: Node.js 22+ and pnpm 10+.
+Requirements: Node.js 22+ and pnpm.
 
 ```bash
 pnpm install --frozen-lockfile
 copy .env.example .env.local
-# Add a unique SESSION_SECRET with at least 32 characters.
-# Optional real vision: set AI_PROVIDER=anthropic and add AI_API_KEY server-side.
 pnpm dev
 ```
 
-Open `http://localhost:3000`. Never commit `.env.local`.
-
-## Install on a phone
-
-Racked includes a standalone web-app manifest, 192/512px and Apple icons, an install prompt, and a privacy-safe offline shell. On iPhone, open the HTTPS deployment in Safari and choose **Share → Add to Home Screen**. On Android, open it in Chrome and choose **Install app** or **Add to Home screen**. The local Wi-Fi preview can be saved as a temporary shortcut, but the permanent install should use the eventual HTTPS AWS address so service-worker updates and offline handling are available.
+Local account and upload mutations require a DynamoDB table, private S3 bucket, and AWS credentials with the same narrow permissions as `infra/template.yaml`. Never commit `.env.local`.
 
 ## Verification
 
@@ -91,25 +86,23 @@ pnpm test
 pnpm build
 ```
 
-Tests cover signed/expired/tampered sessions, role claims, the seven-factor score, deterministic ordering, explanation grounding, both agents, three-view validation and SKU linking, social privacy, four vertical dashboards, minimum cohort enforcement, and removal of identity fields from brand-safe segments.
+The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
-## Documentation index
+## Install on a phone
 
-- [Competition checklist](docs/competition-checklist.md) — exact judge evidence by criterion
-- [One-page summary](docs/one-page-summary.md) — submission-ready problem/solution/AI/learnings
-- [Demo script](docs/demo-script.md) — timed 5–10 minute presentation
-- [Architecture](docs/architecture.md) — components, data model, and trust boundaries
-- [AI use log](docs/ai-use-log.md) — AI workflow, prompts, fallback, limitations
-- [Privacy and ethics](docs/privacy-and-ethics.md) — consent, retention, deletion, bias safeguards
-- [Dataset provenance](docs/dataset-provenance.md) — synthetic seeds and public data candidates
-- [Backend API](docs/backend-api.md) — routes, authorization, request shapes, and demo persistence
-- [AWS deployment](docs/aws-deployment.md) — exact staged deployment checklist
-- [Security policy](SECURITY.md) — secret handling and reporting
+Open the [HTTPS application](https://main.d2iv0khybuuaeh.amplifyapp.com). On iPhone use **Safari → Share → Add to Home Screen**. On Android use **Chrome → Install app** or **Add to Home screen**.
 
-## Current status
+## Documentation
 
-The competition MVP is implemented, verified, and deployed through AWS Amplify from the public GitHub `main` branch. The August 9, 2026 production smoke test passed the primary Consumer, Brand, scanner, agent, and PWA flows. The repository makes no claims of validated sales lift, model accuracy, or production readiness.
+- [Competition checklist](docs/competition-checklist.md)
+- [Architecture and trust boundaries](docs/architecture.md)
+- [Backend API](docs/backend-api.md)
+- [AI use and limitations](docs/ai-use-log.md)
+- [Privacy and ethics](docs/privacy-and-ethics.md)
+- [AWS deployment](docs/aws-deployment.md)
+- [Presentation script](docs/demo-script.md)
+- [One-page summary](docs/one-page-summary.md)
 
-## License and ownership
+## Status and claims
 
-Student-owned competition project. The synthetic `Northstar Atelier` brand, users, wardrobes, events, and metrics are fictional. External datasets are not redistributed in this repository.
+The AWS production data stack and Bedrock model access are configured. The application does not claim garment recognition accuracy, sales lift, fit prediction, or production-scale validation until those are measured in an opt-in pilot.
