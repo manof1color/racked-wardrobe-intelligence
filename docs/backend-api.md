@@ -8,12 +8,15 @@ All mutation routes enforce a signed HTTP-only session on the server. Consumer a
 | `GET /api/brand/products` | Brand | Lists only products owned by the signed-in Brand subject | Brand registry panel |
 | `POST /api/brand/products` | Brand | Enrolls front/back/label hashes, account-bound brand, SKU/MPN, optional GTIN, aliases, and approved label text | Brand registry panel and `tests/product-registry.test.ts` |
 | `POST /api/agents/consumer` | Consumer | Uses wardrobe, wear, outfit, and weather tools to assemble a grounded outfit from owned pieces | Consumer Stylist Agent panel and `tests/agents.test.ts` |
-| `POST /api/agents/brand` | Brand | Uses product, aggregate wear, and privacy-threshold tools to return brand-safe wear intelligence | Brand dashboard Agent panel and `tests/agents.test.ts` |
+| `POST /api/agents/brand` | Brand | Uses product, aggregate wear, and privacy-threshold tools to return brand-safe wear intelligence AND an engagement-trend signal (bundled in one response as `reply` and `retention`); a below-threshold cohort (`productId: "p7"` / SKU `NA-AC-6044`, computed cohort of 1) returns a suppressed reply with no wear rate or trend instead of an aggregate. Shares an anti-enumeration query budget with `/api/brand/metrics` below — one query against the budget covers both the wear-rate reply and the trend. | Brand dashboard Agent panel and `tests/agents.test.ts`, `tests/privacy.test.ts`, `tests/retention.test.ts` |
+| `POST /api/brand/metrics` | Brand | Computes the four segment metrics (opportunity, gap prevalence, duplicate risk, segment size) server-side against the live cohort, applying the same `k ≥ 25` gate and enumeration budget as the agent route above. Replaces a prior client-side computation that shipped the underlying population data into the browser bundle. | Brand dashboard match panel and `tests/privacy.test.ts` |
 | `GET /api/community` | Public | Returns public fictional outfit posts and product/brand destinations | `/community` and `tests/community-store.test.ts` |
 | `POST /api/community` | Consumer | Publishes an outfit with allowlisted public fields | Consumer Agent “Share” flow |
 | `PATCH /api/community` | Public | Persists a fictional inspiration/like count in the demo backend | Community cards and `tests/community-store.test.ts` |
 | `POST /api/wears` | Consumer | Records one wear or every unique piece in an agent-created outfit and returns updated counts | Consumer dashboard and Stylist Agent |
 | `GET /api/wears` | Brand | Returns category-level synthetic aggregates only; item IDs and identities are excluded | Brand Wear Agent |
+| `GET /api/consumer/consent` | Consumer | Returns whether the signed-in Consumer's wear data is currently included in brand-facing cohorts | Consumer dashboard consent toggle |
+| `PATCH /api/consumer/consent` | Consumer | Sets that consent flag; takes effect on the next Brand-side cohort computation (verified live: a product's `segmentSize` moves by exactly one as this is toggled) | Consumer dashboard consent toggle and `tests/privacy.test.ts` |
 
 ## Three-view fixture
 

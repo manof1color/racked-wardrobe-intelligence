@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "./app-shell";
 import { ConsumerAgentPanel } from "./agent-panels";
 import { ThreeViewUploader } from "./three-view-uploader";
@@ -17,10 +17,14 @@ export function ConsumerDashboard() {
   const [notice,setNotice]=useState("");
   const [filter,setFilter]=useState("all");
   const [activeView,setActiveView]=useState<ConsumerView>("home");
+  const [brandDataSharing,setBrandDataSharing]=useState(true);
   const ranked=useMemo(()=>rankProducts(catalog,items),[items]);
   const visible=filter==="all"?items:items.filter((item)=>item.category===filter);
   const mostWorn=[...items].sort((a,b)=>b.wearCount-a.wearCount)[0];
   const leastWorn=[...items].sort((a,b)=>a.wearCount-b.wearCount)[0];
+
+  useEffect(()=>{fetch("/api/consumer/consent").then((response)=>response.json()).then((data)=>{if(typeof data.brandDataSharing==="boolean")setBrandDataSharing(data.brandDataSharing);}).catch(()=>{});},[]);
+  async function toggleBrandDataSharing(){const next=!brandDataSharing;setBrandDataSharing(next);const response=await fetch("/api/consumer/consent",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({brandDataSharing:next})});if(!response.ok)setBrandDataSharing(!next);}
 
   async function recordWear(id:string){const response=await fetch("/api/wears",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({itemId:id})});const data=await response.json();if(!response.ok){setNotice(data.error??"Wear could not be recorded.");return;}setItems((current)=>current.map((item)=>item.id===id?{...item,wearCount:data.count,lastWornDays:0}:item));setNotice("Wear recorded by the backend. Insights and matches were recalculated.");}
   async function recordAvatarOutfit(itemIds:string[]){const response=await fetch("/api/wears",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({itemIds})});const data=await response.json();if(!response.ok)throw new Error(data.error??"Outfit could not be recorded.");setItems((current)=>current.map((item)=>data.counts[item.id]!==undefined?{...item,wearCount:data.counts[item.id],lastWornDays:0}:item));setNotice(`Avatar look recorded across ${itemIds.length} owned pieces.`);}
@@ -29,6 +33,7 @@ export function ConsumerDashboard() {
   const tabs:Array<{id:ConsumerView;label:string;icon:string}>=[{id:"home",label:"Today",icon:"⌂"},{id:"avatar",label:"Avatar",icon:"◇"},{id:"closet",label:"Closet",icon:"▦"}];
   return <AppShell role="consumer"><main className="workspace consumer-workspace">
     <section className="workspace-heading"><div><div className="eyebrow">MONDAY, AUGUST 3 · FICTIONAL DATA</div><h1>Your wardrobe is<br/><em>working smarter.</em></h1><p>Good evening, Maya. Here is what your confirmed wear history says.</p></div><button className="button button-accent" onClick={()=>setShowAdd(true)}>+ Scan garment</button></section>
+    <div className="privacy-banner"><span>◉</span><div><strong>Sharing wear data with brands</strong><p>When on, your (fictional) wear activity is one profile brands&rsquo; segment counts may include — still gated by the same k ≥ 25 threshold before any brand ever sees an aggregate. Turn off to exclude yourself from every product&rsquo;s cohort.</p></div><button type="button" className="button button-light" onClick={toggleBrandDataSharing}>{brandDataSharing?"ON — turn off":"OFF — turn on"}</button></div>
     <nav className="consumer-view-tabs" aria-label="Consumer app views">{tabs.map((tab)=><button key={tab.id} className={activeView===tab.id?"active":""} onClick={()=>setActiveView(tab.id)}><span>{tab.icon}</span>{tab.label}</button>)}</nav>
     {notice&&<div className="success-banner" role="status"><span>✓</span>{notice}<button aria-label="Dismiss notification" onClick={()=>setNotice("")}>×</button></div>}
 

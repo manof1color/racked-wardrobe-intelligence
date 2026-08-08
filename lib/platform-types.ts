@@ -63,7 +63,7 @@ export interface OutfitPost {
 }
 
 export interface AgentReply {
-  agent: "consumer-stylist" | "brand-wear-intelligence";
+  agent: "consumer-stylist" | "brand-wear-intelligence" | "brand-retention";
   message: string;
   confidence: "high" | "medium" | "low";
   toolsUsed: string[];
