@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { analyzeFrontFirstSet, MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
+import { analyzeGarmentImages, MAX_UPLOAD_BYTES, UploadValidationError, type InMemoryGarmentImage } from "@/lib/garment-analysis";
 import { listBrandProducts } from "@/lib/server/demo-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 
 export const runtime = "nodejs";
 
-async function describeFile(view:GarmentView,file:File):Promise<UploadDescriptor> {
-  const hash=await crypto.subtle.digest("SHA-256",await file.arrayBuffer());
-  return {view,fileName:file.name,contentType:file.type,size:file.size,sha256:Buffer.from(hash).toString("hex")};
+async function prepareFile(view:GarmentView,file:File):Promise<{part:UploadDescriptor;image:InMemoryGarmentImage}> {
+  const bytes=await file.arrayBuffer();
+  const hash=await crypto.subtle.digest("SHA-256",bytes);
+  return {
+    part:{view,fileName:file.name,contentType:file.type,size:file.size,sha256:Buffer.from(hash).toString("hex")},
+    image:{view,contentType:file.type as InMemoryGarmentImage["contentType"],base64:Buffer.from(bytes).toString("base64")},
+  };
 }
 
 export async function POST(request:Request) {
@@ -25,9 +29,11 @@ export async function POST(request:Request) {
       const value=form.get(view);
       return value instanceof File&&value.size>0?[{view,file:value}]:[];
     });
-    const parts=await Promise.all(files.map(({view,file})=>describeFile(view,file)));
+    const prepared=await Promise.all(files.map(({view,file})=>prepareFile(view,file)));
+    const parts=prepared.map((item)=>item.part);
     const labelText=String(form.get("labelText") ?? "").slice(0,1000);
-    return NextResponse.json({analysis:analyzeFrontFirstSet(parts,{registry:listBrandProducts(),labelText}),retention:"Images were hashed and validated in memory; raw consumer uploads were not persisted by the demo adapter."});
+    const analysis=await analyzeGarmentImages(parts,prepared.map((item)=>item.image),{registry:listBrandProducts(),labelText});
+    return NextResponse.json({analysis,retention:"Images were analyzed in request memory; raw consumer uploads were not persisted by Racked."});
   } catch (error) {
     if (error instanceof UploadValidationError) return NextResponse.json({error:error.message},{status:error.status});
     return NextResponse.json({error:"The garment image set could not be analyzed."},{status:500});
