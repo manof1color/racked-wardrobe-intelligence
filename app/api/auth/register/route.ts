@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { createSessionToken } from "@/lib/session";
-import { createAccount, ProductionConfigurationError } from "@/lib/server/production-store";
+import { AccountConflictError, createAccount, ProductionConfigurationError } from "@/lib/server/production-store";
 import type { Role } from "@/lib/types";
 
 export async function POST(request:Request) {
@@ -16,5 +16,10 @@ export async function POST(request:Request) {
     const token=await createSessionToken({subject:account.id,role:account.role,expiresAt:Date.now()+1000*60*60*24*7},secret);
     const response=NextResponse.json({destination:account.role==="consumer"?"/consumer":"/brand"},{status:201});
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*24*7});return response;
-  } catch(error){return NextResponse.json({error:error instanceof ProductionConfigurationError?error.message:error instanceof Error?error.message:"Account creation failed."},{status:error instanceof ProductionConfigurationError?503:400});}
+  } catch(error){
+    if(error instanceof AccountConflictError) return NextResponse.json({error:error.message},{status:409});
+    if(error instanceof ProductionConfigurationError) return NextResponse.json({error:error.message},{status:503});
+    console.error("Account registration failed",error);
+    return NextResponse.json({error:"Account service is temporarily unavailable. Please try again."},{status:503});
+  }
 }

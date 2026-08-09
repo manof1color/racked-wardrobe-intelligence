@@ -17,6 +17,7 @@ const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region }), { marshal
 const s3 = new S3Client({ region });
 
 export class ProductionConfigurationError extends Error {}
+export class AccountConflictError extends Error {}
 
 function requireTable() {
   if (!tableName) throw new ProductionConfigurationError("Persistent account storage is not configured.");
@@ -58,7 +59,7 @@ export async function findAccountByEmail(email:string):Promise<AccountRecord|nul
 
 export async function createAccount(input:{email:string;password:string;role:Role;displayName:string;brandName?:string}) {
   const email=normalizeEmail(input.email);
-  if (await findAccountByEmail(email)) throw new Error("An account already exists for that email.");
+  if (await findAccountByEmail(email)) throw new AccountConflictError("An account already exists for that email.");
   const id=crypto.randomUUID();
   const passwordSalt=randomBytes(18).toString("base64url");
   const passwordHash=await passwordDigest(input.password,passwordSalt);
