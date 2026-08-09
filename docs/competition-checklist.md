@@ -27,7 +27,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
 - [x] Community posts persist and reveal no private wardrobe.
 - [x] Installable responsive PWA.
-- [x] Lint, 47 automated tests, and production build pass.
+- [x] Lint, 63 automated tests, and production build pass.
 
 ## 3. AI integration / innovation — 20%
 
