@@ -10,7 +10,7 @@ Racked is a two-sided wardrobe-intelligence application. A Consumer creates a pr
 
 ## AI
 
-Amazon Bedrock Nova Lite analyzes the supplied garment views under a prompt that prohibits person and demographic inference. Brand identity is never accepted from image similarity alone: Racked requires a brand-enrolled hash, GTIN, or brand-plus-SKU match. The Consumer confirms the result before saving. The Stylist Agent uses owned garments and wear context; the Brand Agent uses only product registry records and thresholded aggregates.
+Amazon Bedrock Nova Lite analyzes the supplied garment views under a prompt that prohibits person and demographic inference. Major-brand names are editable suggestions; verified identity requires a brand-enrolled GTIN or brand-plus-SKU match. The Consumer confirms or edits the result before saving. Consumer Hanger uses owned garments and wear context; Brand Hanger uses only product registry records and thresholded aggregates.
 
 ## Data and security
 

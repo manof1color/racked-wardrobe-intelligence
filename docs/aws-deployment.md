@@ -45,7 +45,7 @@ NEXT_PUBLIC_SITE_URL
 - [x] Amazon Bedrock model is available in `us-east-2`.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
-- [x] All 40 automated tests passed.
+- [x] All 45 automated tests passed.
 - [x] Production Next.js build passed.
 - [ ] Post-merge live account, photo, persistence, and brand enrollment smoke test.
 

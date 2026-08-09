@@ -26,14 +26,14 @@ Brand products use the same account partition with `PRODUCT#<id>` sort keys. The
 ## Image and AI path
 
 1. Validate JPG/PNG/WebP and size before processing.
-2. Send only supplied views to Amazon Bedrock with instructions that prohibit person or demographic inference.
+2. Require front, back, and label views, then send only those views to Amazon Bedrock with instructions that prohibit person or demographic inference.
 3. Parse the structured visible-attribute result.
-4. Verify brand identity only against a brand-enrolled hash, GTIN, or brand-and-SKU record.
+4. Prefill recognized major-brand names only as editable suggestions; verify identity only against a brand-enrolled GTIN or brand-and-SKU record.
 5. Use Sharp to rotate, trim a plain background, resize, and encode an avatar-ready PNG.
 6. Store privately and return a one-hour signed link plus server confirmation token.
-7. Require human confirmation before creating the wardrobe record.
+7. Require human confirmation and allow bounded name, brand, and SKU corrections before creating the wardrobe record. Corrections never create a registry product link.
 
-In production, provider failure returns an error and creates no wardrobe record.
+In production, provider failure opens an explicitly unverified manual-review result. The Consumer can save their own reviewed labels, but Racked creates no invented AI attributes or verified product link.
 
 ## Brand analytics boundary
 

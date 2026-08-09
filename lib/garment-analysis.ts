@@ -1,4 +1,4 @@
-import { matchBrandProduct, seedBrandProducts } from "./product-registry.ts";
+import { matchBrandProduct, seedBrandProducts, suggestMajorBrand } from "./product-registry.ts";
 import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
 import { parseModelJson } from "./bedrock-json.ts";
@@ -95,11 +95,11 @@ export function analyzeFrontFirstSet(parts:UploadDescriptor[],options?:{registry
   validateFrontFirstUpload(parts);
   if (requiredViews.every((view)=>parts.some((part)=>part.view===view))) return analyzeThreeViewSet(parts,options);
   return {
-    provider:"deterministic-demo",fallback:true,confidence:76,dataSufficiency:"partial",
-    garment:{name:"Sienna overshirt",category:"outerwear",color:"sienna",style:["minimal","casual","utility"],construction:["point collar","button front","two patch pockets"],material:"unconfirmed"},
+    provider:"manual-review",fallback:true,confidence:0,dataSufficiency:"partial",
+    garment:{name:"Unverified garment",category:"unknown",color:"unknown",style:[],construction:["front view received"],material:"unknown"},
     label:{brand:"Brand not verified",sku:"UNVERIFIED",brandSlug:null,matched:false,registryProductId:null,matchMethod:"none"},
-    evidence:[{view:"front",findings:["sienna woven overshirt","button front","two chest pockets","lightweight outerwear silhouette"]}],
-    warnings:["A front photo can classify visible attributes but cannot prove a brand or SKU. Add a label photo for identity verification; add the back when construction details matter."],
+    evidence:[{view:"front",findings:["Front image received for manual review"]}],
+    warnings:["AI attributes are unavailable. Add your own garment name and brand label before saving."],
   };
 }
 
@@ -124,12 +124,13 @@ export function analyzeThreeViewSet(parts: UploadDescriptor[], options?:{registr
       warnings:["The product identity matched a brand-enrolled registry record. Confirm all attributes before saving; exact hashes prove identical files, not ownership of a separately photographed garment."],
     };
   }
+  const majorSuggestion=suggestMajorBrand(labelText);
   return {
-    provider:"deterministic-demo",fallback:true,confidence:48,dataSufficiency:"complete",
+    provider:"manual-review",fallback:true,confidence:0,dataSufficiency:"complete",
     garment:{name:"Unconfirmed garment",category:"unknown",color:"unknown",style:[],construction:["three views received"],material:"unknown"},
-    label:{brand:"Unmatched label",sku:"UNCONFIRMED",brandSlug:null,matched:false,registryProductId:null,matchMethod:"none"},
+    label:majorSuggestion?{brand:majorSuggestion.brand,sku:"UNCONFIRMED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion"}:{brand:"Unmatched label",sku:"UNCONFIRMED",brandSlug:null,matched:false,registryProductId:null,matchMethod:"none"},
     evidence:requiredViews.map((view)=>({view,findings:[`${view} image validated`]})),
-    warnings:["No authoritative brand registry match was found. Add readable label text or configure OCR; never infer ownership from appearance alone."],
+    warnings:[majorSuggestion?`${majorSuggestion.brand} was suggested from supplied label text. Confirm or edit it; the product remains unverified.`:"No authoritative brand registry match was found. Add readable label text or configure OCR; never infer ownership from appearance alone."],
   };
 }
 
@@ -141,13 +142,13 @@ function parseVisionResult(value:unknown, suppliedViews:Set<GarmentView>):Vision
   if (!value || typeof value!=="object") throw new Error("Vision output was not an object.");
   const candidate=value as Partial<VisionResult>;
   const garment=candidate.garment;
-  if (!garment || typeof garment!=="object" || !Array.isArray(garment.style) || !Array.isArray(garment.construction) || !Array.isArray(candidate.evidence)) {
+  if (!garment || typeof garment!=="object") {
     throw new Error("Vision output did not match the garment schema.");
   }
-  const evidence=candidate.evidence
+  const evidence=(Array.isArray(candidate.evidence)?candidate.evidence:[])
     .filter((item):item is GarmentAnalysis["evidence"][number]=>Boolean(item&&suppliedViews.has(item.view)&&Array.isArray(item.findings)))
     .map((item)=>({view:item.view,findings:item.findings.filter((finding)=>typeof finding==="string").slice(0,8).map((finding)=>cleanText(finding,"Visible detail",140))}));
-  if (!evidence.length) throw new Error("Vision output had no evidence for a supplied view.");
+  if (!evidence.length) for(const view of suppliedViews)evidence.push({view,findings:["View supplied; review the AI attributes before saving."]});
   return {
     confidence:Math.max(0,Math.min(95,Math.round(Number(candidate.confidence)||0))),
     visibleLabelText:typeof candidate.visibleLabelText==="string"?candidate.visibleLabelText.slice(0,1000):"",
@@ -155,8 +156,8 @@ function parseVisionResult(value:unknown, suppliedViews:Set<GarmentView>):Vision
       name:cleanText(String(garment.name??""),"Unconfirmed garment",100),
       category:cleanText(String(garment.category??""),"unknown",60),
       color:cleanText(String(garment.color??""),"unknown",60),
-      style:garment.style.filter((item)=>typeof item==="string").slice(0,8).map((item)=>cleanText(item,"unconfirmed",60)),
-      construction:garment.construction.filter((item)=>typeof item==="string").slice(0,10).map((item)=>cleanText(item,"unconfirmed",100)),
+      style:(Array.isArray(garment.style)?garment.style:[]).filter((item)=>typeof item==="string").slice(0,8).map((item)=>cleanText(item,"unconfirmed",60)),
+      construction:(Array.isArray(garment.construction)?garment.construction:[]).filter((item)=>typeof item==="string").slice(0,10).map((item)=>cleanText(item,"unconfirmed",100)),
       material:cleanText(String(garment.material??""),"unknown",100),
     },
     evidence,
@@ -166,7 +167,7 @@ function parseVisionResult(value:unknown, suppliedViews:Set<GarmentView>):Vision
 // Judge note: raw image bytes enter this function as base64 held in request memory only.
 // They are sent directly to the configured multimodal provider and are never written to disk.
 // Any missing configuration, timeout, provider error, refusal, or malformed response returns the
-// same tested deterministic analysis used by the credential-free demo.
+// same tested manual-review result so the person can label and save their own garment.
 export async function analyzeGarmentImages(
   parts:UploadDescriptor[],
   images:InMemoryGarmentImage[],
@@ -187,10 +188,12 @@ export async function analyzeGarmentImages(
       const combinedLabelText=[options.labelText,vision.visibleLabelText].filter(Boolean).join(" ").slice(0,1000);
       const registryResult=analyzeFrontFirstSet(parts,{registry:options.registry,labelText:combinedLabelText});
       const matched=registryResult.label.matched;
-      return {provider:"multimodal",fallback:false,confidence:vision.confidence,dataSufficiency:parts.length===3?"complete":"partial",garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,label:registryResult.label,evidence:vision.evidence,warnings:[matched?"Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving.":"AI analyzed visible attributes, but brand and SKU remain unverified until evidence matches a brand-enrolled registry record."]};
+      const majorSuggestion=!matched?suggestMajorBrand(combinedLabelText):null;
+      const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:registryResult.label;
+      return {provider:"multimodal",fallback:false,confidence:vision.confidence,dataSufficiency:parts.length===3?"complete":"partial",garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,label,evidence:vision.evidence,warnings:[matched?"Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving.":majorSuggestion?`${majorSuggestion.brand} was suggested from visible label evidence. Confirm or edit the name; it is not a verified product link.`:"AI analyzed visible attributes, but brand and SKU remain unverified until evidence matches a brand-enrolled registry record."]};
     } catch(error) {
       console.error("Bedrock garment analysis failed",{name:error instanceof Error?error.name:"UnknownError",message:error instanceof Error?error.message:"Unknown provider failure",modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,views:images.map(image=>image.view),imageBytes:images.map(image=>Buffer.byteLength(image.base64,"base64"))});
-      return {...fallback,warnings:[...fallback.warnings,"Amazon Bedrock image analysis was unavailable. No garment will be saved until real AI analysis succeeds."]};
+      return {...fallback,warnings:[...fallback.warnings,"Amazon Bedrock image analysis was unavailable. Review and complete the editable garment labels before saving."]};
     }
   }
   if ((provider!=="anthropic"&&provider!=="multimodal")||!apiKey) return fallback;
@@ -222,10 +225,12 @@ export async function analyzeGarmentImages(
     const combinedLabelText=[options.labelText,vision.visibleLabelText].filter(Boolean).join(" ").slice(0,1000);
     const registryResult=analyzeFrontFirstSet(parts,{registry:options.registry,labelText:combinedLabelText});
     const matched=registryResult.label.matched;
+    const majorSuggestion=!matched?suggestMajorBrand(combinedLabelText):null;
+    const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:registryResult.label;
     return {
       provider:"multimodal", fallback:false, confidence:vision.confidence, dataSufficiency:parts.length===3?"complete":"partial",
       garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,
-      label:registryResult.label,
+      label,
       evidence:vision.evidence,
       warnings:[
         matched
@@ -235,6 +240,6 @@ export async function analyzeGarmentImages(
       ],
     };
   } catch {
-    return {...fallback,warnings:[...fallback.warnings,"Multimodal analysis was unavailable, so Racked used its safe deterministic fallback."]};
+    return {...fallback,warnings:[...fallback.warnings,"Multimodal analysis was unavailable, so Racked opened the garment for manual review."]};
   }
 }
