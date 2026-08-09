@@ -22,7 +22,7 @@ Allowed tools:
 - that account’s saved outfits;
 - submitted occasion and weather context.
 
-It may select only owned items and returns its evidence and tool list.
+It is a multi-turn conversation, not a one-click summary. The browser sends at most eight prior user/assistant turns; the server treats that history only as conversational text and reloads authoritative wardrobe context on every message. It may select only owned items, returns its evidence and tool list, and exposes server-selected actions to save the outfit or record those pieces as worn. The save endpoint independently checks that every submitted item belongs to the signed-in wardrobe.
 
 ## Brand Hanger Agent
 
@@ -36,6 +36,17 @@ Allowed tools:
 
 It cannot retrieve names, emails, consumer images, or raw wardrobes.
 
+It is also multi-turn. For each brand message, the server rechecks product ownership, consumer consent, and the cohort threshold before constructing model context. Released context may contain only product name/SKU/category plus aggregate usage metrics and trend bins. Suppressed context contains the minimum cohort rule but no suppressed wear values. This lets brands discuss retention, merchandising, education, and campaign strategy without turning Hanger into an individual-customer surveillance tool.
+
+## Conversation controls
+
+- Free-form message length: 1,000 characters.
+- Prior history sent to the provider: most recent eight non-empty turns.
+- Provider output displayed: at most 2,500 characters.
+- Conversation state: current page session only; authoritative account context is never accepted from the browser.
+- Consumer context excludes image URLs/keys; Brand context excludes owner IDs, label transcriptions, image records, and suppressed values.
+- Bedrock failure falls back to a deterministic, context-grounded response so Hanger remains usable without inventing analysis.
+
 ## Failure policy
 
 Production garment intake never invents attributes. If Bedrock returns an error or incomplete response, Racked returns an explicitly unverified manual-review result. The Consumer can add their own garment name, brand label, and optional SKU before saving. That user-authored label does not create a verified brand-product link.
@@ -44,7 +55,7 @@ Major-brand recognition is a suggestion layer over visible label text. A recogni
 
 Mobile photos are auto-rotated, resized to fit within 1568×1568, and JPEG-compressed in request memory before they are sent to Bedrock. This keeps modern phone images within a predictable inference payload. The structured-response parser accepts valid JSON returned directly, inside a code fence, or after a short model preface. Provider failures are logged without image bytes, filenames, account IDs, or wardrobe data.
 
-The Brand wear agent calls Bedrock only after the existing consent filter and k≥25 privacy threshold release an aggregate. The model receives product name, eligible-owner count, confirmed-wear count, active-owner count, and repeat-wear percentage. It never receives customer names, emails, photos, owner identifiers, or individual wardrobe records. Numeric evidence shown in the UI is rendered from server-calculated metrics rather than model-generated values.
+The Brand wear agent applies the existing consent filter and k≥25 privacy threshold before constructing model context. Above the threshold, the model receives only product identity plus released aggregate usage metrics. Below the threshold, it receives product identity and the threshold rule—but no cohort size or wear values—so it can discuss general strategy without making evidence-based customer claims. It never receives customer names, emails, photos, owner identifiers, or individual wardrobe records. Numeric evidence shown in the UI is rendered from server-calculated metrics rather than model-generated values.
 
 ## Claims not made
 

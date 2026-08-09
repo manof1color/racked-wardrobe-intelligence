@@ -75,12 +75,17 @@ export interface OutfitPost {
 
 export interface AgentReply {
   agent: "consumer-stylist" | "brand-wear-intelligence" | "brand-retention";
-  provider?: "amazon-bedrock" | "grounded-aggregate" | "privacy-threshold";
+  provider?: "amazon-bedrock" | "grounded-aggregate" | "grounded-wardrobe" | "privacy-threshold";
   message: string;
   confidence: "high" | "medium" | "low";
   toolsUsed: string[];
   actions: Array<{ label:string; type:string; payload:Record<string,string> }>;
   evidence: string[];
+}
+
+export interface AgentChatTurn {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export interface PartnerDashboardData {

@@ -1,7 +1,55 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
 import { getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
-import { generateBrandWearInsight } from "@/lib/brand-wear-insight";
 import type { AgentReply } from "@/lib/platform-types";
 
-export async function POST(request:Request){const session=await getSession();if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});const body=await request.json().catch(()=>null) as {productId?:string}|null;if(!body?.productId)return NextResponse.json({error:"Choose a product."},{status:400});try{const [metrics,products]=await Promise.all([getRealProductMetrics(session.subject,body.productId),listOwnedBrandProducts(session.subject)]);const product=products.find(item=>item.id===body.productId);if(!product)throw new Error("Product not found.");if(metrics.suppressed){const reply:AgentReply={agent:"brand-wear-intelligence",provider:"privacy-threshold",message:`Wear intelligence for ${product.name} is protected because only ${metrics.segmentSize} qualifying owners are connected. Racked will release no aggregate until the cohort reaches ${metrics.minimumCohortSize}.`,confidence:"high",toolsUsed:["brand product registry","verified product links","consumer consent","privacy threshold"],actions:[],evidence:["No consumer identity queried","No raw wardrobe queried","Aggregate blocked before AI analysis"]};return NextResponse.json({reply,retention:null});}const aggregate={productName:product.name,segmentSize:metrics.segmentSize,actualWears:metrics.actualWears??0,activeOwners:metrics.activeOwners??0,repeatWearRate:metrics.repeatWearRate??0};const insight=await generateBrandWearInsight(aggregate);const reply:AgentReply={agent:"brand-wear-intelligence",provider:insight?"amazon-bedrock":"grounded-aggregate",message:insight?.summary??`${product.name} has ${aggregate.actualWears} confirmed wears across ${aggregate.activeOwners} active owners, with a ${aggregate.repeatWearRate}% repeat-wear rate.`,confidence:"high",toolsUsed:["brand product registry","verified product links","confirmed wear events","privacy threshold",...(insight?["Amazon Bedrock aggregate analysis"]:[])],actions:[{label:"Create a wear-led campaign brief",type:"campaign",payload:{segment:"repeat-wear",theme:insight?.campaignTheme??"actual wear",recommendation:insight?.recommendation??"Use confirmed aggregate wear evidence."}}],evidence:[`${aggregate.segmentSize} eligible opted-in owners`,`${aggregate.actualWears} confirmed wears`,`${aggregate.repeatWearRate}% repeat-wear rate`,"No names, photos, or individual wardrobes sent to AI"]};return NextResponse.json({reply,retention:null});}catch(error){console.error("Brand wear agent failed",error);return NextResponse.json({error:"Wear intelligence could not run."},{status:500});}}
+export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
+  if (session.role !== "brand") return NextResponse.json({ error: "Brand account required." }, { status: 403 });
+  const body = await request.json().catch(() => null) as { productId?: string; message?: string; history?: unknown } | null;
+  if (!body?.productId) return NextResponse.json({ error: "Choose a product." }, { status: 400 });
+  const message = (body.message?.trim() || "Analyze this product's actual wear and recommend the strongest next step.").slice(0, 1_000);
+
+  try {
+    const [metrics, products] = await Promise.all([
+      getRealProductMetrics(session.subject, body.productId),
+      listOwnedBrandProducts(session.subject),
+    ]);
+    const product = products.find((item) => item.id === body.productId);
+    if (!product) throw new Error("Product not found.");
+    const generated = await generateBrandHangerReply({
+      message,
+      history: sanitizeAgentHistory(body.history),
+      product,
+      metrics,
+    });
+    const reply: AgentReply = {
+      agent: "brand-wear-intelligence",
+      provider: metrics.suppressed ? "privacy-threshold" : generated.usedModel ? "amazon-bedrock" : "grounded-aggregate",
+      message: generated.message,
+      confidence: metrics.suppressed ? "medium" : "high",
+      toolsUsed: ["brand product registry", "verified product links", "consumer consent", "privacy threshold", "fresh aggregate metrics", "bounded conversation history"],
+      actions: metrics.suppressed ? [] : [{
+        label: "Create a strategy brief",
+        type: "campaign",
+        payload: { segment: "aggregate-wear", theme: "actual wear", recommendation: "Use only the released aggregate evidence shown in this conversation." },
+      }],
+      evidence: metrics.suppressed ? [
+        `Aggregate release requires at least ${metrics.minimumCohortSize} eligible owners`,
+        "No individual records or suppressed metrics sent to AI",
+        "General strategy only until the threshold is reached",
+      ] : [
+        `${metrics.segmentSize} eligible opted-in owners`,
+        `${metrics.actualWears ?? 0} confirmed wears`,
+        `${metrics.repeatWearRate ?? 0}% repeat-wear rate`,
+        "No names, photos, identifiers, or individual wardrobes sent to AI",
+      ],
+    };
+    return NextResponse.json({ reply, retention: null });
+  } catch (error) {
+    console.error("Brand Hanger conversation failed", error);
+    return NextResponse.json({ error: "Wear intelligence could not run." }, { status: 500 });
+  }
+}
