@@ -8,7 +8,7 @@ type AgentAction = AgentReply["actions"][number];
 function Reply({ reply, onAction, working }: { reply: AgentReply; onAction: (action: AgentAction) => void; working: string | null }) {
   return (
     <div className="agent-reply">
-      <div className="agent-meta"><span>{reply.confidence} confidence</span><span>{reply.toolsUsed.length} tools used</span></div>
+      <div className="agent-meta"><span>{reply.confidence} confidence</span><span>{reply.toolsUsed.length} tools used</span>{reply.provider&&<span>{reply.provider.replaceAll("-"," ")}</span>}</div>
       <p>{reply.message}</p>
       <ul>{reply.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
       <div className="agent-actions">

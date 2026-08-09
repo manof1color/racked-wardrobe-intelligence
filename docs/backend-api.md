@@ -17,7 +17,7 @@ All private routes verify the signed HTTP-only session and role on the server. S
 | `GET /api/brand/products` | Brand | Lists only products enrolled by that brand account |
 | `POST /api/brand/products` | Brand | Encrypts authorized three-view images and registers brand-bound SKU identity |
 | `POST /api/brand/metrics` | Brand | Confirms product ownership, filters connected owners by consent, applies `k ≥ 25`, then calculates wear metrics |
-| `POST /api/agents/brand` | Brand | Explains only the same brand-owned, thresholded wear result |
+| `POST /api/agents/brand` | Brand | Uses Amazon Bedrock to explain only the same brand-owned, consented, thresholded aggregate wear result; no AI call occurs below k=25 |
 | `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes from the signed-in Consumer’s saved wardrobe, and records likes |
 
 ## Image security

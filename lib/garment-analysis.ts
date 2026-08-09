@@ -1,6 +1,7 @@
 import { matchBrandProduct, seedBrandProducts } from "./product-registry.ts";
 import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
+import { parseModelJson } from "./bedrock-json.ts";
 
 const allowedTypes = new Set(["image/jpeg","image/png","image/webp"]);
 const requiredViews: GarmentView[] = ["front","back","label"];
@@ -182,13 +183,13 @@ export async function analyzeGarmentImages(
       const response=await client.send(new ConverseCommand(input));
       const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
       if(!raw)throw new Error("Bedrock returned no garment analysis.");
-      const jsonText=raw.replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"");
-      const vision=parseVisionResult(JSON.parse(jsonText),new Set(images.map(image=>image.view)));
+      const vision=parseVisionResult(parseModelJson(raw),new Set(images.map(image=>image.view)));
       const combinedLabelText=[options.labelText,vision.visibleLabelText].filter(Boolean).join(" ").slice(0,1000);
       const registryResult=analyzeFrontFirstSet(parts,{registry:options.registry,labelText:combinedLabelText});
       const matched=registryResult.label.matched;
       return {provider:"multimodal",fallback:false,confidence:vision.confidence,dataSufficiency:parts.length===3?"complete":"partial",garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,label:registryResult.label,evidence:vision.evidence,warnings:[matched?"Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving.":"AI analyzed visible attributes, but brand and SKU remain unverified until evidence matches a brand-enrolled registry record."]};
-    } catch {
+    } catch(error) {
+      console.error("Bedrock garment analysis failed",{name:error instanceof Error?error.name:"UnknownError",message:error instanceof Error?error.message:"Unknown provider failure",modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,views:images.map(image=>image.view),imageBytes:images.map(image=>Buffer.byteLength(image.base64,"base64"))});
       return {...fallback,warnings:[...fallback.warnings,"Amazon Bedrock image analysis was unavailable. No garment will be saved until real AI analysis succeeds."]};
     }
   }

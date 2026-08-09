@@ -73,6 +73,7 @@ export interface OutfitPost {
 
 export interface AgentReply {
   agent: "consumer-stylist" | "brand-wear-intelligence" | "brand-retention";
+  provider?: "amazon-bedrock" | "grounded-aggregate" | "privacy-threshold";
   message: string;
   confidence: "high" | "medium" | "low";
   toolsUsed: string[];

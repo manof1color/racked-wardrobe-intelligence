@@ -35,6 +35,8 @@ This is the judge’s index for the CUA rubric.
 - [x] Consumer Stylist Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
 - [x] Brand Wear Agent can access only brand-owned products and thresholded wear aggregates.
 - [x] Production provider failure returns an error and saves no invented fallback attributes.
+- [x] Phone images are normalized before Bedrock vision analysis and structured responses are parsed defensively.
+- [x] Brand AI analysis runs only on consented aggregates after the k≥25 release threshold.
 
 ## 4. Code / documentation / GitHub — 15%
 
