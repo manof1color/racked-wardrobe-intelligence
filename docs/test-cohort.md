@@ -2,7 +2,7 @@
 
 > Judge note: every record described here is synthetic and carries `testCohort: true`. It demonstrates the privacy threshold without representing real customers or commercial results.
 
-Racked includes an explicit seeding workflow for one fictional small brand, **Racked Test Atelier**, one enrolled product, and 25 opted-in synthetic Consumer accounts. Each Consumer owns the same verified test product and has 1–4 synthetic wear events. This allows the Brand dashboard and Hanger brand agent to cross the production `k ≥ 25` privacy boundary with data that cannot be mistaken for real customer evidence.
+Racked includes an explicit seeding workflow for one fictional small brand, **Racked Test Atelier**, one enrolled product, and 25 opted-in synthetic Consumer accounts. Each Consumer owns the same verified test product with 1–4 synthetic wear events plus one clearly labeled, unverified companion pant. The companion makes Consumer Hanger testable without adding another brand-linked aggregate. This allows the Brand dashboard and Hanger brand agent to cross the production `k ≥ 25` privacy boundary with data that cannot be mistaken for real customer evidence.
 
 The seed is intentionally not automatic. Run `scripts/generate-test-cohort-assets.mjs`, then run `scripts/seed-test-cohort.mjs` only with `ALLOW_RACKED_TEST_SEED=yes`, the production table and bucket names, and a separately supplied `RACKED_TEST_PASSWORD`. No password is committed to GitHub.
 

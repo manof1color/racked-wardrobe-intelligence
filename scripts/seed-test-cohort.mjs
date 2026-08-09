@@ -50,6 +50,11 @@ for(let index=1;index<=25;index++){
   await s3.send(new PutObjectCommand({Bucket:bucket,Key:imageKey,Body:source,ContentType:"image/png",ServerSideEncryption:"AES256",Metadata:{owner:id,synthetic:"true"}}));
   const garmentId=`test-rta-tee-${suffix}`;
   await db.send(new PutCommand({TableName:table,Item:{id:garmentId,name:"Test Rotation Tee",category:"top",color:"navy",style:["casual","test cohort"],season:"all-season",wearCount:(index%4)+1,lastWornDays:index%7,source:"ai-confirmed",art:"photo",imageKey,brand:"Racked Test Atelier",sku:"RTA-TEE-001",identityStatus:"verified",createdAt,testCohort:true,PK:`USER#${id}`,SK:`GARMENT#${garmentId}`,GSI1PK:`PRODUCT#${productId}`,GSI1SK:`OWNER#${id}`}}));
+  const companionSource=await readFile("public/test-cohort/synthetic-companion-pant.png");
+  const companionKey=`wardrobe/${id}/synthetic-companion-pant.png`;
+  await s3.send(new PutObjectCommand({Bucket:bucket,Key:companionKey,Body:companionSource,ContentType:"image/png",ServerSideEncryption:"AES256",Metadata:{owner:id,synthetic:"true"}}));
+  const companionId=`test-companion-pant-${suffix}`;
+  await db.send(new PutCommand({TableName:table,Item:{id:companionId,name:"Synthetic Companion Pant",category:"bottom",color:"brown",style:["casual","test cohort"],season:"all-season",wearCount:index%3,lastWornDays:index%9,source:"manual",art:"photo",imageKey:companionKey,brand:null,sku:null,identityStatus:"unverified",createdAt,testCohort:true,PK:`USER#${id}`,SK:`GARMENT#${companionId}`}}));
   consumers.push(email);
 }
 
