@@ -13,11 +13,11 @@ All private routes verify the signed HTTP-only session and role on the server. S
 | `POST /api/consumer/outfits` | Consumer | Saves an account-owned outfit of 1–10 unique wardrobe items |
 | `POST /api/wears` | Consumer | Atomically increments owned-item totals and writes a timestamped product wear event when the garment is registry-linked |
 | `GET/PATCH /api/consumer/consent` | Consumer | Reads or changes that account’s brand-aggregate opt-in |
-| `POST /api/agents/consumer` | Consumer | Builds an outfit from that account’s owned garments, wears, outfits, and submitted context |
+| `POST /api/agents/consumer` | Consumer | Accepts a free-form message plus at most eight bounded chat turns, reloads that account’s current garments/wears/outfits, and returns a grounded answer with validated save/wear actions |
 | `GET /api/brand/products` | Brand | Lists only products enrolled by that brand account |
 | `POST /api/brand/products` | Brand | Encrypts authorized three-view images and registers brand-bound SKU identity |
 | `POST /api/brand/metrics` | Brand | Confirms product ownership, filters owners and wear events by consent, applies `k ≥ 25`, then returns total/average/median usage, engagement, repeat wear, frequency distribution, and an eight-week trend |
-| `POST /api/agents/brand` | Brand | Uses Amazon Bedrock to explain only the same brand-owned, consented, thresholded aggregate wear result; no AI call occurs below k=25 |
+| `POST /api/agents/brand` | Brand | Accepts a free-form strategy question plus bounded chat history, reloads the selected brand-owned product and consent-filtered aggregate, and discusses only released metrics; below `k=25`, the context contains the privacy rule rather than suppressed values |
 | `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes from the signed-in Consumer’s saved wardrobe, and records likes |
 
 ## Image security

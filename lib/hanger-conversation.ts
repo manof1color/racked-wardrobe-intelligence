@@ -1,0 +1,176 @@
+import { BedrockRuntimeClient, ConverseCommand, type Message } from "@aws-sdk/client-bedrock-runtime";
+import type { BrandMetrics } from "./metrics.ts";
+import type { AgentChatTurn, BrandProductRegistration } from "./platform-types.ts";
+import type { SavedOutfit, WardrobeItem } from "./types.ts";
+
+const MAX_HISTORY_TURNS = 8;
+const MAX_MESSAGE_LENGTH = 1_000;
+
+function cleanText(value: unknown, maximum = MAX_MESSAGE_LENGTH) {
+  return typeof value === "string" ? value.trim().slice(0, maximum) : "";
+}
+
+export function sanitizeAgentHistory(value: unknown): AgentChatTurn[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((turn): turn is Record<string, unknown> => Boolean(turn) && typeof turn === "object")
+    .map((turn) => ({
+      role: turn.role === "assistant" ? "assistant" as const : "user" as const,
+      content: cleanText(turn.content),
+    }))
+    .filter((turn) => turn.content.length > 0)
+    .slice(-MAX_HISTORY_TURNS);
+}
+
+export function normalizeProviderHistory(value: unknown): AgentChatTurn[] {
+  const normalized: AgentChatTurn[] = [];
+  for (const turn of sanitizeAgentHistory(value)) {
+    if (normalized.length === 0 && turn.role === "assistant") continue;
+    const previous = normalized.at(-1);
+    if (previous?.role === turn.role) {
+      previous.content = `${previous.content}\n${turn.content}`.slice(-MAX_MESSAGE_LENGTH);
+    } else {
+      normalized.push({ ...turn });
+    }
+  }
+  if (normalized.at(-1)?.role === "user") normalized.pop();
+  return normalized;
+}
+
+export function selectGroundedOutfit(wardrobe: WardrobeItem[], message: string) {
+  const request = message.toLowerCase();
+  const categories = ["top", "bottom", "shoe", "outerwear", "accessory"];
+  const ranked = [...wardrobe].sort((a, b) => {
+    if (a.wearCount !== b.wearCount) return a.wearCount - b.wearCount;
+    return (b.lastWornDays ?? 0) - (a.lastWornDays ?? 0);
+  });
+  if (/not worn|least worn|rotation|forgotten|underused/.test(request)) return ranked.slice(0, 4);
+  const chosen = categories
+    .map((category) => ranked.find((item) => item.category.toLowerCase().includes(category)))
+    .filter((item): item is WardrobeItem => Boolean(item));
+  for (const item of ranked) {
+    if (chosen.length >= 4) break;
+    if (!chosen.some((entry) => entry.id === item.id)) chosen.push(item);
+  }
+  return chosen.slice(0, 4);
+}
+
+function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[]) {
+  return {
+    wardrobe: wardrobe.slice(0, 60).map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      color: item.color,
+      style: item.style,
+      wearCount: item.wearCount,
+      lastWornDays: item.lastWornDays,
+      brand: item.brand ?? null,
+      identityStatus: item.identityStatus ?? "unverified",
+    })),
+    savedOutfits: outfits.slice(0, 20).map((outfit) => ({
+      name: outfit.name,
+      itemIds: outfit.itemIds,
+      wears: outfit.wears,
+    })),
+    candidateOutfitItemIds: suggested.map((item) => item.id),
+  };
+}
+
+export function buildConsumerHangerPrompt(input: {
+  message: string;
+  wardrobe: WardrobeItem[];
+  outfits: SavedOutfit[];
+  suggested: WardrobeItem[];
+}) {
+  return `Fresh private wardrobe context for this turn: ${JSON.stringify(consumerContext(input.wardrobe, input.outfits, input.suggested))}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
+}
+
+function releasedBrandContext(product: BrandProductRegistration, metrics: BrandMetrics) {
+  return {
+    product: { name: product.name, sku: product.sku, category: product.category, brand: product.brand },
+    privacyRelease: metrics.suppressed ? {
+      released: false,
+      rule: `No product-wear aggregates are released below ${metrics.minimumCohortSize} eligible opted-in owners.`,
+    } : {
+      released: true,
+      eligibleOwners: metrics.segmentSize,
+      actualWears: metrics.actualWears,
+      activeOwners: metrics.activeOwners,
+      engagementRate: metrics.engagementRate,
+      repeatWearRate: metrics.repeatWearRate,
+      averageWearsPerOwner: metrics.averageWearsPerOwner,
+      medianWearsPerOwner: metrics.medianWearsPerOwner,
+      zeroWearOwners: metrics.zeroWearOwners,
+      highFrequencyOwners: metrics.highFrequencyOwners,
+      lastWearAt: metrics.lastWearAt,
+      wearDistribution: metrics.wearDistribution,
+      weeklyTrend: metrics.weeklyTrend,
+    },
+  };
+}
+
+export function buildBrandHangerPrompt(input: {
+  message: string;
+  product: BrandProductRegistration;
+  metrics: BrandMetrics;
+}) {
+  return `Fresh brand-owned, privacy-filtered context for this turn: ${JSON.stringify(releasedBrandContext(input.product, input.metrics))}\nBrand message: ${JSON.stringify(cleanText(input.message))}`;
+}
+
+async function converse(system: string, history: AgentChatTurn[], prompt: string) {
+  if ((process.env.AI_PROVIDER ?? "").toLowerCase() !== "bedrock") return null;
+  const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
+  const modelId = process.env.AI_HANGER_MODEL ?? process.env.AI_MODEL ?? "amazon.nova-lite-v1:0";
+  const messages: Message[] = [
+    ...normalizeProviderHistory(history).map((turn): Message => ({ role: turn.role, content: [{ text: turn.content }] })),
+    { role: "user", content: [{ text: prompt }] },
+  ];
+  try {
+    const response = await new BedrockRuntimeClient({ region }).send(new ConverseCommand({
+      modelId,
+      system: [{ text: system }],
+      messages,
+      inferenceConfig: { maxTokens: 650, temperature: 0.25 },
+    }));
+    const text = response.output?.message?.content?.find((block) => "text" in block)?.text?.trim();
+    return text ? text.slice(0, 2_500) : null;
+  } catch (error) {
+    console.error("Hanger conversation failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown provider failure",
+      region,
+      modelId,
+    });
+    return null;
+  }
+}
+
+export async function generateConsumerHangerReply(input: {
+  message: string;
+  history: AgentChatTurn[];
+  wardrobe: WardrobeItem[];
+  outfits: SavedOutfit[];
+  suggested: WardrobeItem[];
+}) {
+  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. Refer to items by name, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON.";
+  const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
+  if (generated) return { message: generated, usedModel: true };
+  if (input.wardrobe.length === 0) return { message: "I can help you plan a wardrobe, but I do not see any saved garments yet. Add your front, back, and label photos first, then ask me for an outfit, rotation, or gap analysis. What kind of outfit do you want to build first?", usedModel: false };
+  const names = input.suggested.map((item) => item.name);
+  if (names.length === 0) return { message: "I can see your wardrobe, but I could not form a grounded outfit from the current item details. Tell me the occasion and the type of piece you want to start with.", usedModel: false };
+  return { message: `I pulled your latest wardrobe and would start with ${names.join(", ")}. These are all pieces you already own, and I prioritized lower-wear items to bring more of your closet into rotation. What occasion, weather, or dress code should I refine this for?`, usedModel: false };
+}
+
+export async function generateBrandHangerReply(input: {
+  message: string;
+  history: AgentChatTurn[];
+  product: BrandProductRegistration;
+  metrics: BrandMetrics;
+}) {
+  const system = "You are Hanger, Racked's conversational brand strategist. Answer the latest question with practical product, retention, merchandising, and campaign strategy grounded only in the supplied brand-owned product and privacy-released aggregates. Never invent metrics or claim causation, revenue lift, purchase intent, identities, demographics, or individual customer behavior. If aggregates are not released, discuss only general strategy and explain that evidence-based conclusions must wait for the privacy threshold. Do not expose internal IDs or raw context JSON. Ask a focused follow-up when useful.";
+  const generated = await converse(system, input.history, buildBrandHangerPrompt(input));
+  if (generated) return { message: generated, usedModel: true };
+  if (input.metrics.suppressed) return { message: `I can discuss general strategy for ${input.product.name}, but I cannot make evidence-based wear claims until the privacy-safe cohort reaches ${input.metrics.minimumCohortSize} eligible opted-in owners. We could work now on a launch, education, or styling strategy that makes no customer-behavior claims. Which goal matters most?`, usedModel: false };
+  return { message: `${input.product.name} currently has ${input.metrics.actualWears ?? 0} confirmed wears across ${input.metrics.activeOwners ?? 0} active owners, with ${input.metrics.repeatWearRate ?? 0}% repeat wear. A sound next step is to build a campaign around demonstrated repeat styling while separately helping zero-wear owners discover pairings, without implying individual tracking. Do you want a 30-day retention plan, a campaign brief, or a merchandising recommendation?`, usedModel: false };
+}

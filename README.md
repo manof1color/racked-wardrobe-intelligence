@@ -20,7 +20,7 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 4. The server rotates, trims, and resizes the image into an avatar-ready private asset.
 5. The consumer confirms or edits the garment name, brand label, and optional SKU before saving. Unverified garments remain usable.
 6. The Avatar view layers saved garment photos, saves outfits, and records wear.
-7. Hanger opens from the bottom of the dashboard and builds only from that account’s owned pieces and recorded context.
+7. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
 8. The consumer may separately opt in to anonymous brand aggregates and may publish a selected outfit to Community.
 
 ### Brand
@@ -29,7 +29,7 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 2. Enroll authorized front, back, and label images with SKU/MPN, optional GTIN, aliases, and approved label text.
 3. Consumer label evidence can connect a wardrobe item to the brand-authorized registry record.
 4. The Brand dashboard reports actual wears, active owners, and repeat-wear rate only when at least 25 opted-in owners qualify.
-5. Hanger on the Brand dashboard is restricted to the brand’s own products and the same thresholded aggregates.
+5. Hanger on the Brand dashboard supports follow-up strategy conversations but is restricted to the brand’s own products and the same consent-filtered, `k ≥ 25` aggregates.
 
 ## Production architecture
 
@@ -60,7 +60,7 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 | --- | --- |
 | Problem & relevance — 20% | This README and [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Real accounts, uploads, persistent wardrobe/outfits, brand registry, live AWS URL |
-| AI & innovation — 20% | Bedrock vision, human confirmation, avatar preparation, two account-bounded agents |
+| AI & innovation — 20% | Bedrock vision, human confirmation, avatar preparation, and two multi-turn agents that retrieve fresh role-bounded context for every message |
 | Code, docs & GitHub — 15% | Typed modules, tests, CI/CodeQL, architecture/privacy/API documents, incremental PRs |
 | UX & polish — 10% | Responsive Consumer app, camera upload, empty/loading/error states, installable PWA |
 | Business impact — 10% | Actual-wear, active-owner, repeat-wear, brand registry, and thresholded intelligence |

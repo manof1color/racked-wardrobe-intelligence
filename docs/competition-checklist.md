@@ -36,11 +36,14 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
 - [x] Consumer Hanger Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
 - [x] Brand Hanger Agent can access only brand-owned products and thresholded wear aggregates.
+- [x] Both Hanger roles support free-form follow-up conversation and retrieve fresh server-side context for every message.
+- [x] Consumer Hanger can save a grounded outfit or record it as worn; the save route revalidates item ownership.
+- [x] Brand Hanger can discuss product, retention, merchandising, and campaign strategy without receiving identities or suppressed values.
 - [x] Production provider failure opens explicit manual review and saves no invented fallback attributes.
 - [x] Major-brand names are editable suggestions; only registry SKU/GTIN evidence creates verification.
 - [x] Clearly labeled 25-account synthetic cohort demonstrates the privacy threshold without claiming real customer results.
 - [x] Phone images are normalized before Bedrock vision analysis and structured responses are parsed defensively.
-- [x] Brand AI analysis runs only on consented aggregates after the k≥25 release threshold.
+- [x] Brand AI receives wear analysis only after the `k≥25` release threshold; below it, Hanger receives no cohort or wear values and is limited to general strategy.
 
 ## 4. Code / documentation / GitHub — 15%
 
