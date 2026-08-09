@@ -15,11 +15,14 @@ Do not publish passwords other than the documented fictional demo password, sess
 - Consumer/Brand pages enforce roles on the server.
 - Consumer analysis requires explicit consent.
 - Brand-safe aggregate helpers suppress cohorts below 25 and strip identity/raw-wardrobe fields.
+- A DynamoDB-backed enumeration budget caps how many distinct products one brand account can pull aggregates for in a rolling window, on the production dashboard and Hanger paths.
+- Sliding-window rate limits protect sign-in, registration, garment analysis, both Hanger agents, brand metrics, and community publishing/likes with 429 responses. Counters are in-memory per compute instance — a deliberate zero-cost first layer, not a WAF replacement.
+- Public community responses are rebuilt from an explicit allowlist so owner account IDs, private S3 keys, and database key attributes never leave the server.
 - Production uploads must be private, allowlisted, size-limited, scanned, and lifecycle-deleted.
 - Logs must exclude tokens, raw images, credentials, and personal data.
 
 ## Before public deployment
 
-Replace fictional demo authentication with Cognito, add rate limiting and CSRF review, persist consent versions, implement upload malware scanning, validate CloudFormation changes, and complete a focused authorization test against every write endpoint.
+Add WAF/edge rate limiting and CSRF review, persist consent versions, implement upload malware scanning, validate CloudFormation changes, and complete a focused authorization test against every write endpoint.
 
 Automated repository checks currently include production dependency auditing on every change, weekly Dependabot version updates, and CodeQL scanning on pushes, pull requests, and a weekly schedule. These checks complement rather than replace manual authorization and privacy review.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { generateConsumerHangerReply, sanitizeAgentHistory, selectGroundedOutfit } from "@/lib/hanger-conversation";
+import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { listOutfits, listWardrobe } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
 
@@ -8,6 +9,8 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
   if (session.role !== "consumer") return NextResponse.json({ error: "Consumer account required." }, { status: 403 });
+  const limit = consumeRateLimit(`consumer-agent:${session.subject}`, RATE_LIMIT_RULES.consumerAgent);
+  if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const body = await request.json().catch(() => ({})) as { message?: string; history?: unknown; occasion?: string; weather?: string };
   const legacyMessage = `Build an outfit for ${body.occasion?.trim() || "my plans"}${body.weather?.trim() ? ` in ${body.weather.trim()}` : ""}.`;
   const message = (body.message?.trim() || legacyMessage).slice(0, 1_000);

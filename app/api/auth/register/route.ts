@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
 import { AccountConflictError, createAccount, ProductionConfigurationError } from "@/lib/server/production-store";
 import type { Role } from "@/lib/types";
 
 export async function POST(request:Request) {
+  const limit=consumeRateLimit(`register:${clientIdentifier(request)}`,RATE_LIMIT_RULES.register);
+  if(!limit.allowed)return NextResponse.json({error:"Too many account requests. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const body=await request.json().catch(()=>null) as {email?:string;password?:string;role?:Role;displayName?:string;brandName?:string;consent?:boolean}|null;
   if(!body?.email||!/^\S+@\S+\.\S+$/.test(body.email)||!body.displayName||!body.role||!["consumer","brand"].includes(body.role)) return NextResponse.json({error:"Complete every required account field."},{status:400});
   if(!body.password||body.password.length<12||!/[A-Z]/.test(body.password)||!/[a-z]/.test(body.password)||!/[0-9]/.test(body.password)) return NextResponse.json({error:"Use at least 12 characters with uppercase, lowercase, and a number."},{status:400});

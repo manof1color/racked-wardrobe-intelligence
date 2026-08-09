@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
-import { getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
+import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { EnumerationBudgetError, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
 
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
   if (session.role !== "brand") return NextResponse.json({ error: "Brand account required." }, { status: 403 });
+  const limit = consumeRateLimit(`brand-agent:${session.subject}`, RATE_LIMIT_RULES.brandAgent);
+  if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const body = await request.json().catch(() => null) as { productId?: string; message?: string; history?: unknown } | null;
   if (!body?.productId) return NextResponse.json({ error: "Choose a product." }, { status: 400 });
   const message = (body.message?.trim() || "Analyze this product's actual wear and recommend the strongest next step.").slice(0, 1_000);
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
     };
     return NextResponse.json({ reply, retention: null });
   } catch (error) {
+    if (error instanceof EnumerationBudgetError) return NextResponse.json({ error: error.message }, { status: 429 });
     console.error("Brand Hanger conversation failed", error);
     return NextResponse.json({ error: "Wear intelligence could not run." }, { status: 500 });
   }
