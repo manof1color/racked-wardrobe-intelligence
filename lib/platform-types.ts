@@ -24,6 +24,7 @@ export interface BrandProductRegistration {
   views: Record<GarmentView, UploadDescriptor>;
   enrolledAt: string;
   source: "brand-enrolled" | "seed";
+  testCohort?: boolean;
   imageUrls?: Partial<Record<GarmentView,string>>;
 }
 

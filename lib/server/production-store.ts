@@ -8,6 +8,7 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
+import { buildWearUsageAnalytics } from "@/lib/metrics";
 
 const scrypt = promisify(scryptCallback);
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -116,7 +117,13 @@ export async function recordRealWear(ownerId:string,itemIds:string[]) {
   const unique=[...new Set(itemIds)];
   if(unique.length<1||unique.length>10) throw new Error("Choose between 1 and 10 wardrobe pieces.");
   const counts:Record<string,number>={};
-  for(const id of unique){const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`GARMENT#${id}`},UpdateExpression:"SET wearCount = if_not_exists(wearCount, :zero) + :one, lastWornAt = :now",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1,":now":new Date().toISOString()},ReturnValues:"ALL_NEW"}));counts[id]=Number(result.Attributes?.wearCount??0);}
+  for(const id of unique){
+    const occurredAt=new Date().toISOString();
+    const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`GARMENT#${id}`},UpdateExpression:"SET wearCount = if_not_exists(wearCount, :zero) + :one, lastWornAt = :now",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1,":now":occurredAt},ReturnValues:"ALL_NEW"}));
+    counts[id]=Number(result.Attributes?.wearCount??0);
+    const productKey=String(result.Attributes?.GSI1PK??"");
+    if(productKey.startsWith("PRODUCT#"))await db.send(new PutCommand({TableName:requireTable(),Item:{PK:productKey,SK:`WEAR#${occurredAt}#${crypto.randomUUID()}`,occurredAt,ownerPK:`USER#${ownerId}`,garmentId:id,eventType:"confirmed-wear"}}));
+  }
   return counts;
 }
 
@@ -159,7 +166,10 @@ export async function incrementCommunityLike(postId:string){const found=await db
 export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owned=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));
   if(!owned.Item)throw new Error("Product not found for this brand account.");
-  const result=await db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}}));
+  const [result,eventResult]=await Promise.all([
+    db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}})),
+    db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"},ScanIndexForward:false})),
+  ]);
   const items=result.Items??[];
   const ownerKeys=[...new Set(items.map(item=>String(item.PK)))];
   const accountResults=await Promise.all(Array.from({length:Math.ceil(ownerKeys.length/100)},(_,index)=>ownerKeys.slice(index*100,(index+1)*100)).filter(chunk=>chunk.length).map(chunk=>db.send(new BatchGetCommand({RequestItems:{[requireTable()]:{Keys:chunk.map(PK=>({PK,SK:"PROFILE"}))}}}))));
@@ -168,9 +178,10 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owners=new Set(eligibleItems.map(item=>String(item.PK)));
   const segmentSize=owners.size;
   const minimumCohortSize=25;
-  if(segmentSize<minimumCohortSize)return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears:null,repeatWearRate:null,activeOwners:null,segmentSize,suppressed:true,minimumCohortSize};
-  const actualWears=eligibleItems.reduce((sum,item)=>sum+Number(item.wearCount??0),0);
-  const activeOwners=eligibleItems.filter(item=>Number(item.wearCount??0)>0).length;
-  const repeatWearRate=Math.round(eligibleItems.filter(item=>Number(item.wearCount??0)>=2).length/Math.max(eligibleItems.length,1)*100);
-  return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears,repeatWearRate,activeOwners,segmentSize,suppressed:false,minimumCohortSize};
+  if(segmentSize<minimumCohortSize)return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears:null,repeatWearRate:null,activeOwners:null,engagementRate:null,averageWearsPerOwner:null,medianWearsPerOwner:null,zeroWearOwners:null,highFrequencyOwners:null,lastWearAt:null,wearDistribution:[],weeklyTrend:[],segmentSize,suppressed:true,minimumCohortSize};
+  const countsByOwner=new Map<string,number>();
+  for(const item of eligibleItems){const key=String(item.PK);countsByOwner.set(key,(countsByOwner.get(key)??0)+Number(item.wearCount??0));}
+  const eligibleEventDates=(eventResult.Items??[]).filter(event=>optedInOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
+  const analytics=buildWearUsageAnalytics([...owners].map(owner=>countsByOwner.get(owner)??0),eligibleEventDates);
+  return {opportunity:null,gapPrevalence:null,duplicateRisk:null,...analytics,segmentSize,suppressed:false,minimumCohortSize};
 }

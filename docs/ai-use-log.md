@@ -11,7 +11,7 @@ The system prompt forbids inferring a person, body, gender, age, ethnicity, inco
 
 ## Image preparation
 
-The AI supplies garment understanding. A deterministic server image pipeline then rotates EXIF orientation, trims a plain background, constrains the image to the avatar canvas, and encodes an optimized PNG. This split makes the image operation repeatable while keeping semantic classification inspectable.
+The AI supplies garment understanding. Before the AWS request, the browser creates an approximately 1.2 MB, maximum-1800-pixel JPEG analysis copy of each selected photo; the original stays on the device. A deterministic server image pipeline then rotates EXIF orientation, trims a plain background, constrains the image to the avatar canvas, and encodes an optimized PNG. This prevents combined full-resolution phone photos from triggering an Amplify 413/non-JSON response while keeping label detail suitable for analysis.
 
 ## Consumer Hanger Agent
 
@@ -32,6 +32,7 @@ Allowed tools:
 - verified product-to-wardrobe links;
 - per-owner aggregate consent;
 - confirmed wear totals after the `k ≥ 25` gate.
+- timestamped aggregate wear events and server-calculated eight-week frequency bins after the same gate.
 
 It cannot retrieve names, emails, consumer images, or raw wardrobes.
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { BrandProductRegistration, GarmentView } from "@/lib/platform-types";
+import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 
 const views:GarmentView[]=["front","back","label"];
 
@@ -10,6 +11,7 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   const [status,setStatus]=useState("");
+  const [progress,setProgress]=useState("");
   const [products,setProducts]=useState<BrandProductRegistration[]>([]);
   const [files,setFiles]=useState<Partial<Record<GarmentView,File>>>({});
   const [form,setForm]=useState({name:"",aliases:"",sku:"",gtin:"",category:"",labelText:""});
@@ -20,15 +22,16 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
     setBusy(true);setError("");setStatus("");
     try {
       const body=new FormData();
-      for(const view of views){const file=files[view];if(!file)throw new Error(`Add the ${view} image.`);body.append(view,file);}
+      for(const [index,view] of views.entries()){const file=files[view];if(!file)throw new Error(`Add the ${view} image.`);setProgress(`Preparing ${view} photo ${index+1} of 3`);body.append(view,await prepareImageForUpload(file));}
       Object.entries(form).forEach(([key,value])=>body.append(key,value));
+      setProgress("Registering the encrypted product evidence");
       const response=await fetch("/api/brand/products",{method:"POST",body});
-      const data=await response.json();
+      const data=await readJsonResponse<{error?:string;product:BrandProductRegistration}>(response,"The product service returned an unreadable response. Please retry.");
       if(!response.ok)throw new Error(data.error??"Registration failed.");
       const next=[data.product,...products];setProducts(next);onProducts?.(next);
       setStatus(`${data.product.name} is now enrolled under SKU ${data.product.sku}.`);
       setForm({name:"",aliases:"",sku:"",gtin:"",category:"",labelText:""});setFiles({});setOpen(false);
-    } catch(reason){setError(reason instanceof Error?reason.message:"Registration failed.");} finally{setBusy(false);}
+    } catch(reason){setError(reason instanceof Error?reason.message:"Registration failed.");} finally{setBusy(false);setProgress("");}
   }
 
   return <section className="registry-panel">
@@ -43,7 +46,8 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
         <label className="registry-wide">Approved label text<textarea value={form.labelText} onChange={event=>setForm({...form,labelText:event.target.value})} placeholder="Exact brand and SKU text visible on the label"/></label>
       </div>
       <div className="registry-uploads">{views.map(view=><label key={view}><input type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>{const file=event.target.files?.[0];if(file)setFiles(current=>({...current,[view]:file}));}}/><strong>{view}</strong><span>{files[view]?.name??"Choose authorized image"}</span></label>)}</div>
-      <div className="registry-actions"><button type="button" className="button button-dark" onClick={submit} disabled={busy||!form.name||!form.sku||!form.category||!form.labelText||views.some(view=>!files[view])}>{busy?"Encrypting and registering…":"Register product identity"}</button></div>
+      {busy&&progress&&<div className="upload-progress" role="status"><span/><strong>{progress}</strong><small>Racked reduces mobile photo size before the AWS request.</small></div>}
+      <div className="registry-actions"><button type="button" className="button button-dark" onClick={submit} disabled={busy||!form.name||!form.sku||!form.category||!form.labelText||views.some(view=>!files[view])}>{busy?"Preparing secure upload…":"Register product identity"}</button></div>
     </div>}
     {status&&<div className="agent-action-status" role="status">✓ {status}</div>}{error&&<div className="form-error" role="alert">{error}</div>}
     <div className="registry-list"><div><strong>{products.length}</strong><span>registered products</span></div>{products.slice(0,6).map(product=><article key={product.id}><span className="verified-registry">BRAND VERIFIED</span><strong>{product.name}</strong><code>{product.brand} · {product.sku}</code><small>{product.gtin?`GTIN ${product.gtin}`:"SKU + brand identity"}</small></article>)}</div>

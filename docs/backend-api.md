@@ -8,22 +8,23 @@ All private routes verify the signed HTTP-only session and role on the server. S
 | `POST /api/auth/login` | Public | Verifies the password using constant-time comparison and starts the role session |
 | `POST /api/auth/logout` | Signed in | Expires the session cookie |
 | `GET /api/consumer/wardrobe` | Consumer | Returns only that account’s garments and outfits with one-hour private image links |
-| `POST /api/garments/analyze` | Consumer | Requires front, back, and label views, calls Bedrock, produces verified/suggested/unverified identity, normalizes the front image, saves privately, and returns a signed confirmation |
+| `POST /api/garments/analyze` | Consumer | Receives browser-prepared front, back, and label views, calls Bedrock, produces verified/suggested/unverified identity, normalizes the front image, saves privately, and returns a signed confirmation |
 | `POST /api/consumer/wardrobe` | Consumer | Verifies the account/image confirmation HMAC and persists the garment with bounded Consumer-confirmed name, brand, and optional SKU overrides |
 | `POST /api/consumer/outfits` | Consumer | Saves an account-owned outfit of 1–10 unique wardrobe items |
-| `POST /api/wears` | Consumer | Atomically increments wear totals for owned items |
+| `POST /api/wears` | Consumer | Atomically increments owned-item totals and writes a timestamped product wear event when the garment is registry-linked |
 | `GET/PATCH /api/consumer/consent` | Consumer | Reads or changes that account’s brand-aggregate opt-in |
 | `POST /api/agents/consumer` | Consumer | Builds an outfit from that account’s owned garments, wears, outfits, and submitted context |
 | `GET /api/brand/products` | Brand | Lists only products enrolled by that brand account |
 | `POST /api/brand/products` | Brand | Encrypts authorized three-view images and registers brand-bound SKU identity |
-| `POST /api/brand/metrics` | Brand | Confirms product ownership, filters connected owners by consent, applies `k ≥ 25`, then calculates wear metrics |
+| `POST /api/brand/metrics` | Brand | Confirms product ownership, filters owners and wear events by consent, applies `k ≥ 25`, then returns total/average/median usage, engagement, repeat wear, frequency distribution, and an eight-week trend |
 | `POST /api/agents/brand` | Brand | Uses Amazon Bedrock to explain only the same brand-owned, consented, thresholded aggregate wear result; no AI call occurs below k=25 |
 | `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes from the signed-in Consumer’s saved wardrobe, and records likes |
 
 ## Image security
 
 - Types: JPG, PNG, WebP.
-- Maximum: 5 MB per view and 16 MB per three-view request.
+- Browser preparation: mobile images are resized to at most 1800 px and approximately 1.2 MB each before the AWS request, preventing Amplify from replacing JSON with a 413 hosting response.
+- Server maximum: 5 MB per view and 16 MB per prepared three-view request.
 - Public access: blocked.
 - Browser access: one-hour signed S3 link.
 - Save authorization: HMAC binds owner, S3 key, AI garment fields, and registry result.
@@ -36,6 +37,7 @@ USER#<id> / PROFILE
 USER#<id> / GARMENT#<id>
 USER#<id> / OUTFIT#<time>#<id>
 USER#<brand-id> / PRODUCT#<id>
+PRODUCT#<product-id> / WEAR#<time>#<id>
 COMMUNITY / POST#<time>#<id>
 ```
 
