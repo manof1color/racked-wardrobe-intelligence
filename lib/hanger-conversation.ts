@@ -134,7 +134,7 @@ async function converse(system: string, history: AgentChatTurn[], prompt: string
       inferenceConfig: { maxTokens: 650, temperature: 0.25 },
     }));
     const text = response.output?.message?.content?.find((block) => "text" in block)?.text?.trim();
-    return text ? text.slice(0, 2_500) : null;
+    return text ? formatHangerText(text).slice(0, 2_500) : null;
   } catch (error) {
     console.error("Hanger conversation failed", {
       name: error instanceof Error ? error.name : "UnknownError",
@@ -146,6 +146,19 @@ async function converse(system: string, history: AgentChatTurn[], prompt: string
   }
 }
 
+export function formatHangerText(text: string) {
+  return text
+    .replace(/\*\*/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^-\s+/gm, "• ")
+    .trim();
+}
+
+export function brandReplyPassesPrivacyReview(text: string) {
+  const prohibited = /\b(personali[sz]ed|send (?:an? )?(?:email|message|reminder)|email (?:owners|customers)|contact (?:owners|customers)|target (?:the )?\d+ owners|target (?:owners|customers)|owners who|discount code|special offer|survey|early access|we can assume|individual outreach|direct outreach)\b/i;
+  return !prohibited.test(text);
+}
+
 export async function generateConsumerHangerReply(input: {
   message: string;
   history: AgentChatTurn[];
@@ -153,7 +166,7 @@ export async function generateConsumerHangerReply(input: {
   outfits: SavedOutfit[];
   suggested: WardrobeItem[];
 }) {
-  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. Refer to items by name, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON.";
+  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. Refer to items by name, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
   if (generated) return { message: generated, usedModel: true };
   if (input.wardrobe.length === 0) return { message: "I can help you plan a wardrobe, but I do not see any saved garments yet. Add your front, back, and label photos first, then ask me for an outfit, rotation, or gap analysis. What kind of outfit do you want to build first?", usedModel: false };
@@ -168,9 +181,10 @@ export async function generateBrandHangerReply(input: {
   product: BrandProductRegistration;
   metrics: BrandMetrics;
 }) {
-  const system = "You are Hanger, Racked's conversational brand strategist. Answer the latest question with practical product, retention, merchandising, and campaign strategy grounded only in the supplied brand-owned product and privacy-released aggregates. Never invent metrics or claim causation, revenue lift, purchase intent, identities, demographics, or individual customer behavior. If aggregates are not released, discuss only general strategy and explain that evidence-based conclusions must wait for the privacy threshold. Do not expose internal IDs or raw context JSON. Ask a focused follow-up when useful.";
+  const system = "You are Hanger, Racked's conversational brand strategist. Answer the latest question with practical product, retention, merchandising, and campaign strategy grounded only in the supplied brand-owned product and privacy-released aggregates. Never invent metrics or claim causation, revenue lift, purchase intent, identities, demographics, or individual customer behavior. The brand cannot identify cohort members: never recommend personalized outreach, contacting or targeting owners, messages or emails based on wear status, discounts for a wear cohort, or treating an aggregate count as a contact list. Strategies must operate through public content, general merchandising, product education, or anonymous aggregate measurement. If aggregates are not released, discuss only general strategy and explain that evidence-based conclusions must wait for the privacy threshold. Do not expose internal IDs or raw context JSON. Ask a focused follow-up when useful. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildBrandHangerPrompt(input));
-  if (generated) return { message: generated, usedModel: true };
+  if (generated && brandReplyPassesPrivacyReview(generated)) return { message: generated, usedModel: true };
+  if (generated) console.warn("Hanger rejected a brand strategy response that crossed the aggregate-only boundary.");
   if (input.metrics.suppressed) return { message: `I can discuss general strategy for ${input.product.name}, but I cannot make evidence-based wear claims until the privacy-safe cohort reaches ${input.metrics.minimumCohortSize} eligible opted-in owners. We could work now on a launch, education, or styling strategy that makes no customer-behavior claims. Which goal matters most?`, usedModel: false };
-  return { message: `${input.product.name} currently has ${input.metrics.actualWears ?? 0} confirmed wears across ${input.metrics.activeOwners ?? 0} active owners, with ${input.metrics.repeatWearRate ?? 0}% repeat wear. A sound next step is to build a campaign around demonstrated repeat styling while separately helping zero-wear owners discover pairings, without implying individual tracking. Do you want a 30-day retention plan, a campaign brief, or a merchandising recommendation?`, usedModel: false };
+  return { message: `${input.product.name} currently has ${input.metrics.actualWears ?? 0} confirmed wears across ${input.metrics.activeOwners ?? 0} active owners, with ${input.metrics.repeatWearRate ?? 0}% repeat wear.\n\nA privacy-safe 30-day plan:\n• Days 1–7: publish public styling education built around several ways to wear the product.\n• Days 8–14: feature aggregate repeat-wear evidence in general product storytelling, clearly labeled as measured usage.\n• Days 15–21: improve product-page pairings and community outfit inspiration without identifying cohort members.\n• Days 22–30: compare the next thresholded aggregate trend with this baseline and decide which public content to continue.\n\nDo not contact or target people based on wear status; Racked does not reveal who belongs to any frequency group. Which public channel should we shape this plan for?`, usedModel: false };
 }

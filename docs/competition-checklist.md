@@ -39,6 +39,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Both Hanger roles support free-form follow-up conversation and retrieve fresh server-side context for every message.
 - [x] Consumer Hanger can save a grounded outfit or record it as worn; the save route revalidates item ownership.
 - [x] Brand Hanger can discuss product, retention, merchandising, and campaign strategy without receiving identities or suppressed values.
+- [x] Brand strategy output is rejected if it recommends individualized outreach inferred from anonymous wear groups.
 - [x] Production provider failure opens explicit manual review and saves no invented fallback attributes.
 - [x] Major-brand names are editable suggestions; only registry SKU/GTIN evidence creates verification.
 - [x] Clearly labeled 25-account synthetic cohort demonstrates the privacy threshold without claiming real customer results.

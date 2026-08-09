@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildBrandHangerPrompt, buildConsumerHangerPrompt, normalizeProviderHistory, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
+import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, formatHangerText, normalizeProviderHistory, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -58,4 +58,13 @@ test("suppressed brand Hanger prompt contains the rule but not suppressed values
   const prompt = buildBrandHangerPrompt({ message: "What should we do?", product, metrics: { opportunity: null, gapPrevalence: null, duplicateRisk: null, segmentSize: 7, suppressed: true, minimumCohortSize: 25, actualWears: null, repeatWearRate: null, activeOwners: null } });
   assert.match(prompt, /No product-wear aggregates are released below 25/);
   assert.doesNotMatch(prompt, /eligibleOwners|actualWears|repeatWearRate|segmentSize/);
+});
+
+test("Hanger cleans model Markdown before rendering it as chat text", () => {
+  assert.equal(formatHangerText("### Outfit\n- **Blue Oxford**"), "Outfit\n• Blue Oxford");
+});
+
+test("brand strategy review rejects individual outreach inferred from aggregates", () => {
+  assert.equal(brandReplyPassesPrivacyReview("Target the 3 owners who have zero wears with a personalized email and discount code."), false);
+  assert.equal(brandReplyPassesPrivacyReview("Publish public styling education and compare the next anonymous aggregate trend."), true);
 });

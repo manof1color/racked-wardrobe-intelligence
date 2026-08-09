@@ -46,6 +46,8 @@ It is also multi-turn. For each brand message, the server rechecks product owner
 - Conversation state: current page session only; authoritative account context is never accepted from the browser.
 - Consumer context excludes image URLs/keys; Brand context excludes owner IDs, label transcriptions, image records, and suppressed values.
 - Bedrock failure falls back to a deterministic, context-grounded response so Hanger remains usable without inventing analysis.
+- Brand strategy output passes a server-side aggregate-only language review. Recommendations that suggest identifying, contacting, or targeting owners from wear groups are discarded and replaced with a privacy-safe public-content and aggregate-measurement plan.
+- Model Markdown markers are normalized to plain chat text before display.
 
 ## Failure policy
 
