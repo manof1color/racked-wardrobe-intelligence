@@ -8,8 +8,8 @@ All private routes verify the signed HTTP-only session and role on the server. S
 | `POST /api/auth/login` | Public | Verifies the password using constant-time comparison and starts the role session |
 | `POST /api/auth/logout` | Signed in | Expires the session cookie |
 | `GET /api/consumer/wardrobe` | Consumer | Returns only that account’s garments and outfits with one-hour private image links |
-| `POST /api/garments/analyze` | Consumer | Validates real views, calls Bedrock, verifies registry evidence, normalizes the front image, saves privately, and returns a signed confirmation |
-| `POST /api/consumer/wardrobe` | Consumer | Verifies the account/image confirmation HMAC and persists the confirmed garment |
+| `POST /api/garments/analyze` | Consumer | Requires front, back, and label views, calls Bedrock, produces verified/suggested/unverified identity, normalizes the front image, saves privately, and returns a signed confirmation |
+| `POST /api/consumer/wardrobe` | Consumer | Verifies the account/image confirmation HMAC and persists the garment with bounded Consumer-confirmed name, brand, and optional SKU overrides |
 | `POST /api/consumer/outfits` | Consumer | Saves an account-owned outfit of 1–10 unique wardrobe items |
 | `POST /api/wears` | Consumer | Atomically increments wear totals for owned items |
 | `GET/PATCH /api/consumer/consent` | Consumer | Reads or changes that account’s brand-aggregate opt-in |
@@ -27,7 +27,7 @@ All private routes verify the signed HTTP-only session and role on the server. S
 - Public access: blocked.
 - Browser access: one-hour signed S3 link.
 - Save authorization: HMAC binds owner, S3 key, AI garment fields, and registry result.
-- Production provider failure: HTTP 503; no wardrobe record is created.
+- Production provider failure: returns explicit manual review; no AI attributes or verified product link are invented.
 
 ## DynamoDB key design
 

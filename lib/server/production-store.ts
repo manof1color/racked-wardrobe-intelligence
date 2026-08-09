@@ -98,10 +98,16 @@ export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
   return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem;return {...item,imageUrl:await privateImageUrl(item.imageKey)};}));
 }
 
-export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis) {
+export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string}) {
   if (!analysis.processedImage?.key) throw new Error("The processed garment image is missing.");
   if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new Error("The garment confirmation expired or did not belong to this account.");
-  const item:WardrobeItem={id:crypto.randomUUID(),name:analysis.garment.name,category:analysis.garment.category,color:analysis.garment.color,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:analysis.label.matched?analysis.label.brand:null,sku:analysis.label.matched?analysis.label.sku:null,createdAt:new Date().toISOString()};
+  const name=(overrides?.name??analysis.garment.name).trim().slice(0,100)||"Unverified garment";
+  const brand=(overrides?.brand??analysis.label.brand).trim().slice(0,100);
+  const sku=(overrides?.sku??analysis.label.sku).trim().toUpperCase().slice(0,64);
+  const placeholderBrand=/^(brand not verified|unmatched label)$/i.test(brand);
+  const placeholderSku=/^(unverified|unconfirmed)$/i.test(sku);
+  const identityStatus=analysis.label.matched?"verified":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
+  const item:WardrobeItem={id:crypto.randomUUID(),name,category:analysis.garment.category,color:analysis.garment.color,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,identityStatus,createdAt:new Date().toISOString()};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:analysis.label.registryProductId?`PRODUCT#${analysis.label.registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
 }

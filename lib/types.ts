@@ -9,6 +9,7 @@ export interface WardrobeItem {
   imageKey?: string;
   brand?: string | null;
   sku?: string | null;
+  identityStatus?: "verified" | "suggested" | "user-labeled" | "unverified";
   createdAt?: string;
 }
 

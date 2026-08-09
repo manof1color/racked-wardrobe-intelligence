@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
-import { analyzeGarmentImages, MAX_UPLOAD_BYTES, UploadValidationError, type InMemoryGarmentImage } from "@/lib/garment-analysis";
+import { analyzeGarmentImages, MAX_UPLOAD_BYTES, UploadValidationError, validateThreeViewUpload, type InMemoryGarmentImage } from "@/lib/garment-analysis";
 import { listRegistryProducts, putPrivateImage, privateImageUrl, ProductionConfigurationError, signGarmentConfirmation } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 
@@ -33,10 +33,10 @@ export async function POST(request:Request) {
     });
     const prepared=await Promise.all(files.map(({view,file})=>prepareFile(view,file)));
     const parts=prepared.map((item)=>item.part);
+    validateThreeViewUpload(parts);
     const labelText=String(form.get("labelText") ?? "").slice(0,1000);
     const registry=await listRegistryProducts();
     const analysis=await analyzeGarmentImages(parts,prepared.map((item)=>item.image),{registry,labelText});
-    if(analysis.fallback&&process.env.NODE_ENV==="production") return NextResponse.json({error:"AI image analysis could not complete. Try again with a clear JPG, PNG, or WebP photo under 5 MB."},{status:503});
     const front=files.find((entry)=>entry.view==="front")?.file;
     if(!front)throw new UploadValidationError("A front image is required.");
     const normalized=await sharp(Buffer.from(await front.arrayBuffer())).rotate().trim({background:"#ffffff",threshold:18}).resize({width:700,height:900,fit:"inside",withoutEnlargement:true}).png({quality:90}).toBuffer({resolveWithObject:true});

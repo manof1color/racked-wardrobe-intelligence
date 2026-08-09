@@ -13,7 +13,7 @@ The system prompt forbids inferring a person, body, gender, age, ethnicity, inco
 
 The AI supplies garment understanding. A deterministic server image pipeline then rotates EXIF orientation, trims a plain background, constrains the image to the avatar canvas, and encodes an optimized PNG. This split makes the image operation repeatable while keeping semantic classification inspectable.
 
-## Consumer Stylist Agent
+## Consumer Hanger Agent
 
 Allowed tools:
 
@@ -24,7 +24,7 @@ Allowed tools:
 
 It may select only owned items and returns its evidence and tool list.
 
-## Brand Wear Intelligence Agent
+## Brand Hanger Agent
 
 Allowed tools:
 
@@ -37,7 +37,9 @@ It cannot retrieve names, emails, consumer images, or raw wardrobes.
 
 ## Failure policy
 
-Production garment intake fails closed. If Bedrock returns an error or malformed response, Racked returns an explicit provider error and creates no wardrobe item. Deterministic fallback logic remains only as isolated unit-test coverage for safe parser behavior; it is not a production save path.
+Production garment intake never invents attributes. If Bedrock returns an error or incomplete response, Racked returns an explicitly unverified manual-review result. The Consumer can add their own garment name, brand label, and optional SKU before saving. That user-authored label does not create a verified brand-product link.
+
+Major-brand recognition is a suggestion layer over visible label text. A recognized name is prefilled for confirmation or editing and remains unverified. Only an enrolled registry record matched by GTIN or brand-plus-SKU becomes a verified product link.
 
 Mobile photos are auto-rotated, resized to fit within 1568×1568, and JPEG-compressed in request memory before they are sent to Bedrock. This keeps modern phone images within a predictable inference payload. The structured-response parser accepts valid JSON returned directly, inside a code fence, or after a short model preface. Provider failures are logged without image bytes, filenames, account IDs, or wardrobe data.
 

@@ -25,16 +25,18 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
 - [x] Community posts persist and reveal no private wardrobe.
 - [x] Installable responsive PWA.
-- [x] Lint, 40 automated tests, and production build pass.
+- [x] Lint, 45 automated tests, and production build pass.
 
 ## 3. AI integration / innovation — 20%
 
 - [x] Amazon Bedrock Nova Lite analyzes real garment image bytes.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
-- [x] Consumer Stylist Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
-- [x] Brand Wear Agent can access only brand-owned products and thresholded wear aggregates.
-- [x] Production provider failure returns an error and saves no invented fallback attributes.
+- [x] Consumer Hanger Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
+- [x] Brand Hanger Agent can access only brand-owned products and thresholded wear aggregates.
+- [x] Production provider failure opens explicit manual review and saves no invented fallback attributes.
+- [x] Major-brand names are editable suggestions; only registry SKU/GTIN evidence creates verification.
+- [x] Clearly labeled 25-account synthetic cohort demonstrates the privacy threshold without claiming real customer results.
 - [x] Phone images are normalized before Bedrock vision analysis and structured responses are parsed defensively.
 - [x] Brand AI analysis runs only on consented aggregates after the k≥25 release threshold.
 

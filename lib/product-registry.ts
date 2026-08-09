@@ -30,6 +30,27 @@ export function normalizeIdentity(value:string) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
 }
 
+// Judge note: this allowlist suggests a familiar brand name from visible label text.
+// It never creates a verified product link; only a brand-enrolled SKU/GTIN can do that.
+const majorBrandAliases = [
+  {brand:"Adidas",aliases:["adidas"]},{brand:"Calvin Klein",aliases:["calvin klein","ck jeans"]},
+  {brand:"Converse",aliases:["converse"]},{brand:"Fila",aliases:["fila"]},{brand:"Gucci",aliases:["gucci"]},
+  {brand:"Jordan",aliases:["air jordan","jordan"]},
+  {brand:"Levi's",aliases:["levi's","levis","levi strauss"]},{brand:"Lululemon",aliases:["lululemon"]},
+  {brand:"New Balance",aliases:["new balance"]},{brand:"Nike",aliases:["nike"]},{brand:"Patagonia",aliases:["patagonia"]},
+  {brand:"Prada",aliases:["prada"]},{brand:"Puma",aliases:["puma"]},{brand:"Ralph Lauren",aliases:["ralph lauren","polo ralph lauren"]},
+  {brand:"Reebok",aliases:["reebok"]},{brand:"Tommy Hilfiger",aliases:["tommy hilfiger"]},
+  {brand:"Under Armour",aliases:["under armour"]},{brand:"Uniqlo",aliases:["uniqlo"]},{brand:"Vans",aliases:["vans"]},
+  {brand:"Zara",aliases:["zara"]},
+] as const;
+
+export function suggestMajorBrand(labelText:string) {
+  const normalized=normalizeIdentity(labelText);
+  if(!normalized)return null;
+  const found=majorBrandAliases.find(entry=>entry.aliases.some(alias=>normalized.includes(normalizeIdentity(alias))));
+  return found?{brand:found.brand,brandSlug:slugifyBrand(found.brand)}:null;
+}
+
 export function createBrandProductRegistration(input:{
   ownerSubject:string; name:string; brand:string; aliases:string[]; sku:string; gtin?:string; category:string; labelText:string;
   parts:UploadDescriptor[];

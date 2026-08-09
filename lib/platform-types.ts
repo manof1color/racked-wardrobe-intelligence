@@ -28,7 +28,7 @@ export interface BrandProductRegistration {
 }
 
 export interface GarmentAnalysis {
-  provider: "deterministic-demo" | "multimodal";
+  provider: "deterministic-demo" | "multimodal" | "manual-review";
   fallback: boolean;
   confidence: number;
   dataSufficiency: "complete" | "partial";
@@ -45,8 +45,9 @@ export interface GarmentAnalysis {
     sku: string;
     brandSlug: string | null;
     matched: boolean;
+    suggested?: boolean;
     registryProductId: string | null;
-    matchMethod: "brand-sku" | "gtin" | "label-image-hash" | "catalog-image-set" | "none";
+    matchMethod: "brand-sku" | "gtin" | "label-image-hash" | "catalog-image-set" | "major-brand-suggestion" | "none";
   };
   evidence: Array<{ view:GarmentView; findings:string[] }>;
   warnings: string[];

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createBrandProductRegistration, matchBrandProduct } from "../lib/product-registry.ts";
+import { createBrandProductRegistration, matchBrandProduct, suggestMajorBrand } from "../lib/product-registry.ts";
 import { listBrandProducts, registerBrandProduct, resetDemoStore } from "../lib/server/demo-store.ts";
 import type { GarmentView, UploadDescriptor } from "../lib/platform-types.ts";
 
@@ -28,4 +28,9 @@ test("brand registry listings are scoped to the authenticated owner subject",()=
   assert.equal(listBrandProducts("brand-b@example.test").length,1);
   assert.equal(listBrandProducts("different-brand@example.test").length,0);
   assert.ok(listBrandProducts().length>=2);
+});
+
+test("major-brand recognition creates only an editable suggestion",()=>{
+  assert.deepEqual(suggestMajorBrand("FILA SPORTSWEAR 100% COTTON"),{brand:"Fila",brandSlug:"fila"});
+  assert.equal(suggestMajorBrand("UNLISTED SMALL LABEL"),null);
 });

@@ -8,12 +8,12 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 
 1. Create a Consumer account and explain the image-processing consent.
 2. Show the empty private wardrobe.
-3. Add a real front garment photo from the phone camera or library.
+3. Add real front, back, and label photos from the phone camera or library.
 4. Point out the Bedrock-visible attributes and avatar-ready normalized image.
-5. Explain why brand/SKU remains unverified without label evidence.
-6. Confirm and save the garment; reload to prove persistence.
+5. Show a major-brand suggestion or add a personal label, then explain why it remains unverified without an enrolled SKU/GTIN match.
+6. Confirm or edit the labels and save the garment; reload to prove persistence.
 7. Add enough pieces to open Avatar, select a combination, and choose **Save & wear this look**.
-8. Run the Stylist Agent and inspect its account-owned tools and evidence.
+8. Open Hanger from the bottom of the dashboard and inspect its account-owned tools and evidence.
 
 ## 3:15–5:30 — Real Brand flow
 
@@ -41,6 +41,6 @@ Open `docs/competition-checklist.md`. Show:
 
 ## Failure handling
 
-- Bedrock unavailable: show the explicit analysis error; production does not save fallback attributes.
+- Bedrock unavailable: show the explicit manual-review state; the consumer may save only labels they review or enter themselves.
 - Cohort below 25: explain that suppression is a successful privacy control.
 - AWS unavailable: verify Amplify and CloudFormation status; do not switch to fake data.
