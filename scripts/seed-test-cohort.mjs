@@ -20,6 +20,7 @@ const brandId="test-brand-racked-atelier";
 const productId="registry-racked-test-atelier-tee-001";
 const brandEmail="test.brand@racked.local";
 const imageFiles={front:"public/test-cohort/rta-tee-001-front.png",back:"public/test-cohort/rta-tee-001-back.png",label:"public/test-cohort/rta-tee-001-label.png"};
+const wearPattern=[0,1,2,2,3,3,4,5,6,8];
 
 async function accountItem({id,email,role,displayName,brandName=null,brandDataSharing=false}){
   const salt=randomBytes(18).toString("base64url");
@@ -49,7 +50,13 @@ for(let index=1;index<=25;index++){
   const imageKey=`wardrobe/${id}/test-cohort-rta-tee-001.png`;
   await s3.send(new PutObjectCommand({Bucket:bucket,Key:imageKey,Body:source,ContentType:"image/png",ServerSideEncryption:"AES256",Metadata:{owner:id,synthetic:"true"}}));
   const garmentId=`test-rta-tee-${suffix}`;
-  await db.send(new PutCommand({TableName:table,Item:{id:garmentId,name:"Test Rotation Tee",category:"top",color:"navy",style:["casual","test cohort"],season:"all-season",wearCount:(index%4)+1,lastWornDays:index%7,source:"ai-confirmed",art:"photo",imageKey,brand:"Racked Test Atelier",sku:"RTA-TEE-001",identityStatus:"verified",createdAt,testCohort:true,PK:`USER#${id}`,SK:`GARMENT#${garmentId}`,GSI1PK:`PRODUCT#${productId}`,GSI1SK:`OWNER#${id}`}}));
+  const wearCount=wearPattern[(index-1)%wearPattern.length];
+  const mostRecentWear=wearCount>0?new Date(Date.parse(createdAt)-((index%7)*86_400_000)).toISOString():null;
+  await db.send(new PutCommand({TableName:table,Item:{id:garmentId,name:"Test Rotation Tee",category:"top",color:"navy",style:["casual","test cohort"],season:"all-season",wearCount,lastWornDays:wearCount>0?index%7:999,lastWornAt:mostRecentWear,source:"ai-confirmed",art:"photo",imageKey,brand:"Racked Test Atelier",sku:"RTA-TEE-001",identityStatus:"verified",createdAt,testCohort:true,PK:`USER#${id}`,SK:`GARMENT#${garmentId}`,GSI1PK:`PRODUCT#${productId}`,GSI1SK:`OWNER#${id}`}}));
+  for(let wearIndex=0;wearIndex<wearCount;wearIndex++){
+    const occurredAt=new Date(Date.parse(createdAt)-(((index%7)+(wearIndex*7))*86_400_000)-(index*3_600_000)).toISOString();
+    await db.send(new PutCommand({TableName:table,Item:{PK:`PRODUCT#${productId}`,SK:`WEAR#${occurredAt}#${id}#${wearIndex}`,occurredAt,ownerPK:`USER#${id}`,garmentId,eventType:"confirmed-wear",testCohort:true}}));
+  }
   const companionSource=await readFile("public/test-cohort/synthetic-companion-pant.png");
   const companionKey=`wardrobe/${id}/synthetic-companion-pant.png`;
   await s3.send(new PutObjectCommand({Bucket:bucket,Key:companionKey,Body:companionSource,ContentType:"image/png",ServerSideEncryption:"AES256",Metadata:{owner:id,synthetic:"true"}}));
@@ -58,4 +65,4 @@ for(let index=1;index<=25;index++){
   consumers.push(email);
 }
 
-console.log(JSON.stringify({brand:{email:brandEmail},consumers,passwordSource:"RACKED_TEST_PASSWORD",cohortSize:consumers.length,productId,clearlyLabeledSyntheticData:true},null,2));
+console.log(JSON.stringify({brand:{email:brandEmail},consumers,passwordSource:"RACKED_TEST_PASSWORD",cohortSize:consumers.length,productId,wearEvents:consumers.reduce((sum,_,index)=>sum+wearPattern[index%wearPattern.length],0),clearlyLabeledSyntheticData:true},null,2));

@@ -1,12 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "./app-shell";
 import { BrandProductEnrollment } from "./brand-product-enrollment";
 import { HangerDock } from "./hanger-dock";
 import type { BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
+
+function readableDate(value?:string|null){return value?new Date(value).toLocaleString([], {month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}):"No recorded event";}
 
 export function BrandDashboard() {
   const [products,setProducts]=useState<BrandProductRegistration[]>([]);
@@ -15,14 +17,54 @@ export function BrandDashboard() {
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const product=products.find(item=>item.id===productId)??products[0];
-  async function run(){if(!product)return;setLoading(true);setError("");setMetrics(null);try{const response=await fetch("/api/brand/metrics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({productId:product.id})});const data=await response.json();if(!response.ok)throw new Error(data.error??"Wear metrics could not be loaded.");setMetrics(data.metrics);}catch(reason){setError(reason instanceof Error?reason.message:"Wear metrics could not be loaded.");}finally{setLoading(false);}}
+
+  const acceptProducts=useCallback((next:BrandProductRegistration[])=>{setProducts(next);if(next.length){setLoading(true);setMetrics(null);}},[]);
+  function chooseProduct(id:string){setProductId(id);setMetrics(null);setError("");setLoading(true);}
+
+  useEffect(()=>{
+    if(!product?.id)return;
+    let current=true;
+    fetch("/api/brand/metrics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({productId:product.id})})
+      .then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error??"Wear metrics could not be loaded.");if(current)setMetrics(data.metrics);})
+      .catch(reason=>{if(current)setError(reason instanceof Error?reason.message:"Wear metrics could not be loaded.");})
+      .finally(()=>{if(current)setLoading(false);});
+    return()=>{current=false;};
+  },[product?.id]);
+
+  function downloadAggregate(){
+    if(!metrics||metrics.suppressed||!product)return;
+    const rows=[
+      ["Racked privacy-safe product wear export",product.name],
+      ["Brand",product.brand],["SKU",product.sku],["Eligible opted-in owners",metrics.segmentSize],
+      ["Confirmed wear events",metrics.actualWears??0],["Active owners",metrics.activeOwners??0],
+      ["Engagement rate",`${metrics.engagementRate??0}%`],["Repeat-wear rate",`${metrics.repeatWearRate??0}%`],
+      ["Average wears per owner",metrics.averageWearsPerOwner??0],["Median wears per owner",metrics.medianWearsPerOwner??0],
+      ["Zero-wear owners",metrics.zeroWearOwners??0],["6+ wear owners",metrics.highFrequencyOwners??0],
+      ["Last aggregate event",metrics.lastWearAt??"none"],[],["8-week trend","wears"],
+      ...(metrics.weeklyTrend??[]).map(point=>[point.weekStart,point.wears]),[],["Wear frequency","owners","percentage"],
+      ...(metrics.wearDistribution??[]).map(point=>[point.label,point.owners,`${point.percentage}%`]),
+    ];
+    const csv=rows.map(row=>row.map(value=>`"${String(value??"").replaceAll('"','""')}"`).join(",")).join("\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    const link=document.createElement("a");link.href=url;link.download=`racked-${product.sku.toLowerCase()}-wear-aggregate.csv`;link.click();URL.revokeObjectURL(url);
+  }
+
+  const maxTrend=Math.max(1,...(metrics?.weeklyTrend??[]).map(point=>point.wears));
+  const maxDistribution=Math.max(1,...(metrics?.wearDistribution??[]).map(point=>point.owners));
+
   return <AppShell role="brand"><main className="workspace brand-workspace">
-    <section className="workspace-heading"><div><div className="eyebrow">PRIVATE BRAND WORKSPACE</div><h1>Understand how products<br/>are <em>actually worn.</em></h1><p>Enroll your catalog, connect verified consumer scans, and view privacy-safe aggregate use.</p></div>{product&&<button className="button button-dark" onClick={run} disabled={loading}>{loading?"Calculating…":"Refresh actual wear ↗"}</button>}</section>
-    <div className="privacy-banner"><span>◉</span><div><strong>Privacy boundary active</strong><p>Only anonymous aggregates from opted-in owners are released. Names, emails, consumer photos, and raw wardrobes are never shown.</p></div><b>k ≥ 25</b></div>
-    <BrandProductEnrollment onProducts={setProducts}/>
-    {!product?<section className="empty-wardrobe"><div className="eyebrow">START WITH YOUR CATALOG</div><h2>Enroll your first real product.</h2><p>Add authorized product photography, label evidence, and a SKU. Racked can begin linking future verified consumer scans to it.</p></section>:<><section className="brand-layout"><aside className="catalog-panel"><div className="panel-heading"><div><div className="eyebrow">YOUR CATALOG</div><h2>Choose a product</h2></div><span>{products.length} SKUs</span></div><div className="product-list">{products.map(item=><button key={item.id} className={item.id===product.id?"selected":""} onClick={()=>{setProductId(item.id);setMetrics(null);}}>{item.imageUrls?.front?<img className="tiny-product-photo" src={item.imageUrls.front} alt=""/>:<span className="tiny-swatch cloud"/>}<span><strong>{item.name}</strong><small>{item.sku} · {item.category}</small></span><i>→</i></button>)}</div></aside><section className="match-panel"><div className="selected-product">{product.imageUrls?.front?<div className="large-product-photo"><img src={product.imageUrls.front} alt={product.name}/></div>:<div className="large-swatch cloud"><span>{product.category}</span></div>}<div><div className="eyebrow">TRACKING NOW</div><h2>{product.name}</h2><p>{product.brand} · {product.sku}</p><div className="tag-row"><span>{product.category}</span><span>brand verified</span></div></div></div>
-      {!metrics&&!loading?<div className="empty-match"><span>↗</span><h3>Ready to calculate actual wear</h3><p>Racked will count only verified, opted-in product owners and will suppress the result below the privacy threshold.</p><button className="button button-accent" onClick={run}>Calculate actual wear</button></div>:loading?<div className="empty-match"><span>…</span><h3>Computing the privacy-safe cohort</h3></div>:metrics?.suppressed?<div className="empty-match suppressed-match"><span>🔒</span><h3>Aggregate protected</h3><p>{metrics.segmentSize} qualifying owner{metrics.segmentSize===1?"":"s"} are currently connected. At least {metrics.minimumCohortSize} are required before any wear aggregate is released.</p></div>:metrics&&<div className="metric-row"><article><small>ACTUAL WEARS</small><strong>{metrics.actualWears}</strong><p>Confirmed wear events</p></article><article><small>REPEAT WEAR RATE</small><strong>{metrics.repeatWearRate}%</strong><p>Owners with 2+ wears</p></article><article><small>ACTIVE OWNERS</small><strong>{metrics.activeOwners}</strong><p>Owners with a wear</p></article><article><small>ELIGIBLE COHORT</small><strong>{metrics.segmentSize}</strong><p>Opted-in verified owners</p></article></div>}
+    <section className="workspace-heading"><div><div className="eyebrow">PRIVATE BRAND WORKSPACE</div><h1>Understand how products<br/>are <em>actually worn.</em></h1><p>Verified wear events become privacy-safe product intelligence: frequency, engagement, repeat use, and change over time.</p></div>{metrics&&!metrics.suppressed&&<button className="button button-dark" onClick={downloadAggregate}>Download aggregate CSV ↗</button>}</section>
+    <div className="privacy-banner"><span>◉</span><div><strong>Privacy boundary active</strong><p>Only anonymous aggregates from opted-in owners are released. Names, emails, consumer photos, raw wardrobes, and individual rows are never shown.</p></div><b>k ≥ 25</b></div>
+    <BrandProductEnrollment onProducts={acceptProducts}/>
+    {!product?<section className="empty-wardrobe"><div className="eyebrow">START WITH YOUR CATALOG</div><h2>Enroll your first real product.</h2><p>Add authorized product photography, label evidence, and a SKU. Racked can begin linking future verified consumer scans to it.</p></section>:<section className="brand-layout"><aside className="catalog-panel"><div className="panel-heading"><div><div className="eyebrow">YOUR CATALOG</div><h2>Choose a product</h2></div><span>{products.length} SKUs</span></div><div className="product-list">{products.map(item=><button key={item.id} className={item.id===product.id?"selected":""} onClick={()=>chooseProduct(item.id)}>{item.imageUrls?.front?<img className="tiny-product-photo" src={item.imageUrls.front} alt=""/>:<span className="tiny-swatch cloud"/>}<span><strong>{item.name}</strong><small>{item.sku} · {item.category}</small></span><i>→</i></button>)}</div></aside><section className="match-panel">
+      <div className="selected-product">{product.imageUrls?.front?<div className="large-product-photo"><img src={product.imageUrls.front} alt={product.name}/></div>:<div className="large-swatch cloud"><span>{product.category}</span></div>}<div><div className="eyebrow">TRACKING NOW</div><h2>{product.name}</h2><p>{product.brand} · {product.sku}</p><div className="tag-row"><span>{product.category}</span><span>brand verified</span>{product.testCohort&&<span>synthetic test cohort</span>}</div></div></div>
+      {loading?<div className="analytics-loading" role="status"><span/><strong>Calculating the privacy-safe wear cohort</strong></div>:metrics?.suppressed?<div className="empty-match suppressed-match"><span>🔒</span><h3>Aggregate protected</h3><p>{metrics.segmentSize} qualifying owner{metrics.segmentSize===1?"":"s"} are currently connected. At least {metrics.minimumCohortSize} are required before any wear aggregate is released.</p></div>:metrics&&<>
+        <div className="metric-row metric-row-expanded"><article><small>CONFIRMED WEARS</small><strong>{metrics.actualWears}</strong><p>Timestamped wear events</p></article><article><small>ACTIVE OWNERS</small><strong>{metrics.activeOwners}<i> / {metrics.segmentSize}</i></strong><p>{metrics.engagementRate}% recorded a wear</p></article><article><small>REPEAT WEAR RATE</small><strong>{metrics.repeatWearRate}%</strong><p>Owners with two or more wears</p></article><article><small>AVERAGE FREQUENCY</small><strong>{metrics.averageWearsPerOwner}</strong><p>Wears per eligible owner</p></article><article><small>MEDIAN FREQUENCY</small><strong>{metrics.medianWearsPerOwner}</strong><p>Middle owner wear count</p></article><article><small>HIGH FREQUENCY</small><strong>{metrics.highFrequencyOwners}</strong><p>Owners with six or more wears</p></article></div>
+        <div className="wear-chart-grid"><section className="wear-chart-card"><header><div><span className="card-label">ACTUAL DATAPOINTS</span><h3>Eight-week wear activity</h3></div><small>Last event<br/><b>{readableDate(metrics.lastWearAt)}</b></small></header><div className="weekly-bars" role="img" aria-label="Confirmed wears by week">{metrics.weeklyTrend?.map(point=><div key={point.weekStart}><span style={{height:`${Math.max(5,point.wears/maxTrend*100)}%`}}><b>{point.wears}</b></span><small>{point.label}</small></div>)}</div></section>
+          <section className="wear-chart-card"><header><div><span className="card-label">OWNER FREQUENCY</span><h3>Wear distribution</h3></div><small>Anonymous aggregate<br/><b>{metrics.segmentSize} eligible owners</b></small></header><div className="distribution-bars">{metrics.wearDistribution?.map(point=><div key={point.label}><label><span>{point.label}</span><b>{point.owners} · {point.percentage}%</b></label><i><span style={{width:`${point.owners/maxDistribution*100}%`}}/></i></div>)}</div></section></div>
+        <section className="aggregate-table"><div><span className="card-label">MEASURE DEFINITIONS</span><h3>What the brand can safely use</h3><p>These are calculated from verified product links and confirmed wear events after consent and the 25-owner threshold are applied.</p></div><table><thead><tr><th>Datapoint</th><th>Value</th><th>Business interpretation</th></tr></thead><tbody><tr><td>Eligible cohort</td><td>{metrics.segmentSize}</td><td>Opted-in owners linked to this verified SKU</td></tr><tr><td>Engagement rate</td><td>{metrics.engagementRate}%</td><td>Share with at least one confirmed wear</td></tr><tr><td>Zero-wear owners</td><td>{metrics.zeroWearOwners}</td><td>Aggregate education or styling opportunity</td></tr><tr><td>Repeat wear</td><td>{metrics.repeatWearRate}%</td><td>Share demonstrating more than one use</td></tr><tr><td>Total events</td><td>{metrics.actualWears}</td><td>Observed usage, not predicted sales or intent</td></tr></tbody></table></section>
+      </>}
       {error&&<div className="form-error" role="alert">{error}</div>}
-    </section></section></>}
+    </section></section>}
   </main><HangerDock role="brand" productId={product?.id}/></AppShell>;
 }

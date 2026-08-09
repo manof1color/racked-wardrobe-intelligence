@@ -17,15 +17,17 @@ This is the judge’s index for the CUA rubric.
 - [x] DynamoDB persistence for accounts, wardrobes, outfits, wears, products, consent, and posts.
 - [x] Private encrypted S3 images with public access blocked and expiring links.
 - [x] Phone camera/library upload for real front, back, and label photos.
+- [x] Mobile photos are resized in the browser before the combined AWS request, with readable 413/non-JSON error handling.
 - [x] Automatic rotation, plain-background trim, resize, and avatar-ready PNG preparation.
 - [x] Human confirmation and server-signed garment save authorization.
 - [x] Avatar outfit layering, persistent outfit save, and multi-piece wear recording.
 - [x] Brand-authoritative three-view enrollment with SKU/MPN, GTIN, aliases, hashes, and label text.
 - [x] Actual brand metrics derived from connected Consumer records.
+- [x] Timestamped product wear events power an eight-week chart, frequency distribution, median/average usage, engagement, and aggregate CSV export.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
 - [x] Community posts persist and reveal no private wardrobe.
 - [x] Installable responsive PWA.
-- [x] Lint, 45 automated tests, and production build pass.
+- [x] Lint, 47 automated tests, and production build pass.
 
 ## 3. AI integration / innovation — 20%
 
@@ -59,7 +61,7 @@ This is the judge’s index for the CUA rubric.
 
 ## 6. Business impact / presentation — 10%
 
-- [x] Measures actual wears, active owners, repeat-wear rate, and eligible cohort.
+- [x] Measures actual wears, active owners, engagement, repeat-wear rate, average/median frequency, high-frequency use, zero-wear opportunity, and eligible cohort.
 - [x] Converts authorized SKU enrollment into a product traceability path.
 - [x] Provides Consumer and Brand agents with inspectable evidence.
 - [x] [Presentation script](demo-script.md) and [one-page summary](one-page-summary.md) reflect the production flow.
