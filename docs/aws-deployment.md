@@ -11,6 +11,8 @@ The `racked-production` CloudFormation stack is deployed in `us-east-2` and prov
 - Cognito resources reserved for a later managed-identity migration;
 - Amplify compute role scoped to required DynamoDB, private S3-object, and Amazon Bedrock actions.
 
+The DynamoDB policy covers both the table ARN and `${tableArn}/index/*`. The index resource is required because registration and sign-in query the `GSI1` email lookup index; table-only `Query` permission is insufficient.
+
 Amplify is configured with the table and bucket names, the compute role, `AI_PROVIDER=bedrock`, and `AI_MODEL=amazon.nova-lite-v1:0`. Secret values are not printed or stored in GitHub.
 
 ## Deployment path
@@ -45,6 +47,10 @@ NEXT_PUBLIC_SITE_URL
 - [x] All 40 automated tests passed.
 - [x] Production Next.js build passed.
 - [ ] Post-merge live account, photo, persistence, and brand enrollment smoke test.
+
+## Production incident note: mobile registration permission
+
+During the first mobile registration test, DynamoDB rejected the email-index query because the deployed Amplify role had table access but not the `GSI1` index ARN. The infrastructure template already described the index resource, and the production stack was reconciled to that template. Authentication routes now also translate unexpected provider failures into safe user-facing messages instead of returning AWS resource identifiers.
 
 ## Cost and safety
 
