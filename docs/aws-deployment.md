@@ -31,6 +31,7 @@ RACKED_TABLE_NAME
 RACKED_UPLOAD_BUCKET
 AI_PROVIDER=bedrock
 AI_MODEL=amazon.nova-lite-v1:0
+AI_BRAND_MODEL=amazon.nova-lite-v1:0
 NEXT_PUBLIC_SITE_URL
 ```
 

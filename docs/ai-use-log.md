@@ -39,6 +39,10 @@ It cannot retrieve names, emails, consumer images, or raw wardrobes.
 
 Production garment intake fails closed. If Bedrock returns an error or malformed response, Racked returns an explicit provider error and creates no wardrobe item. Deterministic fallback logic remains only as isolated unit-test coverage for safe parser behavior; it is not a production save path.
 
+Mobile photos are auto-rotated, resized to fit within 1568×1568, and JPEG-compressed in request memory before they are sent to Bedrock. This keeps modern phone images within a predictable inference payload. The structured-response parser accepts valid JSON returned directly, inside a code fence, or after a short model preface. Provider failures are logged without image bytes, filenames, account IDs, or wardrobe data.
+
+The Brand wear agent calls Bedrock only after the existing consent filter and k≥25 privacy threshold release an aggregate. The model receives product name, eligible-owner count, confirmed-wear count, active-owner count, and repeat-wear percentage. It never receives customer names, emails, photos, owner identifiers, or individual wardrobe records. Numeric evidence shown in the UI is rendered from server-calculated metrics rather than model-generated values.
+
 ## Claims not made
 
 Racked does not claim photorealistic virtual try-on, body fit, recognition accuracy, purchase probability, sales lift, demographic classification, or production-scale validation.

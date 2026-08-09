@@ -10,9 +10,10 @@ export const runtime = "nodejs";
 async function prepareFile(view:GarmentView,file:File):Promise<{part:UploadDescriptor;image:InMemoryGarmentImage}> {
   const bytes=await file.arrayBuffer();
   const hash=await crypto.subtle.digest("SHA-256",bytes);
+  const optimized=await sharp(Buffer.from(bytes)).rotate().resize({width:1568,height:1568,fit:"inside",withoutEnlargement:true}).jpeg({quality:82,mozjpeg:true}).toBuffer();
   return {
     part:{view,fileName:file.name,contentType:file.type,size:file.size,sha256:Buffer.from(hash).toString("hex")},
-    image:{view,contentType:file.type as InMemoryGarmentImage["contentType"],base64:Buffer.from(bytes).toString("base64")},
+    image:{view,contentType:"image/jpeg",base64:optimized.toString("base64")},
   };
 }
 
@@ -35,7 +36,7 @@ export async function POST(request:Request) {
     const labelText=String(form.get("labelText") ?? "").slice(0,1000);
     const registry=await listRegistryProducts();
     const analysis=await analyzeGarmentImages(parts,prepared.map((item)=>item.image),{registry,labelText});
-    if(analysis.fallback&&process.env.NODE_ENV==="production") return NextResponse.json({error:"AI image analysis is not configured yet. Add the private AI provider configuration before uploading wardrobe photos."},{status:503});
+    if(analysis.fallback&&process.env.NODE_ENV==="production") return NextResponse.json({error:"AI image analysis could not complete. Try again with a clear JPG, PNG, or WebP photo under 5 MB."},{status:503});
     const front=files.find((entry)=>entry.view==="front")?.file;
     if(!front)throw new UploadValidationError("A front image is required.");
     const normalized=await sharp(Buffer.from(await front.arrayBuffer())).rotate().trim({background:"#ffffff",threshold:18}).resize({width:700,height:900,fit:"inside",withoutEnlargement:true}).png({quality:90}).toBuffer({resolveWithObject:true});
