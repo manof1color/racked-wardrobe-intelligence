@@ -11,6 +11,8 @@
 
 Brands may access only products enrolled under their own authenticated account. Product wear metrics are built from connected garment records, then filtered by each owner’s current consent. Results are suppressed before calculation when fewer than 25 distinct opted-in owners qualify.
 
+To resist differencing and enumeration attacks, the production aggregate path also enforces a per-account budget: a brand can pull aggregates for at most six distinct products in any five-minute window (re-opening an already-viewed product costs nothing). The budget log is stored in DynamoDB under the brand's own partition and contains only product IDs and timestamps — no consumer data. Requests over the budget receive a generic HTTP 429 that does not reveal which cohorts are near the threshold.
+
 ## Image boundary
 
 Consumer and Brand images are encrypted in an S3 bucket with all public access blocked. The browser receives short-lived signed URLs. Wardrobe save confirmation is HMAC-bound to the account, S3 key, garment fields, and registry result, preventing another browser from substituting an image or verified product connection.

@@ -9,6 +9,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
 import { buildWearUsageAnalytics } from "@/lib/metrics";
+import { toPublicOutfitPost } from "@/lib/community-post";
+import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
 
 const scrypt = promisify(scryptCallback);
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -19,6 +21,7 @@ const s3 = new S3Client({ region });
 
 export class ProductionConfigurationError extends Error {}
 export class AccountConflictError extends Error {}
+export class EnumerationBudgetError extends Error {}
 
 function requireTable() {
   if (!tableName) throw new ProductionConfigurationError("Persistent account storage is not configured.");
@@ -159,13 +162,28 @@ export async function getBrandDataSharing(ownerId:string){const account=await ge
 export async function setBrandDataSharing(ownerId:string,value:boolean){await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:"SET brandDataSharing = :value",ExpressionAttributeValues:{":value":value}}));return value;}
 
 type StoredPost=OutfitPost&{imageKey?:string;ownerId:string};
-export async function listCommunityPosts():Promise<OutfitPost[]>{const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60}));return Promise.all((result.Items??[]).map(async raw=>{const post=raw as unknown as StoredPost;return {...post,image:post.imageKey?(await privateImageUrl(post.imageKey))??"":post.image};}));}
-export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;caption:string;itemId?:string}){const account=await getAccount(ownerId);if(!account)throw new Error("Account not found.");const wardrobe=await listWardrobe(ownerId);const item=wardrobe.find(entry=>entry.id===input.itemId)??wardrobe[0];if(!item)throw new Error("Add a wardrobe item before publishing an outfit.");const createdAt=new Date().toISOString();const post:StoredPost={id:crypto.randomUUID(),ownerId,handle:`@${account.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,30)}`,outfitTitle:input.outfitTitle,caption:input.caption,image:item.imageUrl??"",imageKey:item.imageKey,createdAt,likes:0,products:item.brand&&item.sku?[{sku:item.sku,name:item.name,brand:item.brand,brandSlug:slugify(item.brand),category:item.category}]:[]};await db.send(new PutCommand({TableName:requireTable(),Item:{...post,image:"",PK:"COMMUNITY",SK:`POST#${createdAt}#${post.id}`}}));return post;}
+// Public feed responses are rebuilt through toPublicOutfitPost so stored private fields
+// (ownerId, imageKey, DynamoDB key attributes) never reach the browser.
+export async function listCommunityPosts():Promise<OutfitPost[]>{const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60}));return Promise.all((result.Items??[]).map(async raw=>{const post=raw as unknown as StoredPost;return toPublicOutfitPost({...post,image:post.imageKey?(await privateImageUrl(post.imageKey))??"":post.image});}));}
+export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;caption:string;itemId?:string}){const account=await getAccount(ownerId);if(!account)throw new Error("Account not found.");const wardrobe=await listWardrobe(ownerId);const item=wardrobe.find(entry=>entry.id===input.itemId)??wardrobe[0];if(!item)throw new Error("Add a wardrobe item before publishing an outfit.");const createdAt=new Date().toISOString();const post:StoredPost={id:crypto.randomUUID(),ownerId,handle:`@${account.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,30)}`,outfitTitle:input.outfitTitle,caption:input.caption,image:item.imageUrl??"",imageKey:item.imageKey,createdAt,likes:0,products:item.brand&&item.sku?[{sku:item.sku,name:item.name,brand:item.brand,brandSlug:slugify(item.brand),category:item.category}]:[]};await db.send(new PutCommand({TableName:requireTable(),Item:{...post,image:"",PK:"COMMUNITY",SK:`POST#${createdAt}#${post.id}`}}));return toPublicOutfitPost(post);}
 export async function incrementCommunityLike(postId:string){const found=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"id = :id",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":id":postId},Limit:60}));const post=found.Items?.[0];if(!post)throw new Error("Community post not found.");const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
+
+// Judge note: the differencing/enumeration control from lib/privacy.ts is enforced here,
+// on the production aggregate path shared by the Brand dashboard and Brand Hanger. The
+// per-subject query log persists in DynamoDB so the budget holds across serverless
+// instances. Re-querying an already-viewed product never consumes budget.
+async function enforceAggregateEnumerationBudget(ownerId:string,productId:string) {
+  const now=Date.now();
+  const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`AGGQ#${ownerId}`,":sk":"PRODUCT#"}}));
+  const log:AggregateQueryEvent[]=(result.Items??[]).map(item=>({subject:ownerId,productId:String(item.productId??""),at:Number(item.queriedAt)||0}));
+  if(exceedsEnumerationBudget(log,ownerId,productId,now))throw new EnumerationBudgetError("Aggregate release is limited to a few distinct products in a short window. Revisit a recently viewed product or try again in a few minutes.");
+  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`AGGQ#${ownerId}`,SK:`PRODUCT#${productId}`,productId,queriedAt:now}}));
+}
 
 export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owned=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));
   if(!owned.Item)throw new Error("Product not found for this brand account.");
+  await enforceAggregateEnumerationBudget(ownerId,productId);
   const [result,eventResult]=await Promise.all([
     db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}})),
     db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"},ScanIndexForward:false})),

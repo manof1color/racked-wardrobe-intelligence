@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { analyzeGarmentImages, MAX_UPLOAD_BYTES, UploadValidationError, validateThreeViewUpload, type InMemoryGarmentImage } from "@/lib/garment-analysis";
+import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { listRegistryProducts, putPrivateImage, privateImageUrl, ProductionConfigurationError, signGarmentConfirmation } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 
@@ -21,6 +22,8 @@ export async function POST(request:Request) {
   const session=await getSession();
   if (!session) return NextResponse.json({error:"Sign in is required."},{status:401});
   if (session.role!=="consumer") return NextResponse.json({error:"Only Consumer accounts can analyze wardrobe images."},{status:403});
+  const limit=consumeRateLimit(`garment-analyze:${session.subject}`,RATE_LIMIT_RULES.garmentAnalyze);
+  if(!limit.allowed)return NextResponse.json({error:"Too many analysis requests. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const contentLength=Number(request.headers.get("content-length") ?? 0);
   const maximumSetBytes=(MAX_UPLOAD_BYTES*3)+1_000_000;
   if (contentLength>maximumSetBytes) return NextResponse.json({error:"The complete three-view upload must be no more than 16 MB."},{status:413});

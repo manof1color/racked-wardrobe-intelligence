@@ -2,6 +2,10 @@
 
 All private routes verify the signed HTTP-only session and role on the server. Structured state persists in DynamoDB; image objects persist in private S3.
 
+## Abuse controls
+
+Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or accept public writes apply sliding-window rate limits and answer excess traffic with HTTP 429 plus a `retry-after` header: sign-in (per client and per email), registration, garment analysis, both Hanger agents, brand metrics, community publishing, and community likes. Counters are held in compute-instance memory (documented in `SECURITY.md` as a first layer). Separately, brand aggregate reads are governed by a persistent DynamoDB enumeration budget — at most six distinct products per brand account per five minutes — enforced inside the shared metrics function so the dashboard and Brand Hanger cannot be used to sweep near-threshold cohorts.
+
 | Route | Access | Production behavior |
 | --- | --- | --- |
 | `POST /api/auth/register` | Public | Creates a real Consumer or Brand account, salts and scrypt-hashes the password, then starts a 7-day session |
@@ -18,7 +22,7 @@ All private routes verify the signed HTTP-only session and role on the server. S
 | `POST /api/brand/products` | Brand | Encrypts authorized three-view images and registers brand-bound SKU identity |
 | `POST /api/brand/metrics` | Brand | Confirms product ownership, filters owners and wear events by consent, applies `k ≥ 25`, then returns total/average/median usage, engagement, repeat wear, frequency distribution, and an eight-week trend |
 | `POST /api/agents/brand` | Brand | Accepts a free-form strategy question plus bounded chat history, reloads the selected brand-owned product and consent-filtered aggregate, and discusses only released metrics; below `k=25`, the context contains the privacy rule rather than suppressed values |
-| `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes from the signed-in Consumer’s saved wardrobe, and records likes |
+| `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes from the signed-in Consumer’s saved wardrobe, and records likes. Feed responses are rebuilt from a public-field allowlist; owner IDs, private S3 keys, and database key attributes are never serialized |
 
 ## Image security
 
@@ -39,6 +43,7 @@ USER#<id> / OUTFIT#<time>#<id>
 USER#<brand-id> / PRODUCT#<id>
 PRODUCT#<product-id> / WEAR#<time>#<id>
 COMMUNITY / POST#<time>#<id>
+AGGQ#<brand-id> / PRODUCT#<product-id>   (aggregate enumeration-budget log)
 ```
 
 The `GSI1` index supports normalized email lookup, registry listing, and product-to-owner aggregation without scanning unrelated wardrobe partitions.
