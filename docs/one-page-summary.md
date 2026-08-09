@@ -20,6 +20,18 @@ Accounts, garments, outfits, wears, consent, brand products, and posts persist i
 
 Consumers receive a persistent wardrobe, repeat-use tracking, outfit storage, and grounded styling. Brands can measure actual wears, active owners, and repeat-wear rate instead of relying only on transactions. Early or low-volume products correctly show “insufficient cohort” rather than fabricated confidence.
 
+## Business model (proposed, not validated)
+
+The Consumer product would remain free at MVP stage; brands would pay for workflow and privacy-safe intelligence. A testable starting structure is a **$99/month Starter** tier for product enrollment and pre-threshold catalog tools, a **$249/month Insights** tier covering a limited number of qualifying SKUs, and an optional **$49 per aggregate report** for occasional users. If multi-brand participation later supports independently thresholded category benchmarks, enterprise customers could license those benchmarks under negotiated annual agreements. Racked would not sell identities, photos, individual wardrobes, row-level wear histories, or access to suppressed cohorts. The tiers and prices are hypotheses for customer discovery, not validated revenue.
+
+## Threshold tension and emerging-brand fallback
+
+Racked's proposed customer base includes emerging apparel brands, yet a strict `k ≥ 25` release rule means a low-volume SKU may not unlock product-level wear intelligence quickly—or at all. Racked should keep that rule intact and offer a useful pre-threshold path instead: product enrollment, catalog and label-identity readiness, a non-numeric "not yet eligible" status, campaign-planning tools that make no wearer claims, and independently thresholded category benchmarks when enough unrelated data exists. This gives smaller brands operational value without exposing individual wear data or using one brand's small cohort to reconstruct another result.
+
+## Bootstrapping plan (proposed)
+
+The first approximately 100 real Consumers do not require a Brand partnership. Racked can recruit a campus beta through student organizations, clothing swaps, vintage resellers, fashion creators, and referral-based wardrobe challenges. The immediate value is private wardrobe organization, outfit creation, saved rotations, wear tracking, and optional Community posts; verified Brand matching and aggregate intelligence are additive rather than prerequisites. Short onboarding sessions and a "photograph ten pieces" challenge would help the initial cohort reach usefulness quickly while keeping Brand-data sharing optional.
+
 ## Current status and learning
 
 The application is hosted on AWS Amplify with a deployed CloudFormation production stack and working Bedrock model access. The primary learning is that a useful AI feature needs an ownership and evidence system around it: image recognition alone cannot prove a SKU, and an aggregate alone is unsafe until consent and minimum-cohort rules are enforced.

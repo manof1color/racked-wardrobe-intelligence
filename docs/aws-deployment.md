@@ -45,9 +45,11 @@ NEXT_PUBLIC_SITE_URL
 - [x] Amazon Bedrock model is available in `us-east-2`.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
-- [x] All 45 automated tests passed.
+- [x] All 63 automated tests passed.
 - [x] Production Next.js build passed.
-- [ ] Post-merge live account, photo, persistence, and brand enrollment smoke test.
+- [x] Live HTTPS production response verified.
+- [x] Post-merge Consumer login, wardrobe persistence, Hanger, and Brand dashboard smoke tests passed.
+- [ ] Repeat a fresh three-photo enrollment smoke test before the final competition submission.
 
 ## Production incident note: mobile registration permission
 

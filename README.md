@@ -10,6 +10,10 @@ Live application: [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv
 
 Purchase history tells a brand what sold, but not whether the product is actually worn, repeats an ignored category, or works with what someone owns. Racked lets a consumer build a useful private wardrobe and lets a verified brand see only privacy-safe aggregate wear for its own products.
 
+## Business model (proposed, not validated)
+
+Consumers would use the core wardrobe, outfit, and wear-tracking experience free because that standalone utility is what creates voluntary long-term participation. Brands would be the paying customer. An MVP could test a **$99/month Starter** tier for product enrollment and pre-threshold catalog tools, a **$249/month Insights** tier for a limited number of qualifying SKUs and privacy-safe aggregate dashboards, and an optional **$49 per exported aggregate report** for brands that do not need continuous access. A later enterprise offer could license independently thresholded category benchmarks under annual contracts; it would never license individual wardrobes, identities, photos, or row-level wear histories. These figures are pricing hypotheses for pilot interviews, not validated demand or revenue.
+
 ## Working product flows
 
 ### Consumer
@@ -86,7 +90,7 @@ pnpm test
 pnpm build
 ```
 
-The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+The current suite contains **63 automated tests**. The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 
@@ -104,6 +108,6 @@ Open the [HTTPS application](https://main.d2iv0khybuuaeh.amplifyapp.com). On iPh
 - [Presentation script](docs/demo-script.md)
 - [One-page summary](docs/one-page-summary.md)
 
-## Status and claims
+## Current status and claims
 
-The AWS production data stack and Bedrock model access are configured. The application does not claim garment recognition accuracy, sales lift, fit prediction, or production-scale validation until those are measured in an opt-in pilot.
+Racked is deployed and publicly accessible through [AWS Amplify at the production URL](https://main.d2iv0khybuuaeh.amplifyapp.com). The production data stack and Bedrock model access are configured, and GitHub `main` drives the Amplify deployment described in [the AWS deployment guide](docs/aws-deployment.md). The application does not claim garment recognition accuracy, sales lift, fit prediction, validated pricing, or production-scale validation until those are measured in an opt-in pilot.

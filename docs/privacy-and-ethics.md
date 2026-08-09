@@ -13,6 +13,10 @@ Brands may access only products enrolled under their own authenticated account. 
 
 To resist differencing and enumeration attacks, the production aggregate path also enforces a per-account budget: a brand can pull aggregates for at most six distinct products in any five-minute window (re-opening an already-viewed product costs nothing). The budget log is stored in DynamoDB under the brand's own partition and contains only product IDs and timestamps — no consumer data. Requests over the budget receive a generic HTTP 429 that does not reveal which cohorts are near the threshold.
 
+### Emerging-brand threshold tension
+
+The `k ≥ 25` rule creates a real go-to-market tension for emerging brands with low wearer counts per SKU. The mitigation is not a lower threshold. A proposed pre-threshold tier would provide product enrollment, catalog and label readiness, a non-numeric eligibility status, and general planning tools that make no wearer claims. Category-level benchmarks could be offered only when they are independently consented, thresholded, and structured so a brand cannot subtract results to infer a small SKU cohort. Individual wear data remains unavailable at every tier.
+
 ## Image boundary
 
 Consumer and Brand images are encrypted in an S3 bucket with all public access blocked. The browser receives short-lived signed URLs. Wardrobe save confirmation is HMAC-bound to the account, S3 key, garment fields, and registry result, preventing another browser from substituting an image or verified product connection.
