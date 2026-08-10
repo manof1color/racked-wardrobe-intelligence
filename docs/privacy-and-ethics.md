@@ -13,6 +13,10 @@ Brands may access only products enrolled under their own authenticated account. 
 
 To resist differencing and enumeration attacks, the production aggregate path also enforces a per-account budget: a brand can pull aggregates for at most six distinct products in any five-minute window (re-opening an already-viewed product costs nothing). The budget log is stored in DynamoDB under the brand's own partition and contains only product IDs and timestamps — no consumer data. Requests over the budget receive a generic HTTP 429 that does not reveal which cohorts are near the threshold.
 
+## Brand identity boundary
+
+AI-read brand text is autofill, never verification. When garment analysis can read a brand name from a visible label or logo, that name only prefills the Consumer's editable brand-label field — the same trust level as the typed major-brand suggestion, just image-sourced. It is marked `suggested`/`ai-label-text`, carries an explicit "not a verified product link" warning, and can never produce verified status by itself, **even when a brand account or registry product already exists under that exact name**. Verified identity is granted exclusively by a registry match on GTIN or brand-plus-SKU evidence, unchanged by this feature and guarded by a regression test (`tests/brand-autofill.test.ts`).
+
 ## Image boundary
 
 Consumer and Brand images are encrypted in an S3 bucket with all public access blocked. The browser receives short-lived signed URLs. Wardrobe save confirmation is HMAC-bound to the account, S3 key, garment fields, and registry result, preventing another browser from substituting an image or verified product connection.

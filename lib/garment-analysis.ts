@@ -18,8 +18,21 @@ export interface InMemoryGarmentImage {
 interface VisionResult {
   confidence: number;
   visibleLabelText: string;
+  /** Brand name exactly as visibly printed on a label or logo; "" when none is readable. */
+  brandText: string;
   garment: GarmentAnalysis["garment"];
   evidence: GarmentAnalysis["evidence"];
+}
+
+// Judge note: an AI-read brand name is autofill for the editable, user-owned brand-label
+// field — the same trust level as the major-brand suggestion list, just image-sourced.
+// It can never create verified status: verification requires a registry match by GTIN or
+// brand-plus-SKU, which this function has no ability to grant.
+function cleanVisibleBrandText(value: string): string | null {
+  const cleaned = value.trim().slice(0, 100);
+  if (!cleaned) return null;
+  if (/^(unknown|none|n\/a|not visible|no brand|unbranded|illegible)$/i.test(cleaned)) return null;
+  return cleaned;
 }
 
 interface MultimodalOptions {
@@ -36,6 +49,7 @@ const visionOutputSchema = {
   properties: {
     confidence: { type:"integer", minimum:0, maximum:100 },
     visibleLabelText: { type:"string", maxLength:1000 },
+    brandText: { type:"string", maxLength:100 },
     garment: {
       type:"object",
       properties: {
@@ -152,6 +166,7 @@ function parseVisionResult(value:unknown, suppliedViews:Set<GarmentView>):Vision
   return {
     confidence:Math.max(0,Math.min(95,Math.round(Number(candidate.confidence)||0))),
     visibleLabelText:typeof candidate.visibleLabelText==="string"?candidate.visibleLabelText.slice(0,1000):"",
+    brandText:typeof candidate.brandText==="string"?candidate.brandText.slice(0,100):"",
     garment:{
       name:cleanText(String(garment.name??""),"Unconfirmed garment",100),
       category:cleanText(String(garment.category??""),"unknown",60),
@@ -213,18 +228,19 @@ export async function analyzeGarmentImages(
   if(provider==="bedrock"){
     try {
       const client=new BedrockRuntimeClient({region:process.env.AWS_REGION??process.env.AWS_DEFAULT_REGION??"us-east-2"});
-      const content=[...images.map(image=>({image:{format:image.contentType.split("/")[1],source:{bytes:Buffer.from(image.base64,"base64")}}})),{text:"Analyze the supplied garment views. Return only one JSON object matching this shape: confidence integer 0-95; visibleLabelText string; garment with name, category, color, style string array, construction string array, material; evidence array with view and findings. Use only visible evidence and use unknown when uncertain."}];
+      const content=[...images.map(image=>({image:{format:image.contentType.split("/")[1],source:{bytes:Buffer.from(image.base64,"base64")}}})),{text:"Analyze the supplied garment views. Return only one JSON object matching this shape: confidence integer 0-95; visibleLabelText string; brandText string containing the brand name exactly as visibly printed on a label or logo, or an empty string when none is readable; garment with name, category, color, style string array, construction string array, material; evidence array with view and findings. Use only visible evidence and use unknown when uncertain."}];
       const input:ConverseCommandInput={modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,system:[{text:"Analyze garments only. Never infer a person, body, gender, age, ethnicity, income, or ownership. Label text is evidence only; the Racked brand registry verifies identity."}],messages:[{role:"user",content}] as ConverseCommandInput["messages"],inferenceConfig:{maxTokens:900,temperature:0}};
       const response=await client.send(new ConverseCommand(input));
       const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
       if(!raw)throw new Error("Bedrock returned no garment analysis.");
       const vision=parseVisionResult(parseModelJson(raw),new Set(images.map(image=>image.view)));
-      const combinedLabelText=[options.labelText,vision.visibleLabelText].filter(Boolean).join(" ").slice(0,1000);
+      const combinedLabelText=[options.labelText,vision.visibleLabelText,vision.brandText].filter(Boolean).join(" ").slice(0,1000);
       const registryResult=analyzeFrontFirstSet(parts,{registry:options.registry,labelText:combinedLabelText});
       const matched=registryResult.label.matched;
       const majorSuggestion=!matched?suggestMajorBrand(combinedLabelText):null;
-      const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:registryResult.label;
-      return {provider:"multimodal",fallback:false,confidence:vision.confidence,dataSufficiency:parts.length===3?"complete":"partial",garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,label,evidence:vision.evidence,warnings:[matched?"Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving.":majorSuggestion?`${majorSuggestion.brand} was suggested from visible label evidence. Confirm or edit the name; it is not a verified product link.`:"AI analyzed visible attributes, but brand and SKU remain unverified until evidence matches a brand-enrolled registry record."]};
+      const aiBrand=!matched&&!majorSuggestion?cleanVisibleBrandText(vision.brandText):null;
+      const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:aiBrand?{brand:aiBrand,sku:"UNVERIFIED",brandSlug:null,matched:false,suggested:true,registryProductId:null,matchMethod:"ai-label-text" as const}:registryResult.label;
+      return {provider:"multimodal",fallback:false,confidence:vision.confidence,dataSufficiency:parts.length===3?"complete":"partial",garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,label,evidence:vision.evidence,warnings:[matched?"Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving.":majorSuggestion?`${majorSuggestion.brand} was suggested from visible label evidence. Confirm or edit the name; it is not a verified product link.`:aiBrand?`“${aiBrand}” was read from the visible label or logo and prefilled for you. Confirm or edit it; it is not a verified product link.`:"AI analyzed visible attributes, but brand and SKU remain unverified until evidence matches a brand-enrolled registry record."]};
     } catch(error) {
       console.error("Bedrock garment analysis failed",{name:error instanceof Error?error.name:"UnknownError",message:error instanceof Error?error.message:"Unknown provider failure",modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,views:images.map(image=>image.view),imageBytes:images.map(image=>Buffer.byteLength(image.base64,"base64"))});
       return {...fallback,warnings:[...fallback.warnings,"Amazon Bedrock image analysis was unavailable. Review and complete the editable garment labels before saving."]};
@@ -245,7 +261,7 @@ export async function analyzeGarmentImages(
         system:"Analyze only visible garment evidence. Never infer a person, gender, age, body, income, preference, or ownership. Use unknown when evidence is insufficient. Brand and SKU text are OCR evidence only; the application registry decides whether identity is verified.",
         messages:[{role:"user",content:[
           ...images.map((image)=>({type:"image",source:{type:"base64",media_type:image.contentType,data:image.base64}})),
-          {type:"text",text:`Analyze the supplied garment views (${images.map((image)=>image.view).join(", ")}). Report concise visible attributes and view-specific evidence. Put only text actually readable on the label in visibleLabelText.`},
+          {type:"text",text:`Analyze the supplied garment views (${images.map((image)=>image.view).join(", ")}). Report concise visible attributes and view-specific evidence. Put only text actually readable on the label in visibleLabelText, and put the brand name exactly as visibly printed on a label or logo in brandText (empty string when none is readable).`},
         ]}],
         output_config:{format:{type:"json_schema",schema:visionOutputSchema}},
       }),
@@ -256,11 +272,12 @@ export async function analyzeGarmentImages(
     const text=payload.content?.find((block)=>block.type==="text")?.text;
     if (!text) throw new Error("Vision provider returned no structured result.");
     const vision=parseVisionResult(JSON.parse(text),new Set(images.map((image)=>image.view)));
-    const combinedLabelText=[options.labelText,vision.visibleLabelText].filter(Boolean).join(" ").slice(0,1000);
+    const combinedLabelText=[options.labelText,vision.visibleLabelText,vision.brandText].filter(Boolean).join(" ").slice(0,1000);
     const registryResult=analyzeFrontFirstSet(parts,{registry:options.registry,labelText:combinedLabelText});
     const matched=registryResult.label.matched;
     const majorSuggestion=!matched?suggestMajorBrand(combinedLabelText):null;
-    const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:registryResult.label;
+    const aiBrand=!matched&&!majorSuggestion?cleanVisibleBrandText(vision.brandText):null;
+    const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:aiBrand?{brand:aiBrand,sku:"UNVERIFIED",brandSlug:null,matched:false,suggested:true,registryProductId:null,matchMethod:"ai-label-text" as const}:registryResult.label;
     return {
       provider:"multimodal", fallback:false, confidence:vision.confidence, dataSufficiency:parts.length===3?"complete":"partial",
       garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,
@@ -269,7 +286,11 @@ export async function analyzeGarmentImages(
       warnings:[
         matched
           ? "Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving."
-          : "AI analyzed visible attributes, but brand and SKU remain unverified until the evidence matches a brand-enrolled registry record.",
+          : majorSuggestion
+            ? `${majorSuggestion.brand} was suggested from visible label evidence. Confirm or edit the name; it is not a verified product link.`
+            : aiBrand
+              ? `“${aiBrand}” was read from the visible label or logo and prefilled for you. Confirm or edit it; it is not a verified product link.`
+              : "AI analyzed visible attributes, but brand and SKU remain unverified until the evidence matches a brand-enrolled registry record.",
         "Images were processed in request memory and were not persisted by Racked.",
       ],
     };
