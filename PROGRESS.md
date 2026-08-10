@@ -1,0 +1,37 @@
+# Progress log
+
+A judge-facing summary of how Racked was actually built, sourced from the repository's real merge history (`git log --merges`). Every entry below is a merged, CI-validated pull request on this public repository; nothing here is projected or invented.
+
+## Phase 1 — Foundation (2026-08-03 → 2026-08-04)
+
+- Initial commits: Next.js competition foundation, explainable wardrobe matching, rubric/AWS documentation.
+- [#1](https://github.com/manof1color/racked-wardrobe-intelligence/pull/1) Automated repository security maintenance (CI, CodeQL, Dependabot).
+- [#10](https://github.com/manof1color/racked-wardrobe-intelligence/pull/10) Front-first garment scanning.
+- [#11](https://github.com/manof1color/racked-wardrobe-intelligence/pull/11) Installable consumer PWA.
+
+## Phase 2 — Real AWS production platform (2026-08-08)
+
+- [#12](https://github.com/manof1color/racked-wardrobe-intelligence/pull/12) Privacy-safe real vision garment analysis (Bedrock).
+- [#14](https://github.com/manof1color/racked-wardrobe-intelligence/pull/14) Amplify SSR session configuration fix.
+- [#15](https://github.com/manof1color/racked-wardrobe-intelligence/pull/15) Live AWS deployment documented.
+- [#16](https://github.com/manof1color/racked-wardrobe-intelligence/pull/16)–[#21](https://github.com/manof1color/racked-wardrobe-intelligence/pull/21) Real AWS-backed production data: accounts, uploads, persistence, honest landing content, mobile registration fix, resilient Bedrock analysis, testable Consumer Hanger cohort.
+- [#22](https://github.com/manof1color/racked-wardrobe-intelligence/pull/22) Mobile-safe uploads and brand wear analytics.
+
+## Phase 3 — Conversational Hanger (2026-08-09)
+
+- [#23](https://github.com/manof1color/racked-wardrobe-intelligence/pull/23) Hanger became a contextual multi-turn conversation with fresh server-side context per message.
+- [#24](https://github.com/manof1color/racked-wardrobe-intelligence/pull/24) Aggregate-only brand strategy enforcement (server-side output review).
+
+## Phase 4 — Security hardening and feature build-out (2026-08-09 → 2026-08-10)
+
+- [#25](https://github.com/manof1color/racked-wardrobe-intelligence/pull/25) Security hardening: community API responses rebuilt from a public-field allowlist; product-enumeration budget enforced on the production aggregate path (DynamoDB-backed); sliding-window rate limits on auth, AI, metrics, and community endpoints. Verified live (11th rapid sign-in attempt receives HTTP 429).
+- [#27](https://github.com/manof1color/racked-wardrobe-intelligence/pull/27) Doc accuracy (real test counts), all four pre-existing `tsc --noEmit` errors fixed and type checking wired into CI, saved-outfit wear totals actually increment, and a Saved Outfits tab with one-tap "Wear this again".
+- [#28](https://github.com/manof1color/racked-wardrobe-intelligence/pull/28) Garment auto-crop for display with the unmodified evidence photo preserved separately and tested fallbacks.
+- [#29](https://github.com/manof1color/racked-wardrobe-intelligence/pull/29) Avatar replaced by the mobile-first Looks outfit slide view (horizontal carousel of cropped garment photos); outfit save/wear APIs unchanged.
+- [#30](https://github.com/manof1color/racked-wardrobe-intelligence/pull/30) Adaptive photo classification agent: the first photo is AI-classified and enrollment requests only the shots that category needs (sole for footwear, hallmark for jewelry) with visible reasoning and user override; verification evidence unchanged, regression-tested.
+- [#31](https://github.com/manof1color/racked-wardrobe-intelligence/pull/31) AI brand-name autofill from photos — suggestion only; regression tests prove AI-read brand text can never create verified status, even for enrolled brands.
+- [#32](https://github.com/manof1color/racked-wardrobe-intelligence/pull/32) Planned business model and the labeled, not-billed `/pricing` page.
+
+## Continuous verification
+
+Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge.
