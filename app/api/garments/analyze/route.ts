@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { analyzeGarmentImages, MAX_UPLOAD_BYTES, UploadValidationError, validateThreeViewUpload, type InMemoryGarmentImage } from "@/lib/garment-analysis";
+import { prepareWardrobeImages } from "@/lib/garment-crop";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { listRegistryProducts, putPrivateImage, privateImageUrl, ProductionConfigurationError, signGarmentConfirmation } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
@@ -40,13 +41,19 @@ export async function POST(request:Request) {
     const labelText=String(form.get("labelText") ?? "").slice(0,1000);
     const registry=await listRegistryProducts();
     const analysis=await analyzeGarmentImages(parts,prepared.map((item)=>item.image),{registry,labelText});
-    const front=files.find((entry)=>entry.view==="front")?.file;
+    const front=prepared.find((entry)=>entry.image.view==="front");
     if(!front)throw new UploadValidationError("A front image is required.");
-    const normalized=await sharp(Buffer.from(await front.arrayBuffer())).rotate().trim({background:"#ffffff",threshold:18}).resize({width:700,height:900,fit:"inside",withoutEnlargement:true}).png({quality:90}).toBuffer({resolveWithObject:true});
-    const key=await putPrivateImage(session.subject,"wardrobe",normalized.data,"image/png");
-    analysis.processedImage={key,url:(await privateImageUrl(key))!,width:normalized.info.width,height:normalized.info.height,confirmationToken:""};
+    // The prepared front photo (orientation-corrected, resized, unmodified framing) is
+    // preserved as private evidence; the display version gets the tighter auto-crop
+    // and falls back to the original framing when the crop is unsafe.
+    const evidenceBytes=Buffer.from(front.image.base64,"base64");
+    const {evidence,display}=await prepareWardrobeImages(evidenceBytes);
+    const evidenceKey=await putPrivateImage(session.subject,"wardrobe",evidence.buffer,evidence.contentType,"evidence");
+    const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
+    if(display.fallbackReason)analysis.warnings=[...analysis.warnings,"Automatic garment cropping was not confident on this photo, so the original framing is shown."];
+    analysis.processedImage={key,url:(await privateImageUrl(key))!,width:display.width,height:display.height,confirmationToken:"",evidenceKey,cropped:display.cropped};
     analysis.processedImage.confirmationToken=signGarmentConfirmation(session.subject,key,analysis);
-    return NextResponse.json({analysis,retention:"The normalized wardrobe image is stored privately and returned through a one-hour signed link."});
+    return NextResponse.json({analysis,retention:"The cropped display image and the unmodified evidence photo are stored privately and returned through one-hour signed links."});
   } catch (error) {
     if (error instanceof UploadValidationError) return NextResponse.json({error:error.message},{status:error.status});
     if (error instanceof ProductionConfigurationError) return NextResponse.json({error:error.message},{status:503});

@@ -17,7 +17,7 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 1. Create a Consumer account with explicit image-processing consent.
 2. Upload real front, back, and label photos from the phone camera or photo library.
 3. Amazon Bedrock analyzes visible garment attributes and label text. Major-brand names are suggestions; enrolled SKU/GTIN matches are verified.
-4. The server rotates, trims, and resizes the image into an avatar-ready private asset.
+4. The server rotates the front photo, preserves it unmodified as private evidence, and produces a separate auto-cropped display version that shows just the garment — falling back to the original framing whenever the crop is not confident.
 5. The consumer confirms or edits the garment name, brand label, and optional SKU before saving. Unverified garments remain usable.
 6. The Avatar view layers saved garment photos, saves outfits, and records wear.
 7. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
@@ -51,7 +51,7 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 - S3 public access is blocked; URLs expire after one hour.
 - Consumer photos and raw wardrobe records are never returned to brands.
 - Brand metrics count only opted-in owners and fail closed below `k ≥ 25`.
-- If image analysis fails, Racked preserves the three submitted photos and opens an explicitly unverified manual-review form; it never invents fallback attributes.
+- If image analysis fails, Racked keeps the submitted front photo as private evidence and opens an explicitly unverified manual-review form; it never invents fallback attributes. Back and label photos are processed in request memory and are not persisted for consumers.
 - Protected demographic attributes are excluded from image prompts, matching, and analytics.
 
 ## Rubric map
