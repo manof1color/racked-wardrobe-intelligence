@@ -32,6 +32,7 @@ This is the judge’s index for the CUA rubric.
 ## 3. AI integration / innovation — 20%
 
 - [x] Amazon Bedrock Nova Lite analyzes real garment image bytes.
+- [x] Adaptive enrollment: the first photo is AI-classified and the flow requests only the shots that category needs (sole for footwear, hallmark for jewelry), with visible reasoning and a user category override; verification evidence is unchanged.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
 - [x] Consumer Hanger Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.

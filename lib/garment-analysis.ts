@@ -164,6 +164,40 @@ function parseVisionResult(value:unknown, suppliedViews:Set<GarmentView>):Vision
   };
 }
 
+// Judge note: first-photo category classification for the adaptive photo plan. It returns
+// category evidence only — never brand, SKU, or verification fields — and any provider
+// failure returns null so the caller falls back to the standard photo set. The category
+// is always user-overridable before anything is saved.
+export async function classifyGarmentImage(image:InMemoryGarmentImage,options:{provider?:string;model?:string}={}):Promise<{category:string;confidence:number;reasoning:string}|null> {
+  const provider=(options.provider??process.env.AI_PROVIDER??"deterministic").toLowerCase();
+  if(provider!=="bedrock")return null;
+  try {
+    const client=new BedrockRuntimeClient({region:process.env.AWS_REGION??process.env.AWS_DEFAULT_REGION??"us-east-2"});
+    const input:ConverseCommandInput={
+      modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,
+      system:[{text:"Classify garment photos only. Never infer a person, body, gender, age, ethnicity, income, or ownership. Never name a brand."}],
+      messages:[{role:"user",content:[
+        {image:{format:image.contentType.split("/")[1] as "jpeg"|"png"|"webp",source:{bytes:Buffer.from(image.base64,"base64")}}},
+        {text:"Classify this item into exactly one category: top, bottom, outerwear, dress, shoe, bag, jewelry, accessory, or unknown. Return only one JSON object: {\"category\":string,\"confidence\":integer 0-95,\"reasoning\":string under 200 characters describing only visible evidence}."},
+      ]}] as ConverseCommandInput["messages"],
+      inferenceConfig:{maxTokens:220,temperature:0},
+    };
+    const response=await client.send(new ConverseCommand(input));
+    const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
+    if(!raw)return null;
+    const parsed=parseModelJson(raw) as {category?:unknown;confidence?:unknown;reasoning?:unknown};
+    if(typeof parsed?.category!=="string")return null;
+    return {
+      category:parsed.category.slice(0,60),
+      confidence:Math.max(0,Math.min(95,Math.round(Number(parsed.confidence)||0))),
+      reasoning:typeof parsed.reasoning==="string"?parsed.reasoning.slice(0,300):"",
+    };
+  } catch(error) {
+    console.error("Garment classification failed",{name:error instanceof Error?error.name:"UnknownError",message:error instanceof Error?error.message:"Unknown provider failure"});
+    return null;
+  }
+}
+
 // Judge note: raw image bytes enter this function as base64 held in request memory only.
 // They are sent directly to the configured multimodal provider and are never written to disk.
 // Any missing configuration, timeout, provider error, refusal, or malformed response returns the
