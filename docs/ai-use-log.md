@@ -13,6 +13,14 @@ The system prompt forbids inferring a person, body, gender, age, ethnicity, inco
 
 The AI supplies garment understanding. Before the AWS request, the browser creates an approximately 1.2 MB, maximum-1800-pixel JPEG analysis copy of each selected photo; the original stays on the device. A deterministic server image pipeline then rotates EXIF orientation, preserves the unmodified evidence photo, and encodes a separately auto-cropped display PNG that falls back to original framing when the crop is not confident. This prevents combined full-resolution phone photos from triggering an Amplify 413/non-JSON response while keeping label detail suitable for analysis.
 
+## Adaptive photo-plan classification
+
+When the Consumer adds the first (front) photo, an optional classification step sends that single image to Bedrock and returns only a category, a 0–95 confidence, and a short visible-evidence rationale. A deterministic server module (`lib/photo-plan.ts`) turns the category into a photo plan that requests only the shots the category actually needs — footwear asks for the sole/heel and tongue-or-insole label instead of a garment-style back view; jewelry asks for a hallmark or clasp close-up — and every request shows its reasoning to the user. The Consumer can override the category at any time and the plan rebuilds locally. If the provider is unavailable or the answer is unparseable, the flow falls back to the standard back-plus-label set and says so.
+
+Hard boundary: the plan module has no access to brand, SKU, registry, or verification data, and the classification result can never mark a product verified. Brand verification still requires registry GTIN or brand-plus-SKU evidence at analysis time, regardless of which plan was used or how many photos were taken — enforced by a regression test in `tests/photo-plan.test.ts`.
+
+**Rubric evidence (AI integration/innovation):** the enrollment agent adapts its own evidence-gathering to the classified garment category with user-visible reasoning and a user override, while keeping identity verification strictly registry-based — see `lib/photo-plan.ts`, `app/api/garments/classify/route.ts`, and `tests/photo-plan.test.ts`.
+
 ## Consumer Hanger Agent
 
 Allowed tools:

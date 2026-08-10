@@ -12,6 +12,7 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or ac
 | `POST /api/auth/login` | Public | Verifies the password using constant-time comparison and starts the role session |
 | `POST /api/auth/logout` | Signed in | Expires the session cookie |
 | `GET /api/consumer/wardrobe` | Consumer | Returns only that account’s garments and outfits with one-hour private image links |
+| `POST /api/garments/classify` | Consumer | Classifies the first (front) photo into a garment category via Bedrock and returns an adaptive photo plan with per-shot reasoning; processes the image in request memory, stores nothing, never returns identity or verification fields, and falls back to the standard photo set on any provider failure |
 | `POST /api/garments/analyze` | Consumer | Receives browser-prepared front, back, and label views, calls Bedrock, produces verified/suggested/unverified identity, stores the unmodified front photo as private evidence plus a separate auto-cropped display version (falling back to original framing when the crop is unsafe), and returns a signed confirmation binding both keys |
 | `POST /api/consumer/wardrobe` | Consumer | Verifies the account/image confirmation HMAC and persists the garment with bounded Consumer-confirmed name, brand, and optional SKU overrides |
 | `POST /api/consumer/outfits` | Consumer | Saves an account-owned outfit of 1–10 unique wardrobe items |
