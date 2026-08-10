@@ -4,7 +4,7 @@ export default function manifest():MetadataRoute.Manifest {
   return {
     name:"Racked Wardrobe Intelligence",
     short_name:"Racked",
-    description:"Consumer wardrobe, outfit avatar, wear tracking, and brand-linked garment scanning.",
+    description:"Consumer wardrobe, outfit looks, wear tracking, and brand-linked garment scanning.",
     id:"/consumer",
     start_url:"/consumer",
     scope:"/",

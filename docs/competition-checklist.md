@@ -20,7 +20,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Mobile photos are resized in the browser before the combined AWS request, with readable 413/non-JSON error handling.
 - [x] Automatic rotation plus a garment auto-crop for display, with a preserved unmodified evidence photo and a tested fallback to original framing when the crop is not confident.
 - [x] Human confirmation and server-signed garment save authorization.
-- [x] Avatar outfit layering, persistent outfit save, and multi-piece wear recording.
+- [x] Carousel outfit composition (Looks), persistent outfit save, and multi-piece wear recording.
 - [x] Brand-authoritative three-view enrollment with SKU/MPN, GTIN, aliases, hashes, and label text.
 - [x] Actual brand metrics derived from connected Consumer records.
 - [x] Timestamped product wear events power an eight-week chart, frequency distribution, median/average usage, engagement, and aggregate CSV export.
@@ -61,7 +61,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Responsive desktop and phone layouts.
 - [x] Real empty, loading, validation, success, suppression, and provider-error states.
 - [x] Semantic inputs, dialogs, labels, focus styles, and reduced-motion support.
-- [x] Camera-friendly capture and visible avatar-ready preview before saving.
+- [x] Camera-friendly capture and a visible cropped-display preview before saving.
 
 ## 6. Business impact / presentation — 10%
 

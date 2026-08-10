@@ -29,7 +29,7 @@ Brand products use the same account partition with `PRODUCT#<id>` sort keys. The
 2. Require front, back, and label views, then send only those views to Amazon Bedrock with instructions that prohibit person or demographic inference.
 3. Parse the structured visible-attribute result.
 4. Prefill recognized major-brand names only as editable suggestions; verify identity only against a brand-enrolled GTIN or brand-and-SKU record.
-5. Use Sharp to rotate, trim a plain background, resize, and encode an avatar-ready PNG.
+5. Use Sharp to rotate, preserve the unmodified evidence photo, and encode a separately auto-cropped display PNG with a fallback to original framing.
 6. Store privately and return a one-hour signed link plus server confirmation token.
 7. Require human confirmation and allow bounded name, brand, and SKU corrections before creating the wardrobe record. Corrections never create a registry product link.
 
@@ -50,4 +50,4 @@ Garments connected to an enrolled product are indexed by product ID. Brand metri
 
 ## Explicit non-claims
 
-The avatar is an outfit visualizer, not photorealistic virtual try-on or body-fit prediction. Racked does not predict purchase likelihood, sales lift, identity, income, age, gender, ethnicity, or body measurements.
+The Looks slide view is a visual outfit composition tool, not photorealistic virtual try-on or body-fit prediction. Racked does not predict purchase likelihood, sales lift, identity, income, age, gender, ethnicity, or body measurements.
