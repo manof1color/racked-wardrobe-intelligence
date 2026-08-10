@@ -6,7 +6,7 @@ Brands know what was purchased but usually cannot tell whether a product becomes
 
 ## Solution
 
-Racked is a two-sided wardrobe-intelligence application. A Consumer creates a private account, photographs real garments, confirms AI-visible attributes, saves avatar-ready images, builds and stores outfits, and records wear. A Brand creates its own account, enrolls authorized product and label evidence with SKU identity, and receives actual-wear intelligence only for its own connected products.
+Racked is a two-sided wardrobe-intelligence application. A Consumer creates a private account, photographs real garments, confirms AI-visible attributes, saves cropped display images, builds and stores outfits in a slide view, and records wear. A Brand creates its own account, enrolls authorized product and label evidence with SKU identity, and receives actual-wear intelligence only for its own connected products.
 
 ## AI
 

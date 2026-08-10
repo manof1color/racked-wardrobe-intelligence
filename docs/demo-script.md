@@ -9,10 +9,10 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 1. Create a Consumer account and explain the image-processing consent.
 2. Show the empty private wardrobe.
 3. Add real front, back, and label photos from the phone camera or library.
-4. Point out the Bedrock-visible attributes and avatar-ready normalized image.
+4. Point out the Bedrock-visible attributes and the auto-cropped display image.
 5. Show a major-brand suggestion or add a personal label, then explain why it remains unverified without an enrolled SKU/GTIN match.
 6. Confirm or edit the labels and save the garment; reload to prove persistence.
-7. Add enough pieces to open Avatar, select a combination, and choose **Save & wear this look**.
+7. Add enough pieces to open **Looks**, tap a combination, review the slide preview, and choose **Save & wear this look**.
 8. Open Hanger from the bottom of the dashboard and inspect its account-owned tools and evidence.
 
 ## 3:15–5:30 — Real Brand flow

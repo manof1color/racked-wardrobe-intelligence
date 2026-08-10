@@ -19,7 +19,7 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 3. Amazon Bedrock analyzes visible garment attributes and label text. Major-brand names are suggestions; enrolled SKU/GTIN matches are verified.
 4. The server rotates the front photo, preserves it unmodified as private evidence, and produces a separate auto-cropped display version that shows just the garment — falling back to the original framing whenever the crop is not confident.
 5. The consumer confirms or edits the garment name, brand label, and optional SKU before saving. Unverified garments remain usable.
-6. The Avatar view layers saved garment photos, saves outfits, and records wear.
+6. The Looks view builds outfits from saved garment photos in a horizontal slide view, saves them, and records wear.
 7. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
 8. The consumer may separately opt in to anonymous brand aggregates and may publish a selected outfit to Community.
 
@@ -60,7 +60,7 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 | --- | --- |
 | Problem & relevance — 20% | This README and [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Real accounts, uploads, persistent wardrobe/outfits, brand registry, live AWS URL |
-| AI & innovation — 20% | Bedrock vision, human confirmation, avatar preparation, and two multi-turn agents that retrieve fresh role-bounded context for every message |
+| AI & innovation — 20% | Bedrock vision, human confirmation, garment display preparation, and two multi-turn agents that retrieve fresh role-bounded context for every message |
 | Code, docs & GitHub — 15% | Typed modules, tests, CI/CodeQL, architecture/privacy/API documents, incremental PRs |
 | UX & polish — 10% | Responsive Consumer app, camera upload, empty/loading/error states, installable PWA |
 | Business impact — 10% | Actual-wear, active-owner, repeat-wear, brand registry, and thresholded intelligence |
