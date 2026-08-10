@@ -2,9 +2,13 @@
 
 **Privacy-first wardrobe intelligence for real consumers and real brands.**
 
-Live application: [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com)
+## Live demo
 
-> **Judge note:** Real accounts begin empty and persist to account-owned AWS records. A separate, clearly marked [25-person synthetic test cohort](docs/test-cohort.md) exists only to demonstrate the privacy threshold and is never represented as commercial evidence. Start with the [competition checklist](docs/competition-checklist.md), then use the [presentation script](docs/demo-script.md).
+**Production URL: [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com)** — deployed on AWS Amplify from `main`; every merge auto-deploys. The planned business model is on the labeled [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) page.
+
+**Headline demonstration number:** the clearly labeled synthetic demo cohort records **76 confirmed wear events across 25 opted-in owners (88% engagement)** for one enrolled SKU — the actual-wear signal a brand cannot see from purchase data alone, released only because the cohort clears the `k ≥ 25` privacy threshold.
+
+> **Judge note:** Real accounts begin empty and persist to account-owned AWS records. The [25-person synthetic test cohort](docs/test-cohort.md) exists only to demonstrate the privacy threshold and is never represented as commercial evidence; credentials are provided to judges separately, never committed to GitHub. Start with the [competition checklist](docs/competition-checklist.md), then use the [presentation script](docs/demo-script.md).
 
 ## The problem
 
@@ -34,14 +38,52 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 ## Production architecture
 
 ```text
-AWS Amplify Hosting (Next.js SSR and API routes)
-  ├─ signed HTTP-only Consumer and Brand sessions
-  ├─ Amazon Bedrock / Nova Lite multimodal garment analysis
-  ├─ DynamoDB account-owned users, garments, outfits, wear, catalog, consent, posts
-  └─ private encrypted S3 images returned through short-lived signed links
+                 Phone / desktop browser (PWA installable)
+                     │  HTTPS · signed HTTP-only session cookie
+                     ▼
+      ┌──────────────────────────────────────────────────────┐
+      │  AWS Amplify Hosting — Next.js 15 SSR + API routes   │
+      │  auth (scrypt) · role checks · rate limits · HMAC    │
+      │  garment-save confirmation · aggregate-only review   │
+      └──────┬───────────────────┬──────────────────┬────────┘
+             │                   │                  │
+             ▼                   ▼                  ▼
+   Amazon Bedrock          DynamoDB (on-demand)   Private S3 (encrypted,
+   Nova Lite vision:       single table:          public access blocked):
+   garment analysis,       USER#/GARMENT#/OUTFIT#/ evidence photo +
+   category classify,      PRODUCT#/WEAR#/         auto-cropped display
+   Hanger agents           COMMUNITY/AGGQ#          image, 1-hour links
+             │                   │
+             └──── consent filter → k ≥ 25 threshold → enumeration budget
+                   (brands receive released aggregates only — never
+                    names, emails, photos, raw wardrobes, or owner IDs)
 ```
 
-The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissions required by these flows. No AWS credentials or secrets are committed to GitHub.
+The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissions required by these flows (`infra/template.yaml`). No AWS credentials or secrets are committed to GitHub.
+
+## Key files
+
+```text
+app/api/auth/…                 Register/login/logout: scrypt hashes, signed sessions, rate limits
+app/api/garments/classify/     Adaptive first-photo category classification (photo plan)
+app/api/garments/analyze/      Bedrock vision + registry identity + evidence/display image storage
+app/api/consumer/…             Wardrobe, outfits, consent — always scoped to the signed-in account
+app/api/wears/                 Confirmed wear events + saved-outfit wear totals
+app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
+app/api/agents/…               Consumer & Brand Hanger conversations (fresh context per message)
+lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
+lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
+lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
+lib/photo-plan.ts              Category → photo-plan agent logic (identity-free by construction)
+lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output privacy review
+lib/privacy.ts                 k ≥ 25 gate + product-enumeration budget
+lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community endpoints
+components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
+components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
+components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
+tests/ (77 passing)            Privacy, ranking, crop, photo-plan, autofill, rate-limit suites
+infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
+```
 
 ## Security and privacy boundaries
 
@@ -54,17 +96,17 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 - If image analysis fails, Racked keeps the submitted front photo as private evidence and opens an explicitly unverified manual-review form; it never invents fallback attributes. Back and label photos are processed in request memory and are not persisted for consumers.
 - Protected demographic attributes are excluded from image prompts, matching, and analytics.
 
-## Rubric map
+## Rubric evidence
 
-| Criterion | Judge evidence |
+| Criterion | Evidence — where to see it working |
 | --- | --- |
-| Problem & relevance — 20% | This README and [one-page summary](docs/one-page-summary.md) |
-| Functionality — 25% | Real accounts, uploads, persistent wardrobe/outfits, brand registry, live AWS URL |
-| AI & innovation — 20% | Bedrock vision, human confirmation, garment display preparation, and two multi-turn agents that retrieve fresh role-bounded context for every message |
-| Code, docs & GitHub — 15% | Typed modules, tests, CI/CodeQL, architecture/privacy/API documents, incremental PRs |
-| UX & polish — 10% | Responsive Consumer app, camera upload, empty/loading/error states, installable PWA |
-| Business impact — 10% | Actual-wear, active-owner, repeat-wear, brand registry, and thresholded intelligence |
-| Bonus | Consent, private object storage, k-anonymity, accessibility, cross-disciplinary analytics |
+| Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
+| Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment with evidence + auto-cropped display images, Looks outfit slide view, Saved Outfits with repeat-wear tracking, brand registry, k≥25 aggregate dashboard with CSV export |
+| AI & innovation — 20% | Bedrock vision with human confirmation, adaptive photo-plan agent (category-specific shot requests with visible reasoning + user override), AI brand autofill that can never verify, two multi-turn Hanger agents with fresh role-bounded context per message and a server-side aggregate-only output review |
+| Code, docs & GitHub — 15% | Typed modules, **77 passing tests** incl. privacy/verification regression suites, CI runs lint + typecheck + tests + build + dependency audit, CodeQL, incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
+| Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
+| Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
 
 ## Business model & pricing (proposed — not currently billed)
 
@@ -96,27 +138,31 @@ Local account and upload mutations require a DynamoDB table, private S3 bucket, 
 
 ```bash
 pnpm lint
+pnpm typecheck
 pnpm test
 pnpm build
 ```
 
-The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All four run in CI on every push and pull request. The suite currently has 77 passing tests (verified 2026-08-10). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 
 Open the [HTTPS application](https://main.d2iv0khybuuaeh.amplifyapp.com). On iPhone use **Safari → Share → Add to Home Screen**. On Android use **Chrome → Install app** or **Add to Home screen**.
 
-## Documentation
+## Documentation index
 
-- [Competition checklist](docs/competition-checklist.md)
+Everything above is self-contained; these go deeper.
+
+- [PROGRESS.md](PROGRESS.md) — real merged-PR history of how this was built
+- [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist
 - [Architecture and trust boundaries](docs/architecture.md)
-- [Backend API](docs/backend-api.md)
-- [AI use and limitations](docs/ai-use-log.md)
+- [Backend API](docs/backend-api.md) — every route, access level, and abuse control
+- [AI use and limitations](docs/ai-use-log.md) — models, prompts, boundaries, failure policy
 - [Clearly labeled test cohort](docs/test-cohort.md)
-- [Privacy and ethics](docs/privacy-and-ethics.md)
+- [Privacy and ethics](docs/privacy-and-ethics.md) — consent, k ≥ 25, brand identity boundary
 - [AWS deployment](docs/aws-deployment.md)
 - [Presentation script](docs/demo-script.md)
-- [One-page summary](docs/one-page-summary.md)
+- [One-page summary](docs/one-page-summary.md) — includes the proposed business model
 
 ## Status and claims
 
