@@ -48,7 +48,7 @@ export interface AccountRecord {
 
 function normalizeEmail(email:string) { return email.trim().toLowerCase(); }
 function slugify(value:string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60); }
-function confirmationPayload(ownerId:string,key:string,analysis:GarmentAnalysis){return JSON.stringify({ownerId,key,garment:analysis.garment,label:analysis.label});}
+function confirmationPayload(ownerId:string,key:string,analysis:GarmentAnalysis){return JSON.stringify({ownerId,key,evidenceKey:analysis.processedImage?.evidenceKey??null,garment:analysis.garment,label:analysis.label});}
 export function signGarmentConfirmation(ownerId:string,key:string,analysis:GarmentAnalysis){const secret=process.env.SESSION_SECRET;if(!secret)throw new ProductionConfigurationError("Session security is not configured.");return createHmac("sha256",secret).update(confirmationPayload(ownerId,key,analysis)).digest("base64url");}
 function verifyGarmentConfirmation(ownerId:string,analysis:GarmentAnalysis){const supplied=analysis.processedImage?.confirmationToken;if(!supplied)return false;const expected=signGarmentConfirmation(ownerId,analysis.processedImage!.key,analysis);const a=Buffer.from(supplied,"base64url");const b=Buffer.from(expected,"base64url");return a.length===b.length&&timingSafeEqual(a,b);}
 
@@ -85,9 +85,9 @@ export async function getAccount(id:string) {
   return (result.Item as AccountRecord|undefined) ?? null;
 }
 
-export async function putPrivateImage(ownerId:string,kind:"wardrobe"|"brand",bytes:Buffer,contentType:string) {
+export async function putPrivateImage(ownerId:string,kind:"wardrobe"|"brand",bytes:Buffer,contentType:string,subfolder?:"evidence") {
   const extension=contentType==="image/png"?"png":contentType==="image/webp"?"webp":"jpg";
-  const key=`${kind}/${ownerId}/${crypto.randomUUID()}.${extension}`;
+  const key=`${kind}/${ownerId}/${subfolder?`${subfolder}/`:""}${crypto.randomUUID()}.${extension}`;
   await s3.send(new PutObjectCommand({Bucket:requireBucket(),Key:key,Body:bytes,ContentType:contentType,ServerSideEncryption:"AES256",Metadata:{owner:ownerId}}));
   return key;
 }
@@ -105,13 +105,15 @@ export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
 export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string}) {
   if (!analysis.processedImage?.key) throw new Error("The processed garment image is missing.");
   if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new Error("The garment confirmation expired or did not belong to this account.");
+  const evidenceImageKey=analysis.processedImage.evidenceKey??null;
+  if(evidenceImageKey&&!evidenceImageKey.startsWith(`wardrobe/${ownerId}/`))throw new Error("The evidence photo did not belong to this account.");
   const name=(overrides?.name??analysis.garment.name).trim().slice(0,100)||"Unverified garment";
   const brand=(overrides?.brand??analysis.label.brand).trim().slice(0,100);
   const sku=(overrides?.sku??analysis.label.sku).trim().toUpperCase().slice(0,64);
   const placeholderBrand=/^(brand not verified|unmatched label)$/i.test(brand);
   const placeholderSku=/^(unverified|unconfirmed)$/i.test(sku);
   const identityStatus=analysis.label.matched?"verified":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
-  const item:WardrobeItem={id:crypto.randomUUID(),name,category:analysis.garment.category,color:analysis.garment.color,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,identityStatus,createdAt:new Date().toISOString()};
+  const item:WardrobeItem={id:crypto.randomUUID(),name,category:analysis.garment.category,color:analysis.garment.color,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,identityStatus,createdAt:new Date().toISOString()};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:analysis.label.registryProductId?`PRODUCT#${analysis.label.registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
 }

@@ -7,6 +7,7 @@ export interface WardrobeItem {
   source: "manual" | "ai-confirmed"; art: string;
   imageUrl?: string;
   imageKey?: string;
+  evidenceImageKey?: string | null;
   brand?: string | null;
   sku?: string | null;
   identityStatus?: "verified" | "suggested" | "user-labeled" | "unverified";

@@ -18,7 +18,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Private encrypted S3 images with public access blocked and expiring links.
 - [x] Phone camera/library upload for real front, back, and label photos.
 - [x] Mobile photos are resized in the browser before the combined AWS request, with readable 413/non-JSON error handling.
-- [x] Automatic rotation, plain-background trim, resize, and avatar-ready PNG preparation.
+- [x] Automatic rotation plus a garment auto-crop for display, with a preserved unmodified evidence photo and a tested fallback to original framing when the crop is not confident.
 - [x] Human confirmation and server-signed garment save authorization.
 - [x] Avatar outfit layering, persistent outfit save, and multi-piece wear recording.
 - [x] Brand-authoritative three-view enrollment with SKU/MPN, GTIN, aliases, hashes, and label text.

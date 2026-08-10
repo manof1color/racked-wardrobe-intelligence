@@ -58,6 +58,10 @@ export interface GarmentAnalysis {
     width: number;
     height: number;
     confirmationToken: string;
+    /** Private S3 key of the unmodified evidence photo, preserved separately from the display crop. */
+    evidenceKey?: string;
+    /** True when the display version received the tighter garment crop; false means original framing. */
+    cropped?: boolean;
   };
 }
 
