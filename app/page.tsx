@@ -9,6 +9,7 @@ export default function Home() {
           <Link href="#how-it-works">How it works</Link>
           <Link href="/community">Community</Link>
           <Link href="/partners/clothing">Partners</Link>
+          <Link href="/pricing">Pricing</Link>
           <Link href="/privacy">Privacy</Link>
           <Link className="button button-dark button-small" href="/login">Sign in</Link>
         </div>

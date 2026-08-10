@@ -13,6 +13,7 @@ export function AppShell({ role, children }: { role:Role; children:ReactNode }) 
         <Link href={role === "consumer" ? "/consumer" : "/brand"}>Overview</Link>
         <Link href="/community">Community</Link>
         <Link href="/partners/clothing">Partners</Link>
+        <Link href="/pricing">Pricing</Link>
         <Link href="/privacy">Privacy</Link>
         <Link className="switch-link" href="/login">Account</Link>
         <button className="text-button" onClick={logout}>Sign out</button>

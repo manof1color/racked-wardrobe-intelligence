@@ -66,6 +66,20 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 | Business impact — 10% | Actual-wear, active-owner, repeat-wear, brand registry, and thresholded intelligence |
 | Bonus | Consent, private object storage, k-anonymity, accessibility, cross-disciplinary analytics |
 
+## Business model & pricing (proposed — not currently billed)
+
+Consumers stay free to solve the cold-start problem; the brand side carries revenue because actual-wear intelligence is what brands cannot get elsewhere; and the Starter tier exists because an emerging brand often cannot reach the `k ≥ 25` threshold immediately — it prices that waiting period honestly with benchmarks and progress visibility only. No tier weakens consent or the privacy threshold. See the labeled in-app [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) page.
+
+| Tier | Price | Includes |
+| --- | --- | --- |
+| Consumer Free | $0 | Wardrobe logging, wear tracking, limited Hanger queries |
+| Consumer Pro | $6.99/mo or $59/yr | Unlimited Hanger, advanced analytics, outfit export |
+| Brand SKU Enrollment | $25 one-time + $10/yr/SKU | Verification, registry matching |
+| Brand Starter (below k≥25) | $29/mo | Category benchmarks, progress-to-threshold visibility only |
+| Brand Standard (post-threshold) | $149/mo | Full aggregate dashboard, CSV export |
+| Brand Growth | $299/mo | Standard + multi-product comparison + Hanger strategy artifacts |
+| A la carte strategy artifact | $15/artifact | For non-subscribers |
+
 ## Local setup
 
 Requirements: Node.js 22+ and pnpm.
