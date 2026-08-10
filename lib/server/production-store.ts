@@ -141,6 +141,17 @@ export async function saveOutfit(ownerId:string,name:string,itemIds:string[]) {
   return outfit;
 }
 
+// Fixes the dashboard "repeated wears" stat: outfit wear totals previously existed in the
+// data model but were never incremented. The outfit is looked up inside the owner's own
+// partition, so one account can never touch another account's outfits.
+export async function incrementOutfitWears(ownerId:string,outfitId:string) {
+  const outfits=await listOutfits(ownerId);
+  const outfit=outfits.find(entry=>entry.id===outfitId);
+  if(!outfit)throw new Error("Saved outfit not found for this account.");
+  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`},UpdateExpression:"SET wears = if_not_exists(wears, :zero) + :one",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"ALL_NEW"}));
+  return Number(result.Attributes?.wears??0);
+}
+
 export async function listOwnedBrandProducts(ownerId:string):Promise<BrandProductRegistration[]> {
   const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"PRODUCT#"}}));
   return Promise.all((result.Items??[]).map(async raw=>{const product=raw as unknown as BrandProductRegistration;return {...product,imageUrls:{front:await privateImageUrl(product.views.front.storageKey),back:await privateImageUrl(product.views.back.storageKey),label:await privateImageUrl(product.views.label.storageKey)}};}));

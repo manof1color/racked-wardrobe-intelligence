@@ -15,5 +15,5 @@ test("service worker never caches API or authenticated page responses",()=>{
   const worker=readFileSync(new URL("../public/sw.js",import.meta.url),"utf8");
   assert.match(worker,/pathname\.startsWith\("\/api\/"\)/);
   assert.match(worker,/request\.mode==="navigate"/);
-  assert.doesNotMatch(worker,/cache\.put\(request,copy\).*navigate/s);
+  assert.doesNotMatch(worker,/cache\.put\(request,copy\)[\s\S]*navigate/);
 });
