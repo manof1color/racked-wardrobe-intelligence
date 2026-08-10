@@ -6,7 +6,7 @@ The competition demo is an educational prototype. Security reports should cover 
 
 ## Never include in an issue
 
-Do not publish passwords other than the documented fictional demo password, session cookies, AWS credentials, model/API keys, private user data, or exploit output containing sensitive data. Share a minimal redacted reproduction with the repository owner privately.
+Do not publish any password — including synthetic test-cohort credentials, which are shared with judges privately and never committed to this repository — or session cookies, AWS credentials, model/API keys, private user data, or exploit output containing sensitive data. Share a minimal redacted reproduction with the repository owner privately.
 
 ## Baseline controls
 

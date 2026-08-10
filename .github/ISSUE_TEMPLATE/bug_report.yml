@@ -5,18 +5,23 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: Thanks for helping improve Racked. Never include credentials, PII, or private wardrobe images.
+      value: |
+        Thanks for helping improve Racked. Never include credentials, PII, or private wardrobe images.
+
+        Privacy or access-control problems — exposed identifiers, a brand seeing consumer data, a bypassed threshold — should go through the [private security policy](https://github.com/manof1color/racked-wardrobe-intelligence/security/policy) instead of a public issue.
   - type: dropdown
     id: area
     attributes:
       label: Product area
       options:
-        - Consumer wardrobe and outfit agent
-        - Garment scan and matching
-        - Social wardrobe feed
-        - Brand wear intelligence
+        - Consumer wardrobe, Looks, and saved outfits
+        - Garment enrollment, photo plan, and analysis
+        - Hanger conversation (Consumer or Brand)
+        - Community feed
+        - Brand wear intelligence and aggregates
         - Partner dashboards
-        - Authentication and access control
+        - Authentication, rate limits, and access control
+        - Pricing page
         - Documentation or deployment
     validations:
       required: true
