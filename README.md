@@ -19,13 +19,14 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 ### Consumer
 
 1. Create a Consumer account with explicit image-processing consent.
-2. Upload real front, back, and label photos from the phone camera or photo library.
-3. Amazon Bedrock analyzes visible garment attributes and label text. Major-brand names are suggestions; enrolled SKU/GTIN matches are verified.
+2. Photograph the front of the piece. An optional AI photo plan classifies the category and requests only the shots that category actually needs — a shoe is asked for its sole and tongue label instead of a generic back view — with visible reasoning and a category override the consumer controls.
+3. Amazon Bedrock analyzes visible garment attributes and label text. A brand name read from the label or logo prefills the editable brand field as a suggestion; major-brand names are suggestions too. Only enrolled SKU/GTIN registry matches are verified — AI-read text alone never is.
 4. The server rotates the front photo, preserves it unmodified as private evidence, and produces a separate auto-cropped display version that shows just the garment — falling back to the original framing whenever the crop is not confident.
 5. The consumer confirms or edits the garment name, brand label, and optional SKU before saving. Unverified garments remain usable.
 6. The Looks view builds outfits from saved garment photos in a horizontal slide view, saves them, and records wear.
-7. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
-8. The consumer may separately opt in to anonymous brand aggregates and may publish a selected outfit to Community.
+7. The Outfits tab lists every saved outfit with its pieces and wear total, and records a repeat wear in one tap.
+8. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
+9. The consumer may separately opt in to anonymous brand aggregates and may publish a selected outfit to Community.
 
 ### Brand
 
@@ -89,10 +90,12 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 
 - Passwords are salted with a random value and hashed with scrypt.
 - Sessions are signed, expiring, secure, HTTP-only cookies.
-- Garment saves require a server-signed confirmation token tied to the account and private image key.
+- Garment saves require a server-signed confirmation token tied to the account and both private image keys.
 - S3 public access is blocked; URLs expire after one hour.
-- Consumer photos and raw wardrobe records are never returned to brands.
-- Brand metrics count only opted-in owners and fail closed below `k ≥ 25`.
+- Consumer photos and raw wardrobe records are never returned to brands. Public Community responses are rebuilt from an explicit public-field allowlist, so owner account IDs, private storage keys, and database key attributes cannot be serialized.
+- Brand metrics count only opted-in owners and fail closed below `k ≥ 25`. A DynamoDB-backed enumeration budget additionally caps how many distinct products one brand account can pull aggregates for in a rolling window, defeating differencing attacks across SKUs.
+- **Brand identity is never AI-granted.** A brand name read from a photo, typed by a consumer, or matched against the major-brand allowlist only prefills an editable, clearly unverified label — even when a brand account already exists under that name. Verified identity requires registry GTIN or brand-plus-SKU evidence, and that rule is locked by regression tests.
+- Sliding-window rate limits protect registration, sign-in (per client and per email), garment classification and analysis, both Hanger agents, brand metrics, and Community writes. Counters are per compute instance — a documented first layer, not a WAF replacement.
 - If image analysis fails, Racked keeps the submitted front photo as private evidence and opens an explicitly unverified manual-review form; it never invents fallback attributes. Back and label photos are processed in request memory and are not persisted for consumers.
 - Protected demographic attributes are excluded from image prompts, matching, and analytics.
 
@@ -166,4 +169,6 @@ Everything above is self-contained; these go deeper.
 
 ## Status and claims
 
-The AWS production data stack and Bedrock model access are configured. The application does not claim garment recognition accuracy, sales lift, fit prediction, or production-scale validation until those are measured in an opt-in pilot.
+The AWS production data stack and Bedrock model access are configured, and `main` auto-deploys to the live URL above.
+
+Racked does **not** claim garment recognition accuracy, sales lift, purchase intent, demographic inference, photorealistic virtual try-on, body-fit prediction, or production-scale validation. The Looks slide view is a visual outfit composition tool. Every metric shown to a brand is a server-computed aggregate over opted-in owners above the `k ≥ 25` threshold, and the 25-account demo cohort is synthetic and labeled as such wherever it appears. Pricing is a proposal; nothing is billed and no payment method is ever collected.

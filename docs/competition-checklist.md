@@ -25,7 +25,9 @@ This is the judge’s index for the CUA rubric.
 - [x] Actual brand metrics derived from connected Consumer records.
 - [x] Timestamped product wear events power an eight-week chart, frequency distribution, median/average usage, engagement, and aggregate CSV export.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
-- [x] Community posts persist and reveal no private wardrobe.
+- [x] Community posts persist and reveal no private wardrobe; public responses are rebuilt from a public-field allowlist so owner IDs and storage keys cannot leak.
+- [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
+- [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
 - [x] Lint, type check (`tsc --noEmit`), 63 automated tests, and production build pass (verified 2026-08-10).
 
@@ -68,12 +70,13 @@ This is the judge’s index for the CUA rubric.
 
 - [x] Measures actual wears, active owners, engagement, repeat-wear rate, average/median frequency, high-frequency use, zero-wear opportunity, and eligible cohort.
 - [x] Converts authorized SKU enrollment into a product traceability path.
+- [x] Publishes a proposed business model with an emerging-brand Starter tier for the pre-threshold period, on a labeled in-app `/pricing` page and in the [one-page summary](one-page-summary.md); nothing is billed.
 - [x] Provides Consumer and Brand agents with inspectable evidence.
 - [x] [Presentation script](demo-script.md) and [one-page summary](one-page-summary.md) reflect the production flow.
 
 ## Bonus evidence
 
 - **Ethical AI:** human confirmation, visible-evidence prompts, non-claims, provider failure closed.
-- **Privacy:** per-user consent, private S3, server HMAC, role checks, product ownership, `k ≥ 25`.
+- **Privacy:** per-user consent, private S3, server HMAC, role checks, product ownership, `k ≥ 25`, a product-enumeration budget against differencing attacks, public-response field allowlisting, and rate limiting.
 - **Accessibility:** semantic controls, focus indicators, responsive layouts, reduced motion.
 - **Cross-disciplinary:** consumer behavior, merchandising, privacy, marketing analytics, cloud operations.

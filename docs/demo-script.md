@@ -8,12 +8,13 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 
 1. Create a Consumer account and explain the image-processing consent.
 2. Show the empty private wardrobe.
-3. Add real front, back, and label photos from the phone camera or library.
-4. Point out the Bedrock-visible attributes and the auto-cropped display image.
-5. Show a major-brand suggestion or add a personal label, then explain why it remains unverified without an enrolled SKU/GTIN match.
+3. Add the front photo, then tap **Get an AI photo plan**. Read the agent's reasoning aloud and point out that a shoe is asked for its sole and tongue label rather than a generic back view — the agent adapts what evidence it collects to what it just classified. Change the category in the dropdown to show the plan rebuild, proving the person stays in control.
+4. Add the remaining requested photos and analyze. Point out the Bedrock-visible attributes and the auto-cropped display image beside the preserved evidence photo.
+5. Show the prefilled brand label — read from the photo, suggested from the allowlist, or typed — and explain that none of those can verify identity. Only an enrolled SKU/GTIN registry match does, and that holds even if a brand account already exists under that name.
 6. Confirm or edit the labels and save the garment; reload to prove persistence.
 7. Add enough pieces to open **Looks**, tap a combination, review the slide preview, and choose **Save & wear this look**.
-8. Open Hanger from the bottom of the dashboard and inspect its account-owned tools and evidence.
+8. Open the **Outfits** tab to show the saved outfit with its pieces and wear count, then use **Wear this again** to record a repeat wear in one tap.
+9. Open Hanger from the bottom of the dashboard and inspect its account-owned tools and evidence.
 
 ## 3:15–5:30 — Real Brand flow
 
@@ -26,14 +27,18 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 
 ## 5:30–6:30 — Technical and ethical proof
 
-Open `docs/competition-checklist.md`. Show:
+Open the [README](../README.md) — the architecture diagram, key-file map, and rubric-evidence table are embedded there, so no judge has to hunt. Then show:
 
 - DynamoDB and private S3 persistence;
-- Amazon Bedrock multimodal analysis;
-- server-signed garment confirmation;
+- Amazon Bedrock multimodal analysis and the adaptive photo-plan agent;
+- server-signed garment confirmation over both image keys;
 - account and brand ownership checks;
-- `k ≥ 25` after per-account consent filtering;
-- GitHub tests, CodeQL, and incremental history.
+- `k ≥ 25` after per-account consent filtering, plus the product-enumeration budget that stops SKU-sweeping;
+- rate limits returning HTTP 429 on abusive traffic;
+- the regression tests that lock the brand-verification boundary;
+- GitHub tests, CodeQL, and the real incremental history in [PROGRESS.md](../PROGRESS.md).
+
+If time allows, open `/pricing` and note that the business model is published and clearly labeled as not yet billed.
 
 ## 6:30–7:00 — Close
 
