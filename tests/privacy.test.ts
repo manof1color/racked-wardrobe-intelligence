@@ -25,9 +25,9 @@ test("brand-safe segments exclude identities and raw wardrobe references", () =>
 test("computeProductCohort only counts profiles that are BOTH opted in and score-relevant", () => {
   const product = catalog[0];
   const population = [
-    { optedIn:true, wardrobe:sampleWardrobe },   // opted in, may or may not clear the relevance bar
-    { optedIn:false, wardrobe:sampleWardrobe },  // relevant but NOT opted in — must be excluded
-    { optedIn:true, wardrobe:[] },               // opted in but empty wardrobe — very unlikely to be relevant
+    { id:"pop-1", optedIn:true, wardrobe:sampleWardrobe },   // opted in, may or may not clear the relevance bar
+    { id:"pop-2", optedIn:false, wardrobe:sampleWardrobe },  // relevant but NOT opted in — must be excluded
+    { id:"pop-3", optedIn:true, wardrobe:[] },               // opted in but empty wardrobe — very unlikely to be relevant
   ];
   const cohort = computeProductCohort(product, null, population);
   assert.ok(cohort.profiles.every((profile) => profile.optedIn), "every counted profile must be opted in");
@@ -36,7 +36,7 @@ test("computeProductCohort only counts profiles that are BOTH opted in and score
 
 test("computeProductCohort includes a live profile only when it is opted in", () => {
   const product = catalog[0];
-  const basePopulation = Array.from({ length: 30 }, () => ({ optedIn:true, wardrobe:sampleWardrobe }));
+  const basePopulation = Array.from({ length: 30 }, (_, index) => ({ id:`base-${index}`, optedIn:true, wardrobe:sampleWardrobe }));
   const withConsent = computeProductCohort(product, { optedIn:true, wardrobe:sampleWardrobe }, basePopulation);
   const withoutConsent = computeProductCohort(product, { optedIn:false, wardrobe:sampleWardrobe }, basePopulation);
   assert.equal(withConsent.size, withoutConsent.size + (withConsent.size > withoutConsent.size ? 1 : 0));
