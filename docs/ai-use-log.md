@@ -5,7 +5,7 @@
 - Provider: Amazon Bedrock.
 - Model: Amazon Nova Lite (`amazon.nova-lite-v1:0`).
 - Inputs: only the garment views the Consumer chose to upload.
-- Outputs: confidence, visible label text, category, color, style, construction, material, and view-specific evidence.
+- Outputs: confidence, visible label text, visibly printed brand text (autofill only — see `docs/privacy-and-ethics.md`, Brand identity boundary), category, color, style, construction, material, and view-specific evidence.
 
 The system prompt forbids inferring a person, body, gender, age, ethnicity, income, preference, or ownership. Unknown evidence must remain unknown. Model-visible label text is not sufficient to verify a brand; the application registry must independently match a brand-enrolled hash, GTIN, or brand-plus-SKU identity.
 

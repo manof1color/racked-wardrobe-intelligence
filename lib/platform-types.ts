@@ -48,7 +48,7 @@ export interface GarmentAnalysis {
     matched: boolean;
     suggested?: boolean;
     registryProductId: string | null;
-    matchMethod: "brand-sku" | "gtin" | "label-image-hash" | "catalog-image-set" | "major-brand-suggestion" | "none";
+    matchMethod: "brand-sku" | "gtin" | "label-image-hash" | "catalog-image-set" | "major-brand-suggestion" | "ai-label-text" | "none";
   };
   evidence: Array<{ view:GarmentView; findings:string[] }>;
   warnings: string[];
