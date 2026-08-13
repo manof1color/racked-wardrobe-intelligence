@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "eval:score": "node --experimental-strip-types scripts/score-garment-evaluation.mjs",
+    "eval:audit-labels": "node --experimental-strip-types scripts/audit-second-hand-label-coverage.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "audit:prod": "pnpm audit --prod --audit-level high"
