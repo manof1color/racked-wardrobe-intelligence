@@ -9,6 +9,10 @@
 
 The system prompt forbids inferring a person, body, gender, age, ethnicity, income, preference, or ownership. Unknown evidence must remain unknown. Model-visible label text is not sufficient to verify a brand; the application registry must independently match a brand-enrolled hash, GTIN, or brand-plus-SKU identity.
 
+### Independent benchmark
+
+Racked has selected the corrected CC BY 4.0 [Clothing Dataset for Second-Hand Fashion, version 3](https://zenodo.org/records/13788681) as an external evaluation corpus. Its 31,638 main garments plus a separately identified 100-garment annotator-agreement set include front, back, and brand-label views where available, matching Racked's evidence flow unusually well. The source images remain outside Git and AWS production. The model has **not** been trained or fine-tuned on this dataset; it is reserved for reproducible measurement of category, subtype, label-text, provider-failure, and verification-boundary behavior. No recognition-accuracy result is claimed until the measured report described in [evaluation.md](evaluation.md) is complete.
+
 ## Image preparation
 
 The AI supplies garment understanding. Before the AWS request, the browser creates an approximately 1.2 MB, maximum-1800-pixel JPEG analysis copy of each selected photo; the original stays on the device. A deterministic server image pipeline then rotates EXIF orientation, preserves the unmodified evidence photo, and encodes a separately auto-cropped display PNG that falls back to original framing when the crop is not confident. This prevents combined full-resolution phone photos from triggering an Amplify 413/non-JSON response while keeping label detail suitable for analysis.

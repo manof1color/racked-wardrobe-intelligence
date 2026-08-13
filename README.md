@@ -14,6 +14,14 @@
 
 Purchase history tells a brand what sold, but not whether the product is actually worn, repeats an ignored category, or works with what someone owns. Racked lets a consumer build a useful private wardrobe and lets a verified brand see only privacy-safe aggregate wear for its own products.
 
+## Independent evaluation dataset
+
+Racked has selected the corrected CC BY 4.0 [Clothing Dataset for Second-Hand Fashion, version 3](https://zenodo.org/records/13788681) as its external recognition benchmark. It contains **31,638 real garments** plus a separately identified 100-garment annotator-agreement set, with human annotations and front, back, and brand-label photographs where available—the closest public match to Racked's three-view intake. Dataset photographs stay outside GitHub and the production application; only attribution, evaluation code, and aggregate results belong in this repository.
+
+**Accuracy is not claimed yet, and this is not training data.** Racked currently uses Amazon Nova Lite through Bedrock and has not fine-tuned that model on these garments. The benchmark will measure category, subtype, label-text, provider-failure, and AI-only-verification violations without allowing dataset brand text to create verified identity. The exact protocol and honest reporting rules are in [docs/evaluation.md](docs/evaluation.md).
+
+The first reproducible label-coverage audit sampled 1,000 evenly spaced records: **93.9%** map to Racked's broad categories, **62.6%** have source labels specific enough for exact-subtype scoring, and **94.0%** contain usable brand annotations. These percentages measure benchmark compatibility—not model accuracy. The aggregate, image-free report is committed at [`data/evaluation-label-coverage.json`](data/evaluation-label-coverage.json).
+
 ## Working product flows
 
 ### Consumer
@@ -79,6 +87,7 @@ app/api/community/[postId]/    Signed-in Recreate This Look comparison
 lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
 lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
 lib/garment-taxonomy.ts        Controlled categories, subtypes, and bounded uncertainty
+lib/evaluation-dataset.ts      External-dataset normalization, deterministic sampling, scoring
 lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
 lib/recreate-look.ts           Deterministic owned/substitute/missing scoring with evidence
 lib/commerce.ts                Public-HTTPS validation and controlled destination states
@@ -91,7 +100,7 @@ lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
-tests/ (96 passing)            Privacy, community intelligence, commerce, Brand Looks, Recreate suites
+tests/                         Privacy, recognition, evaluation, commerce, Brand Looks, Recreate suites
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
 
@@ -115,7 +124,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, saved-outfit Community publishing with explicit product states, brand registry, k≥25 dashboard with CSV export |
 | AI & innovation — 20% | Bedrock vision with controlled taxonomy and multi-view revision, plus explainable Recreate This Look scoring that prioritizes owned clothing and never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **96 passing tests** incl. community-intelligence/commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **100 passing tests** incl. independent-evaluation/community-intelligence/commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -153,9 +162,10 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 96 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 100 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 
@@ -170,6 +180,8 @@ Everything above is self-contained; these go deeper.
 - [Architecture and trust boundaries](docs/architecture.md)
 - [Backend API](docs/backend-api.md) — every route, access level, and abuse control
 - [AI use and limitations](docs/ai-use-log.md) — models, prompts, boundaries, failure policy
+- [Independent recognition evaluation](docs/evaluation.md) — 31,638-item source, license, protocol, claim rules
+- [Dataset provenance](docs/dataset-provenance.md) — production, synthetic, and external-data boundaries
 - [Clearly labeled test cohort](docs/test-cohort.md)
 - [Privacy and ethics](docs/privacy-and-ethics.md) — consent, k ≥ 25, brand identity boundary
 - [AWS deployment](docs/aws-deployment.md)

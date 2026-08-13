@@ -1,0 +1,14 @@
+{
+  "name": "Clothing Dataset for Second-Hand Fashion",
+  "version": "3",
+  "recordUrl": "https://zenodo.org/records/13788681",
+  "doi": "10.5281/zenodo.13788681",
+  "license": "CC BY 4.0",
+  "publishedItemCount": 31638,
+  "goldSetCount": 100,
+  "views": ["front", "back", "brand-label"],
+  "repositoryPolicy": "Metadata, attribution, evaluation code, and aggregate reports only. Source photographs are downloaded from Zenodo outside Git and are never deployed with Racked.",
+  "status": "evaluation source selected; no model fine-tuning",
+  "labelCoverageRows": 1000,
+  "measuredEvaluationItems": 0
+}

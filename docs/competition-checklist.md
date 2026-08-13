@@ -34,7 +34,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 94 automated tests, production build, and production dependency audit pass (verified 2026-08-13).
+- [x] Lint, type check (`tsc --noEmit`), 100 automated tests, production build, and production dependency audit pass (verified 2026-08-13).
 
 ## 3. AI integration / innovation — 20%
 
@@ -53,6 +53,8 @@ This is the judge’s index for the CUA rubric.
 - [x] Clearly labeled 25-account synthetic cohort demonstrates the privacy threshold without claiming real customer results.
 - [x] Phone images are normalized before Bedrock vision analysis and structured responses are parsed defensively.
 - [x] Brand AI receives wear analysis only after the `k≥25` release threshold; below it, Hanger receives no cohort or wear values and is limited to general strategy.
+
+- [x] A CC BY 4.0, 31,638-garment external corpus is documented for held-out recognition evaluation; deterministic sampling/scoring separates category, subtype, label-text, provider failure, and AI-only identity violations without inventing an accuracy claim.
 
 ## 4. Code / documentation / GitHub — 15%
 
