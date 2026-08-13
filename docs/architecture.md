@@ -29,6 +29,10 @@ Community publication requires an account-owned saved outfit. The stored post sn
 
 `lib/recreate-look.ts` compares a public outfit with only the signed-in Consumer's loaded wardrobe. Exactness requires the same authorized registry product ID. Non-exact candidates must share the broad category and are scored with category 30%, subtype 25%, color 20%, pattern 10%, style 10%, and material 5%. One owned item may cover only one target. Results expose every component and map to exact, strong, acceptable, weak, or missing states; coverage credits are 100%, 85%, 60%, 25%, and 0% respectively.
 
+Commerce is outbound-link infrastructure, not a marketplace. Enrolled products may store price/currency, availability, product URL, and affiliate metadata. `lib/commerce.ts` accepts only public HTTPS destinations and rejects credentials, custom ports, localhost, IP literals, and private/link-local IPv4. Community exposes only a same-origin controlled route; the server reloads the product and redirects to its stored destination while recording a privacy-safe event.
+
+Brand Looks use separate `BRANDLOOK#` records and `sourceType=brand`. Creation reloads the signed-in brand's products and rejects any product ID outside that account before optionally publishing a clearly labeled Community post.
+
 Saved-outfit mutations, including wear increments, are addressed inside the signed-in account's own partition, so one account cannot reach another account's outfits even with a guessed identifier.
 
 ## Brand ownership boundary

@@ -14,7 +14,7 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
   const [progress,setProgress]=useState("");
   const [products,setProducts]=useState<BrandProductRegistration[]>([]);
   const [files,setFiles]=useState<Partial<Record<GarmentView,File>>>({});
-  const [form,setForm]=useState({name:"",aliases:"",sku:"",gtin:"",category:"",labelText:""});
+  const [form,setForm]=useState({name:"",aliases:"",sku:"",gtin:"",category:"",labelText:"",productUrl:"",affiliateUrl:"",price:"",currency:"USD",availability:"unknown",affiliateProvider:"",affiliateTrackingId:""});
 
   useEffect(()=>{fetch("/api/brand/products").then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error);setProducts(data.products??[]);onProducts?.(data.products??[]);}).catch(reason=>setError(reason instanceof Error?reason.message:"Catalog could not be loaded."));},[onProducts]);
 
@@ -30,7 +30,7 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
       if(!response.ok)throw new Error(data.error??"Registration failed.");
       const next=[data.product,...products];setProducts(next);onProducts?.(next);
       setStatus(`${data.product.name} is now enrolled under SKU ${data.product.sku}.`);
-      setForm({name:"",aliases:"",sku:"",gtin:"",category:"",labelText:""});setFiles({});setOpen(false);
+      setForm({name:"",aliases:"",sku:"",gtin:"",category:"",labelText:"",productUrl:"",affiliateUrl:"",price:"",currency:"USD",availability:"unknown",affiliateProvider:"",affiliateTrackingId:""});setFiles({});setOpen(false);
     } catch(reason){setError(reason instanceof Error?reason.message:"Registration failed.");} finally{setBusy(false);setProgress("");}
   }
 
@@ -44,6 +44,12 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
         <label>Category<input value={form.category} onChange={event=>setForm({...form,category:event.target.value})} placeholder="outerwear"/></label>
         <label>Brand aliases<input value={form.aliases} onChange={event=>setForm({...form,aliases:event.target.value})} placeholder="Alternative label spellings"/></label>
         <label className="registry-wide">Approved label text<textarea value={form.labelText} onChange={event=>setForm({...form,labelText:event.target.value})} placeholder="Exact brand and SKU text visible on the label"/></label>
+        <label>Product URL (optional)<input type="url" value={form.productUrl} onChange={event=>setForm({...form,productUrl:event.target.value})} placeholder="https://brand.example/product"/></label>
+        <label>Affiliate URL (optional)<input type="url" value={form.affiliateUrl} onChange={event=>setForm({...form,affiliateUrl:event.target.value})} placeholder="https://retailer.example/tracked"/></label>
+        <label>Price (optional)<input inputMode="decimal" value={form.price} onChange={event=>setForm({...form,price:event.target.value})} placeholder="89.00"/></label>
+        <label>Currency<input value={form.currency} maxLength={3} onChange={event=>setForm({...form,currency:event.target.value})}/></label>
+        <label>Availability<select value={form.availability} onChange={event=>setForm({...form,availability:event.target.value})}><option value="unknown">Unknown</option><option value="available">Available</option><option value="unavailable">Unavailable</option><option value="discontinued">Discontinued</option></select></label>
+        <label>Affiliate provider (optional)<input value={form.affiliateProvider} onChange={event=>setForm({...form,affiliateProvider:event.target.value})}/></label>
       </div>
       <div className="registry-uploads">{views.map(view=><label key={view}><input type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>{const file=event.target.files?.[0];if(file)setFiles(current=>({...current,[view]:file}));}}/><strong>{view}</strong><span>{files[view]?.name??"Choose authorized image"}</span></label>)}</div>
       {busy&&progress&&<div className="upload-progress" role="status"><span/><strong>{progress}</strong><small>Racked reduces mobile photo size before the AWS request.</small></div>}

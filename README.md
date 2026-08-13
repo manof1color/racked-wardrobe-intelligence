@@ -36,6 +36,7 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 3. Consumer label evidence can connect a wardrobe item to the brand-authorized registry record.
 4. The Brand dashboard reports actual wears, active owners, and repeat-wear rate only when at least 25 opted-in owners qualify.
 5. Hanger on the Brand dashboard supports follow-up strategy conversations but is restricted to the brand’s own products and the same consent-filtered, `k ≥ 25` aggregates.
+6. A brand can create a clearly labeled Brand Look using only its enrolled products. Optional product/affiliate destinations are validated public HTTPS links; Racked records aggregate outbound interest and redirects to external checkout.
 
 ## Production architecture
 
@@ -80,6 +81,8 @@ lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill
 lib/garment-taxonomy.ts        Controlled categories, subtypes, and bounded uncertainty
 lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
 lib/recreate-look.ts           Deterministic owned/substitute/missing scoring with evidence
+lib/commerce.ts                Public-HTTPS validation and controlled destination states
+lib/brand-looks.ts             Brand-owned authorization for Brand Looks
 lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
 lib/photo-plan.ts              Category → photo-plan agent logic (identity-free by construction)
 lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output privacy review
@@ -88,7 +91,7 @@ lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
-tests/ (90 passing)            Privacy, Recreate, outfit, taxonomy, ranking, crop suites
+tests/ (94 passing)            Privacy, commerce, Brand Looks, Recreate, outfit suites
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
 
@@ -112,7 +115,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, saved-outfit Community publishing with explicit product states, brand registry, k≥25 dashboard with CSV export |
 | AI & innovation — 20% | Bedrock vision with controlled taxonomy and multi-view revision, plus explainable Recreate This Look scoring that prioritizes owned clothing and never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **90 passing tests** incl. Recreate/privacy/verification suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **94 passing tests** incl. commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -152,7 +155,7 @@ pnpm test
 pnpm build
 ```
 
-All five run in CI on every push and pull request. The suite currently has 90 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 94 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 

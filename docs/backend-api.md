@@ -26,6 +26,8 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or ac
 | `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes one explicitly selected account-owned saved outfit, and records likes. Each piece has an explicit product-resolution state; only exact verified products project brand links. Public allowlisting removes owner/outfit/wardrobe IDs and storage keys |
 | `GET /api/community/images/[postId]/[garmentId]` | Public | Streams an image only when that public garment ID is explicitly attached to the published post; returns no S3 key or signed private-storage URL |
 | `POST /api/community/[postId]/recreate` | Consumer | Loads the public outfit plus only the signed-in account's wardrobe, returns deterministic exact/substitute/missing matches with component evidence and coverage, then records an identity-free recreate-request event |
+| `GET /api/products/[productId]/outbound` | Public | Reloads the enrolled product, validates its stored public HTTPS destination, optionally validates source-post attribution, records a privacy-safe click, and redirects; accepts no destination query parameter |
+| `GET/POST /api/brand/looks` | Brand | Lists that account's Brand Looks or creates one from only that account's enrolled product IDs; may publish a clearly labeled Brand Look to Community |
 
 ## Image security
 

@@ -12,7 +12,7 @@ export interface StoredPublishedGarment {
   material?: string;
   imageKey?: string;
   resolutionState: ProductResolutionState;
-  verifiedProduct?: { registryProductId:string; sku:string; name:string; brand:string; brandSlug:string };
+  verifiedProduct?: { registryProductId:string; sku:string; name:string; brand:string; brandSlug:string; commerceState?:import("./platform-types.ts").CommerceDestinationState; outboundUrl?:string; price?:number; currency?:string };
   unverifiedBrandLabel?: string;
 }
 
@@ -39,7 +39,7 @@ function imagePath(postId:string,garmentId:string) {
 function publicGarment(postId:string, stored:StoredPublishedGarment):PublicOutfitGarment {
   const state=RESOLUTION_STATES.has(stored.resolutionState)?stored.resolutionState:"GENERIC_UNVERIFIED";
   const verified=state==="EXACT_VERIFIED_PRODUCT"&&stored.verifiedProduct
-    ?{registryProductId:String(stored.verifiedProduct.registryProductId),sku:String(stored.verifiedProduct.sku),name:String(stored.verifiedProduct.name),brand:String(stored.verifiedProduct.brand),brandSlug:String(stored.verifiedProduct.brandSlug)}
+    ?{registryProductId:String(stored.verifiedProduct.registryProductId),sku:String(stored.verifiedProduct.sku),name:String(stored.verifiedProduct.name),brand:String(stored.verifiedProduct.brand),brandSlug:String(stored.verifiedProduct.brandSlug),...(stored.verifiedProduct.commerceState?{commerceState:stored.verifiedProduct.commerceState}:{}),...(cleanPath(stored.verifiedProduct.outboundUrl)?{outboundUrl:cleanPath(stored.verifiedProduct.outboundUrl)}:{}),...(Number.isFinite(stored.verifiedProduct.price)?{price:Number(stored.verifiedProduct.price)}:{}),...(stored.verifiedProduct.currency?{currency:String(stored.verifiedProduct.currency)}:{})}
     :undefined;
   return {
     publicGarmentId:String(stored.publicGarmentId),

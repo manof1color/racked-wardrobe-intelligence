@@ -1,4 +1,5 @@
 import type { BrandProductRegistration, GarmentView, UploadDescriptor } from "./platform-types.ts";
+import { normalizeCommerceUrl } from "./commerce.ts";
 
 const views: GarmentView[] = ["front", "back", "label"];
 
@@ -53,6 +54,7 @@ export function suggestMajorBrand(labelText:string) {
 
 export function createBrandProductRegistration(input:{
   ownerSubject:string; name:string; brand:string; aliases:string[]; sku:string; gtin?:string; category:string; labelText:string;
+  productUrl?:string; affiliateUrl?:string; price?:string|number; currency?:string; availability?:string; affiliateProvider?:string; affiliateTrackingId?:string;
   parts:UploadDescriptor[];
 }): BrandProductRegistration {
   const name=input.name.trim().slice(0,120);
@@ -61,6 +63,13 @@ export function createBrandProductRegistration(input:{
   const gtin=(input.gtin ?? "").replace(/\D/g,"").slice(0,14) || null;
   const category=input.category.trim().toLowerCase().slice(0,60);
   const labelText=input.labelText.trim().slice(0,1000);
+  const productUrl=normalizeCommerceUrl(input.productUrl);
+  const affiliateUrl=normalizeCommerceUrl(input.affiliateUrl);
+  const price=input.price===""||input.price===undefined?undefined:Number(input.price);
+  if(price!==undefined&&(!Number.isFinite(price)||price<0||price>1_000_000))throw new Error("Price must be between 0 and 1,000,000.");
+  const currency=(input.currency??"USD").trim().toUpperCase().slice(0,3);
+  if(price!==undefined&&!/^[A-Z]{3}$/.test(currency))throw new Error("Currency must use a three-letter code.");
+  const availability=["available","unavailable","discontinued","unknown"].includes(input.availability??"")?input.availability as BrandProductRegistration["availability"]:"unknown";
   if (!name || !brand || !sku || !category || !labelText) throw new Error("Name, brand, SKU, category, and label text are required.");
   if (gtin && ![8,12,13,14].includes(gtin.length)) throw new Error("GTIN must contain 8, 12, 13, or 14 digits.");
   const byView=Object.fromEntries(views.map((view)=>[view,input.parts.find((part)=>part.view===view)])) as Record<GarmentView,UploadDescriptor|undefined>;
@@ -69,6 +78,9 @@ export function createBrandProductRegistration(input:{
   return {
     id:`registry-${crypto.randomUUID()}`,ownerSubject:input.ownerSubject,name,brand,brandSlug:slugifyBrand(brand),aliases,sku,gtin,category,labelText,
     views:byView as Record<GarmentView,UploadDescriptor>,enrolledAt:new Date().toISOString(),source:"brand-enrolled",
+    ...(productUrl?{productUrl}:{}),...(affiliateUrl?{affiliateUrl}:{}),...(price!==undefined?{price,currency}:{}),availability,
+    ...(input.affiliateProvider?.trim()?{affiliateProvider:input.affiliateProvider.trim().slice(0,80)}:{}),
+    ...(input.affiliateTrackingId?.trim()?{affiliateTrackingId:input.affiliateTrackingId.trim().slice(0,120)}:{}),
   };
 }
 

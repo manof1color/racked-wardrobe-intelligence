@@ -10,6 +10,8 @@ import type { GarmentAnalysis, BrandProductRegistration, OutfitPost } from "@/li
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
 import { normalizeGarmentClassification } from "@/lib/garment-taxonomy";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
+import { commerceDestination } from "@/lib/commerce";
+import { createBrandLook } from "@/lib/brand-looks";
 import { buildWearUsageAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
@@ -168,6 +170,7 @@ export async function listRegistryProducts():Promise<BrandProductRegistration[]>
   const result=await db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_PRODUCTS"}}));
   return (result.Items??[]) as unknown as BrandProductRegistration[];
 }
+export async function getRegistryProductById(productId:string){return (await listRegistryProducts()).find(product=>product.id===productId)??null;}
 
 export async function listPublicBrandProducts(brandSlug:string):Promise<BrandProductRegistration[]>{const products=await listRegistryProducts();return Promise.all(products.filter(product=>product.brandSlug===brandSlug).map(async product=>({...product,imageUrls:{front:await privateImageUrl(product.views.front.storageKey)}})));}
 
@@ -179,28 +182,30 @@ export async function saveBrandProduct(ownerId:string,product:BrandProductRegist
 export async function getBrandDataSharing(ownerId:string){const account=await getAccount(ownerId);return account?.brandDataSharing===true;}
 export async function setBrandDataSharing(ownerId:string,value:boolean){await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:"SET brandDataSharing = :value",ExpressionAttributeValues:{":value":value}}));return value;}
 
-type StoredPost=StoredCommunityPost&{ownerId:string;sourceOutfitId?:string};
+type StoredPost=StoredCommunityPost&{ownerId:string;sourceOutfitId?:string;sourceBrandLookId?:string};
 // Public feed responses are rebuilt through toPublicOutfitPost so stored private fields
 // (ownerId, imageKey, DynamoDB key attributes) never reach the browser.
 export async function listCommunityPosts():Promise<OutfitPost[]>{const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60}));return (result.Items??[]).map(raw=>toPublicOutfitPost(raw as unknown as StoredPost));}
 export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;caption:string;outfitId:string}){
-  const [account,wardrobe,outfits]=await Promise.all([getAccount(ownerId),listWardrobe(ownerId),listOutfits(ownerId)]);
+  const [account,wardrobe,outfits,registry]=await Promise.all([getAccount(ownerId),listWardrobe(ownerId),listOutfits(ownerId),listRegistryProducts()]);
   if(!account)throw new Error("Account not found.");
   const outfit=outfits.find(entry=>entry.id===input.outfitId);
   if(!outfit)throw new Error("Select one of your saved outfits before publishing.");
   const byId=new Map(wardrobe.map(item=>[item.id,item]));
+  const productsById=new Map(registry.map(product=>[product.id,product]));
   const publishedGarments:StoredPublishedGarment[]=outfit.itemIds.map(itemId=>{
     const item=byId.get(itemId);
     if(!item)throw new Error("A saved outfit piece is no longer available in your wardrobe.");
     const resolution=wardrobeItemToOutfitPiece(item).resolution;
     return {
       publicGarmentId:crypto.randomUUID(),name:item.name,category:item.category,subtype:item.subtype,color:item.color,pattern:item.pattern,style:item.style,material:item.material,imageKey:item.imageKey,resolutionState:resolution.state,
-      ...(resolution.state==="EXACT_VERIFIED_PRODUCT"&&resolution.registryProductId&&resolution.sku&&resolution.productName&&resolution.brand&&resolution.brandSlug?{verifiedProduct:{registryProductId:resolution.registryProductId,sku:resolution.sku,name:resolution.productName,brand:resolution.brand,brandSlug:resolution.brandSlug}}:{}),
+      ...(resolution.state==="EXACT_VERIFIED_PRODUCT"&&resolution.registryProductId&&resolution.sku&&resolution.productName&&resolution.brand&&resolution.brandSlug?{verifiedProduct:(()=>{const product=productsById.get(resolution.registryProductId!);const destination=product?commerceDestination(product):{state:"NO_DESTINATION" as const};return {registryProductId:resolution.registryProductId!,sku:resolution.sku!,name:resolution.productName!,brand:resolution.brand!,brandSlug:resolution.brandSlug!,commerceState:destination.state,...(destination.state==="EXACT_AVAILABLE"?{outboundUrl:`/api/products/${encodeURIComponent(resolution.registryProductId!)}/outbound?sourcePostId=__POST_ID__`}:{}),...(product?.price!==undefined?{price:product.price,currency:product.currency}:{}),};})()}:{}),
       ...(resolution.state!=="EXACT_VERIFIED_PRODUCT"&&item.brand?{unverifiedBrandLabel:item.brand}:{}),
     };
   });
   const createdAt=new Date().toISOString();
   const post:StoredPost={id:crypto.randomUUID(),ownerId,sourceOutfitId:outfit.id,sourceType:"consumer",handle:`@${account.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,30)}`,outfitTitle:input.outfitTitle,caption:input.caption,image:"",createdAt,likes:0,publishedGarments,garments:[],products:[]};
+  for(const garment of post.publishedGarments??[]){if(garment.verifiedProduct?.outboundUrl)garment.verifiedProduct.outboundUrl=garment.verifiedProduct.outboundUrl.replace("__POST_ID__",encodeURIComponent(post.id??""));}
   await db.send(new PutCommand({TableName:requireTable(),Item:{...post,PK:"COMMUNITY",SK:`POST#${createdAt}#${post.id}`}}));
   return toPublicOutfitPost(post);
 }
@@ -223,6 +228,32 @@ export async function getPublicCommunityPost(postId:string){
 export async function recordPrivacySafeCommunityEvent(postId:string,eventType:"recreate-look-request"|"product-click"|"outbound-product-click"){
   const createdAt=new Date().toISOString();
   await db.send(new PutCommand({TableName:requireTable(),Item:{PK:"COMMUNITY",SK:`EVENT#${createdAt}#${crypto.randomUUID()}`,postId,eventType,createdAt}}));
+}
+export async function recordPrivacySafeCommerceEvent(productId:string,sourcePostId?:string){
+  const createdAt=new Date().toISOString();
+  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:"COMMUNITY",SK:`EVENT#${createdAt}#${crypto.randomUUID()}`,productId,eventType:"outbound-product-click",createdAt,...(sourcePostId?{postId:sourcePostId}:{})}}));
+}
+
+export async function listBrandLooks(ownerId:string){
+  const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"BRANDLOOK#"},ScanIndexForward:false}));
+  return (result.Items??[]) as unknown as import("@/lib/platform-types").BrandLook[];
+}
+
+export async function saveBrandLook(ownerId:string,input:{title:string;caption:string;productIds:string[];published:boolean}){
+  const [account,products]=await Promise.all([getAccount(ownerId),listOwnedBrandProducts(ownerId)]);
+  if(!account?.brandName)throw new Error("This account has no brand profile.");
+  const look=createBrandLook({ownerSubject:ownerId,brand:account.brandName,brandSlug:slugify(account.brandName),...input},products);
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...look,PK:`USER#${ownerId}`,SK:`BRANDLOOK#${look.createdAt}#${look.id}`}}));
+  let post:OutfitPost|undefined;
+  if(look.published){
+    const byId=new Map(products.map(product=>[product.id,product]));
+    const postId=crypto.randomUUID();
+    const publishedGarments:StoredPublishedGarment[]=look.productIds.map(productId=>{const product=byId.get(productId)!;const destination=commerceDestination(product);return {publicGarmentId:crypto.randomUUID(),name:product.name,category:product.category,imageKey:product.views.front.storageKey,resolutionState:"EXACT_VERIFIED_PRODUCT",verifiedProduct:{registryProductId:product.id,sku:product.sku,name:product.name,brand:product.brand,brandSlug:product.brandSlug,commerceState:destination.state,...(destination.state==="EXACT_AVAILABLE"?{outboundUrl:`/api/products/${encodeURIComponent(product.id)}/outbound?sourcePostId=${encodeURIComponent(postId)}`}:{ }),...(product.price!==undefined?{price:product.price,currency:product.currency}:{})}};});
+    const stored:StoredPost={id:postId,ownerId,sourceBrandLookId:look.id,sourceType:"brand",handle:`@${look.brandSlug.replaceAll("-","_")}`,outfitTitle:look.title,caption:look.caption,image:"",createdAt:look.createdAt,likes:0,publishedGarments,garments:[],products:[]};
+    await db.send(new PutCommand({TableName:requireTable(),Item:{...stored,PK:"COMMUNITY",SK:`POST#${look.createdAt}#${postId}`}}));
+    post=toPublicOutfitPost(stored);
+  }
+  return {look,post};
 }
 export async function incrementCommunityLike(postId:string){const found=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"id = :id",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":id":postId},Limit:60}));const post=found.Items?.[0];if(!post)throw new Error("Community post not found.");const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
 

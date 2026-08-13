@@ -26,6 +26,7 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 4. Explain that future Consumer label/SKU evidence can connect to this registry product.
 5. Run actual-wear calculation. With fewer than 25 opted-in owners, the correct result is a suppression notice—not an invented metric.
 6. Run the Brand Agent and show that it respects the same threshold.
+7. Create a Brand Look from enrolled products and publish it. Show its explicit **BRAND LOOK** label. If an authorized product URL was enrolled, use the controlled external link and explain that checkout remains on the brand/retailer site.
 
 ## 5:30–6:30 — Technical and ethical proof
 
