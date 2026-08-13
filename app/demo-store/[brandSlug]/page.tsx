@@ -20,7 +20,7 @@ export default async function DemoStorefront({params}:{params:Promise<{brandSlug
   const brand=products[0].brand;
 
   return <main className="demo-store">
-    <div className="demo-store-banner" role="note"><strong>Fictional demo storefront</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
+    <div className="demo-store-banner" role="note"><strong>Demonstration only</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
     <header className="community-nav">
       <span className="wordmark">{brand}</span>
       <nav><Link href="/community">Back to Racked Community</Link><Link href={`/brands/${brandSlug}`}>Racked brand page</Link></nav>
