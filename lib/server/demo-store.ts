@@ -16,7 +16,7 @@ export function getDemoStore() { return globalStore.__rackedDemoStore ??= create
 export function resetDemoStore() { globalStore.__rackedDemoStore = createStore(); return getDemoStore(); }
 export function listPosts() { return [...getDemoStore().posts].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)); }
 export function addPost(input:Pick<OutfitPost,"outfitTitle"|"caption"|"image"|"products">) {
-  const post:OutfitPost={...input,id:`post-${crypto.randomUUID()}`,handle:"@maya_demo",createdAt:new Date().toISOString(),likes:0,fictional:true};
+  const post:OutfitPost={...input,id:`post-${crypto.randomUUID()}`,handle:"@maya_demo",createdAt:new Date().toISOString(),likes:0,sourceType:"consumer",garments:[],fictional:true};
   getDemoStore().posts.unshift(post); return post;
 }
 export function incrementPostLike(postId:string) {

@@ -78,8 +78,23 @@ export interface OutfitPost {
   image: string;
   createdAt: string;
   likes: number;
+  sourceType: "consumer" | "brand";
   fictional?: boolean;
+  garments: PublicOutfitGarment[];
+  /** Exact verified products only; retained as a convenient brand-link projection. */
   products: Array<{ sku:string; name:string; brand:string; brandSlug:string; category:string }>;
+}
+
+export interface PublicOutfitGarment {
+  publicGarmentId: string;
+  name: string;
+  category: string;
+  subtype?: string;
+  color?: string;
+  image: string;
+  resolutionState: import("./types.ts").ProductResolutionState;
+  verifiedProduct?: { registryProductId:string; sku:string; name:string; brand:string; brandSlug:string };
+  unverifiedBrandLabel?: string;
 }
 
 export interface AgentReply {

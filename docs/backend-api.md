@@ -23,7 +23,8 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or ac
 | `POST /api/brand/products` | Brand | Encrypts authorized three-view images and registers brand-bound SKU identity |
 | `POST /api/brand/metrics` | Brand | Confirms product ownership, filters owners and wear events by consent, applies `k ≥ 25`, then returns total/average/median usage, engagement, repeat wear, frequency distribution, and an eight-week trend |
 | `POST /api/agents/brand` | Brand | Accepts a free-form strategy question plus bounded chat history, reloads the selected brand-owned product and consent-filtered aggregate, and discusses only released metrics; below `k=25`, the context contains the privacy rule rather than suppressed values |
-| `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes from the signed-in Consumer’s saved wardrobe, and records likes. Feed responses are rebuilt from a public-field allowlist; owner IDs, private S3 keys, and database key attributes are never serialized |
+| `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes one explicitly selected account-owned saved outfit, and records likes. Each piece has an explicit product-resolution state; only exact verified products project brand links. Public allowlisting removes owner/outfit/wardrobe IDs and storage keys |
+| `GET /api/community/images/[postId]/[garmentId]` | Public | Streams an image only when that public garment ID is explicitly attached to the published post; returns no S3 key or signed private-storage URL |
 
 ## Image security
 

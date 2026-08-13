@@ -15,6 +15,7 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 7. Add enough pieces to open **Looks**, tap a combination, review the slide preview, and choose **Save & wear this look**.
 8. Open the **Outfits** tab to show the saved outfit with its pieces and wear count, then use **Wear this again** to record a repeat wear in one tap.
 9. Open Hanger from the bottom of the dashboard and inspect its account-owned tools and evidence.
+10. Open **Community**, select that saved outfit, and publish it. Point out that all selected pieces appear, exact registry products get brand links, unverified pieces stay unverified, and the public image URL exposes no private S3 key.
 
 ## 3:15–5:30 — Real Brand flow
 

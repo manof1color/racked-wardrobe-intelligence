@@ -26,7 +26,7 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 6. The Looks view builds outfits from saved garment photos in a horizontal slide view, saves them, and records wear.
 7. The Outfits tab lists every saved outfit with its pieces and wear total, and records a repeat wear in one tap.
 8. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
-9. The consumer may separately opt in to anonymous brand aggregates and may publish a selected outfit to Community.
+9. The consumer may separately opt in to anonymous brand aggregates and may publish one explicitly selected saved outfit to Community. Every public garment gets a new public ID; private wardrobe IDs and S3 keys never enter the feed.
 
 ### Brand
 
@@ -72,9 +72,11 @@ app/api/consumer/…             Wardrobe, outfits, consent — always scoped to
 app/api/wears/                 Confirmed wear events + saved-outfit wear totals
 app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
 app/api/agents/…               Consumer & Brand Hanger conversations (fresh context per message)
+app/api/community/images/      Public post-scoped image proxy; never exposes private S3 keys
 lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
 lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
 lib/garment-taxonomy.ts        Controlled categories, subtypes, and bounded uncertainty
+lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
 lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
 lib/photo-plan.ts              Category → photo-plan agent logic (identity-free by construction)
 lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output privacy review
@@ -83,7 +85,7 @@ lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
-tests/ (82 passing)            Privacy, taxonomy, ranking, crop, photo-plan, autofill suites
+tests/ (85 passing)            Privacy, outfit, taxonomy, ranking, crop, photo-plan suites
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
 
@@ -93,7 +95,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 - Sessions are signed, expiring, secure, HTTP-only cookies.
 - Garment saves require a server-signed confirmation token tied to the account and both private image keys.
 - S3 public access is blocked; URLs expire after one hour.
-- Consumer photos and raw wardrobe records are never returned to brands. Public Community responses are rebuilt from an explicit public-field allowlist, so owner account IDs, private storage keys, and database key attributes cannot be serialized.
+- Consumer photos and raw wardrobe records are never returned to brands. Community publishes only a selected saved outfit, replaces wardrobe IDs with public garment IDs, and serves its presentation through a post-scoped image proxy. The public allowlist cannot serialize owner IDs, saved-outfit IDs, private S3 keys, or database keys.
 - Brand metrics count only opted-in owners and fail closed below `k ≥ 25`. A DynamoDB-backed enumeration budget additionally caps how many distinct products one brand account can pull aggregates for in a rolling window, defeating differencing attacks across SKUs.
 - **Brand identity is never AI-granted.** A brand name read from a photo, typed by a consumer, or matched against the major-brand allowlist only prefills an editable, clearly unverified label — even when a brand account already exists under that name. Verified identity requires registry GTIN or brand-plus-SKU evidence, and that rule is locked by regression tests.
 - Sliding-window rate limits protect registration, sign-in (per client and per email), garment classification and analysis, both Hanger agents, brand metrics, and Community writes. Counters are per compute instance — a documented first layer, not a WAF replacement.
@@ -105,9 +107,9 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Criterion | Evidence — where to see it working |
 | --- | --- |
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
-| Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment with evidence + auto-cropped display images, Looks outfit slide view, Saved Outfits with repeat-wear tracking, brand registry, k≥25 aggregate dashboard with CSV export |
+| Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, saved-outfit Community publishing with explicit product states, brand registry, k≥25 dashboard with CSV export |
 | AI & innovation — 20% | Bedrock vision with a controlled garment taxonomy, first-photo-to-multi-view hypothesis revision, bounded uncertainty, human correction, AI brand autofill that can never verify, and two context-grounded Hanger agents |
-| Code, docs & GitHub — 15% | Typed modules, **82 passing tests** incl. taxonomy/privacy/verification regression suites, CI runs lint + typecheck + tests + build + dependency audit, CodeQL, incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **85 passing tests** incl. outfit/privacy/verification regression suites, CI runs lint + typecheck + tests + build + dependency audit, CodeQL, incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -147,7 +149,7 @@ pnpm test
 pnpm build
 ```
 
-All five run in CI on every push and pull request. The suite currently has 82 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 85 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 

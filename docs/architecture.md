@@ -23,6 +23,10 @@ Every private route resolves the signed session on the server before touching da
 
 All Consumer records use `PK=USER#<subject>` with typed sort keys such as `GARMENT#`, `OUTFIT#`, and `PROFILE`. Analyzed garment images are saved under `wardrobe/<subject>/…` in private S3 — the auto-cropped display image at that prefix and the unmodified evidence photo under `wardrobe/<subject>/evidence/…`. The confirmation API rejects either key outside that prefix and verifies a server HMAC over the account, display key, evidence key, garment fields, and registry result.
 
+Saved outfits retain `itemIds` for backward-compatible wear recording and add an explicit piece snapshot. Each piece has one non-collapsed resolution state: `EXACT_VERIFIED_PRODUCT`, `AI_ESTIMATED_PRODUCT`, `SIMILAR_PRODUCT`, `GENERIC_UNVERIFIED`, or `VERIFIED_UNAVAILABLE`. Exactness requires a persisted registry product ID; label suggestions remain generic/unverified.
+
+Community publication requires an account-owned saved outfit. The stored post snapshots only that outfit's pieces, generates unrelated public garment IDs, and keeps its source outfit ID, wardrobe IDs, and image keys private. Feed JSON is rebuilt from an allowlist, while `/api/community/images/<post>/<garment>` serves only an image explicitly attached to that post.
+
 Saved-outfit mutations, including wear increments, are addressed inside the signed-in account's own partition, so one account cannot reach another account's outfits even with a guessed identifier.
 
 ## Brand ownership boundary
