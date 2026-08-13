@@ -31,6 +31,7 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 - [#30](https://github.com/manof1color/racked-wardrobe-intelligence/pull/30) Adaptive photo classification agent: the first photo is AI-classified and enrollment requests only the shots that category needs (sole for footwear, hallmark for jewelry) with visible reasoning and user override; verification evidence unchanged, regression-tested.
 - [#31](https://github.com/manof1color/racked-wardrobe-intelligence/pull/31) AI brand-name autofill from photos — suggestion only; regression tests prove AI-read brand text can never create verified status, even for enrolled brands.
 - [#32](https://github.com/manof1color/racked-wardrobe-intelligence/pull/32) Planned business model and the labeled, not-billed `/pricing` page.
+- [#35](https://github.com/manof1color/racked-wardrobe-intelligence/pull/35) Garment Recognition V2: controlled subtypes, uncertainty alternatives, multi-view reasoning, manual correction, and a registry-only identity boundary; 82 tests and CodeQL passed.
 
 ## Continuous verification
 

@@ -12,6 +12,8 @@ export interface WardrobeItem {
   evidenceImageKey?: string | null;
   brand?: string | null;
   sku?: string | null;
+  /** Present only when registry evidence verified this exact enrolled product. */
+  registryProductId?: string | null;
   identityStatus?: "verified" | "suggested" | "user-labeled" | "unverified";
   createdAt?: string;
 }
@@ -22,6 +24,23 @@ export interface SavedOutfit {
   itemIds: string[];
   createdAt: string;
   wears: number;
+  /** V2 snapshot; itemIds remains for backward-compatible wear recording. */
+  pieces?: OutfitPieceReference[];
+}
+
+export type ProductResolutionState = "EXACT_VERIFIED_PRODUCT" | "AI_ESTIMATED_PRODUCT" | "SIMILAR_PRODUCT" | "GENERIC_UNVERIFIED" | "VERIFIED_UNAVAILABLE";
+
+export interface OutfitPieceReference {
+  wardrobeItemId: string;
+  resolution: {
+    state: ProductResolutionState;
+    registryProductId?: string;
+    productName?: string;
+    brand?: string;
+    brandSlug?: string;
+    sku?: string;
+    reason: string;
+  };
 }
 
 export interface Product {

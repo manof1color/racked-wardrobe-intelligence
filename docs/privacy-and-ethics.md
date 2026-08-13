@@ -5,7 +5,7 @@
 - Image-processing consent is required before Consumer account creation.
 - Brand-data sharing is a separate, ongoing preference stored per account.
 - AI fields require human confirmation before a wardrobe record exists. Category/subtype predictions use a controlled vocabulary, show bounded alternatives when uncertain, and remain editable; neither prediction nor correction has authority to verify brand identity.
-- Public Community posts are explicit and reveal only the selected post content.
+- Public Community posts require one explicitly selected saved outfit. Each published piece gets a new public ID, while source outfit IDs, wardrobe IDs, account IDs, and S3 keys remain private. Images are served only through a post-scoped proxy. Exact brand links require registry evidence; user/AI labels remain visibly unverified.
 
 ## Brand boundary
 

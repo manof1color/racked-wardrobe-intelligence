@@ -25,11 +25,11 @@ This is the judge’s index for the CUA rubric.
 - [x] Actual brand metrics derived from connected Consumer records.
 - [x] Timestamped product wear events power an eight-week chart, frequency distribution, median/average usage, engagement, and aggregate CSV export.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
-- [x] Community posts persist and reveal no private wardrobe; public responses are rebuilt from a public-field allowlist so owner IDs and storage keys cannot leak.
+- [x] Community publishes one selected saved outfit with all pieces, explicit product-resolution states, public garment IDs, and a post-scoped image proxy; owner/outfit/wardrobe IDs and S3 keys cannot leak.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 82 automated tests, production build, and production dependency audit pass (verified 2026-08-13).
+- [x] Lint, type check (`tsc --noEmit`), 85 automated tests, production build, and production dependency audit pass (verified 2026-08-13).
 
 ## 3. AI integration / innovation — 20%
 
