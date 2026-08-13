@@ -44,6 +44,14 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 - [#40](https://github.com/manof1color/racked-wardrobe-intelligence/pull/40) Brand Hanger grounded in public community activity alongside released wear aggregates.
 - [#41](https://github.com/manof1color/racked-wardrobe-intelligence/pull/41) Independent garment-evaluation benchmark: an external second-hand-fashion corpus adopted for measurement only, explicitly not training data, with scoring/audit scripts and a strict no-accuracy-claim-without-a-report rule.
 
+## Phase 6 — Competition-ready product experience (2026-08-13)
+
+- [#42](https://github.com/manof1color/racked-wardrobe-intelligence/pull/42) Corrected stale current-state test counts and completed this progress log through #41.
+- [#43](https://github.com/manof1color/racked-wardrobe-intelligence/pull/43) Community 2.0: outfit-first feed, in-app Shop the Look inspection sheet with exact/similar/unverified/unavailable separation, plain-language Recreate results, and quiet demo-provenance labels.
+- [#44](https://github.com/manof1color/racked-wardrobe-intelligence/pull/44) Public brand pages split into Products, Brand Looks, and Community Looks with a tested provenance guarantee; Brand Look builder grouped by garment slot with a live preview.
+- [#45](https://github.com/manof1color/racked-wardrobe-intelligence/pull/45) Brand dashboard rewritten around business questions, with a regression test forbidding sales/revenue/conversion/intent/causation language in brand-facing copy.
+- [#46](https://github.com/manof1color/racked-wardrobe-intelligence/pull/46) Post-purchase landing story and the business flywheel visual.
+
 ## Continuous verification
 
-Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. `main` currently carries **100 passing tests** (re-verified 2026-08-13).
+Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. `main` currently carries **120 passing tests** (re-verified 2026-08-13).
