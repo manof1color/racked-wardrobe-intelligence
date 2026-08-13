@@ -31,10 +31,19 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 - [#30](https://github.com/manof1color/racked-wardrobe-intelligence/pull/30) Adaptive photo classification agent: the first photo is AI-classified and enrollment requests only the shots that category needs (sole for footwear, hallmark for jewelry) with visible reasoning and user override; verification evidence unchanged, regression-tested.
 - [#31](https://github.com/manof1color/racked-wardrobe-intelligence/pull/31) AI brand-name autofill from photos — suggestion only; regression tests prove AI-read brand text can never create verified status, even for enrolled brands.
 - [#32](https://github.com/manof1color/racked-wardrobe-intelligence/pull/32) Planned business model and the labeled, not-billed `/pricing` page.
+- [#33](https://github.com/manof1color/racked-wardrobe-intelligence/pull/33) One-page README navigability pass — embedded architecture diagram, key-file map, and rubric-evidence table — plus this progress log sourced from real merge history.
+- [#34](https://github.com/manof1color/racked-wardrobe-intelligence/pull/34) Documentation refresh across README, CONTRIBUTING, SECURITY, the PR/issue templates, architecture, and the demo script to match shipped behavior.
+
+## Phase 5 — Recognition V2, social commerce, and independent evaluation (2026-08-12 → 2026-08-13)
+
 - [#35](https://github.com/manof1color/racked-wardrobe-intelligence/pull/35) Garment Recognition V2: controlled subtypes, uncertainty alternatives, multi-view reasoning, manual correction, and a registry-only identity boundary; 82 tests and CodeQL passed.
 - [#36](https://github.com/manof1color/racked-wardrobe-intelligence/pull/36) Saved-outfit product-resolution contracts and privacy-safe Community publishing: public garment IDs, selected-outfit-only publication, and a post-scoped image proxy; 85 tests and CodeQL passed.
 - [#37](https://github.com/manof1color/racked-wardrobe-intelligence/pull/37) Recreate This Look: explainable exact/substitute/missing matching against only the signed-in wardrobe, with deterministic scoring and identity-free request events; 90 tests and CodeQL passed.
+- [#38](https://github.com/manof1color/racked-wardrobe-intelligence/pull/38) Controlled commerce and Brand Looks: server-validated outbound product destinations (HTTPS-only, no private hosts, no client-supplied URLs) and brand-composed looks restricted to the brand's own enrolled products.
+- [#39](https://github.com/manof1color/racked-wardrobe-intelligence/pull/39) Privacy-safe brand community intelligence and `DEMO`/`PILOT`/`REGULAR` data classification, with public-activity metrics kept separate from the private `k ≥ 25` wear cohort; 96 tests and CodeQL passed.
+- [#40](https://github.com/manof1color/racked-wardrobe-intelligence/pull/40) Brand Hanger grounded in public community activity alongside released wear aggregates.
+- [#41](https://github.com/manof1color/racked-wardrobe-intelligence/pull/41) Independent garment-evaluation benchmark: an external second-hand-fashion corpus adopted for measurement only, explicitly not training data, with scoring/audit scripts and a strict no-accuracy-claim-without-a-report rule.
 
 ## Continuous verification
 
-Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge.
+Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. `main` currently carries **100 passing tests** (re-verified 2026-08-13).
