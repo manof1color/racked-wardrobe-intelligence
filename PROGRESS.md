@@ -54,8 +54,8 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 
 ## Phase 7  Similar-product demo commerce (2026-08-14)
 
-- Work Order B implements the registry-only Similar Products endpoint, activates `SIMILAR_AVAILABLE`, adds fictional demo commerce metadata, and adds a deterministic second Recreate Consumer.
+- [#51](https://github.com/manof1color/racked-wardrobe-intelligence/pull/51) implements the registry-only Similar Products endpoint, activates `SIMILAR_AVAILABLE`, adds fictional demo commerce metadata, and adds a deterministic second Recreate Consumer.
 
 ## Continuous verification
 
-Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. `main` currently carries **139 passing tests** (re-verified 2026-08-14).
+Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. `main` currently carries **140 passing tests** (re-verified 2026-08-14).

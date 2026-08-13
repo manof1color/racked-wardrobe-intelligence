@@ -126,7 +126,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, saved-outfit Community publishing with explicit product states, brand registry, k≥25 dashboard with CSV export |
 | AI & innovation — 20% | Bedrock vision with controlled taxonomy and multi-view revision, plus explainable Recreate This Look scoring that prioritizes owned clothing and never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **139 passing tests** incl. independent-evaluation/community-intelligence/commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **140 passing tests** incl. independent-evaluation/community-intelligence/commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -167,7 +167,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 139 passing tests (verified 2026-08-14). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 140 passing tests (verified 2026-08-14). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 
