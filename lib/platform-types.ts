@@ -1,3 +1,5 @@
+import type { GarmentCategory, GarmentHypothesis, GarmentSubtype } from "./garment-taxonomy.ts";
+
 export type GarmentView = "front" | "back" | "label";
 export type PartnerVertical = "vintage" | "clothing" | "shoes" | "jewelry";
 
@@ -35,11 +37,14 @@ export interface GarmentAnalysis {
   dataSufficiency: "complete" | "partial";
   garment: {
     name: string;
-    category: string;
+    category: GarmentCategory;
+    subtype: GarmentSubtype;
     color: string;
+    pattern: string;
     style: string[];
     construction: string[];
     material: string;
+    alternatives: GarmentHypothesis["alternatives"];
   };
   label: {
     brand: string;

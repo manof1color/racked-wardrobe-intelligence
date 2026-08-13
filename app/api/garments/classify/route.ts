@@ -28,7 +28,7 @@ export async function POST(request:Request) {
     const image:InMemoryGarmentImage={view:"front",contentType:"image/jpeg",base64:optimized.toString("base64")};
     const classified=await classifyGarmentImage(image);
     const plan=classified
-      ?buildPhotoPlan(classified.category,{source:"ai",confidence:classified.confidence,aiReasoning:classified.reasoning})
+      ?buildPhotoPlan(classified.category,{source:"ai",confidence:classified.confidence,aiReasoning:classified.reasoning,hypothesis:classified})
       :buildPhotoPlan("unknown",{source:"fallback"});
     return NextResponse.json({plan,retention:"The classification photo was processed in request memory and was not stored."});
   } catch {

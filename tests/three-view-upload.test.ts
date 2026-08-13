@@ -39,7 +39,30 @@ test("multimodal provider failures keep the three-view scan usable through manua
   });
   assert.equal(result.provider,"manual-review");
   assert.equal(result.fallback,true);
+  assert.equal(result.garment.subtype,"other-garment");
+  assert.equal(result.garment.pattern,"unknown");
+  assert.deepEqual(result.garment.alternatives,[]);
   assert.match(result.warnings.at(-1)??"",/manual review/i);
+});
+
+test("final multi-view reasoning receives the first-photo hypothesis and may revise it",async()=>{
+  let requestBody="";
+  const providerPayload={
+    confidence:84,visibleLabelText:"",brandText:"",
+    garment:{name:"Crew-neck sweatshirt",category:"top",subtype:"sweatshirt",color:"gray",pattern:"solid",style:["casual"],construction:["crew neck","no hood visible in rear view"],material:"cotton",alternatives:[{category:"top",subtype:"hoodie",confidence:18,reason:"Front silhouette initially suggested a hood."}]},
+    evidence:[{view:"front",findings:["pullover silhouette"]},{view:"back",findings:["no hood visible"]},{view:"label",findings:["label unreadable"]}],
+  };
+  const result=await analyzeGarmentImages(parts,parts.map(part=>({view:part.view,contentType:"image/png" as const,base64:"aW4tbWVtb3J5"})),{
+    registry:[],provider:"anthropic",apiKey:"test-key",
+    initialHypothesis:{category:"top",subtype:"hoodie",confidence:61,reasoning:"Pullover shape from front.",alternatives:[]},
+    fetchImpl:async(_url,init)=>{requestBody=String(init?.body??"");return new Response(JSON.stringify({stop_reason:"end_turn",content:[{type:"text",text:JSON.stringify(providerPayload)}]}),{status:200});},
+  });
+  assert.match(requestBody,/first-photo hypothesis was top\/hoodie at 61%/i);
+  assert.equal(result.garment.category,"top");
+  assert.equal(result.garment.subtype,"sweatshirt");
+  assert.equal(result.garment.alternatives[0].subtype,"hoodie");
+  assert.equal(result.label.matched,false);
+  assert.equal(result.label.registryProductId,null);
 });
 
 test("major-brand label evidence becomes an editable suggestion, not a verified link",async()=>{

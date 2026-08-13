@@ -5,7 +5,9 @@
 // verification stays exclusively with registry GTIN / brand-plus-SKU evidence in
 // lib/product-registry.ts regardless of which plan (or photo count) was used.
 
-export type PlannedCategory = "top" | "bottom" | "outerwear" | "dress" | "shoe" | "bag" | "jewelry" | "accessory" | "unknown";
+import { normalizeGarmentCategory, type GarmentCategory, type GarmentHypothesis } from "./garment-taxonomy.ts";
+
+export type PlannedCategory = GarmentCategory;
 export type PlanSource = "ai" | "fallback" | "user-override";
 
 export interface PhotoRequest {
@@ -18,6 +20,8 @@ export interface PhotoRequest {
 
 export interface PhotoPlan {
   category: PlannedCategory;
+  /** Optional specific first-photo hypothesis; descriptive only and never identity evidence. */
+  hypothesis?: GarmentHypothesis;
   source: PlanSource;
   /** 0–100; 0 whenever the AI did not classify. */
   confidence: number;
@@ -29,21 +33,7 @@ export interface PhotoPlan {
 export const PLANNED_CATEGORIES: PlannedCategory[] = ["top", "bottom", "outerwear", "dress", "shoe", "bag", "jewelry", "accessory", "unknown"];
 
 export function normalizePlannedCategory(value: string): PlannedCategory {
-  const cleaned = value.trim().toLowerCase();
-  const aliases: Array<[PlannedCategory, string[]]> = [
-    ["shoe", ["shoe", "sneaker", "boot", "sandal", "heel", "loafer", "footwear", "trainer"]],
-    ["outerwear", ["outerwear", "jacket", "coat", "blazer", "parka", "overshirt"]],
-    ["top", ["top", "shirt", "tee", "t-shirt", "sweater", "hoodie", "blouse", "knit", "polo"]],
-    ["bottom", ["bottom", "pant", "trouser", "jean", "short", "skirt", "legging", "chino"]],
-    ["dress", ["dress", "gown", "jumpsuit", "romper"]],
-    ["bag", ["bag", "backpack", "tote", "purse", "handbag", "clutch"]],
-    ["jewelry", ["jewelry", "jewellery", "ring", "necklace", "bracelet", "earring", "watch"]],
-    ["accessory", ["accessory", "hat", "cap", "scarf", "belt", "glove", "sunglass", "beanie"]],
-  ];
-  for (const [category, words] of aliases) {
-    if (words.some((word) => cleaned.includes(word))) return category;
-  }
-  return "unknown";
+  return normalizeGarmentCategory(value);
 }
 
 const LABEL_REQUEST: PhotoRequest = {
@@ -101,12 +91,13 @@ const PLAN_DETAILS: Record<PlannedCategory, { second: PhotoRequest; label: Photo
   },
 };
 
-export function buildPhotoPlan(category: string, options: { source?: PlanSource; confidence?: number; aiReasoning?: string } = {}): PhotoPlan {
+export function buildPhotoPlan(category: string, options: { source?: PlanSource; confidence?: number; aiReasoning?: string; hypothesis?: GarmentHypothesis } = {}): PhotoPlan {
   const normalized = normalizePlannedCategory(category);
   const details = PLAN_DETAILS[normalized];
   const source = options.source ?? "fallback";
   return {
     category: normalized,
+    ...(options.hypothesis ? { hypothesis: options.hypothesis } : {}),
     source,
     confidence: Math.max(0, Math.min(100, Math.round(options.confidence ?? 0))),
     reasoning: options.aiReasoning?.trim() ? `${details.reasoning} AI note: ${options.aiReasoning.trim().slice(0, 300)}` : details.reasoning,

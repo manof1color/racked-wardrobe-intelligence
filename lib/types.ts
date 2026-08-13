@@ -1,8 +1,10 @@
+import type { GarmentCategory, GarmentSubtype } from "./garment-taxonomy.ts";
+
 export type Role = "consumer" | "brand";
 export type Season = "all-season" | "spring" | "summer" | "fall" | "winter";
 
 export interface WardrobeItem {
-  id: string; name: string; category: string; color: string; style: string[];
+  id: string; name: string; category: GarmentCategory | string; subtype?: GarmentSubtype; color: string; pattern?: string; material?: string; style: string[];
   season: Season; wearCount: number; lastWornDays: number;
   source: "manual" | "ai-confirmed"; art: string;
   imageUrl?: string;

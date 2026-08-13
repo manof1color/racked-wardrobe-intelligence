@@ -19,10 +19,10 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 ### Consumer
 
 1. Create a Consumer account with explicit image-processing consent.
-2. Photograph the front of the piece. An optional AI photo plan classifies the category and requests only the shots that category actually needs — a shoe is asked for its sole and tongue label instead of a generic back view — with visible reasoning and a category override the consumer controls.
-3. Amazon Bedrock analyzes visible garment attributes and label text. A brand name read from the label or logo prefills the editable brand field as a suggestion; major-brand names are suggestions too. Only enrolled SKU/GTIN registry matches are verified — AI-read text alone never is.
+2. Photograph the front of the piece. An optional AI photo plan proposes a controlled broad category and specific subtype, shows uncertainty alternatives, and requests only the shots that category needs.
+3. Amazon Bedrock receives that hypothesis with the back and label views, then confirms or revises it from the combined evidence. The consumer can correct the name, category, subtype, brand, and SKU. Only enrolled SKU/GTIN registry matches are verified — AI text and manual corrections never are.
 4. The server rotates the front photo, preserves it unmodified as private evidence, and produces a separate auto-cropped display version that shows just the garment — falling back to the original framing whenever the crop is not confident.
-5. The consumer confirms or edits the garment name, brand label, and optional SKU before saving. Unverified garments remain usable.
+5. The consumer confirms or edits the garment name, category, subtype, brand label, and optional SKU before saving. Unverified garments remain usable.
 6. The Looks view builds outfits from saved garment photos in a horizontal slide view, saves them, and records wear.
 7. The Outfits tab lists every saved outfit with its pieces and wear total, and records a repeat wear in one tap.
 8. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
@@ -66,7 +66,7 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 
 ```text
 app/api/auth/…                 Register/login/logout: scrypt hashes, signed sessions, rate limits
-app/api/garments/classify/     Adaptive first-photo category classification (photo plan)
+app/api/garments/classify/     Adaptive first-photo category + subtype hypothesis (photo plan)
 app/api/garments/analyze/      Bedrock vision + registry identity + evidence/display image storage
 app/api/consumer/…             Wardrobe, outfits, consent — always scoped to the signed-in account
 app/api/wears/                 Confirmed wear events + saved-outfit wear totals
@@ -74,6 +74,7 @@ app/api/brand/…                Brand-owned products and consent-filtered k≥2
 app/api/agents/…               Consumer & Brand Hanger conversations (fresh context per message)
 lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
 lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
+lib/garment-taxonomy.ts        Controlled categories, subtypes, and bounded uncertainty
 lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
 lib/photo-plan.ts              Category → photo-plan agent logic (identity-free by construction)
 lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output privacy review
@@ -82,7 +83,7 @@ lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
-tests/ (77 passing)            Privacy, ranking, crop, photo-plan, autofill, rate-limit suites
+tests/ (82 passing)            Privacy, taxonomy, ranking, crop, photo-plan, autofill suites
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
 
@@ -105,8 +106,8 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | --- | --- |
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment with evidence + auto-cropped display images, Looks outfit slide view, Saved Outfits with repeat-wear tracking, brand registry, k≥25 aggregate dashboard with CSV export |
-| AI & innovation — 20% | Bedrock vision with human confirmation, adaptive photo-plan agent (category-specific shot requests with visible reasoning + user override), AI brand autofill that can never verify, two multi-turn Hanger agents with fresh role-bounded context per message and a server-side aggregate-only output review |
-| Code, docs & GitHub — 15% | Typed modules, **77 passing tests** incl. privacy/verification regression suites, CI runs lint + typecheck + tests + build + dependency audit, CodeQL, incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| AI & innovation — 20% | Bedrock vision with a controlled garment taxonomy, first-photo-to-multi-view hypothesis revision, bounded uncertainty, human correction, AI brand autofill that can never verify, and two context-grounded Hanger agents |
+| Code, docs & GitHub — 15% | Typed modules, **82 passing tests** incl. taxonomy/privacy/verification regression suites, CI runs lint + typecheck + tests + build + dependency audit, CodeQL, incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -146,7 +147,7 @@ pnpm test
 pnpm build
 ```
 
-All four run in CI on every push and pull request. The suite currently has 77 passing tests (verified 2026-08-10). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 82 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 

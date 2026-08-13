@@ -53,6 +53,15 @@ test("REGRESSION: the photo plan carries no identity or verification fields", ()
   }
 });
 
+test("the AI photo plan may carry a bounded subtype hypothesis but no identity claim", () => {
+  const hypothesis = { category: "top" as const, subtype: "hoodie" as const, confidence: 72, reasoning: "A hood seam is visible.", alternatives: [] };
+  const plan = buildPhotoPlan("top", { source: "ai", confidence: 72, hypothesis });
+  assert.deepEqual(plan.hypothesis, hypothesis);
+  assert.deepEqual(Object.keys(plan.hypothesis!).sort(), ["alternatives", "category", "confidence", "reasoning", "subtype"]);
+  assert.equal("brand" in plan.hypothesis!, false);
+  assert.equal("verified" in plan.hypothesis!, false);
+});
+
 test("REGRESSION: brand verification requires the same registry evidence regardless of any photo plan", () => {
   const parts: UploadDescriptor[] = [
     { view: "front", fileName: "user-front.jpg", contentType: "image/jpeg", size: 1000 },

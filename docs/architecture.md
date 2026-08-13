@@ -32,13 +32,14 @@ Brand products use the same account partition with `PRODUCT#<id>` sort keys. The
 ## Image and AI path
 
 1. Validate JPG/PNG/WebP and size before processing.
-2. Optionally classify the first (front) photo. `POST /api/garments/classify` sends that single image to Bedrock, receives only a category, a bounded confidence, and a short visible-evidence rationale, then builds a photo plan requesting exactly the shots that category needs. Nothing is stored. The plan module holds no brand, SKU, registry, or verification data, so it cannot influence identity; the Consumer may override the category at any time.
+2. Optionally classify the first photo. Bedrock returns a bounded descriptive hypothesis: broad category, controlled subtype, confidence, visible-evidence rationale, and up to three alternatives. `lib/garment-taxonomy.ts` constrains every result before the identity-free photo-plan module selects the next shots. Nothing is stored.
 3. Require front, back, and label views, then send only those views to Amazon Bedrock with instructions that prohibit person or demographic inference.
 4. Parse the structured visible-attribute result, including any brand name visibly printed on a label or logo.
-5. Prefill recognized major-brand names and AI-read brand text only as editable, explicitly unverified suggestions; verify identity only against a brand-enrolled GTIN or brand-and-SKU record.
-6. Use Sharp to rotate, preserve the unmodified evidence photo, and encode a separately auto-cropped display PNG. A crop keeping under five percent of the frame, a trim failure, or a trim that changes nothing all fall back to the original framing with a recorded reason surfaced to the Consumer.
-7. Store both variants privately and return one-hour signed links plus a server confirmation token bound to the account and both keys.
-8. Require human confirmation and allow bounded name, brand, SKU, and category corrections before creating the wardrobe record. Corrections never create a registry product link.
+5. Pass the first-photo hypothesis into final multi-view reasoning so Bedrock confirms or revises it against the additional views; normalize subtype, pattern, material, alternatives, and visible evidence before use.
+6. Prefill recognized major-brand names and AI-read brand text only as editable, explicitly unverified suggestions; verify identity only against a brand-enrolled GTIN or brand-and-SKU record.
+7. Use Sharp to rotate, preserve the unmodified evidence photo, and encode a separately auto-cropped display PNG. A crop keeping under five percent of the frame, a trim failure, or a trim that changes nothing all fall back to the original framing with a recorded reason surfaced to the Consumer.
+8. Store both variants privately and return one-hour signed links plus a server confirmation token bound to the account and both keys.
+9. Require human confirmation and allow bounded name, category, subtype, brand, and SKU corrections before creating the wardrobe record. Corrections never create a registry product link. Older records without V2 attributes are normalized safely when read.
 
 In production, provider failure at either the classification or analysis step degrades to a documented deterministic path: the standard back-plus-label photo set, and an explicitly unverified manual-review result. The Consumer can save their own reviewed labels, but Racked creates no invented AI attributes or verified product link.
 
