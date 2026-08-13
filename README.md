@@ -8,7 +8,7 @@
 
 **Headline demonstration number:** the clearly labeled synthetic demo cohort records **76 confirmed wear events across 25 opted-in owners (88% engagement)** for one enrolled SKU — the actual-wear signal a brand cannot see from purchase data alone, released only because the cohort clears the `k ≥ 25` privacy threshold.
 
-> **Judge note:** Real accounts begin empty and persist to account-owned AWS records. The [25-person synthetic test cohort](docs/test-cohort.md) exists only to demonstrate the privacy threshold and is never represented as commercial evidence; credentials are provided to judges separately, never committed to GitHub. Start with the [competition checklist](docs/competition-checklist.md), then use the [presentation script](docs/demo-script.md).
+> **Judge note:** Real accounts begin empty and persist to account-owned AWS records. The [three-brand, 25-person synthetic demo cohort](docs/test-cohort.md) exercises apparel, footwear, jewelry, private wear analytics, and public Community activity; every seeded record is classified `DEMO` and never represented as commercial evidence. Passwords are provided privately, never committed to GitHub.
 
 ## The problem
 
@@ -91,7 +91,7 @@ lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
-tests/ (94 passing)            Privacy, commerce, Brand Looks, Recreate, outfit suites
+tests/ (96 passing)            Privacy, community intelligence, commerce, Brand Looks, Recreate suites
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
 
@@ -115,7 +115,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, saved-outfit Community publishing with explicit product states, brand registry, k≥25 dashboard with CSV export |
 | AI & innovation — 20% | Bedrock vision with controlled taxonomy and multi-view revision, plus explainable Recreate This Look scoring that prioritizes owned clothing and never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **94 passing tests** incl. commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **96 passing tests** incl. community-intelligence/commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -155,7 +155,7 @@ pnpm test
 pnpm build
 ```
 
-All five run in CI on every push and pull request. The suite currently has 94 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 96 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 
@@ -180,4 +180,4 @@ Everything above is self-contained; these go deeper.
 
 The AWS production data stack and Bedrock model access are configured, and `main` auto-deploys to the live URL above.
 
-Racked does **not** claim garment recognition accuracy, sales lift, purchase intent, demographic inference, photorealistic virtual try-on, body-fit prediction, or production-scale validation. The Looks slide view is a visual outfit composition tool. Every metric shown to a brand is a server-computed aggregate over opted-in owners above the `k ≥ 25` threshold, and the 25-account demo cohort is synthetic and labeled as such wherever it appears. Pricing is a proposal; nothing is billed and no payment method is ever collected.
+Racked does **not** claim garment recognition accuracy, sales lift, purchase intent, demographic inference, photorealistic virtual try-on, body-fit prediction, or production-scale validation. The Looks slide view is a visual outfit composition tool. Private wear metrics are server-computed aggregates over opted-in owners above `k ≥ 25`; separately labeled Community metrics use only intentionally public posts and identity-free interaction events. The three-brand, 25-account cohort is synthetic and classified `DEMO` throughout. Pricing is a proposal; nothing is billed and no payment method is ever collected.

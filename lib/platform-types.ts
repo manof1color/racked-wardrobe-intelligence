@@ -2,6 +2,7 @@ import type { GarmentCategory, GarmentHypothesis, GarmentSubtype } from "./garme
 
 export type GarmentView = "front" | "back" | "label";
 export type PartnerVertical = "vintage" | "clothing" | "shoes" | "jewelry";
+export type DataClassification = "DEMO" | "PILOT" | "REGULAR";
 
 export interface UploadDescriptor {
   view: GarmentView;
@@ -27,6 +28,7 @@ export interface BrandProductRegistration {
   enrolledAt: string;
   source: "brand-enrolled" | "seed";
   testCohort?: boolean;
+  dataClassification?: DataClassification;
   imageUrls?: Partial<Record<GarmentView,string>>;
   productUrl?: string;
   affiliateUrl?: string;
@@ -87,6 +89,7 @@ export interface OutfitPost {
   likes: number;
   sourceType: "consumer" | "brand";
   fictional?: boolean;
+  dataClassification?: DataClassification;
   garments: PublicOutfitGarment[];
   /** Exact verified products only; retained as a convenient brand-link projection. */
   products: Array<{ sku:string; name:string; brand:string; brandSlug:string; category:string }>;
@@ -120,6 +123,20 @@ export interface BrandLook {
   createdAt:string;
   sourceType:"brand";
   published:boolean;
+  dataClassification?: DataClassification;
+}
+
+export interface BrandCommunityMetrics {
+  productId: string;
+  publicOutfitAppearances: number;
+  consumerOutfitAppearances: number;
+  brandLookAppearances: number;
+  inspirationCount: number;
+  recreateLookRequests: number;
+  outboundProductClicks: number;
+  pairedCategories: Array<{ category:string; appearances:number }>;
+  pairedVerifiedProducts: Array<{ productId:string; name:string; brand:string; appearances:number }>;
+  privacyBoundary: "PUBLIC_ACTIVITY_ONLY";
 }
 
 export interface AgentReply {
