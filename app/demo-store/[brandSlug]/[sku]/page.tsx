@@ -22,7 +22,7 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
   const unavailable=product.availability==="unavailable"||product.availability==="discontinued";
 
   return <main className="demo-store">
-    <div className="demo-store-banner" role="note"><strong>Fictional demo storefront</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
+    <div className="demo-store-banner" role="note"><strong>Demonstration only</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
     <header className="community-nav">
       <Link className="wordmark" href={demoStoreBrandPath(brandSlug)}>{product.brand}</Link>
       <nav><Link href={demoStoreBrandPath(brandSlug)}>All products</Link><Link href="/community">Back to Racked Community</Link></nav>

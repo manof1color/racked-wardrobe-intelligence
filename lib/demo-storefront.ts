@@ -37,11 +37,22 @@ export function isDemoStorefrontBrand(products: Array<Pick<BrandProductRegistrat
   return products.length > 0 && products.every(isDemoStorefrontProduct);
 }
 
-/** Stable pseudo-random integer from a string, so fake prices never change between renders. */
+/**
+ * Stable pseudo-random integer from a string, so fake prices never change between
+ * renders. The final avalanche step matters: SKUs in a range differ by one character,
+ * and a plain rolling hash left their prices only a few dollars apart, which reads as
+ * obviously generated (241 / 244 / 247). Mixing the bits spreads them across the band.
+ */
 function seedFrom(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index++) hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  return hash;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  hash ^= hash >>> 15;
+  hash = Math.imul(hash, 2246822507) >>> 0;
+  hash ^= hash >>> 13;
+  return hash >>> 0;
 }
 
 const PRICE_BANDS: Record<string, [number, number]> = {
