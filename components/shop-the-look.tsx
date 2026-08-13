@@ -1,9 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { shoppableLanguage } from "@/lib/look-language";
-import type { OutfitPost } from "@/lib/platform-types";
+import { parseSimilarSuggestions, SIMILAR_DISCLAIMER, type SimilarSuggestion } from "@/lib/similar-products";
+import type { OutfitPost, PublicOutfitGarment } from "@/lib/platform-types";
 
 function money(price?: number, currency?: string) {
   if (!Number.isFinite(price)) return null;
@@ -11,12 +12,70 @@ function money(price?: number, currency?: string) {
   catch { return `${currency ?? ""} ${price}`.trim(); }
 }
 
+function similarEndpoint(postId: string, garmentId: string) {
+  return `/api/products/similar?garmentId=${encodeURIComponent(garmentId)}&postId=${encodeURIComponent(postId)}`;
+}
+
+function SimilarResults({ suggestions }: { suggestions: SimilarSuggestion[] }) {
+  if (suggestions.length === 0) return <p className="similar-empty">No comparable enrolled product was found for this piece.</p>;
+  return <div className="similar-results">
+    <p className="similar-disclaimer">{SIMILAR_DISCLAIMER}</p>
+    <ul>{suggestions.map((suggestion) => <li key={suggestion.registryProductId}>
+      <div>
+        <strong>{suggestion.name}</strong>
+        <small>{suggestion.brand}{money(suggestion.price, suggestion.currency) ? ` · ${money(suggestion.price, suggestion.currency)}` : ""}</small>
+        <span className="shop-badge tone-similar">Similar item</span>
+        {suggestion.reasons.length > 0 && <p>{suggestion.reasons.join(" · ")}</p>}
+      </div>
+      {suggestion.outboundUrl
+        ? <a className="button button-light button-small" href={suggestion.outboundUrl} target="_blank" rel="nofollow sponsored noopener noreferrer">View ↗</a>
+        : <span className="shop-no-action">No destination</span>}
+    </li>)}</ul>
+  </div>;
+}
+
 // Judge note: Racked never redirects straight out of the app. Shop the Look is an
 // in-app inspection surface first; only an explicit click on an exact verified
-// product leaves, and only through the server-validated outbound route.
+// product leaves, and only through the server-validated outbound route. Similar
+// suggestions are a separate, clearly softened tier and are only offered when the
+// planned endpoint actually answers — never as a button that goes nowhere.
 export function ShopTheLook({ post, onClose }: { post: OutfitPost; onClose: () => void }) {
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  const [similarSupported, setSimilarSupported] = useState(false);
+  const [similarFor, setSimilarFor] = useState<string | null>(null);
+  const [similarBusy, setSimilarBusy] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<Record<string, SimilarSuggestion[]>>({});
+
+  const inexact = post.garments.filter((garment) => !shoppableLanguage(garment).canShopExact);
+
+  // Capability probe: the similar-product endpoint is planned but may not be deployed.
+  // If it is absent the button is never rendered, so a person cannot click a dead control.
+  useEffect(() => {
+    const probe = inexact[0];
+    if (!probe) return;
+    let active = true;
+    fetch(similarEndpoint(post.id, probe.publicGarmentId))
+      .then((response) => { if (active && response.ok) setSimilarSupported(true); })
+      .catch(() => { /* endpoint absent: leave suggestions disabled */ });
+    return () => { active = false; };
+  }, [post.id, inexact]);
+
+  const loadSimilar = useCallback(async (garment: PublicOutfitGarment) => {
+    const id = garment.publicGarmentId;
+    if (similarFor === id) { setSimilarFor(null); return; }
+    setSimilarFor(id);
+    if (suggestions[id]) return;
+    setSimilarBusy(id);
+    try {
+      const response = await fetch(similarEndpoint(post.id, id));
+      if (!response.ok) throw new Error("unavailable");
+      const parsed = parseSimilarSuggestions(await response.json());
+      setSuggestions((current) => ({ ...current, [id]: parsed }));
+    } catch {
+      setSuggestions((current) => ({ ...current, [id]: [] }));
+    } finally { setSimilarBusy(null); }
+  }, [post.id, similarFor, suggestions]);
 
   useEffect(() => { closeButton.current?.focus(); }, []);
   useEffect(() => {
@@ -57,8 +116,11 @@ export function ShopTheLook({ post, onClose }: { post: OutfitPost; onClose: () =
             <div className="shop-action">
               {state.canShopExact && garment.verifiedProduct?.outboundUrl
                 ? <a className="button button-accent button-small" href={garment.verifiedProduct.outboundUrl} target="_blank" rel="nofollow sponsored noopener noreferrer">{state.action} ↗</a>
-                : <span className="shop-no-action">{state.tone === "unavailable" ? "Unavailable" : "Not shoppable"}</span>}
+                : similarSupported
+                  ? <button type="button" className="button button-light button-small" aria-expanded={similarFor === garment.publicGarmentId} disabled={similarBusy === garment.publicGarmentId} onClick={() => loadSimilar(garment)}>{similarBusy === garment.publicGarmentId ? "Finding…" : similarFor === garment.publicGarmentId ? "Hide similar" : "Find similar"}</button>
+                  : <span className="shop-no-action">{state.tone === "unavailable" ? "Unavailable" : "Not shoppable"}</span>}
             </div>
+            {similarFor === garment.publicGarmentId && suggestions[garment.publicGarmentId] && <div className="shop-similar-panel"><SimilarResults suggestions={suggestions[garment.publicGarmentId]} /></div>}
           </li>;
         })}
       </ul>

@@ -40,6 +40,46 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or ac
 - Save authorization: HMAC binds owner, S3 key, AI garment fields, and registry result.
 - Production provider failure: returns explicit manual review; no AI attributes or verified product link are invented.
 
+## PLANNED — similar products (not yet implemented)
+
+> **Status: PLANNED. This endpoint does not exist yet.** The client is already built against this contract and probes for it on load; while it returns 404 the "Find similar" control is never rendered, so there is no dead button. Implementing this exactly is Work Order B.
+
+```text
+GET /api/products/similar?garmentId=<publicGarmentId>&postId=<postId>
+```
+
+Response:
+
+```jsonc
+{
+  "similar": [
+    {
+      "registryProductId": "…",   // required
+      "sku": "…",
+      "name": "…",                // required
+      "brand": "…",
+      "brandSlug": "…",
+      "category": "…",
+      "price": 110,                // optional
+      "currency": "USD",          // optional
+      "score": 82,                 // 0–100
+      "reasons": ["Same category", "Similar color"],
+      "commerceState": "SIMILAR_AVAILABLE",
+      "outboundUrl": "/api/products/<id>/outbound"  // same-origin path only
+    }
+  ]
+}
+```
+
+Rules the implementation must honour:
+
+- Rank **enrolled registry products only**. Never rank another consumer's wardrobe items, and never expose private wardrobe data.
+- **Same category only.** A suggestion must never cross categories.
+- Exclude the source product itself, and exclude archived products.
+- Reuse the weighted comparison already proven in `lib/recreate-look.ts` and return inspectable `reasons`.
+- A suggestion is **never** an exact match. The client enforces this defensively — `parseSimilarSuggestions()` downgrades any `EXACT_*` state to `SIMILAR_AVAILABLE`/`NO_DESTINATION` and rejects any `outboundUrl` that is not a same-origin path, so a suggestion cannot become an open redirect even if the server misbehaves.
+- Rate limit it like other public read endpoints.
+
 ## DynamoDB key design
 
 ```text
