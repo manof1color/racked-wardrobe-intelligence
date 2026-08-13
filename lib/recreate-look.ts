@@ -29,7 +29,8 @@ export interface RecreateLookResult {
   pieces:RecreatePieceResult[];
 }
 
-const WEIGHTS={category:.30,subtype:.25,color:.20,pattern:.10,style:.10,material:.05} as const;
+export const RECREATE_APPEARANCE_WEIGHTS={category:.30,subtype:.25,color:.20,pattern:.10,style:.10,material:.05} as const;
+export interface GarmentAppearance {category:string;subtype?:string;color?:string;pattern?:string;style?:string[];material?:string}
 const neutralColors=new Set(["black","white","gray","grey","cream","beige","navy","brown","camel"]);
 const clean=(value?:string)=>String(value??"").trim().toLowerCase().replace(/[_\s]+/g,"-");
 const display=(value?:string)=>value?.trim()||"unknown";
@@ -47,15 +48,15 @@ function colorScore(target?:string,owned?:string){
   return neutralColors.has(a)&&neutralColors.has(b)?70:0;
 }
 
-function styleScore(target:string[]|undefined,owned:string[]){
-  const a=new Set((target??[]).map(clean).filter(Boolean)),b=new Set(owned.map(clean).filter(Boolean));
+function styleScore(target:string[]|undefined,owned:string[]|undefined){
+  const a=new Set((target??[]).map(clean).filter(Boolean)),b=new Set((owned??[]).map(clean).filter(Boolean));
   if(!a.size)return 50;
   const intersection=[...a].filter(value=>b.has(value)).length;
   const union=new Set([...a,...b]).size;
   return Math.round((intersection/Math.max(union,1))*100);
 }
 
-function componentsFor(target:PublicOutfitGarment,owned:WardrobeItem):RecreateComponent[]{
+function componentsFor(target:GarmentAppearance,owned:GarmentAppearance):RecreateComponent[]{
   const values={
     category:clean(target.category)===clean(owned.category)?100:0,
     subtype:exactOrUnknown(target.subtype,owned.subtype,45),
@@ -65,16 +66,18 @@ function componentsFor(target:PublicOutfitGarment,owned:WardrobeItem):RecreateCo
     material:exactOrUnknown(target.material,owned.material),
   };
   return [
-    {key:"category",label:"Broad category",score:values.category,weight:WEIGHTS.category,evidence:`${display(target.category)} vs ${display(owned.category)}`},
-    {key:"subtype",label:"Garment subtype",score:values.subtype,weight:WEIGHTS.subtype,evidence:`${display(target.subtype)} vs ${display(owned.subtype)}`},
-    {key:"color",label:"Color",score:values.color,weight:WEIGHTS.color,evidence:`${display(target.color)} vs ${display(owned.color)}`},
-    {key:"pattern",label:"Pattern",score:values.pattern,weight:WEIGHTS.pattern,evidence:`${display(target.pattern)} vs ${display(owned.pattern)}`},
-    {key:"style",label:"Style",score:values.style,weight:WEIGHTS.style,evidence:`${(target.style??[]).join(", ")||"unknown"} vs ${owned.style.join(", ")||"unknown"}`},
-    {key:"material",label:"Material",score:values.material,weight:WEIGHTS.material,evidence:`${display(target.material)} vs ${display(owned.material)}`},
+    {key:"category",label:"Broad category",score:values.category,weight:RECREATE_APPEARANCE_WEIGHTS.category,evidence:`${display(target.category)} vs ${display(owned.category)}`},
+    {key:"subtype",label:"Garment subtype",score:values.subtype,weight:RECREATE_APPEARANCE_WEIGHTS.subtype,evidence:`${display(target.subtype)} vs ${display(owned.subtype)}`},
+    {key:"color",label:"Color",score:values.color,weight:RECREATE_APPEARANCE_WEIGHTS.color,evidence:`${display(target.color)} vs ${display(owned.color)}`},
+    {key:"pattern",label:"Pattern",score:values.pattern,weight:RECREATE_APPEARANCE_WEIGHTS.pattern,evidence:`${display(target.pattern)} vs ${display(owned.pattern)}`},
+    {key:"style",label:"Style",score:values.style,weight:RECREATE_APPEARANCE_WEIGHTS.style,evidence:`${(target.style??[]).join(", ")||"unknown"} vs ${(owned.style??[]).join(", ")||"unknown"}`},
+    {key:"material",label:"Material",score:values.material,weight:RECREATE_APPEARANCE_WEIGHTS.material,evidence:`${display(target.material)} vs ${display(owned.material)}`},
   ];
 }
 
 function weightedScore(components:RecreateComponent[]){return Math.round(components.reduce((sum,component)=>sum+(component.score*component.weight),0));}
+
+export function scoreGarmentAppearance(target:GarmentAppearance,candidate:GarmentAppearance){const components=componentsFor(target,candidate);return {components,score:weightedScore(components)};}
 
 function targetSummary(target:PublicOutfitGarment):RecreatePieceResult["target"]{
   return {publicGarmentId:target.publicGarmentId,name:target.name,category:target.category,...(target.subtype?{subtype:target.subtype}:{}),...(target.color?{color:target.color}:{}),resolutionState:target.resolutionState};
@@ -92,7 +95,7 @@ function matchOne(target:PublicOutfitGarment,candidates:WardrobeItem[]):Recreate
   }
   const sameCategory=candidates.filter(item=>clean(item.category)===clean(target.category));
   if(!sameCategory.length)return {target:targetSummary(target),state:"MISSING",score:0,ownedItem:null,components:[],reasons:[`No owned ${target.category} is available; cross-category items are never treated as substitutes.`]};
-  const ranked=sameCategory.map(item=>{const components=componentsFor(target,item);return {item,components,score:weightedScore(components)};}).sort((a,b)=>b.score-a.score||a.item.id.localeCompare(b.item.id));
+  const ranked=sameCategory.map(item=>{const {components,score}=scoreGarmentAppearance(target,item);return {item,components,score};}).sort((a,b)=>b.score-a.score||a.item.id.localeCompare(b.item.id));
   const best=ranked[0];
   const state:RecreateMatchState=best.score>=78?"STRONG_SUBSTITUTE":best.score>=58?"ACCEPTABLE_SUBSTITUTE":"WEAK_SUBSTITUTE";
   const strongest=[...best.components].sort((a,b)=>(b.score*b.weight)-(a.score*a.weight)).slice(0,2);

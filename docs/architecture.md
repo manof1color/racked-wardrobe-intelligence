@@ -31,6 +31,8 @@ Community publication requires an account-owned saved outfit. The stored post sn
 
 Commerce is outbound-link infrastructure, not a marketplace. Enrolled products may store price/currency, availability, product URL, and affiliate metadata. `lib/commerce.ts` accepts only public HTTPS destinations and rejects credentials, custom ports, localhost, IP literals, and private/link-local IPv4. Community exposes only a same-origin controlled route; the server reloads the product and redirects to its stored destination while recording a privacy-safe event.
 
+Similar-product reads compare one allowlisted public garment only with the enrolled product registry. They never query Consumer wardrobes, never cross categories, and never create exact identity.
+
 Brand Looks use separate `BRANDLOOK#` records and `sourceType=brand`. Creation reloads the signed-in brand's products and rejects any product ID outside that account before optionally publishing a clearly labeled Community post.
 
 Brand community intelligence is computed from the public-post partition and identity-free interaction events, separately from private product-wear records. A Brand can request it only for an owned enrolled product. The result reports public outfit appearances, source mix, likes, recreate requests, outbound interest, and pairings—but never handles or account IDs and never joins to private wear rows. `DEMO | PILOT | REGULAR` classification keeps deterministic synthetic records distinct from real pilot and ordinary accounts.

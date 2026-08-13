@@ -41,14 +41,16 @@ The production environment currently contains these fictional brands. **Verify n
 
 ## Recreate This Look
 
+Use public post `demo-consumer-post-01` (**Synthetic Consumer Look 01**) while signed in as `demo.consumer.recreate@racked.local` (synthetic `DEMO`; password comes only from runtime `RACKED_TEST_PASSWORD`). Expected: `RTA-001` exact; owned `SSL-002` strongly substitutes for post product `SSL-001`; jewelry missing.
+
 - [ ] Public outfit chosen in advance
 - [ ] Signed in as the *second* Consumer account
 - [ ] Expected result known: which pieces should be owned, which substituted, which missing
 - [ ] A genuinely missing piece exists, so the "you're missing" column is not empty
 
-## Shop the Look — **currently blocked**
+## Shop the Look - seeded demo commerce
 
-Shop the Look appears only when a product has an authorized destination. **Every seeded demo product currently has `commerceState: NO_DESTINATION` and no outbound URL, so the button never renders.**
+All fictional demo products now carry a Racked demo-storefront URL, fictional USD price, and availability. At least 29 are available; `LTO-010` is deliberately unavailable. All remain `DEMO`.
 
 - [ ] Sign in as a demo Brand and add a `productUrl` (and optionally `price`, `currency`, `availability`) to at least one enrolled product
 - [ ] Confirm the product then reports `EXACT_AVAILABLE`

@@ -15,3 +15,8 @@ test("affiliate destination takes precedence while unavailable products never re
   assert.deepEqual(commerceDestination(product({productUrl:"https://brand.example/p",availability:"discontinued"})),{state:"EXACT_UNAVAILABLE"});
   assert.deepEqual(commerceDestination(product()),{state:"NO_DESTINATION"});
 });
+
+test("similar destinations use the live suggestion state without claiming exact identity",()=>{
+  assert.deepEqual(commerceDestination(product({productUrl:"https://brand.example/p",availability:"available"}),"similar"),{state:"SIMILAR_AVAILABLE",url:"https://brand.example/p"});
+  assert.deepEqual(commerceDestination(product({productUrl:"https://brand.example/p",availability:"unavailable"}),"similar"),{state:"EXACT_UNAVAILABLE"});
+});
