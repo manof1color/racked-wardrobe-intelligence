@@ -15,6 +15,7 @@ import { createBrandLook } from "@/lib/brand-looks";
 import { buildWearUsageAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
+import { findByPaginatedQuery } from "@/lib/community-lookup";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 
 const scrypt = promisify(scryptCallback);
@@ -212,9 +213,22 @@ export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;
   return toPublicOutfitPost(post);
 }
 
+// Shared newest-first, bounded lookup for a community post by its public id. Replaces
+// three copies of a single `Limit: 60` + filter query: DynamoDB applies Limit before the
+// filter, and those queries read oldest-first while the feed renders newest-first, so
+// past 60 posts they could no longer find any post a person could actually see.
+async function findCommunityPostById(postId:string){
+  return findByPaginatedQuery<StoredPost>(
+    (post)=>post.id===postId,
+    async (startKey)=>{
+      const page=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60,...(startKey?{ExclusiveStartKey:startKey}:{})}));
+      return {items:(page.Items??[]) as unknown as StoredPost[],lastKey:page.LastEvaluatedKey};
+    },
+  );
+}
+
 export async function getPublishedCommunityImage(postId:string,publicGarmentId:string){
-  const found=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"id = :id",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":id":postId},Limit:60}));
-  const post=found.Items?.[0] as StoredPost|undefined;
+  const post=await findCommunityPostById(postId);
   if(!post)throw new Error("Community post not found.");
   const key=publishedImageKey(post,publicGarmentId);
   if(!key)throw new Error("Published garment image not found.");
@@ -223,8 +237,7 @@ export async function getPublishedCommunityImage(postId:string,publicGarmentId:s
   return {bytes:Buffer.from(await object.Body.transformToByteArray()),contentType:object.ContentType??"image/png"};
 }
 export async function getPublicCommunityPost(postId:string){
-  const found=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"id = :id",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":id":postId},Limit:60}));
-  const post=found.Items?.[0] as StoredPost|undefined;
+  const post=await findCommunityPostById(postId);
   return post?toPublicOutfitPost(post):null;
 }
 export async function recordPrivacySafeCommunityEvent(postId:string,eventType:"recreate-look-request"|"product-click"|"outbound-product-click"){
@@ -268,7 +281,7 @@ export async function saveBrandLook(ownerId:string,input:{title:string;caption:s
   }
   return {look,post};
 }
-export async function incrementCommunityLike(postId:string){const found=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"id = :id",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":id":postId},Limit:60}));const post=found.Items?.[0];if(!post)throw new Error("Community post not found.");const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
+export async function incrementCommunityLike(postId:string){const post=await findCommunityPostById(postId);if(!post)throw new Error("Community post not found.");const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
 
 // Judge note: the differencing/enumeration control from lib/privacy.ts is enforced here,
 // on the production aggregate path shared by the Brand dashboard and Brand Hanger. The
