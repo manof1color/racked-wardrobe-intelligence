@@ -29,6 +29,7 @@ export const RATE_LIMIT_RULES = {
   communityLike: { limit: 40, windowMs: 5 * 60 * 1000 },
   outboundClick: { limit: 30, windowMs: 5 * 60 * 1000 },
   recreateLook: { limit: 30, windowMs: 5 * 60 * 1000 },
+  similarProducts: { limit: 30, windowMs: 5 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 // Bound total tracked keys so hostile clients cannot grow instance memory by

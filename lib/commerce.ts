@@ -18,8 +18,8 @@ export function normalizeCommerceUrl(value:string|undefined){
   return parsed.toString().slice(0,2_000);
 }
 
-export function commerceDestination(product:BrandProductRegistration):{state:CommerceDestinationState;url?:string}{
+export function commerceDestination(product:BrandProductRegistration,kind:"exact"|"similar"="exact"):{state:CommerceDestinationState;url?:string}{
   if(product.availability==="unavailable"||product.availability==="discontinued")return {state:"EXACT_UNAVAILABLE"};
   const url=normalizeCommerceUrl(product.affiliateUrl??product.productUrl);
-  return url?{state:"EXACT_AVAILABLE",url}:{state:"NO_DESTINATION"};
+  return url?{state:kind==="similar"?"SIMILAR_AVAILABLE":"EXACT_AVAILABLE",url}:{state:"NO_DESTINATION"};
 }

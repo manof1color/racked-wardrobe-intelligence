@@ -1,3 +1,6 @@
+import { commerceDestination } from "./commerce.ts";
+import { scoreGarmentAppearance } from "./recreate-look.ts";
+import type { BrandProductRegistration, PublicOutfitGarment } from "./platform-types.ts";
 import type { CommerceDestinationState } from "./platform-types.ts";
 
 // Judge note: this is the client-side contract for the PLANNED similar-product
@@ -23,6 +26,18 @@ export interface SimilarSuggestion {
 }
 
 export const MAX_SIMILAR_SUGGESTIONS = 6;
+const normalizedCategory=(value:string)=>value.trim().toLowerCase().replace(/[_\s]+/g,"-");
+export function rankSimilarRegistryProducts(source:PublicOutfitGarment,registry:BrandProductRegistration[]):SimilarSuggestion[]{
+  const sourceId=source.verifiedProduct?.registryProductId;
+  return registry.filter(product=>normalizedCategory(product.category)===normalizedCategory(source.category)).filter(product=>product.id!==sourceId&&product.archived!==true&&product.availability!=="unavailable"&&product.availability!=="discontinued").flatMap((product):SimilarSuggestion[]=>{
+    let destination:ReturnType<typeof commerceDestination>;
+    try{destination=commerceDestination(product,"similar");}catch{return [];}
+    if(destination.state!=="SIMILAR_AVAILABLE"||!destination.url)return [];
+    const {components,score}=scoreGarmentAppearance(source,product);
+    const reasons=components.filter(component=>component.score>0).sort((a,b)=>(b.score*b.weight)-(a.score*a.weight)||a.key.localeCompare(b.key)).slice(0,4).map(component=>`${component.label}: ${component.evidence} (${component.score}/100).`);
+    return [{registryProductId:product.id,sku:product.sku,name:product.name,brand:product.brand,brandSlug:product.brandSlug,category:product.category,...(product.price!==undefined?{price:product.price}:{}),...(product.currency?{currency:product.currency}:{}),score,reasons,commerceState:"SIMILAR_AVAILABLE",outboundUrl:`/api/products/${encodeURIComponent(product.id)}/outbound`}];
+  }).sort((a,b)=>b.score-a.score||a.registryProductId.localeCompare(b.registryProductId)).slice(0,MAX_SIMILAR_SUGGESTIONS);
+}
 
 /** Accepts only a same-origin absolute path, never a full URL or protocol-relative path. */
 function safeOutboundPath(value: unknown) {

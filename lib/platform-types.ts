@@ -23,6 +23,11 @@ export interface BrandProductRegistration {
   sku: string;
   gtin: string | null;
   category: string;
+  subtype?: string;
+  color?: string;
+  pattern?: string;
+  style?: string[];
+  material?: string;
   labelText: string;
   views: Record<GarmentView, UploadDescriptor>;
   enrolledAt: string;
@@ -35,6 +40,7 @@ export interface BrandProductRegistration {
   price?: number;
   currency?: string;
   availability?: "available"|"unavailable"|"discontinued"|"unknown";
+  archived?: boolean;
   affiliateProvider?: string;
   affiliateTrackingId?: string;
 }

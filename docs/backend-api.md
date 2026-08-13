@@ -40,9 +40,9 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or ac
 - Save authorization: HMAC binds owner, S3 key, AI garment fields, and registry result.
 - Production provider failure: returns explicit manual review; no AI attributes or verified product link are invented.
 
-## PLANNED — similar products (not yet implemented)
+## Similar products
 
-> **Status: PLANNED. This endpoint does not exist yet.** The client is already built against this contract and probes for it on load; while it returns 404 the "Find similar" control is never rendered, so there is no dead button. Implementing this exactly is Work Order B.
+> **Status: IMPLEMENTED.** The public, rate-limited endpoint ranks only enrolled registry products against one allowlisted public garment snapshot; it never reads a Consumer wardrobe.
 
 ```text
 GET /api/products/similar?garmentId=<publicGarmentId>&postId=<postId>

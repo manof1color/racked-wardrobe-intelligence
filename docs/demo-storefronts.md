@@ -50,7 +50,7 @@ Verified against the live API on 2026-08-14. **Re-verify before relying on this 
 
 If a product was enrolled with a real `price`, the storefront shows it. Otherwise a **deterministic** fictional price is derived from the SKU within a per-category band, so the same product always shows the same price and screenshots stay stable. Product copy is generated per category and always ends by stating the product is fictional and cannot be purchased.
 
-## For the seed script (Work Order B)
+## Seeded commerce contract
 
 Set on each demo product:
 
@@ -58,7 +58,7 @@ Set on each demo product:
 productUrl   = demoStoreProductUrl(<production origin>, brandSlug, sku)
 price        = <integer>
 currency     = "USD"
-availability = "available"   // leave at least one "unavailable" to demo that state
+availability = "available"   // LTO-010 is deliberately "unavailable"
 ```
 
 `commerceDestination()` will then report `EXACT_AVAILABLE` and Shop the Look becomes visible on any Community look containing that product.
