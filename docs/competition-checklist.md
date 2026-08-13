@@ -30,6 +30,8 @@ This is the judge’s index for the CUA rubric.
 - [x] "Recreate with my wardrobe" leads with coverage, splits pieces into what you already own versus what is missing in plain language, and lets any matched piece be inspected for the reason it was chosen.
 - [x] "Shop the Look" is an in-app inspection sheet; only an exact registry-verified product with a server-validated destination is openable, and similar/estimated/unverified/unavailable pieces are never presented as the exact piece worn.
 - [x] Brand Community Intelligence aggregates public Looks, likes, recreate requests, outbound interest, and pairings separately from private `k ≥ 25` wear analytics; only brand-owned product IDs are queryable.
+- [x] Public brand pages separate Products, brand-authored Brand Looks, and consumer-authored Community Looks, with a tested guarantee that neither provenance can be presented as the other.
+- [x] Brand Look builder composes only the account's own enrolled products, grouped by garment slot with a live preview and a piece limit; the server re-checks ownership independently.
 - [x] Deterministic three-brand demo cohort (apparel, footwear, jewelry) uses 30 original synthetic products, Brand and Consumer Looks, and explicit `DEMO` labels; guarded PILOT classification rejects synthetic accounts.
 - [x] Recreate This Look prioritizes the signed-in Consumer's owned pieces, distinguishes exact/substitute/missing states, exposes weighted evidence, prevents one item from filling two slots, and never treats similarity as exact ownership.
 - [x] Affiliate-ready commerce uses controlled redirects to validated public HTTPS destinations, records privacy-safe attribution, and includes no checkout/payment processing.
