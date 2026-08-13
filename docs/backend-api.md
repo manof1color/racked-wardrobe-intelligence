@@ -22,6 +22,7 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or ac
 | `GET /api/brand/products` | Brand | Lists only products enrolled by that brand account |
 | `POST /api/brand/products` | Brand | Encrypts authorized three-view images and registers brand-bound SKU identity |
 | `POST /api/brand/metrics` | Brand | Confirms product ownership, filters owners and wear events by consent, applies `k ≥ 25`, then returns total/average/median usage, engagement, repeat wear, frequency distribution, and an eight-week trend |
+| `POST /api/brand/community-metrics` | Brand | Confirms product ownership, then aggregates intentionally public outfit appearances, likes, recreate requests, outbound clicks, and pairings without returning handles or account identifiers; this is explicitly separate from private `k ≥ 25` wear analytics |
 | `POST /api/agents/brand` | Brand | Accepts a free-form strategy question plus bounded chat history, reloads the selected brand-owned product and consent-filtered aggregate, and discusses only released metrics; below `k=25`, the context contains the privacy rule rather than suppressed values |
 | `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes one explicitly selected account-owned saved outfit, and records likes. Each piece has an explicit product-resolution state; only exact verified products project brand links. Public allowlisting removes owner/outfit/wardrobe IDs and storage keys |
 | `GET /api/community/images/[postId]/[garmentId]` | Public | Streams an image only when that public garment ID is explicitly attached to the published post; returns no S3 key or signed private-storage URL |
@@ -48,7 +49,10 @@ USER#<id> / OUTFIT#<time>#<id>
 USER#<brand-id> / PRODUCT#<id>
 PRODUCT#<product-id> / WEAR#<time>#<id>
 COMMUNITY / POST#<time>#<id>
+COMMUNITY / EVENT#<time>#<id>               (identity-free public interactions)
 AGGQ#<brand-id> / PRODUCT#<product-id>   (aggregate enumeration-budget log)
 ```
 
 The `GSI1` index supports normalized email lookup, registry listing, and product-to-owner aggregation without scanning unrelated wardrobe partitions.
+
+Accounts and seeded domain records may carry `dataClassification: DEMO | PILOT | REGULAR`. Normal registration always creates `REGULAR`; the deterministic seed writes only `DEMO`; and the guarded `scripts/classify-pilot-brand.mjs` path refuses to reclassify a synthetic account as `PILOT`.

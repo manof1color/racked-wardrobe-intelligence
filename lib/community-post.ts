@@ -77,6 +77,7 @@ export function toPublicOutfitPost(stored: StoredCommunityPost): OutfitPost {
     likes:Number(stored.likes??0)||0,
     sourceType:stored.sourceType==="brand"?"brand":"consumer",
     ...(stored.fictional===true?{fictional:true}:{}),
+    ...(stored.dataClassification==="DEMO"||stored.dataClassification==="PILOT"?{dataClassification:stored.dataClassification}:{}),
     garments,
     products:products.length?products:legacyProducts,
   };

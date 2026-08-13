@@ -16,6 +16,7 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 8. Open the **Outfits** tab to show the saved outfit with its pieces and wear count, then use **Wear this again** to record a repeat wear in one tap.
 9. Open Hanger from the bottom of the dashboard and inspect its account-owned tools and evidence.
 10. Open **Community**, select that saved outfit, and publish it. Point out that all selected pieces appear, exact registry products get brand links, unverified pieces stay unverified, and the public image URL exposes no private S3 key.
+11. On a fictional Brand account, show that **Public Community Activity** is visibly separate from the protected private-wear dashboard: it counts only published Looks and identity-free interactions, while the private panel still enforces `k ≥ 25`.
 11. Open another public outfit and tap **Recreate this look**. Read the coverage and piece states, then explain the visible 30/25/20/10/10/5 scoring and that only a shared registry ID can say “exact owned.”
 
 ## 3:15–5:30 — Real Brand flow

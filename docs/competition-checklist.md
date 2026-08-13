@@ -26,6 +26,8 @@ This is the judge’s index for the CUA rubric.
 - [x] Timestamped product wear events power an eight-week chart, frequency distribution, median/average usage, engagement, and aggregate CSV export.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
 - [x] Community publishes one selected saved outfit with all pieces, explicit product-resolution states, public garment IDs, and a post-scoped image proxy; owner/outfit/wardrobe IDs and S3 keys cannot leak.
+- [x] Brand Community Intelligence aggregates public Looks, likes, recreate requests, outbound interest, and pairings separately from private `k ≥ 25` wear analytics; only brand-owned product IDs are queryable.
+- [x] Deterministic three-brand demo cohort (apparel, footwear, jewelry) uses 30 original synthetic products, Brand and Consumer Looks, and explicit `DEMO` labels; guarded PILOT classification rejects synthetic accounts.
 - [x] Recreate This Look prioritizes the signed-in Consumer's owned pieces, distinguishes exact/substitute/missing states, exposes weighted evidence, prevents one item from filling two slots, and never treats similarity as exact ownership.
 - [x] Affiliate-ready commerce uses controlled redirects to validated public HTTPS destinations, records privacy-safe attribution, and includes no checkout/payment processing.
 - [x] Brand Looks contain only products authorized under the signed-in Brand account and remain visibly distinct from Consumer Looks.

@@ -13,6 +13,8 @@
 
 Brands may access only products enrolled under their own authenticated account. Product wear metrics are built from connected garment records, then filtered by each owner’s current consent. Results are suppressed before calculation when fewer than 25 distinct opted-in owners qualify.
 
+Community intelligence is a separate public-activity dataset. It counts only products deliberately included in public Looks plus identity-free likes, recreate requests, and controlled outbound clicks. A Brand may query it only for its own enrolled product IDs, and the response contains no creator handles or account identifiers. This public-post aggregate does not bypass, join to, or lower the `k ≥ 25` threshold for private wear behavior.
+
 To resist differencing and enumeration attacks, the production aggregate path also enforces a per-account budget: a brand can pull aggregates for at most six distinct products in any five-minute window (re-opening an already-viewed product costs nothing). The budget log is stored in DynamoDB under the brand's own partition and contains only product IDs and timestamps — no consumer data. Requests over the budget receive a generic HTTP 429 that does not reveal which cohorts are near the threshold.
 
 ## Brand identity boundary
@@ -32,6 +34,8 @@ The matching and wear systems do not store protected demographic attributes. Bra
 Production account deletion must remove the exact account partition, owned S3 objects, public posts, and brand product records, then recompute affected product aggregates. Security logs must exclude tokens, passwords, signed URLs, and image bytes.
 
 ## Known limitations
+
+`DEMO`, `PILOT`, and `REGULAR` classifications prevent synthetic activity from being mistaken for real pilot evidence. A guarded pilot-classification script rejects synthetic accounts; demo records remain explicitly fictional in public Community output.
 
 - Plain-background trim is not a full body-aware virtual try-on system.
 - Brand enrollment confirms control of an account and supplied catalog evidence; a later business-verification workflow should validate legal brand authority.

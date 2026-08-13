@@ -6,7 +6,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchGetCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { GarmentAnalysis, BrandProductRegistration, OutfitPost } from "@/lib/platform-types";
+import type { GarmentAnalysis, BrandProductRegistration, OutfitPost, DataClassification } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
 import { normalizeGarmentClassification } from "@/lib/garment-taxonomy";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
@@ -15,6 +15,7 @@ import { createBrandLook } from "@/lib/brand-looks";
 import { buildWearUsageAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
+import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 
 const scrypt = promisify(scryptCallback);
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -48,6 +49,7 @@ export interface AccountRecord {
   passwordSalt: string;
   createdAt: string;
   brandDataSharing?: boolean;
+  dataClassification?: DataClassification;
 }
 
 function normalizeEmail(email:string) { return email.trim().toLowerCase(); }
@@ -71,7 +73,7 @@ export async function createAccount(input:{email:string;password:string;role:Rol
   const id=crypto.randomUUID();
   const passwordSalt=randomBytes(18).toString("base64url");
   const passwordHash=await passwordDigest(input.password,passwordSalt);
-  const account:AccountRecord={id,email,role:input.role,displayName:input.displayName.trim(),brandName:input.role==="brand"?(input.brandName?.trim()||input.displayName.trim()):null,brandSlug:input.role==="brand"?slugify(input.brandName?.trim()||input.displayName):null,passwordHash,passwordSalt,createdAt:new Date().toISOString()};
+  const account:AccountRecord={id,email,role:input.role,displayName:input.displayName.trim(),brandName:input.role==="brand"?(input.brandName?.trim()||input.displayName.trim()):null,brandSlug:input.role==="brand"?slugify(input.brandName?.trim()||input.displayName):null,passwordHash,passwordSalt,createdAt:new Date().toISOString(),dataClassification:"REGULAR"};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...account,PK:`USER#${id}`,SK:"PROFILE",GSI1PK:`EMAIL#${email}`,GSI1SK:"ACCOUNT"},ConditionExpression:"attribute_not_exists(PK)"}));
   return account;
 }
@@ -232,6 +234,17 @@ export async function recordPrivacySafeCommunityEvent(postId:string,eventType:"r
 export async function recordPrivacySafeCommerceEvent(productId:string,sourcePostId?:string){
   const createdAt=new Date().toISOString();
   await db.send(new PutCommand({TableName:requireTable(),Item:{PK:"COMMUNITY",SK:`EVENT#${createdAt}#${crypto.randomUUID()}`,productId,eventType:"outbound-product-click",createdAt,...(sourcePostId?{postId:sourcePostId}:{})}}));
+}
+
+export async function getBrandCommunityMetrics(ownerId:string,productId:string){
+  const owned=await listOwnedBrandProducts(ownerId);
+  if(!owned.some(product=>product.id===productId))throw new Error("Product not found for this brand account.");
+  const [posts,eventResult]=await Promise.all([
+    listCommunityPosts(),
+    db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"EVENT#"},ScanIndexForward:false,Limit:1000})),
+  ]);
+  const events=(eventResult.Items??[]).map(item=>({postId:typeof item.postId==="string"?item.postId:undefined,productId:typeof item.productId==="string"?item.productId:undefined,eventType:item.eventType,createdAt:item.createdAt})) as PrivacySafeCommunityEvent[];
+  return buildBrandCommunityMetrics(productId,posts,events);
 }
 
 export async function listBrandLooks(ownerId:string){
