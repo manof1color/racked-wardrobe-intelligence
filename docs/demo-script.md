@@ -8,8 +8,8 @@ Open the [live AWS application](https://main.d2iv0khybuuaeh.amplifyapp.com). Exp
 
 1. Create a Consumer account and explain the image-processing consent.
 2. Show the empty private wardrobe.
-3. Add the front photo, then tap **Get an AI photo plan**. Read the agent's reasoning aloud and point out that a shoe is asked for its sole and tongue label rather than a generic back view — the agent adapts what evidence it collects to what it just classified. Change the category in the dropdown to show the plan rebuild, proving the person stays in control.
-4. Add the remaining requested photos and analyze. Point out the Bedrock-visible attributes and the auto-cropped display image beside the preserved evidence photo.
+3. Add the front photo, then tap **Get an AI photo plan**. Show the controlled broad category/subtype hypothesis, confidence, visible reasoning, and category-specific evidence requests.
+4. Add the remaining views and analyze. Explain that final analysis receives the first hypothesis and can revise it when later evidence disagrees. Show the editable category/subtype controls and uncertainty alternatives; none of these descriptive fields can verify a brand.
 5. Show the prefilled brand label — read from the photo, suggested from the allowlist, or typed — and explain that none of those can verify identity. Only an enrolled SKU/GTIN registry match does, and that holds even if a brand account already exists under that name.
 6. Confirm or edit the labels and save the garment; reload to prove persistence.
 7. Add enough pieces to open **Looks**, tap a combination, review the slide preview, and choose **Save & wear this look**.

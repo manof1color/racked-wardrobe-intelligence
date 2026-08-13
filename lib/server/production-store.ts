@@ -8,6 +8,7 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
+import { normalizeGarmentClassification } from "@/lib/garment-taxonomy";
 import { buildWearUsageAnalytics } from "@/lib/metrics";
 import { toPublicOutfitPost } from "@/lib/community-post";
 import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
@@ -99,10 +100,10 @@ export async function privateImageUrl(key?:string) {
 
 export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
   const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"GARMENT#"}}));
-  return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem;return {...item,imageUrl:await privateImageUrl(item.imageKey)};}));
+  return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem;const classification=normalizeGarmentClassification(item.category,item.subtype??item.name);return {...item,...classification,pattern:item.pattern??"unknown",material:item.material??"unknown",imageUrl:await privateImageUrl(item.imageKey)};}));
 }
 
-export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string}) {
+export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string}) {
   if (!analysis.processedImage?.key) throw new Error("The processed garment image is missing.");
   if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new Error("The garment confirmation expired or did not belong to this account.");
   const evidenceImageKey=analysis.processedImage.evidenceKey??null;
@@ -113,7 +114,8 @@ export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,ov
   const placeholderBrand=/^(brand not verified|unmatched label)$/i.test(brand);
   const placeholderSku=/^(unverified|unconfirmed)$/i.test(sku);
   const identityStatus=analysis.label.matched?"verified":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
-  const item:WardrobeItem={id:crypto.randomUUID(),name,category:analysis.garment.category,color:analysis.garment.color,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,identityStatus,createdAt:new Date().toISOString()};
+  const classification=normalizeGarmentClassification(overrides?.category??analysis.garment.category,overrides?.subtype??analysis.garment.subtype);
+  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,identityStatus,createdAt:new Date().toISOString()};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:analysis.label.registryProductId?`PRODUCT#${analysis.label.registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
 }

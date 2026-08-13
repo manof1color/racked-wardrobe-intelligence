@@ -5,7 +5,7 @@
 - Provider: Amazon Bedrock.
 - Model: Amazon Nova Lite (`amazon.nova-lite-v1:0`).
 - Inputs: only the garment views the Consumer chose to upload.
-- Outputs: confidence, visible label text, visibly printed brand text (autofill only — see `docs/privacy-and-ethics.md`, Brand identity boundary), category, color, style, construction, material, and view-specific evidence.
+- Outputs: confidence, visible label text, visibly printed brand text (autofill only — see `docs/privacy-and-ethics.md`, Brand identity boundary), controlled category and subtype, color, pattern, style, construction, material, uncertainty alternatives, and view-specific evidence.
 
 The system prompt forbids inferring a person, body, gender, age, ethnicity, income, preference, or ownership. Unknown evidence must remain unknown. Model-visible label text is not sufficient to verify a brand; the application registry must independently match a brand-enrolled hash, GTIN, or brand-plus-SKU identity.
 
@@ -15,7 +15,7 @@ The AI supplies garment understanding. Before the AWS request, the browser creat
 
 ## Adaptive photo-plan classification
 
-When the Consumer adds the first (front) photo, an optional classification step sends that single image to Bedrock and returns only a category, a 0–95 confidence, and a short visible-evidence rationale. A deterministic server module (`lib/photo-plan.ts`) turns the category into a photo plan that requests only the shots the category actually needs — footwear asks for the sole/heel and tongue-or-insole label instead of a garment-style back view; jewelry asks for a hallmark or clasp close-up — and every request shows its reasoning to the user. The Consumer can override the category at any time and the plan rebuilds locally. If the provider is unavailable or the answer is unparseable, the flow falls back to the standard back-plus-label set and says so.
+When the Consumer adds the first photo, an optional Bedrock step returns a controlled category/subtype hypothesis, 0–95 confidence, visible-evidence rationale, and bounded alternatives. `lib/garment-taxonomy.ts` normalizes it before `lib/photo-plan.ts` requests category-specific evidence. Final multi-view analysis receives the initial hypothesis and must confirm or revise it when the added views disagree. The Consumer can correct name, broad category, subtype, brand, and SKU. Provider failure returns `unknown`/`other-garment` with no invented pattern, material, or alternatives.
 
 Hard boundary: the plan module has no access to brand, SKU, registry, or verification data, and the classification result can never mark a product verified. Brand verification still requires registry GTIN or brand-plus-SKU evidence at analysis time, regardless of which plan was used or how many photos were taken — enforced by a regression test in `tests/photo-plan.test.ts`.
 

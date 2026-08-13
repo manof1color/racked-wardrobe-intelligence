@@ -4,7 +4,7 @@
 
 - Image-processing consent is required before Consumer account creation.
 - Brand-data sharing is a separate, ongoing preference stored per account.
-- AI fields require human confirmation before a wardrobe record exists.
+- AI fields require human confirmation before a wardrobe record exists. Category/subtype predictions use a controlled vocabulary, show bounded alternatives when uncertain, and remain editable; neither prediction nor correction has authority to verify brand identity.
 - Public Community posts are explicit and reveal only the selected post content.
 
 ## Brand boundary

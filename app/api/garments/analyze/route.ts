@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { analyzeGarmentImages, MAX_UPLOAD_BYTES, UploadValidationError, validateThreeViewUpload, type InMemoryGarmentImage } from "@/lib/garment-analysis";
 import { prepareWardrobeImages } from "@/lib/garment-crop";
 import { normalizePlannedCategory } from "@/lib/photo-plan";
+import { cleanHypothesis, normalizeGarmentClassification } from "@/lib/garment-taxonomy";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { listRegistryProducts, putPrivateImage, privateImageUrl, ProductionConfigurationError, signGarmentConfirmation } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
@@ -41,13 +42,22 @@ export async function POST(request:Request) {
     validateThreeViewUpload(parts);
     const labelText=String(form.get("labelText") ?? "").slice(0,1000);
     const registry=await listRegistryProducts();
-    const analysis=await analyzeGarmentImages(parts,prepared.map((item)=>item.image),{registry,labelText});
+    const hypothesisJson=String(form.get("initialHypothesis")??"");
+    let hypothesisValue:unknown=null;
+    if(hypothesisJson){try{hypothesisValue=JSON.parse(hypothesisJson);}catch{throw new UploadValidationError("The first-photo hypothesis was invalid. Request a new photo plan.");}}
+    const initialHypothesis=cleanHypothesis(hypothesisValue);
+    const analysis=await analyzeGarmentImages(parts,prepared.map((item)=>item.image),{registry,labelText,initialHypothesis});
     // The consumer may override the AI category from the adaptive photo plan. This only
     // changes the descriptive category — the label/verification result is never touched.
     const categoryOverride=String(form.get("categoryOverride")??"").trim();
     if(categoryOverride){
       const normalized=normalizePlannedCategory(categoryOverride);
-      if(normalized!=="unknown"){analysis.garment.category=normalized;analysis.warnings=[...analysis.warnings,"You set the garment category yourself; AI attributes were kept for everything else."];}
+      if(normalized!=="unknown"){
+        const corrected=normalizeGarmentClassification(normalized,String(form.get("subtypeOverride")??analysis.garment.subtype));
+        analysis.garment.category=corrected.category;
+        analysis.garment.subtype=corrected.subtype;
+        analysis.warnings=[...analysis.warnings,"You set the garment category yourself; AI attributes were kept for everything else."];
+      }
     }
     const front=prepared.find((entry)=>entry.image.view==="front");
     if(!front)throw new UploadValidationError("A front image is required.");

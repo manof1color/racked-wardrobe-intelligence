@@ -29,12 +29,12 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 63 automated tests, and production build pass (verified 2026-08-10).
+- [x] Lint, type check (`tsc --noEmit`), 82 automated tests, production build, and production dependency audit pass (verified 2026-08-13).
 
 ## 3. AI integration / innovation — 20%
 
 - [x] Amazon Bedrock Nova Lite analyzes real garment image bytes.
-- [x] Adaptive enrollment: the first photo is AI-classified and the flow requests only the shots that category needs (sole for footwear, hallmark for jewelry), with visible reasoning and a user category override; verification evidence is unchanged.
+- [x] Garment Recognition V2: controlled category/subtype taxonomy, uncertainty alternatives, first-photo hypothesis carried into confirm-or-revise multi-view reasoning, manual correction, and honest fallback; verification evidence is unchanged.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
 - [x] Consumer Hanger Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
