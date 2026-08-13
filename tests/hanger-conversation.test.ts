@@ -47,9 +47,10 @@ test("brand Hanger receives only brand product fields and released aggregate met
       label: { view: "label", fileName: "label.jpg", contentType: "image/jpeg", size: 10, storageKey: "private/label.jpg" },
     }, enrolledAt: "2026-08-01T00:00:00Z", source: "brand-enrolled",
   };
-  const prompt = buildBrandHangerPrompt({ message: "Build a strategy", product, metrics: { opportunity: null, gapPrevalence: null, duplicateRisk: null, segmentSize: 28, suppressed: false, minimumCohortSize: 25, actualWears: 76, activeOwners: 22, engagementRate: 79, repeatWearRate: 68, averageWearsPerOwner: 2.7, medianWearsPerOwner: 3, zeroWearOwners: 6, highFrequencyOwners: 2, lastWearAt: null, wearDistribution: [], weeklyTrend: [] } });
+  const prompt = buildBrandHangerPrompt({ message: "Build a strategy", product, metrics: { opportunity: null, gapPrevalence: null, duplicateRisk: null, segmentSize: 28, suppressed: false, minimumCohortSize: 25, actualWears: 76, activeOwners: 22, engagementRate: 79, repeatWearRate: 68, averageWearsPerOwner: 2.7, medianWearsPerOwner: 3, zeroWearOwners: 6, highFrequencyOwners: 2, lastWearAt: null, wearDistribution: [], weeklyTrend: [] },communityMetrics:{productId:"internal-product-id",publicOutfitAppearances:12,consumerOutfitAppearances:8,brandLookAppearances:4,inspirationCount:30,recreateLookRequests:5,outboundProductClicks:2,pairedCategories:[{category:"bottom",appearances:7}],pairedVerifiedProducts:[],privacyBoundary:"PUBLIC_ACTIVITY_ONLY"} });
   assert.match(prompt, /76/);
   assert.match(prompt, /repeatWearRate/);
+  assert.match(prompt, /publicOutfitAppearances.*12/);
   assert.doesNotMatch(prompt, /private-brand-owner|private\/front|label transcription|ownerSubject|storageKey/);
 });
 

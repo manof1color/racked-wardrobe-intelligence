@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { EnumerationBudgetError, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
+import { EnumerationBudgetError, getBrandCommunityMetrics, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
 
 export async function POST(request: Request) {
@@ -16,9 +16,10 @@ export async function POST(request: Request) {
   const message = (body.message?.trim() || "Analyze this product's actual wear and recommend the strongest next step.").slice(0, 1_000);
 
   try {
-    const [metrics, products] = await Promise.all([
+    const [metrics, products, communityMetrics] = await Promise.all([
       getRealProductMetrics(session.subject, body.productId),
       listOwnedBrandProducts(session.subject),
+      getBrandCommunityMetrics(session.subject, body.productId),
     ]);
     const product = products.find((item) => item.id === body.productId);
     if (!product) throw new Error("Product not found.");
@@ -27,13 +28,14 @@ export async function POST(request: Request) {
       history: sanitizeAgentHistory(body.history),
       product,
       metrics,
+      communityMetrics,
     });
     const reply: AgentReply = {
       agent: "brand-wear-intelligence",
       provider: metrics.suppressed ? "privacy-threshold" : generated.usedModel ? "amazon-bedrock" : "grounded-aggregate",
       message: generated.message,
       confidence: metrics.suppressed ? "medium" : "high",
-      toolsUsed: ["brand product registry", "verified product links", "consumer consent", "privacy threshold", "fresh aggregate metrics", "bounded conversation history"],
+      toolsUsed: ["brand product registry", "verified product links", "consumer consent", "privacy threshold", "fresh aggregate metrics", "public community activity", "bounded conversation history"],
       actions: metrics.suppressed ? [] : [{
         label: "Create a strategy brief",
         type: "campaign",
@@ -47,6 +49,7 @@ export async function POST(request: Request) {
         `${metrics.segmentSize} eligible opted-in owners`,
         `${metrics.actualWears ?? 0} confirmed wears`,
         `${metrics.repeatWearRate ?? 0}% repeat-wear rate`,
+        `${communityMetrics.publicOutfitAppearances} public outfit appearances`,
         "No names, photos, identifiers, or individual wardrobes sent to AI",
       ],
     };
