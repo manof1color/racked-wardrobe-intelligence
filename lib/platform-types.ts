@@ -91,6 +91,9 @@ export interface PublicOutfitGarment {
   category: string;
   subtype?: string;
   color?: string;
+  pattern?: string;
+  style?: string[];
+  material?: string;
   image: string;
   resolutionState: import("./types.ts").ProductResolutionState;
   verifiedProduct?: { registryProductId:string; sku:string; name:string; brand:string; brandSlug:string };

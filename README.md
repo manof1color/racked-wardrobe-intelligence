@@ -26,7 +26,8 @@ Purchase history tells a brand what sold, but not whether the product is actuall
 6. The Looks view builds outfits from saved garment photos in a horizontal slide view, saves them, and records wear.
 7. The Outfits tab lists every saved outfit with its pieces and wear total, and records a repeat wear in one tap.
 8. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
-9. The consumer may separately opt in to anonymous brand aggregates and may publish one explicitly selected saved outfit to Community. Every public garment gets a new public ID; private wardrobe IDs and S3 keys never enter the feed.
+9. In Community, **Recreate This Look** compares a public outfit only against the signed-in consumer's wardrobe. It reports exact ownership, strong/acceptable/weak substitutes, and missing pieces with visible weighted evidence.
+10. The consumer may separately opt in to anonymous brand aggregates and may publish one explicitly selected saved outfit to Community. Every public garment gets a new public ID; private wardrobe IDs and S3 keys never enter the feed.
 
 ### Brand
 
@@ -73,10 +74,12 @@ app/api/wears/                 Confirmed wear events + saved-outfit wear totals
 app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
 app/api/agents/…               Consumer & Brand Hanger conversations (fresh context per message)
 app/api/community/images/      Public post-scoped image proxy; never exposes private S3 keys
+app/api/community/[postId]/    Signed-in Recreate This Look comparison
 lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
 lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
 lib/garment-taxonomy.ts        Controlled categories, subtypes, and bounded uncertainty
 lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
+lib/recreate-look.ts           Deterministic owned/substitute/missing scoring with evidence
 lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
 lib/photo-plan.ts              Category → photo-plan agent logic (identity-free by construction)
 lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output privacy review
@@ -85,7 +88,7 @@ lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
-tests/ (85 passing)            Privacy, outfit, taxonomy, ranking, crop, photo-plan suites
+tests/ (90 passing)            Privacy, Recreate, outfit, taxonomy, ranking, crop suites
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
 
@@ -108,8 +111,8 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | --- | --- |
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
 | Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, saved-outfit Community publishing with explicit product states, brand registry, k≥25 dashboard with CSV export |
-| AI & innovation — 20% | Bedrock vision with a controlled garment taxonomy, first-photo-to-multi-view hypothesis revision, bounded uncertainty, human correction, AI brand autofill that can never verify, and two context-grounded Hanger agents |
-| Code, docs & GitHub — 15% | Typed modules, **85 passing tests** incl. outfit/privacy/verification regression suites, CI runs lint + typecheck + tests + build + dependency audit, CodeQL, incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| AI & innovation — 20% | Bedrock vision with controlled taxonomy and multi-view revision, plus explainable Recreate This Look scoring that prioritizes owned clothing and never turns similarity into exact ownership |
+| Code, docs & GitHub — 15% | Typed modules, **90 passing tests** incl. Recreate/privacy/verification suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -149,7 +152,7 @@ pnpm test
 pnpm build
 ```
 
-All five run in CI on every push and pull request. The suite currently has 85 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 90 passing tests (verified 2026-08-13). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 

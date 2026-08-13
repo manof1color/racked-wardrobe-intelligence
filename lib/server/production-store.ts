@@ -194,7 +194,7 @@ export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;
     if(!item)throw new Error("A saved outfit piece is no longer available in your wardrobe.");
     const resolution=wardrobeItemToOutfitPiece(item).resolution;
     return {
-      publicGarmentId:crypto.randomUUID(),name:item.name,category:item.category,subtype:item.subtype,color:item.color,imageKey:item.imageKey,resolutionState:resolution.state,
+      publicGarmentId:crypto.randomUUID(),name:item.name,category:item.category,subtype:item.subtype,color:item.color,pattern:item.pattern,style:item.style,material:item.material,imageKey:item.imageKey,resolutionState:resolution.state,
       ...(resolution.state==="EXACT_VERIFIED_PRODUCT"&&resolution.registryProductId&&resolution.sku&&resolution.productName&&resolution.brand&&resolution.brandSlug?{verifiedProduct:{registryProductId:resolution.registryProductId,sku:resolution.sku,name:resolution.productName,brand:resolution.brand,brandSlug:resolution.brandSlug}}:{}),
       ...(resolution.state!=="EXACT_VERIFIED_PRODUCT"&&item.brand?{unverifiedBrandLabel:item.brand}:{}),
     };
@@ -214,6 +214,15 @@ export async function getPublishedCommunityImage(postId:string,publicGarmentId:s
   const object=await s3.send(new GetObjectCommand({Bucket:requireBucket(),Key:key}));
   if(!object.Body)throw new Error("Published garment image not found.");
   return {bytes:Buffer.from(await object.Body.transformToByteArray()),contentType:object.ContentType??"image/png"};
+}
+export async function getPublicCommunityPost(postId:string){
+  const found=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"id = :id",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":id":postId},Limit:60}));
+  const post=found.Items?.[0] as StoredPost|undefined;
+  return post?toPublicOutfitPost(post):null;
+}
+export async function recordPrivacySafeCommunityEvent(postId:string,eventType:"recreate-look-request"|"product-click"|"outbound-product-click"){
+  const createdAt=new Date().toISOString();
+  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:"COMMUNITY",SK:`EVENT#${createdAt}#${crypto.randomUUID()}`,postId,eventType,createdAt}}));
 }
 export async function incrementCommunityLike(postId:string){const found=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"id = :id",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":id":postId},Limit:60}));const post=found.Items?.[0];if(!post)throw new Error("Community post not found.");const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
 

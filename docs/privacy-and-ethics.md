@@ -6,6 +6,7 @@
 - Brand-data sharing is a separate, ongoing preference stored per account.
 - AI fields require human confirmation before a wardrobe record exists. Category/subtype predictions use a controlled vocabulary, show bounded alternatives when uncertain, and remain editable; neither prediction nor correction has authority to verify brand identity.
 - Public Community posts require one explicitly selected saved outfit. Each published piece gets a new public ID, while source outfit IDs, wardrobe IDs, account IDs, and S3 keys remain private. Images are served only through a post-scoped proxy. Exact brand links require registry evidence; user/AI labels remain visibly unverified.
+- Recreate This Look is account-bound: the server ignores client wardrobe input and loads only the signed-in Consumer's DynamoDB partition. Exact ownership requires the same registry product ID; visual/style similarity can produce only a substitute. Its analytics event contains only the public post ID, event type, and timestamp—not a Consumer identity.
 
 ## Brand boundary
 
