@@ -27,10 +27,12 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
 - [x] Community publishes one selected saved outfit with all pieces, explicit product-resolution states, public garment IDs, and a post-scoped image proxy; owner/outfit/wardrobe IDs and S3 keys cannot leak.
 - [x] Recreate This Look prioritizes the signed-in Consumer's owned pieces, distinguishes exact/substitute/missing states, exposes weighted evidence, prevents one item from filling two slots, and never treats similarity as exact ownership.
+- [x] Affiliate-ready commerce uses controlled redirects to validated public HTTPS destinations, records privacy-safe attribution, and includes no checkout/payment processing.
+- [x] Brand Looks contain only products authorized under the signed-in Brand account and remain visibly distinct from Consumer Looks.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 90 automated tests, production build, and production dependency audit pass (verified 2026-08-13).
+- [x] Lint, type check (`tsc --noEmit`), 94 automated tests, production build, and production dependency audit pass (verified 2026-08-13).
 
 ## 3. AI integration / innovation — 20%
 

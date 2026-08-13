@@ -28,6 +28,13 @@ export interface BrandProductRegistration {
   source: "brand-enrolled" | "seed";
   testCohort?: boolean;
   imageUrls?: Partial<Record<GarmentView,string>>;
+  productUrl?: string;
+  affiliateUrl?: string;
+  price?: number;
+  currency?: string;
+  availability?: "available"|"unavailable"|"discontinued"|"unknown";
+  affiliateProvider?: string;
+  affiliateTrackingId?: string;
 }
 
 export interface GarmentAnalysis {
@@ -96,8 +103,23 @@ export interface PublicOutfitGarment {
   material?: string;
   image: string;
   resolutionState: import("./types.ts").ProductResolutionState;
-  verifiedProduct?: { registryProductId:string; sku:string; name:string; brand:string; brandSlug:string };
+  verifiedProduct?: { registryProductId:string; sku:string; name:string; brand:string; brandSlug:string; commerceState?:CommerceDestinationState; outboundUrl?:string; price?:number; currency?:string };
   unverifiedBrandLabel?: string;
+}
+
+export type CommerceDestinationState="EXACT_AVAILABLE"|"EXACT_UNAVAILABLE"|"SIMILAR_AVAILABLE"|"NO_DESTINATION";
+
+export interface BrandLook {
+  id:string;
+  ownerSubject:string;
+  brand:string;
+  brandSlug:string;
+  title:string;
+  caption:string;
+  productIds:string[];
+  createdAt:string;
+  sourceType:"brand";
+  published:boolean;
 }
 
 export interface AgentReply {

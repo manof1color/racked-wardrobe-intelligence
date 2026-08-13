@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "./app-shell";
 import { BrandProductEnrollment } from "./brand-product-enrollment";
+import { BrandLookBuilder } from "./brand-look-builder";
 import { HangerDock } from "./hanger-dock";
 import type { BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
@@ -56,6 +57,7 @@ export function BrandDashboard() {
     <section className="workspace-heading"><div><div className="eyebrow">PRIVATE BRAND WORKSPACE</div><h1>Understand how products<br/>are <em>actually worn.</em></h1><p>Verified wear events become privacy-safe product intelligence: frequency, engagement, repeat use, and change over time.</p></div>{metrics&&!metrics.suppressed&&<button className="button button-dark" onClick={downloadAggregate}>Download aggregate CSV ↗</button>}</section>
     <div className="privacy-banner"><span>◉</span><div><strong>Privacy boundary active</strong><p>Only anonymous aggregates from opted-in owners are released. Names, emails, consumer photos, raw wardrobes, and individual rows are never shown.</p></div><b>k ≥ 25</b></div>
     <BrandProductEnrollment onProducts={acceptProducts}/>
+    <BrandLookBuilder products={products}/>
     {!product?<section className="empty-wardrobe"><div className="eyebrow">START WITH YOUR CATALOG</div><h2>Enroll your first real product.</h2><p>Add authorized product photography, label evidence, and a SKU. Racked can begin linking future verified consumer scans to it.</p></section>:<section className="brand-layout"><aside className="catalog-panel"><div className="panel-heading"><div><div className="eyebrow">YOUR CATALOG</div><h2>Choose a product</h2></div><span>{products.length} SKUs</span></div><div className="product-list">{products.map(item=><button key={item.id} className={item.id===product.id?"selected":""} onClick={()=>chooseProduct(item.id)}>{item.imageUrls?.front?<img className="tiny-product-photo" src={item.imageUrls.front} alt=""/>:<span className="tiny-swatch cloud"/>}<span><strong>{item.name}</strong><small>{item.sku} · {item.category}</small></span><i>→</i></button>)}</div></aside><section className="match-panel">
       <div className="selected-product">{product.imageUrls?.front?<div className="large-product-photo"><img src={product.imageUrls.front} alt={product.name}/></div>:<div className="large-swatch cloud"><span>{product.category}</span></div>}<div><div className="eyebrow">TRACKING NOW</div><h2>{product.name}</h2><p>{product.brand} · {product.sku}</p><div className="tag-row"><span>{product.category}</span><span>brand verified</span>{product.testCohort&&<span>synthetic test cohort</span>}</div></div></div>
       {loading?<div className="analytics-loading" role="status"><span/><strong>Calculating the privacy-safe wear cohort</strong></div>:metrics?.suppressed?<div className="empty-match suppressed-match"><span>🔒</span><h3>Aggregate protected</h3><p>{metrics.segmentSize} qualifying owner{metrics.segmentSize===1?"":"s"} are currently connected. At least {metrics.minimumCohortSize} are required before any wear aggregate is released.</p></div>:metrics&&<>
