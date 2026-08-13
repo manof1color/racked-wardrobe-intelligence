@@ -1,6 +1,6 @@
 import { BedrockRuntimeClient, ConverseCommand, type Message } from "@aws-sdk/client-bedrock-runtime";
 import type { BrandMetrics } from "./metrics.ts";
-import type { AgentChatTurn, BrandProductRegistration } from "./platform-types.ts";
+import type { AgentChatTurn, BrandCommunityMetrics, BrandProductRegistration } from "./platform-types.ts";
 import type { SavedOutfit, WardrobeItem } from "./types.ts";
 
 const MAX_HISTORY_TURNS = 8;
@@ -86,7 +86,7 @@ export function buildConsumerHangerPrompt(input: {
   return `Fresh private wardrobe context for this turn: ${JSON.stringify(consumerContext(input.wardrobe, input.outfits, input.suggested))}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
 }
 
-function releasedBrandContext(product: BrandProductRegistration, metrics: BrandMetrics) {
+function releasedBrandContext(product: BrandProductRegistration, metrics: BrandMetrics, communityMetrics?:BrandCommunityMetrics) {
   return {
     product: { name: product.name, sku: product.sku, category: product.category, brand: product.brand },
     privacyRelease: metrics.suppressed ? {
@@ -107,6 +107,7 @@ function releasedBrandContext(product: BrandProductRegistration, metrics: BrandM
       wearDistribution: metrics.wearDistribution,
       weeklyTrend: metrics.weeklyTrend,
     },
+    ...(communityMetrics?{publicCommunityActivity:{publicOutfitAppearances:communityMetrics.publicOutfitAppearances,consumerOutfitAppearances:communityMetrics.consumerOutfitAppearances,brandLookAppearances:communityMetrics.brandLookAppearances,inspirationCount:communityMetrics.inspirationCount,recreateLookRequests:communityMetrics.recreateLookRequests,outboundProductClicks:communityMetrics.outboundProductClicks,pairedCategories:communityMetrics.pairedCategories,pairedVerifiedProducts:communityMetrics.pairedVerifiedProducts,privacyBoundary:communityMetrics.privacyBoundary}}:{}),
   };
 }
 
@@ -114,8 +115,9 @@ export function buildBrandHangerPrompt(input: {
   message: string;
   product: BrandProductRegistration;
   metrics: BrandMetrics;
+  communityMetrics?: BrandCommunityMetrics;
 }) {
-  return `Fresh brand-owned, privacy-filtered context for this turn: ${JSON.stringify(releasedBrandContext(input.product, input.metrics))}\nBrand message: ${JSON.stringify(cleanText(input.message))}`;
+  return `Fresh brand-owned, privacy-filtered context for this turn: ${JSON.stringify(releasedBrandContext(input.product, input.metrics,input.communityMetrics))}\nBrand message: ${JSON.stringify(cleanText(input.message))}`;
 }
 
 async function converse(system: string, history: AgentChatTurn[], prompt: string) {
@@ -180,6 +182,7 @@ export async function generateBrandHangerReply(input: {
   history: AgentChatTurn[];
   product: BrandProductRegistration;
   metrics: BrandMetrics;
+  communityMetrics?: BrandCommunityMetrics;
 }) {
   const system = "You are Hanger, Racked's conversational brand strategist. Answer the latest question with practical product, retention, merchandising, and campaign strategy grounded only in the supplied brand-owned product and privacy-released aggregates. Never invent metrics or claim causation, revenue lift, purchase intent, identities, demographics, or individual customer behavior. The brand cannot identify cohort members: never recommend personalized outreach, contacting or targeting owners, messages or emails based on wear status, discounts for a wear cohort, or treating an aggregate count as a contact list. Strategies must operate through public content, general merchandising, product education, or anonymous aggregate measurement. If aggregates are not released, discuss only general strategy and explain that evidence-based conclusions must wait for the privacy threshold. Do not expose internal IDs or raw context JSON. Ask a focused follow-up when useful. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildBrandHangerPrompt(input));
