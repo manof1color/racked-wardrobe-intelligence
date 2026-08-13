@@ -7,6 +7,9 @@ export interface StoredPublishedGarment {
   category: string;
   subtype?: string;
   color?: string;
+  pattern?: string;
+  style?: string[];
+  material?: string;
   imageKey?: string;
   resolutionState: ProductResolutionState;
   verifiedProduct?: { registryProductId:string; sku:string; name:string; brand:string; brandSlug:string };
@@ -44,6 +47,9 @@ function publicGarment(postId:string, stored:StoredPublishedGarment):PublicOutfi
     category:String(stored.category),
     ...(stored.subtype?{subtype:String(stored.subtype)}:{}),
     ...(stored.color?{color:String(stored.color)}:{}),
+    ...(stored.pattern?{pattern:String(stored.pattern)}:{}),
+    ...(Array.isArray(stored.style)?{style:stored.style.filter(item=>typeof item==="string").slice(0,8).map(String)}:{}),
+    ...(stored.material?{material:String(stored.material)}:{}),
     image:stored.imageKey?imagePath(postId,String(stored.publicGarmentId)):"",
     resolutionState:state,
     ...(verified?{verifiedProduct:verified}:{}),

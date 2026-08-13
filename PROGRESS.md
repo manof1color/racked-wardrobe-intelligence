@@ -32,6 +32,7 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 - [#31](https://github.com/manof1color/racked-wardrobe-intelligence/pull/31) AI brand-name autofill from photos — suggestion only; regression tests prove AI-read brand text can never create verified status, even for enrolled brands.
 - [#32](https://github.com/manof1color/racked-wardrobe-intelligence/pull/32) Planned business model and the labeled, not-billed `/pricing` page.
 - [#35](https://github.com/manof1color/racked-wardrobe-intelligence/pull/35) Garment Recognition V2: controlled subtypes, uncertainty alternatives, multi-view reasoning, manual correction, and a registry-only identity boundary; 82 tests and CodeQL passed.
+- [#36](https://github.com/manof1color/racked-wardrobe-intelligence/pull/36) Saved-outfit product-resolution contracts and privacy-safe Community publishing: public garment IDs, selected-outfit-only publication, and a post-scoped image proxy; 85 tests and CodeQL passed.
 
 ## Continuous verification
 

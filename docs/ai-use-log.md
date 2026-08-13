@@ -21,6 +21,10 @@ Hard boundary: the plan module has no access to brand, SKU, registry, or verific
 
 **Rubric evidence (AI integration/innovation):** the enrollment agent adapts its own evidence-gathering to the classified garment category with user-visible reasoning and a user override, while keeping identity verification strictly registry-based — see `lib/photo-plan.ts`, `app/api/garments/classify/route.ts`, and `tests/photo-plan.test.ts`.
 
+## Recreate This Look decision engine
+
+Recreate This Look deliberately uses a deterministic, inspectable decision layer over the AI-extracted garment attributes. Exact ownership requires the same registry product ID. Otherwise, only same-category owned pieces are compared using declared weights: category 30%, subtype 25%, color 20%, pattern 10%, style 10%, and material 5%. The API returns every component and evidence string, prevents one owned item from filling multiple slots, and labels the result exact, strong, acceptable, weak, or missing. This avoids an opaque “AI says 87%” claim while still turning structured visual intelligence into useful wardrobe decisions.
+
 ## Consumer Hanger Agent
 
 Allowed tools:
