@@ -52,9 +52,10 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 - [#45](https://github.com/manof1color/racked-wardrobe-intelligence/pull/45) Brand dashboard rewritten around business questions, with a regression test forbidding sales/revenue/conversion/intent/causation language in brand-facing copy.
 - [#46](https://github.com/manof1color/racked-wardrobe-intelligence/pull/46) Post-purchase landing story and the business flywheel visual.
 
-## Phase 7  Similar-product demo commerce (2026-08-14)
+## Phase 7 — Similar-product demo commerce (2026-08-14)
 
 - [#51](https://github.com/manof1color/racked-wardrobe-intelligence/pull/51) implements the registry-only Similar Products endpoint, activates `SIMILAR_AVAILABLE`, adds fictional demo commerce metadata, and adds a deterministic second Recreate Consumer.
+- [#52](https://github.com/manof1color/racked-wardrobe-intelligence/pull/52) corrects the demo footwear category to the canonical `shoe` value; the production seed was rerun and the documented exact + strong substitute + missing Recreate result was verified live.
 
 ## Continuous verification
 

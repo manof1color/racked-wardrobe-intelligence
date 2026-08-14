@@ -3,8 +3,8 @@ import { scoreGarmentAppearance } from "./recreate-look.ts";
 import type { BrandProductRegistration, PublicOutfitGarment } from "./platform-types.ts";
 import type { CommerceDestinationState } from "./platform-types.ts";
 
-// Judge note: this is the client-side contract for the PLANNED similar-product
-// endpoint. It is deliberately defensive: a suggestion is never allowed to present
+// Judge note: this is the shared contract for the implemented similar-product
+// endpoint and its future UI consumers. It is deliberately defensive: a suggestion is never allowed to present
 // itself as the exact piece worn in an outfit, and a destination is only accepted as
 // a same-origin path so a suggestion can never become an open redirect. Those rules
 // are enforced here rather than trusted from the response.

@@ -4,7 +4,7 @@ All private routes verify the signed HTTP-only session and role on the server. S
 
 ## Abuse controls
 
-Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or accept public writes apply sliding-window rate limits and answer excess traffic with HTTP 429 plus a `retry-after` header: sign-in (per client and per email), registration, garment analysis, both Hanger agents, brand metrics, community publishing, and community likes. Counters are held in compute-instance memory (documented in `SECURITY.md` as a first layer). Separately, brand aggregate reads are governed by a persistent DynamoDB enumeration budget — at most six distinct products per brand account per five minutes — enforced inside the shared metrics function so the dashboard and Brand Hanger cannot be used to sweep near-threshold cohorts.
+Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, accept public writes, discover products, or record outbound interest apply sliding-window rate limits and answer excess traffic with HTTP 429 plus a `retry-after` header: sign-in (per client and per email), registration, garment analysis, both Hanger agents, brand metrics, community publishing and likes, Similar Products, and outbound product redirects. Counters are held in compute-instance memory (documented in `SECURITY.md` as a first layer). Separately, brand aggregate reads are governed by a persistent DynamoDB enumeration budget — at most six distinct products per brand account per five minutes — enforced inside the shared metrics function so the dashboard and Brand Hanger cannot be used to sweep near-threshold cohorts.
 
 | Route | Access | Production behavior |
 | --- | --- | --- |
@@ -27,6 +27,7 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, or ac
 | `GET/POST/PATCH /api/community` | Public/Consumer | Lists posts, publishes one explicitly selected account-owned saved outfit, and records likes. Each piece has an explicit product-resolution state; only exact verified products project brand links. Public allowlisting removes owner/outfit/wardrobe IDs and storage keys |
 | `GET /api/community/images/[postId]/[garmentId]` | Public | Streams an image only when that public garment ID is explicitly attached to the published post; returns no S3 key or signed private-storage URL |
 | `POST /api/community/[postId]/recreate` | Consumer | Loads the public outfit plus only the signed-in account's wardrobe, returns deterministic exact/substitute/missing matches with component evidence and coverage, then records an identity-free recreate-request event |
+| `GET /api/products/similar` | Public | Loads one allowlisted public garment snapshot and ranks only available, same-category enrolled registry products with inspectable reasons; never reads or returns a Consumer wardrobe and never claims an exact match |
 | `GET /api/products/[productId]/outbound` | Public | Reloads the enrolled product, validates its stored public HTTPS destination, optionally validates source-post attribution, records a privacy-safe click, and redirects; accepts no destination query parameter |
 | `GET/POST /api/brand/looks` | Brand | Lists that account's Brand Looks or creates one from only that account's enrolled product IDs; may publish a clearly labeled Brand Look to Community |
 
