@@ -70,10 +70,8 @@ export function shoppableLanguage(garment: Pick<PublicOutfitGarment, "resolution
   }
 
   if (garment.resolutionState === "SIMILAR_PRODUCT") {
-    // Backend gap (documented, not faked): nothing in the current API resolves a
-    // "find similar" search, and commerceDestination never emits SIMILAR_AVAILABLE.
-    // Until a real endpoint exists this state is described honestly with no action,
-    // rather than shipping a button that goes nowhere.
+    // Similar Products is a separate registry-only suggestion flow. A published
+    // garment carrying this state still cannot inherit an exact-product action.
     return { label: "Similar item", tone: "similar", canShopExact: false, detail: "Not the exact piece worn — a comparable product in the same category.", action: null };
   }
 
