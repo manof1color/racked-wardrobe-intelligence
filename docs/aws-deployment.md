@@ -45,7 +45,7 @@ NEXT_PUBLIC_SITE_URL
 - [x] Amazon Bedrock model is available in `us-east-2`.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
-- [x] All 140 automated tests passed (re-verified 2026-08-14 against `main` after PR #52).
+- [x] All 143 automated tests passed (re-verified 2026-08-15 on the multi-piece-intake feature branch; production status follows its merge).
 - [x] Production Next.js build passed.
 - [x] Amplify deployment 39 deployed PR #52 merge commit `893c4fb`; the synthetic seed was rerun and the documented 62% exact + strong substitute + missing Recreate result was verified live.
 - [ ] Post-merge live account, photo, persistence, and brand enrollment smoke test.

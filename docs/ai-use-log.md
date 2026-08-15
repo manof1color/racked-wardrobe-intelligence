@@ -9,6 +9,12 @@
 
 The system prompt forbids inferring a person, body, gender, age, ethnicity, income, preference, or ownership. Unknown evidence must remain unknown. Model-visible label text is not sufficient to verify a brand; the application registry must independently match a brand-enrolled hash, GTIN, or brand-plus-SKU identity.
 
+### One-photo multi-piece detection
+
+The default Consumer Add mode sends one user-selected photo to Amazon Nova Lite and requests up to eight distinct visible wearable instances with normalized bounding coordinates, controlled category/subtype, visible attributes, confidence, and evidence. Application code rejects unknown, tiny, and near-duplicate detections before Sharp creates a separate private crop for each candidate. The Consumer chooses which candidates to keep and can correct every label before saving.
+
+This prompt explicitly prohibits person, body, demographic, preference, and ownership inference. A visible logo may prefill an editable brand label, but the detection path has no authority to query or grant registry verification. Provider failure or an empty result returns an honest retry message; it does not fabricate garments. Recognition quality remains unmeasured until the documented evaluation is run, and occluded or overlapping pieces may need a clearer second photo.
+
 ### Independent benchmark
 
 Racked has selected the corrected CC BY 4.0 [Clothing Dataset for Second-Hand Fashion, version 3](https://zenodo.org/records/13788681) as an external evaluation corpus. Its 31,638 main garments plus a separately identified 100-garment annotator-agreement set include front, back, and brand-label views where available, matching Racked's evidence flow unusually well. The source images remain outside Git and AWS production. The model has **not** been trained or fine-tuned on this dataset; it is reserved for reproducible measurement of category, subtype, label-text, provider-failure, and verification-boundary behavior. No recognition-accuracy result is claimed until the measured report described in [evaluation.md](evaluation.md) is complete.

@@ -54,6 +54,8 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 ### Consumer
 
+The Consumer **Add** tab now defaults to **Scan a whole look**: one outfit, flat-lay, or closet photo can become up to eight separate editable wardrobe candidates. Amazon Bedrock detects distinct visible garments, shoes, bags, jewelry, and accessories; the server creates a private crop for each candidate, and the Consumer selects and confirms only the correct pieces. Overlapping or hidden items may require another photo. **Verify one item** preserves the front/back/label evidence flow when product identity matters. A direct Community entry is present in both desktop and mobile Consumer navigation.
+
 1. Create a Consumer account with explicit image-processing consent.
 2. Photograph the front of the piece. An optional AI photo plan proposes a controlled broad category and specific subtype, shows uncertainty alternatives, and requests only the shots that category needs.
 3. Amazon Bedrock receives that hypothesis with the back and label views, then confirms or revises it from the combined evidence. The consumer can correct the name, category, subtype, brand, and SKU. Only enrolled SKU/GTIN registry matches are verified — AI text and manual corrections never are.
@@ -76,6 +78,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 ## Why the AI is substantive
 
+- **Multi-piece garment vision:** Amazon Bedrock instance-detects each visible wardrobe piece in a general photo, returns bounded coordinates and controlled attributes, and lets the server generate a separate private crop and human-confirmed wardrobe record for every selected detection. It never infers personal traits or grants verified product identity.
 - **Garment vision:** Amazon Bedrock analyzes front, back, and label evidence into a controlled category, subtype, color, pattern, material, style, confidence, alternatives, and visible evidence. Additional views may revise the first-photo hypothesis.
 - **Consumer Hanger:** a multi-turn agent reloads only the signed-in consumer’s wardrobe, wear history, and saved outfits, then returns grounded styling guidance and validated save/wear actions.
 - **Brand Hanger:** a separate agent receives only that brand’s enrolled product plus privacy-released aggregate wear and public-community metrics; suppressed cohorts remain suppressed in the prompt.
@@ -113,6 +116,7 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 app/api/auth/…                 Register/login/logout: scrypt hashes, signed sessions, rate limits
 app/api/garments/classify/     Adaptive first-photo category + subtype hypothesis (photo plan)
 app/api/garments/analyze/      Bedrock vision + registry identity + evidence/display image storage
+app/api/garments/detect/       One-photo multi-piece detection + private per-garment crops
 app/api/consumer/…             Wardrobe, outfits, consent — always scoped to the signed-in account
 app/api/wears/                 Confirmed wear events + saved-outfit wear totals
 app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
@@ -122,6 +126,7 @@ app/api/community/[postId]/    Signed-in Recreate This Look comparison
 app/api/products/similar/      Rate-limited registry-only product suggestions
 lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
 lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
+lib/look-garment-detection.ts  Bounded instance detection, coordinates, deduplication, trust boundary
 lib/garment-taxonomy.ts        Controlled categories, subtypes, and bounded uncertainty
 lib/evaluation-dataset.ts      External-dataset normalization, deterministic sampling, scoring
 lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
@@ -135,6 +140,7 @@ lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output priv
 lib/privacy.ts                 k ≥ 25 gate + product-enumeration budget
 lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community endpoints
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
+components/look-scan-uploader.tsx  Select/edit/save UI for one-photo multi-piece intake
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
 tests/                         Privacy, recognition, evaluation, commerce, Brand Looks, Recreate suites
@@ -161,7 +167,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled)—the post-purchase signal brands lack |
 | Functionality — 25% | Live AWS PWA, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a k≥25 dashboard with charts and CSV export |
 | AI & innovation — 20% | Bedrock multi-view garment vision, distinct context-grounded Consumer and Brand Hanger agents, and explainable Recreate/Similar Product scoring that never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **140 passing tests** incl. independent-evaluation/community-intelligence/commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **143 passing tests** incl. multi-piece detection, evaluation, community, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -202,7 +208,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 140 passing tests (verified 2026-08-14). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 143 passing tests (verified 2026-08-15). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 
@@ -227,6 +233,8 @@ Everything above is self-contained; these go deeper.
 - [One-page summary](docs/one-page-summary.md) — includes the proposed business model
 
 ## Status and claims
+
+Multi-piece detection is functional but visibility-dependent: overlapping, occluded, tiny, or blurred items may require a second photo, and every detection remains editable and requires human confirmation. This is intentionally not presented as measured recognition accuracy.
 
 The AWS production data stack and Bedrock model access are configured, and `main` auto-deploys to the live URL above.
 
