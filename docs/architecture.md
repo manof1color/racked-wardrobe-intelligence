@@ -45,7 +45,9 @@ Brand products use the same account partition with `PRODUCT#<id>` sort keys. The
 
 ## Image and AI path
 
-The default Consumer Add mode is a one-photo instance-detection path. Bedrock may return up to eight distinct visible wearable items with normalized bounds and controlled attributes. The parser rejects unknown, tiny, and near-duplicate candidates; Sharp stores one private source image and produces a separate private display crop for each candidate. The Consumer chooses and edits candidates before saving, and every candidate receives its own account- and content-bound HMAC. This path explicitly prohibits person or demographic inference, and AI-read logo text has no registry-verification authority. If the provider fails or no clear piece is visible, the API returns an honest error instead of inventing detections.
+The default Consumer Add mode is a one-photo instance-detection path. Bedrock may return up to eight distinct visible wearable items with normalized bounds and controlled attributes. The parser rejects unknown, tiny, and near-duplicate candidates; Sharp stores one private source image and produces a separate private display image for each candidate. A deterministic flood fill removes only background-like pixels connected to a consistent crop edge. Plain backgrounds therefore become transparent, while busy or ambiguous edges fail safely to an opaque tight crop. The Consumer chooses and edits candidates before saving, and every candidate receives its own account- and content-bound HMAC. This path explicitly prohibits person or demographic inference, and AI-read logo text has no registry-verification authority. If the provider fails or no clear piece is visible, the API returns an honest error instead of inventing detections.
+
+Authenticated pages share role-aware navigation. The wordmark resolves to `/consumer` or `/brand`, Community retains the matching mobile bottom bar, and valid sessions that reach `/` or `/login` are redirected back to their workspace. Navigation never clears the secure session cookie; only `POST /api/auth/logout` does.
 
 The optional **Verify one item** mode preserves the stronger evidence path below:
 

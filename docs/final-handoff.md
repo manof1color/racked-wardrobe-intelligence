@@ -17,7 +17,7 @@ Production verification confirmed the apparel demo login, 10 owned products, two
 
 ## Test and security status
 
-The gate is `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm audit:prod`. The current implementation carries **146 passing tests** (re-verified 2026-08-15). AI cannot grant verified brand identity. Brand and Community responses exclude private wardrobe records, owner IDs, emails, evidence images, S3 keys, and individual wear histories. Private wear remains consent-filtered and suppressed below 25 owners. Public Community metrics use only published records and identity-free events.
+The gate is `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm audit:prod`. The current implementation carries **150 passing tests** (re-verified 2026-08-15). AI cannot grant verified brand identity. Brand and Community responses exclude private wardrobe records, owner IDs, emails, evidence images, S3 keys, and individual wear histories. Private wear remains consent-filtered and suppressed below 25 owners. Public Community metrics use only published records and identity-free events.
 
 ## Final contracts for frontend work
 
@@ -68,7 +68,7 @@ Legacy category-only garments are normalized to valid subtypes. Saved outfits re
 ## Limitations and deferred work
 
 - Recognition accuracy has not been measured against a labeled evaluation set.
-- Auto-crop is background trimming, not virtual try-on or body-fit prediction.
+- Auto-crop and multi-piece transparency are display preparation, not photorealistic segmentation, virtual try-on, or body-fit prediction. The background pass removes only consistent edge-connected pixels and keeps an opaque crop when uncertain.
 - Product identity still requires registry GTIN or brand-plus-SKU evidence.
 - Community aggregation currently reads the latest 1,000 identity-free events; production scale needs counters or pagination.
 - Legal brand-authority verification and account-deletion automation remain future operations work.

@@ -57,7 +57,7 @@ export function BrandLookBuilder({products}:{products:BrandProductRegistration[]
     finally{setBusy(false);}
   }
 
-  return <section className="registry-panel brand-look-panel">
+  return <section className="registry-panel brand-look-panel" id="brand-looks">
     <div className="registry-heading">
       <div><div className="eyebrow">BRAND LOOKS</div><h2>Style your own catalog.</h2><p>Build a Look from products enrolled under this account. Published Looks are labeled as Brand content everywhere they appear, so they never read as an ordinary customer post.</p></div>
       <span className="fallback-pill">{loading?"…":`${looks.length} LOOKS`}</span>

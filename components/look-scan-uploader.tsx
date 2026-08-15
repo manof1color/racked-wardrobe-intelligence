@@ -96,7 +96,7 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
       <p className="look-scan-boundary">Review the crops carefully. Brand names are editable suggestions only and remain unverified unless separate registry evidence is supplied.</p>
       <div className="look-piece-grid">{detections.map((item,index)=><article className={`look-piece-card ${item.selected?"selected":""}`} key={item.id}>
         <label className="look-piece-select"><input type="checkbox" checked={item.selected} onChange={event=>updateDetection(item.id,current=>({...current,selected:event.target.checked}))}/><span>Piece {index+1}</span><strong>{item.analysis.confidence}%</strong></label>
-        {item.analysis.processedImage&&<img src={item.analysis.processedImage.url} alt={`Detected ${item.analysis.garment.name}`}/>}
+        {item.analysis.processedImage&&<div className="look-piece-cutout"><img src={item.analysis.processedImage.url} alt={`Detected ${item.analysis.garment.name}`}/><small>{item.analysis.processedImage.backgroundRemoved?"Transparent cutout":"Tight item crop"}</small></div>}
         <div className="look-piece-fields">
           <label>Wardrobe name<input value={item.overrides.name} maxLength={100} disabled={!item.selected} onChange={event=>updateDetection(item.id,current=>({...current,overrides:{...current.overrides,name:event.target.value}}))}/></label>
           <label>Category<select value={item.overrides.category} disabled={!item.selected} onChange={event=>changeCategory(item,event.target.value)}>{PLANNED_CATEGORIES.map(category=><option value={category} key={category}>{category}</option>)}</select></label>
