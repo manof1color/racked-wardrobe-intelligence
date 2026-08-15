@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { consumerViewPath, workspaceHome } from "../lib/workspace-navigation.ts";
+import { consumerViewPath, workspaceHome, workspaceMenuItems } from "../lib/workspace-navigation.ts";
 
 test("workspace home routes preserve the authenticated role boundary", () => {
   assert.equal(workspaceHome("consumer"), "/consumer");
@@ -13,4 +13,14 @@ test("consumer mobile navigation creates stable deep links", () => {
   assert.equal(consumerViewPath("looks"), "/consumer?view=looks");
   assert.equal(consumerViewPath("closet"), "/consumer?view=closet");
   assert.equal(consumerViewPath("outfits"), "/consumer?view=outfits");
+});
+
+test("authenticated menus stay inside role workspaces and never link to login", () => {
+  const consumer=workspaceMenuItems("consumer");
+  const brand=workspaceMenuItems("brand");
+  assert.ok(consumer.some(item=>item.href==="/consumer?add=1"));
+  assert.ok(consumer.some(item=>item.href==="/community"));
+  assert.ok(brand.some(item=>item.href==="/brand#products"));
+  assert.ok(brand.some(item=>item.href==="/community"));
+  assert.ok([...consumer,...brand].every(item=>item.href!=="/"&&item.href!=="/login"));
 });
