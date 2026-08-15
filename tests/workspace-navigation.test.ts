@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { consumerViewPath, workspaceHome, workspaceMenuItems } from "../lib/workspace-navigation.ts";
@@ -23,4 +24,9 @@ test("authenticated menus stay inside role workspaces and never link to login", 
   assert.ok(brand.some(item=>item.href==="/brand#products"));
   assert.ok(brand.some(item=>item.href==="/community"));
   assert.ok([...consumer,...brand].every(item=>item.href!=="/"&&item.href!=="/login"));
+});
+
+test("mobile header navigation keeps the authenticated menu visible", () => {
+  const css=readFileSync(new URL("../app/globals.css",import.meta.url),"utf8");
+  assert.match(css,/\.app-header \.app-menu-popover\{display:block/);
 });

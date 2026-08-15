@@ -181,7 +181,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled)—the post-purchase signal brands lack |
 | Functionality — 25% | Live AWS PWA, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a k≥25 dashboard with charts and CSV export |
 | AI & innovation — 20% | Bedrock multi-view garment vision, distinct context-grounded Consumer and Brand Hanger agents, and explainable Recreate/Similar Product scoring that never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **151 passing tests** incl. multi-piece detection, cutout safety, authenticated menu routing, mobile upload compatibility, evaluation, community, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **152 passing tests** incl. multi-piece detection, cutout safety, authenticated menu routing and visibility, mobile upload compatibility, evaluation, community, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -222,7 +222,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 151 passing tests (verified 2026-08-16). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 152 passing tests (verified 2026-08-16). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 

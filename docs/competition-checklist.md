@@ -41,7 +41,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 151 automated tests, production build, and production dependency audit pass (verified 2026-08-16).
+- [x] Lint, type check (`tsc --noEmit`), 152 automated tests, production build, and production dependency audit pass (verified 2026-08-16).
 
 ## 3. AI integration / innovation — 20%
 
