@@ -56,6 +56,16 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 The Consumer **Add** tab now defaults to **Scan a whole look**: one outfit, flat-lay, or closet photo can become up to eight separate editable wardrobe candidates. Choosing or taking a phone photo starts the scan automatically; common iPhone HEIC/HEIF inputs are accepted for browser normalization to a compressed JPEG before private upload, with explicit JPG guidance if an older device cannot decode its source format. Amazon Bedrock detects distinct visible garments, shoes, bags, jewelry, and accessories; the server creates a private crop for each candidate, and the Consumer selects and confirms only the correct pieces. Overlapping or hidden items may require another photo. **Verify one item** preserves the front/back/label evidence flow when product identity matters. A direct Community entry is present in both desktop and mobile Consumer navigation.
 
+#### Test the mobile whole-look scanner
+
+1. Sign in to a Consumer account and open **Add → Scan a whole look**.
+2. Take a new picture or choose an existing outfit, flat-lay, or closet photo. The scan begins automatically; there is no second upload button.
+3. Wait for the preparation and private-upload status to finish. Racked accepts JPEG, PNG, WebP, HEIC, HEIF, and AVIF sources up to 25 MB, then sends a normalized JPEG analysis copy rather than the original phone file.
+4. Review every proposed crop and edit its wardrobe name, category, subtype, or optional unverified brand label. Deselect false detections.
+5. Check the confirmation box and choose **Add selected pieces**. Detection alone never writes a garment into the wardrobe.
+
+> **Production verification — August 15, 2026:** after PR [#56](https://github.com/manof1color/racked-wardrobe-intelligence/pull/56) deployed, an authenticated scan of the repository-owned synthetic apparel fixture automatically reached Bedrock and returned one editable T-shirt candidate at 90% confidence. The candidate was not saved. This verifies the deployed selection, preparation, upload, detection, and review path; a physical-iPhone HEIC capture remains the final device-specific test. If an older phone cannot decode its own HEIC/HEIF file in the browser, Racked explains how to use the camera's **Most Compatible** setting or export the image as JPG.
+
 1. Create a Consumer account with explicit image-processing consent.
 2. Photograph the front of the piece. An optional AI photo plan proposes a controlled broad category and specific subtype, shows uncertainty alternatives, and requests only the shots that category needs.
 3. Amazon Bedrock receives that hypothesis with the back and label views, then confirms or revises it from the combined evidence. The consumer can correct the name, category, subtype, brand, and SKU. Only enrolled SKU/GTIN registry matches are verified — AI text and manual corrections never are.
