@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { GarmentAnalysis } from "@/lib/platform-types";
 import type { DetectedLookGarment } from "@/lib/look-garment-detection";
 import { GARMENT_TAXONOMY, normalizeGarmentCategory, subtypeForCategory } from "@/lib/garment-taxonomy";
@@ -21,18 +21,14 @@ export interface LookScanSelection {
 
 export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSelection[])=>Promise<void>}) {
   const [file,setFile]=useState<File|null>(null);
-  const [preview,setPreview]=useState("");
   const [detections,setDetections]=useState<EditableDetection[]>([]);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   const [confirmed,setConfirmed]=useState(false);
   const selectedCount=useMemo(()=>detections.filter(item=>item.selected).length,[detections]);
 
-  useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
   function chooseFile(next:File) {
-    if(preview)URL.revokeObjectURL(preview);
     setFile(next);
-    setPreview(URL.createObjectURL(next));
     setDetections([]);
     setConfirmed(false);
     setError("");
@@ -85,8 +81,7 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
     <div className="upload-toolbar"><div><strong>Scan one photo into separate wardrobe pieces</strong><span>Use an outfit photo, a flat lay, or several garments placed where each item remains visible.</span></div><span className="fallback-pill">UP TO 8 PIECES</span></div>
     <label className={`look-photo-upload ${file?"has-file":""}`}>
       <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={event=>{const next=event.target.files?.[0];if(next)chooseFile(next);}}/>
-      {preview?<img src={preview} alt="Look scan preview"/>:<><span>＋</span><strong>Choose a photo or use your camera</strong><small>JPG, PNG, or WebP · up to 5 MB after preparation</small></>}
-      {preview&&<div><strong>Ready to scan</strong><small>{file?.name}</small></div>}
+      {file?<><span>✓</span><strong>Photo ready to scan</strong><small>{file.name}</small></>:<><span>＋</span><strong>Choose a photo or use your camera</strong><small>JPG, PNG, or WebP · up to 5 MB after preparation</small></>}
     </label>
     <div className="ai-notice"><span>HOW IT WORKS</span>AI finds distinct visible garments, crops each one into its own private wardrobe image, and asks you to confirm every label. Overlapping or hidden pieces may need a second photo.</div>
     {error&&<div className="form-error" role="alert">{error}</div>}
