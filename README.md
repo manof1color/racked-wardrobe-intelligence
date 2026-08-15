@@ -1,18 +1,46 @@
 # Racked
 
-**Privacy-first wardrobe intelligence for real consumers and real brands.**
+**Brands know what consumers buy. Racked helps them understand what consumers actually wear.**
+
+Racked is a privacy-first wardrobe-intelligence platform with two connected products: a mobile wardrobe and outfit assistant for consumers, and an aggregate actual-wear dashboard for enrolled brands. Consumers receive useful closet organization, styling, wear tracking, and “Recreate This Look” results before any brand relationship exists. Brands receive only consented, minimum-cohort intelligence for their own verified products—never identities, raw wardrobes, or private photos.
+
+When a consumer explicitly publishes an outfit, Racked can also turn real-world wear into product discovery and measurable outbound interest without making the private wardrobe public.
 
 ## Live demo
 
 **Production URL: [https://main.d2iv0khybuuaeh.amplifyapp.com](https://main.d2iv0khybuuaeh.amplifyapp.com)** — deployed on AWS Amplify from `main`; every merge auto-deploys. The planned business model is on the labeled [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) page.
 
-**Headline demonstration number:** the clearly labeled synthetic demo cohort records **76 confirmed wear events across 25 opted-in owners (88% engagement)** for one enrolled SKU — the actual-wear signal a brand cannot see from purchase data alone, released only because the cohort clears the `k ≥ 25` privacy threshold.
+## Competition proof point
+
+The deterministic, clearly labeled synthetic cohort gives **each of three hero products 76 confirmed wears across 25 opted-in owners**. This is not claimed customer traction; it demonstrates the exact post-purchase intelligence Racked can calculate and the privacy gate required before a brand may see it.
+
+| Demonstration signal | Verified synthetic result | Business question it answers |
+| --- | ---: | --- |
+| Eligible cohort | 25 opted-in owners per hero SKU | Is the group large enough to release safely? |
+| Actual use | **76 confirmed wears per hero SKU** | Is the purchased product entering real rotation? |
+| Engagement | **22 of 25 active owners (88%)** | How many owners have worn it at least once? |
+| Repeat use | **19 of 25 repeat wearers (76%)** | Is the product earning repeated use? |
+| Zero-wear opportunity | **3 of 25 owners** | Where might education or styling support help? |
+| Public activity for the apparel hero SKU | **11 outfit appearances · 37 inspirations · 15 Recreate requests** | How does actual styling translate into discovery? |
 
 > **Judge note:** Real accounts begin empty and persist to account-owned AWS records. The [three-brand, 25-person synthetic demo cohort](docs/test-cohort.md) exercises apparel, footwear, jewelry, private wear analytics, and public Community activity; every seeded record is classified `DEMO` and never represented as commercial evidence. Passwords are provided privately, never committed to GitHub.
 
-## The problem
+## Why this matters
 
-Purchase history tells a brand what sold, but not whether the product is actually worn, repeats an ignored category, or works with what someone owns. Racked lets a consumer build a useful private wardrobe and lets a verified brand see only privacy-safe aggregate wear for its own products.
+Purchase history stops at the transaction. It cannot show whether a product was worn once, became a repeat favorite, stayed untouched, or anchors outfits with other categories. Racked closes that gap while giving the consumer—not the brand—control of the underlying wardrobe data.
+
+The result is a defensible two-sided loop:
+
+1. **Private consumer utility:** organize a wardrobe, build outfits, record wears, and get grounded styling help.
+2. **Consent-based brand intelligence:** release actual-wear aggregates only for verified products and cohorts of at least 25 opted-in owners.
+3. **Optional public discovery:** turn only deliberately shared outfits into explainable Recreate results and controlled product destinations.
+
+## Five-minute judge path
+
+1. Open [Community](https://main.d2iv0khybuuaeh.amplifyapp.com/community) to see complete Consumer and Brand Looks with explicit product-resolution states.
+2. Use the synthetic Recreate Consumer from the [demo checklist](docs/demo-checklist.md) on **Synthetic Consumer Look 01**. The live deterministic result is **62% coverage**: one exact owned product, one strong owned substitute, and one genuinely missing category.
+3. Sign in with a privately supplied synthetic Brand account to inspect the 25-owner privacy threshold, eight-week wear chart, frequency distribution, CSV export, public-look activity, and Brand Hanger.
+4. Open a fictional demo product destination to verify that Racked records privacy-safe outbound interest and hands checkout back to the brand; Racked never processes payment.
 
 ## Independent evaluation dataset
 
@@ -45,6 +73,13 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 4. The Brand dashboard reports actual wears, active owners, and repeat-wear rate only when at least 25 opted-in owners qualify.
 5. Hanger on the Brand dashboard supports follow-up strategy conversations but is restricted to the brand’s own products and the same consent-filtered, `k ≥ 25` aggregates.
 6. A brand can create a clearly labeled Brand Look using only its enrolled products. Optional product/affiliate destinations are validated public HTTPS links; Racked records aggregate outbound interest and redirects to external checkout.
+
+## Why the AI is substantive
+
+- **Garment vision:** Amazon Bedrock analyzes front, back, and label evidence into a controlled category, subtype, color, pattern, material, style, confidence, alternatives, and visible evidence. Additional views may revise the first-photo hypothesis.
+- **Consumer Hanger:** a multi-turn agent reloads only the signed-in consumer’s wardrobe, wear history, and saved outfits, then returns grounded styling guidance and validated save/wear actions.
+- **Brand Hanger:** a separate agent receives only that brand’s enrolled product plus privacy-released aggregate wear and public-community metrics; suppressed cohorts remain suppressed in the prompt.
+- **Explainable decisions:** Recreate This Look and Similar Products use inspectable weighted attributes rather than an opaque score. Similarity can suggest a substitute, but only authorized registry GTIN or brand-plus-SKU evidence can verify exact identity.
 
 ## Production architecture
 
@@ -123,12 +158,12 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 
 | Criterion | Evidence — where to see it working |
 | --- | --- |
-| Problem & relevance — 20% | Purchase data shows what sold, not what is worn. The demo cohort's **76 wears / 25 owners / 88% engagement** (synthetic, labeled) is exactly the signal brands lack — this README, [one-page summary](docs/one-page-summary.md) |
-| Functionality — 25% | Live AWS URL, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, saved-outfit Community publishing with explicit product states, brand registry, k≥25 dashboard with CSV export |
-| AI & innovation — 20% | Bedrock vision with controlled taxonomy and multi-view revision, plus explainable Recreate This Look scoring that prioritizes owned clothing and never turns similarity into exact ownership |
+| Problem & relevance — 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled)—the post-purchase signal brands lack |
+| Functionality — 25% | Live AWS PWA, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a k≥25 dashboard with charts and CSV export |
+| AI & innovation — 20% | Bedrock multi-view garment vision, distinct context-grounded Consumer and Brand Hanger agents, and explainable Recreate/Similar Product scoring that never turns similarity into exact ownership |
 | Code, docs & GitHub — 15% | Typed modules, **140 passing tests** incl. independent-evaluation/community-intelligence/commerce/ownership/privacy suites, CI runs lint + typecheck + tests + build + audit, CodeQL, incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
-| Business impact — 10% | Actual-wear/active-owner/repeat-wear metrics a brand cannot buy elsewhere (headline: **76 confirmed wears across 25 opted-in owners**, synthetic demo), proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) with an emerging-brand Starter tier |
+| Business impact — 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
 
 ## Business model & pricing (proposed — not currently billed)
