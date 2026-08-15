@@ -1,12 +1,21 @@
 const TARGET_IMAGE_BYTES = 1_200_000;
 const MAX_IMAGE_DIMENSION = 1800;
+const MAX_SOURCE_IMAGE_BYTES = 25_000_000;
 const JPEG_QUALITIES = [0.86, 0.78, 0.7, 0.62];
+const PHONE_IMAGE_TYPES = new Set(["image/jpeg","image/png","image/webp","image/heic","image/heif","image/avif"]);
+const PHONE_IMAGE_EXTENSIONS = /\.(?:jpe?g|png|webp|heic|heif|avif)$/i;
+
+export function isPotentialPhoneImage(file:Pick<File,"name"|"size"|"type">) {
+  if(file.size<=0||file.size>MAX_SOURCE_IMAGE_BYTES)return false;
+  const type=file.type.trim().toLowerCase();
+  return type?PHONE_IMAGE_TYPES.has(type):PHONE_IMAGE_EXTENSIONS.test(file.name);
+}
 
 function loadImage(url:string) {
   return new Promise<HTMLImageElement>((resolve,reject)=>{
     const image=new Image();
     image.onload=()=>resolve(image);
-    image.onerror=()=>reject(new Error("This photo could not be opened. Try a JPG, PNG, or WebP image."));
+    image.onerror=()=>reject(new Error("This phone could not open that photo. If it is HEIC/HEIF, choose Most Compatible in Camera settings or export it as JPG, then try again."));
     image.src=url;
   });
 }
@@ -16,7 +25,10 @@ function canvasBlob(canvas:HTMLCanvasElement,quality:number) {
 }
 
 export async function prepareImageForUpload(file:File) {
-  if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error("Photos must be JPG, PNG, or WebP.");
+  if(!isPotentialPhoneImage(file)){
+    if(file.size>MAX_SOURCE_IMAGE_BYTES)throw new Error("That original photo is over 25 MB. Choose a smaller photo and try again.");
+    throw new Error("Choose a JPG, PNG, WebP, HEIC, HEIF, or AVIF photo.");
+  }
   const objectUrl=URL.createObjectURL(file);
   try {
     const image=await loadImage(objectUrl);

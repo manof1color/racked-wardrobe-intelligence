@@ -54,7 +54,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 ### Consumer
 
-The Consumer **Add** tab now defaults to **Scan a whole look**: one outfit, flat-lay, or closet photo can become up to eight separate editable wardrobe candidates. Amazon Bedrock detects distinct visible garments, shoes, bags, jewelry, and accessories; the server creates a private crop for each candidate, and the Consumer selects and confirms only the correct pieces. Overlapping or hidden items may require another photo. **Verify one item** preserves the front/back/label evidence flow when product identity matters. A direct Community entry is present in both desktop and mobile Consumer navigation.
+The Consumer **Add** tab now defaults to **Scan a whole look**: one outfit, flat-lay, or closet photo can become up to eight separate editable wardrobe candidates. Choosing or taking a phone photo starts the scan automatically; common iPhone HEIC/HEIF inputs are accepted for browser normalization to a compressed JPEG before private upload, with explicit JPG guidance if an older device cannot decode its source format. Amazon Bedrock detects distinct visible garments, shoes, bags, jewelry, and accessories; the server creates a private crop for each candidate, and the Consumer selects and confirms only the correct pieces. Overlapping or hidden items may require another photo. **Verify one item** preserves the front/back/label evidence flow when product identity matters. A direct Community entry is present in both desktop and mobile Consumer navigation.
 
 1. Create a Consumer account with explicit image-processing consent.
 2. Photograph the front of the piece. An optional AI photo plan proposes a controlled broad category and specific subtype, shows uncertainty alternatives, and requests only the shots that category needs.
@@ -167,7 +167,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled)—the post-purchase signal brands lack |
 | Functionality — 25% | Live AWS PWA, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a k≥25 dashboard with charts and CSV export |
 | AI & innovation — 20% | Bedrock multi-view garment vision, distinct context-grounded Consumer and Brand Hanger agents, and explainable Recreate/Similar Product scoring that never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **143 passing tests** incl. multi-piece detection, evaluation, community, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **146 passing tests** incl. multi-piece detection, mobile upload compatibility, evaluation, community, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
 | Business impact — 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -208,7 +208,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 143 passing tests (verified 2026-08-15). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 146 passing tests (verified 2026-08-15). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
 
 ## Install on a phone
 

@@ -23,6 +23,7 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
   const [file,setFile]=useState<File|null>(null);
   const [detections,setDetections]=useState<EditableDetection[]>([]);
   const [busy,setBusy]=useState(false);
+  const [progress,setProgress]=useState("");
   const [error,setError]=useState("");
   const [confirmed,setConfirmed]=useState(false);
   const selectedCount=useMemo(()=>detections.filter(item=>item.selected).length,[detections]);
@@ -32,13 +33,16 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
     setDetections([]);
     setConfirmed(false);
     setError("");
+    void analyze(next);
   }
-  async function analyze() {
-    if(!file)return;
+  async function analyze(selectedFile=file) {
+    if(!selectedFile)return;
     setBusy(true);setError("");setDetections([]);setConfirmed(false);
     try {
       const form=new FormData();
-      form.append("photo",await prepareImageForUpload(file));
+      setProgress("Preparing your phone photo");
+      form.append("photo",await prepareImageForUpload(selectedFile));
+      setProgress("Uploading privately and finding individual pieces");
       const response=await fetch("/api/garments/detect",{method:"POST",body:form});
       const data=await readJsonResponse<{error?:string;detections?:DetectedLookGarment[]}>(response,"The look scanner returned an unreadable response.");
       if(!response.ok||!data.detections)throw new Error(data.error??"The pieces could not be detected.");
@@ -55,7 +59,7 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
       })));
     } catch(reason) {
       setError(reason instanceof Error?reason.message:"The pieces could not be detected.");
-    } finally {setBusy(false);}
+    } finally {setBusy(false);setProgress("");}
   }
   function updateDetection(id:string,update:(current:EditableDetection)=>EditableDetection) {
     setDetections(current=>current.map(item=>item.id===id?update(item):item));
@@ -80,14 +84,15 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
   return <div className="look-scan-flow">
     <div className="upload-toolbar"><div><strong>Scan one photo into separate wardrobe pieces</strong><span>Use an outfit photo, a flat lay, or several garments placed where each item remains visible.</span></div><span className="fallback-pill">UP TO 8 PIECES</span></div>
     <label className={`look-photo-upload ${file?"has-file":""}`}>
-      <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={event=>{const next=event.target.files?.[0];if(next)chooseFile(next);}}/>
-      {file?<><span>✓</span><strong>Photo ready to scan</strong><small>{file.name}</small></>:<><span>＋</span><strong>Choose a photo or use your camera</strong><small>JPG, PNG, or WebP · up to 5 MB after preparation</small></>}
+      <input type="file" accept="image/*" capture="environment" onChange={event=>{const next=event.target.files?.[0];event.currentTarget.value="";if(next)chooseFile(next);}}/>
+      {file?<><span>✓</span><strong>{busy?"Preparing and scanning photo":"Photo selected"}</strong><small>{file.name}</small></>:<><span>＋</span><strong>Choose a photo or use your camera</strong><small>Includes iPhone HEIC/HEIF · compressed before upload</small></>}
     </label>
     <div className="ai-notice"><span>HOW IT WORKS</span>AI finds distinct visible garments, crops each one into its own private wardrobe image, and asks you to confirm every label. Overlapping or hidden pieces may need a second photo.</div>
+    {progress&&<div className="upload-progress" role="status" aria-live="polite"><span/><strong>{progress}…</strong><small>The original stays on your device; Racked uploads a smaller analysis copy.</small></div>}
     {error&&<div className="form-error" role="alert">{error}</div>}
-    {detections.length===0&&<button type="button" className="button button-dark button-full" disabled={!file||busy} onClick={analyze}>{busy?"Separating visible pieces…":"Detect clothing pieces"}</button>}
+    {detections.length===0&&<button type="button" className="button button-dark button-full" disabled={!file||busy} onClick={()=>void analyze()}>{busy?"Separating visible pieces…":"Try scan again"}</button>}
     {detections.length>0&&<section className="look-detection-results" aria-live="polite">
-      <div className="look-results-heading"><div><span className="fallback-pill">{detections.length} DETECTED</span><h3>Turn each detection into a wardrobe piece.</h3></div><button type="button" className="button button-light" disabled={busy} onClick={analyze}>Scan again</button></div>
+      <div className="look-results-heading"><div><span className="fallback-pill">{detections.length} DETECTED</span><h3>Turn each detection into a wardrobe piece.</h3></div><button type="button" className="button button-light" disabled={busy} onClick={()=>void analyze()}>Scan again</button></div>
       <p className="look-scan-boundary">Review the crops carefully. Brand names are editable suggestions only and remain unverified unless separate registry evidence is supplied.</p>
       <div className="look-piece-grid">{detections.map((item,index)=><article className={`look-piece-card ${item.selected?"selected":""}`} key={item.id}>
         <label className="look-piece-select"><input type="checkbox" checked={item.selected} onChange={event=>updateDetection(item.id,current=>({...current,selected:event.target.checked}))}/><span>Piece {index+1}</span><strong>{item.analysis.confidence}%</strong></label>

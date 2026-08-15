@@ -63,4 +63,4 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 
 ## Continuous verification
 
-Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. Through #55, `main` carries **143 passing tests** (re-verified 2026-08-15).
+Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. The current mobile-upload fix branch carries **146 passing tests** (re-verified 2026-08-15); its PR and deployment status will be recorded here after merge.
