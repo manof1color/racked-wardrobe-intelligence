@@ -22,6 +22,7 @@ export const RATE_LIMIT_RULES = {
   register: { limit: 5, windowMs: 60 * 60 * 1000 },
   garmentAnalyze: { limit: 12, windowMs: 10 * 60 * 1000 },
   garmentClassify: { limit: 20, windowMs: 10 * 60 * 1000 },
+  lookDetect: { limit: 12, windowMs: 10 * 60 * 1000 },
   consumerAgent: { limit: 20, windowMs: 5 * 60 * 1000 },
   brandAgent: { limit: 20, windowMs: 5 * 60 * 1000 },
   brandMetrics: { limit: 30, windowMs: 5 * 60 * 1000 },
