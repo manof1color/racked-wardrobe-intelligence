@@ -6,6 +6,7 @@ import { AppShell } from "./app-shell";
 import { BrandProductEnrollment } from "./brand-product-enrollment";
 import { BrandLookBuilder } from "./brand-look-builder";
 import { HangerDock } from "./hanger-dock";
+import { WorkspaceMobileNav } from "./workspace-mobile-nav";
 import { communityIsEmpty, communityReadouts, pairingSummary, wearHeadline, wearReadouts } from "@/lib/brand-insights";
 import type { BrandCommunityMetrics, BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
@@ -57,7 +58,7 @@ export function BrandDashboard() {
   const maxTrend=Math.max(1,...(metrics?.weeklyTrend??[]).map(point=>point.wears));
   const maxDistribution=Math.max(1,...(metrics?.wearDistribution??[]).map(point=>point.owners));
 
-  return <AppShell role="brand"><main className="workspace brand-workspace">
+  return <AppShell role="brand"><main className="workspace brand-workspace" id="brand-dashboard">
     <section className="workspace-heading"><div><div className="eyebrow">PRIVATE BRAND WORKSPACE</div><h1>Understand how products<br/>are <em>actually worn.</em></h1><p>Verified wear events become privacy-safe product intelligence: frequency, engagement, repeat use, and change over time.</p></div>{metrics&&!metrics.suppressed&&<button className="button button-dark" onClick={downloadAggregate}>Download aggregate CSV ↗</button>}</section>
     <div className="privacy-banner"><span>◉</span><div><strong>Privacy boundary active</strong><p>Only anonymous aggregates from opted-in owners are released. Names, emails, consumer photos, raw wardrobes, and individual rows are never shown.</p></div><b>k ≥ 25</b></div>
     <BrandProductEnrollment onProducts={acceptProducts}/>
@@ -82,5 +83,5 @@ export function BrandDashboard() {
               <small>Counted from public Looks only.</small></div>}</>}
       </section>}
     </section></section>}
-  </main><HangerDock role="brand" productId={product?.id}/></AppShell>;
+  </main><HangerDock role="brand" productId={product?.id}/><WorkspaceMobileNav role="brand" active="brand"/></AppShell>;
 }

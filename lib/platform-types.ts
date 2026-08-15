@@ -82,6 +82,8 @@ export interface GarmentAnalysis {
     evidenceKey?: string;
     /** True when the display version received the tighter garment crop; false means original framing. */
     cropped?: boolean;
+    /** True when edge-connected background pixels were safely made transparent. */
+    backgroundRemoved?: boolean;
   };
 }
 

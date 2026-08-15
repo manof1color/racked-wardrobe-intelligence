@@ -34,7 +34,7 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
     } catch(reason){setError(reason instanceof Error?reason.message:"Registration failed.");} finally{setBusy(false);setProgress("");}
   }
 
-  return <section className="registry-panel">
+  return <section className="registry-panel" id="products">
     <div className="registry-heading"><div><div className="eyebrow">YOUR PRODUCT REGISTRY</div><h2>Connect real products to actual wear.</h2><p>Enroll an authorized front, back, and label image with the SKU. Consumer scans can then connect to your product without exposing the consumer’s photo.</p></div><button type="button" className="button button-accent" onClick={()=>setOpen(value=>!value)}>{open?"Close enrollment":"+ Enroll product"}</button></div>
     {open&&<div className="registry-form">
       <div className="registry-fields">

@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Flywheel } from "@/components/flywheel";
+import { getSession } from "@/lib/auth";
+import { workspaceHome } from "@/lib/workspace-navigation";
 
-export default function Home() {
+export default async function Home() {
+  const session=await getSession();
+  if(session)redirect(workspaceHome(session.role));
   return (
     <main className="landing-shell">
       <nav className="landing-nav" aria-label="Primary navigation">

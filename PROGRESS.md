@@ -61,6 +61,10 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 
 - [#55](https://github.com/manof1color/racked-wardrobe-intelligence/pull/55) adds one-photo, up-to-eight-piece Bedrock detection with private per-piece crops and human confirmation, preserves three-view verification, and gives Consumers direct desktop/mobile Community navigation.
 
+## Phase 9 — Authenticated mobile continuity and item cutouts (2026-08-15)
+
+- [#59](https://github.com/manof1color/racked-wardrobe-intelligence/pull/59) (draft) keeps the logo and Community inside each authenticated role workspace, adds stable Consumer deep links and role-aware Community bottom navigation, and prepares each detected piece as an independent private display image with conservative transparent-background removal and a tested opaque fallback.
+
 ## Continuous verification
 
-Every PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. Through #56, `main` carries **146 passing tests** (re-verified 2026-08-15). The mobile-upload fix was confirmed live on Amplify with an authenticated synthetic-image scan returning one editable detection; a physical-iPhone HEIC retest remains the final device-specific check.
+Every merged PR above ran `pnpm lint`, `pnpm test`, `pnpm build`, and a production dependency audit in CI (`pnpm typecheck` joined the pipeline at #27), passed CodeQL, and was deployed by AWS Amplify from `main` with the live URL spot-checked after each merge. Through #56, `main` carries **146 passing tests** (re-verified 2026-08-15). Draft PR #59 carries **150 passing tests** locally; CI, merge, Amplify deployment, and live-device spot checks remain explicitly pending. The prior mobile-upload fix was confirmed live on Amplify with an authenticated synthetic-image scan returning one editable detection; a physical-iPhone HEIC retest remains the final device-specific check.

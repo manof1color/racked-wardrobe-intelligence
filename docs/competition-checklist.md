@@ -41,7 +41,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 143 automated tests, production build, and production dependency audit pass (verified 2026-08-15).
+- [x] Lint, type check (`tsc --noEmit`), 150 automated tests, production build, and production dependency audit pass (verified 2026-08-15).
 
 ## 3. AI integration / innovation — 20%
 
@@ -79,6 +79,8 @@ This is the judge’s index for the CUA rubric.
 - [x] Real empty, loading, validation, success, suppression, and provider-error states.
 - [x] Semantic inputs, dialogs, labels, focus styles, and reduced-motion support.
 - [x] Camera-friendly capture and a visible cropped-display preview before saving.
+- [x] Whole-look scanning creates independently tracked item images and safely makes a consistent edge-connected background transparent, with an opaque tight-crop fallback for ambiguous scenes.
+- [x] Authenticated logo/tabs preserve the role workspace; Community keeps the role-specific mobile bottom bar and only explicit Sign out ends the session.
 
 ## 6. Business impact / presentation — 10%
 

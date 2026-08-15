@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
 import { detectGarmentsInLook, type NormalizedBounds } from "@/lib/look-garment-detection";
+import { prepareDetectedGarmentCutout } from "@/lib/garment-cutout";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
@@ -46,26 +47,24 @@ export async function POST(request:Request) {
     const evidenceKey=await putPrivateImage(session.subject,"wardrobe",prepared.data,"image/jpeg","evidence");
     for(const detection of detections) {
       const crop=pixelCrop(detection.bounds,prepared.info.width,prepared.info.height);
-      const display=await sharp(prepared.data)
-        .extract(crop)
-        .resize({width:700,height:900,fit:"inside",withoutEnlargement:true})
-        .png()
-        .toBuffer({resolveWithObject:true});
-      const key=await putPrivateImage(session.subject,"wardrobe",display.data,"image/png");
+      const cropBytes=await sharp(prepared.data).extract(crop).png().toBuffer();
+      const display=await prepareDetectedGarmentCutout(cropBytes);
+      const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
       detection.analysis.processedImage={
         key,
         url:(await privateImageUrl(key))!,
-        width:display.info.width,
-        height:display.info.height,
+        width:display.width,
+        height:display.height,
         confirmationToken:"",
         evidenceKey,
         cropped:true,
+        backgroundRemoved:display.backgroundRemoved,
       };
       detection.analysis.processedImage.confirmationToken=signGarmentConfirmation(session.subject,key,detection.analysis);
     }
     return NextResponse.json({
       detections,
-      retention:"The source image and each selected display crop are private, encrypted at rest, and returned only through expiring links.",
+      retention:"The source image and each isolated display cutout are private, encrypted at rest, and returned only through expiring links.",
       verification:"Detected brand text is editable suggestion evidence only; it never creates verified product identity.",
     });
   } catch(error) {

@@ -11,7 +11,7 @@ The system prompt forbids inferring a person, body, gender, age, ethnicity, inco
 
 ### One-photo multi-piece detection
 
-The default Consumer Add mode sends one user-selected photo to Amazon Nova Lite and requests up to eight distinct visible wearable instances with normalized bounding coordinates, controlled category/subtype, visible attributes, confidence, and evidence. Application code rejects unknown, tiny, and near-duplicate detections before Sharp creates a separate private crop for each candidate. The Consumer chooses which candidates to keep and can correct every label before saving.
+The default Consumer Add mode sends one user-selected photo to Amazon Nova Lite and requests up to eight distinct visible wearable instances with normalized bounding coordinates, controlled category/subtype, visible attributes, confidence, and evidence. Application code rejects unknown, tiny, and near-duplicate detections before Sharp creates a separate private item image for each candidate. A deterministic, non-AI flood fill makes a consistent edge-connected background transparent; when the edge is busy or the result would be destructive, it deliberately retains an opaque tight crop. The Consumer chooses which candidates to keep and can correct every label before saving.
 
 This prompt explicitly prohibits person, body, demographic, preference, and ownership inference. A visible logo may prefill an editable brand label, but the detection path has no authority to query or grant registry verification. Provider failure or an empty result returns an honest retry message; it does not fabricate garments. Recognition quality remains unmeasured until the documented evaluation is run, and occluded or overlapping pieces may need a clearer second photo.
 
