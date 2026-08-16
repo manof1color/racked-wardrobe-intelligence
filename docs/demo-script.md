@@ -35,7 +35,7 @@ Scroll to the flywheel to show how consumer value and brand value come from the 
 4. Expand a matched piece with **Why?** to show which owned garment Racked chose and the evidence behind it.
 5. Say the core consumer message: *"Use what you own first. Buy only what you're missing."*
 6. Note the honesty of the engine: an exact match requires the same registry product; substitutes are only ever compared inside the same category, and one owned piece can cover only one role.
-7. If a verified product has a shopping destination, open **Shop the Look** to show exact-verified separated from similar, unverified, and unavailable — *"only an exact, brand-authorized product is ever linkable."* (See the checklist: this step needs a product destination configured.)
+7. Open **Shop the Look** to show exact-verified separated from similar, unverified, and unavailable — *"only an exact, brand-authorized product is ever linkable."* Follow one fictional exact product into its clearly labeled demo storefront, add it to the Demo Bag, complete the $0.00 simulation, and use **Return to Racked**. State plainly that no payment, order, address, contact, or account record was created.
 
 ## 6:00–7:00 — Brand
 

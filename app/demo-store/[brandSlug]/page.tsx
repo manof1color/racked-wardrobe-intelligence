@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DEMO_STORE_DISCLAIMER, demoStoreProductPath, formatPrice, isDemoStorefrontBrand, storefrontPrice } from "@/lib/demo-storefront";
+import { DEMO_STORE_DISCLAIMER, demoProductImagePath, demoStoreProductPath, formatPrice, isDemoStorefrontBrand, storefrontPrice } from "@/lib/demo-storefront";
 import { listPublicBrandProducts } from "@/lib/server/production-store";
 
 export async function generateMetadata({params}:{params:Promise<{brandSlug:string}>}):Promise<Metadata>{
@@ -37,7 +37,7 @@ export default async function DemoStorefront({params}:{params:Promise<{brandSlug
         const price=storefrontPrice(product);
         return <article className="demo-store-card" key={product.id}>
           <Link href={demoStoreProductPath(brandSlug,product.sku)}>
-            <div className="demo-store-image">{product.imageUrls?.front?<img src={product.imageUrls.front} alt={product.name}/>:<span aria-hidden="true">◻</span>}</div>
+            <div className="demo-store-image">{demoProductImagePath(product.sku)||product.imageUrls?.front?<img src={demoProductImagePath(product.sku)??product.imageUrls?.front} alt={product.name}/>:<span aria-hidden="true">◻</span>}</div>
             <div className="demo-store-card-copy">
               <strong>{product.name}</strong>
               <small>{product.category} · {product.sku}</small>
@@ -48,6 +48,6 @@ export default async function DemoStorefront({params}:{params:Promise<{brandSlug
       })}
     </section>
 
-    <footer className="demo-store-footer"><p>{DEMO_STORE_DISCLAIMER}</p><Link href="/community">Return to Racked →</Link></footer>
+    <footer className="demo-store-footer"><p>{DEMO_STORE_DISCLAIMER}</p><Link className="button button-accent demo-return-button" href="/community">Return to Racked →</Link></footer>
   </main>;
 }

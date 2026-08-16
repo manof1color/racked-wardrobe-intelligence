@@ -40,7 +40,7 @@ The result is a defensible two-sided loop:
 1. Open [Community](https://main.d2iv0khybuuaeh.amplifyapp.com/community) to see complete Consumer and Brand Looks with explicit product-resolution states.
 2. Use the synthetic Recreate Consumer from the [demo checklist](docs/demo-checklist.md) on **Synthetic Consumer Look 01**. The live deterministic result is **62% coverage**: one exact owned product, one strong owned substitute, and one genuinely missing category.
 3. Sign in with a privately supplied synthetic Brand account to inspect the 25-owner privacy threshold, eight-week wear chart, frequency distribution, CSV export, public-look activity, and Brand Hanger.
-4. Open a fictional demo product destination to verify that Racked records privacy-safe outbound interest and hands checkout back to the brand; Racked never processes payment.
+4. Open a fictional demo product destination, add it to the **Demo Bag**, and complete the clearly labeled **$0.00 purchase simulation**. This proves the commerce journey without collecting payment, shipping, contact, or order data.
 
 ## Independent evaluation dataset
 
@@ -54,14 +54,14 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 ### Consumer
 
-The Consumer **Add** tab now defaults to **Scan a whole look**: one outfit, flat-lay, or closet photo can become up to eight separate editable wardrobe candidates. Choosing or taking a phone photo starts the scan automatically; common iPhone HEIC/HEIF inputs are accepted for browser normalization to a compressed JPEG before private upload, with explicit JPG guidance if an older device cannot decode its source format. Amazon Bedrock detects distinct visible garments, shoes, bags, jewelry, and accessories; the server creates an independent private item image for each candidate. A deterministic edge-connected background pass makes plain backgrounds transparent when it can do so safely; busy scenes retain a tight crop rather than risk erasing the garment. The Consumer selects, edits, and confirms each piece before it becomes a separately tracked wardrobe item. Overlapping or hidden items may require another photo. **Verify one item** preserves the front/back/label evidence flow when product identity matters.
+The Consumer **Add** tab defaults to **Add from one photo**: one outfit, flat-lay, or closet photo can become up to eight separate editable wardrobe candidates. The UI now presents two unambiguous actions—**Take photo** opens the rear camera, while **Choose image** opens the photo library. Common iPhone HEIC/HEIF inputs are accepted for browser normalization to a compressed JPEG before private upload, with explicit JPG guidance if an older device cannot decode its source format. Amazon Bedrock detects distinct visible garments, shoes, bags, jewelry, and accessories; the server creates an independent private item image for each candidate. A deterministic edge-connected background pass makes plain backgrounds transparent when it can do so safely; busy scenes retain a tight crop rather than risk erasing the garment. The Consumer selects, edits, and confirms each piece before it becomes a separately tracked wardrobe item. Overlapping or hidden items may require another photo. **Link a brand product** preserves the required front/back/label evidence flow for exact registry-backed brand/SKU tracking; AI or typed brand text alone never verifies identity.
 
-Authenticated navigation behaves like a mobile app: the Racked logo returns to the signed-in role workspace, Community retains the role-appropriate bottom bar, and consumer views have stable deep links. A compact mobile header menu adds role-specific shortcuts—Consumer wardrobe views and Add, or Brand dashboard/products/Looks—without sending the account through the public login flow. It closes on selection, outside tap, or Escape. Visiting `/` or `/login` with a valid session returns the user to their workspace. Only the explicit **Sign out** control ends the session, and a failed logout request leaves the current session in place instead of pretending it succeeded.
+Authenticated navigation behaves like a mobile app: the Racked logo returns to the signed-in role workspace, Community retains the role-appropriate bottom bar, and consumer views have stable deep links. To remove duplicate navigation, the persistent bottom tabs are the single primary mobile menu; the compact header control is now a session-only account menu that retains **Sign out**. Desktop keeps the top Workspace/Community navigation. Visiting `/` or `/login` with a valid session returns the user to the correct workspace. Only a successful explicit sign-out request ends the session; a failed request leaves it active instead of pretending it succeeded.
 
 #### Test the mobile whole-look scanner
 
-1. Sign in to a Consumer account and open **Add → Scan a whole look**.
-2. Take a new picture or choose an existing outfit, flat-lay, or closet photo. The scan begins automatically; there is no second upload button.
+1. Sign in to a Consumer account and open **Add → Add from one photo**.
+2. Choose **Take photo** for the camera or **Choose image** for the photo library. The scan begins automatically after selection; there is no ambiguous combined picker.
 3. Wait for the preparation and private-upload status to finish. Racked accepts JPEG, PNG, WebP, HEIC, HEIF, and AVIF sources up to 25 MB, then sends a normalized JPEG analysis copy rather than the original phone file.
 4. Review every proposed crop and edit its wardrobe name, category, subtype, or optional unverified brand label. Deselect false detections.
 5. Check the confirmation box and choose **Add selected pieces**. Detection alone never writes a garment into the wardrobe.
@@ -154,6 +154,8 @@ lib/privacy.ts                 k ≥ 25 gate + product-enumeration budget
 lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community endpoints
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
 components/look-scan-uploader.tsx  Select/edit/save UI for one-photo multi-piece intake
+components/photo-source-picker.tsx Explicit camera-versus-library input control
+components/demo-purchase-panel.tsx $0 fictional bag and checkout simulation
 components/workspace-mobile-nav.tsx Role-aware Consumer/Brand mobile navigation
 components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
@@ -181,8 +183,8 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled)—the post-purchase signal brands lack |
 | Functionality — 25% | Live AWS PWA, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a k≥25 dashboard with charts and CSV export |
 | AI & innovation — 20% | Bedrock multi-view garment vision, distinct context-grounded Consumer and Brand Hanger agents, and explainable Recreate/Similar Product scoring that never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **152 passing tests** incl. multi-piece detection, cutout safety, authenticated menu routing and visibility, mobile upload compatibility, evaluation, community, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
-| UX & polish — 10% | Mobile-first tabs + bottom nav, camera capture, empty/loading/error/suppressed states, horizontal-overflow-safe carousels and tables, installable PWA |
+| Code, docs & GitHub — 15% | Typed modules, **157 passing tests** incl. multi-piece detection, cutout safety, camera/library controls, session navigation, demo commerce, evaluation, community, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| UX & polish — 10% | Mobile-first bottom tabs, session-only account menu, explicit camera/library choices, photorealistic fictional catalog assets, $0 purchase simulation, empty/loading/error/suppressed states, and installable PWA |
 | Business impact — 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
 
@@ -222,7 +224,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 152 passing tests (verified 2026-08-16). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application.
+All five run in CI on every push and pull request. The suite currently has 157 passing tests (verified 2026-08-16). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application. The nine images under `public/demo-products/` are AI-generated, fictional, unbranded competition assets—not real catalog or customer photography.
 
 ## Install on a phone
 

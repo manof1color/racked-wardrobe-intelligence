@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEMO_STORE_DISCLAIMER, demoStoreProductPath, demoStoreProductUrl, formatPrice, isDemoStorefrontBrand, isDemoStorefrontProduct, storefrontDescription, storefrontPrice } from "../lib/demo-storefront.ts";
+import { DEMO_STORE_DISCLAIMER, demoProductImagePath, demoStoreProductPath, demoStoreProductUrl, formatPrice, isDemoStorefrontBrand, isDemoStorefrontProduct, storefrontDescription, storefrontPrice } from "../lib/demo-storefront.ts";
 import { MAX_SIMILAR_SUGGESTIONS, parseSimilarSuggestions } from "../lib/similar-products.ts";
 
 test("storefront URLs are deterministic and safely encoded", () => {
@@ -8,6 +8,15 @@ test("storefront URLs are deterministic and safely encoded", () => {
   assert.equal(demoStoreProductUrl("https://example.test", "synthetic-stride-lab", "SSL-001"), "https://example.test/demo-store/synthetic-stride-lab/SSL-001");
   assert.equal(demoStoreProductUrl("https://example.test/", "lumen-test-objects", "LTO-001"), "https://example.test/demo-store/lumen-test-objects/LTO-001", "a trailing slash must not double up");
   assert.equal(demoStoreProductPath("brand", "A/B 1"), "/demo-store/brand/A%2FB%201");
+});
+
+test("only known fictional SKUs receive curated demo photography",()=>{
+  assert.equal(demoProductImagePath("RTA-003"),"/demo-products/RTA-003.webp");
+  assert.equal(demoProductImagePath("RTA-004"),"/demo-products/RTA-001.webp");
+  assert.equal(demoProductImagePath("SSL-010"),"/demo-products/SSL-001.webp");
+  assert.equal(demoProductImagePath("LTO-009"),"/demo-products/LTO-003.webp");
+  assert.equal(demoProductImagePath("REAL-001"),undefined);
+  assert.equal(demoProductImagePath("RTA-010"),undefined,"the belt has no misleading apparel photo");
 });
 
 test("REGRESSION: only demonstration records get a fictional storefront", () => {
@@ -32,10 +41,10 @@ test("fictional prices are deterministic, positive, and defer to an enrolled pri
   assert.ok(storefrontPrice({ sku: "X", category: "unheard-of" }) > 0);
 });
 
-test("product copy always states the product is fictional and unbuyable", () => {
+test("product copy always states the product is fictional and checkout never charges", () => {
   const copy = storefrontDescription({ name: "Transit Bomber", category: "outerwear" });
   assert.match(copy, /fictional/i);
-  assert.match(copy, /cannot be purchased/i);
+  assert.match(copy, /never charges/i);
   assert.match(DEMO_STORE_DISCLAIMER, /not a real shop/i);
   assert.match(DEMO_STORE_DISCLAIMER, /no payment is ever collected/i);
 });

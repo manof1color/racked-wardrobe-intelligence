@@ -8,6 +8,7 @@ import { GARMENT_TAXONOMY, normalizeGarmentCategory, subtypeForCategory } from "
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import type { GarmentOverrides } from "./three-view-uploader";
+import { PhotoSourcePicker } from "./photo-source-picker";
 
 interface EditableDetection extends DetectedLookGarment {
   selected:boolean;
@@ -83,10 +84,10 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
 
   return <div className="look-scan-flow">
     <div className="upload-toolbar"><div><strong>Scan one photo into separate wardrobe pieces</strong><span>Use an outfit photo, a flat lay, or several garments placed where each item remains visible.</span></div><span className="fallback-pill">UP TO 8 PIECES</span></div>
-    <label className={`look-photo-upload ${file?"has-file":""}`}>
-      <input type="file" accept="image/*" capture="environment" onChange={event=>{const next=event.target.files?.[0];event.currentTarget.value="";if(next)chooseFile(next);}}/>
-      {file?<><span>✓</span><strong>{busy?"Preparing and scanning photo":"Photo selected"}</strong><small>{file.name}</small></>:<><span>＋</span><strong>Choose a photo or use your camera</strong><small>Includes iPhone HEIC/HEIF · compressed before upload</small></>}
-    </label>
+    <div className={`look-photo-upload ${file?"has-file":""}`}>
+      {file?<><span>✓</span><strong>{busy?"Preparing and scanning photo":"Photo selected"}</strong><small>{file.name}</small></>:<><span>＋</span><strong>Add an outfit or flat-lay photo</strong><small>iPhone HEIC/HEIF supported · compressed before upload</small></>}
+      <PhotoSourcePicker label="Add a whole-look photo" onFile={chooseFile}/>
+    </div>
     <div className="ai-notice"><span>HOW IT WORKS</span>AI finds distinct visible garments, crops each one into its own private wardrobe image, and asks you to confirm every label. Overlapping or hidden pieces may need a second photo.</div>
     {progress&&<div className="upload-progress" role="status" aria-live="polite"><span/><strong>{progress}…</strong><small>The original stays on your device; Racked uploads a smaller analysis copy.</small></div>}
     {error&&<div className="form-error" role="alert">{error}</div>}

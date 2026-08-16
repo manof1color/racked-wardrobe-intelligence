@@ -2,7 +2,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DEMO_STORE_DISCLAIMER, demoStoreBrandPath, formatPrice, isDemoStorefrontBrand, storefrontDescription, storefrontPrice } from "@/lib/demo-storefront";
+import { DemoPurchasePanel } from "@/components/demo-purchase-panel";
+import { DEMO_STORE_DISCLAIMER, demoProductImagePath, demoStoreBrandPath, formatPrice, isDemoStorefrontBrand, storefrontDescription, storefrontPrice } from "@/lib/demo-storefront";
 import { listPublicBrandProducts } from "@/lib/server/production-store";
 
 export async function generateMetadata({params}:{params:Promise<{brandSlug:string;sku:string}>}):Promise<Metadata>{
@@ -29,7 +30,7 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
     </header>
 
     <section className="demo-product">
-      <div className="demo-product-image">{product.imageUrls?.front?<img src={product.imageUrls.front} alt={product.name}/>:<span aria-hidden="true">◻</span>}</div>
+      <div className="demo-product-image">{demoProductImagePath(product.sku)||product.imageUrls?.front?<img src={demoProductImagePath(product.sku)??product.imageUrls?.front} alt={product.name}/>:<span aria-hidden="true">◻</span>}</div>
       <div className="demo-product-copy">
         <div className="eyebrow">{product.brand}</div>
         <h1>{product.name}</h1>
@@ -43,15 +44,12 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
           <div><dt>Availability</dt><dd>{unavailable?"Not available":"Demonstration only"}</dd></div>
         </dl>
 
-        <button type="button" className="button button-dark button-full" disabled aria-disabled="true">
-          {unavailable?"Unavailable":"Add to bag — disabled in demo"}
-        </button>
-        <p className="demo-product-nosale">This button is intentionally non-functional. There is no cart, no checkout, and no payment processing anywhere in this demonstration. No account, email, or payment details are ever collected here.</p>
+        <DemoPurchasePanel productName={product.name} unavailable={unavailable}/>
 
         <Link className="text-link" href={`/brands/${brandSlug}`}>See how this product is measured on Racked →</Link>
       </div>
     </section>
 
-    <footer className="demo-store-footer"><p>{DEMO_STORE_DISCLAIMER}</p><Link href="/community">Return to Racked →</Link></footer>
+    <footer className="demo-store-footer"><p>{DEMO_STORE_DISCLAIMER}</p><Link className="button button-accent demo-return-button" href="/community">Return to Racked →</Link></footer>
   </main>;
 }
