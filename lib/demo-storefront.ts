@@ -28,6 +28,23 @@ export function demoStoreProductUrl(origin: string, brandSlug: string, sku: stri
   return `${origin.replace(/\/+$/, "")}${demoStoreProductPath(brandSlug, sku)}`;
 }
 
+/**
+ * Curated, AI-generated product photography for the fictional DEMO catalog only.
+ * Apparel follows its seeded top/bottom/outerwear cycle; shoe and jewelry SKUs
+ * reuse three representative fictional catalog images. Real and PILOT products
+ * never enter this path.
+ */
+export function demoProductImagePath(sku:string) {
+  const match=/^(RTA|SSL|LTO)-(\d{3})$/i.exec(sku.trim());
+  if(!match)return undefined;
+  const prefix=match[1].toUpperCase();
+  const number=Number(match[2]);
+  if(number<1||number>10)return undefined;
+  if(prefix==="RTA"&&number===10)return undefined;
+  const representative=((number-1)%3)+1;
+  return `/demo-products/${prefix}-${String(representative).padStart(3,"0")}.webp`;
+}
+
 /** Only demonstration records get a fictional shop. Never a real or pilot brand. */
 export function isDemoStorefrontProduct(product: Pick<BrandProductRegistration, "dataClassification" | "testCohort">) {
   return product.dataClassification === "DEMO" || product.testCohort === true;
@@ -93,5 +110,5 @@ const COPY_BY_CATEGORY: Record<string, string> = {
 /** Fictional product copy. Deterministic, and never a real marketing claim. */
 export function storefrontDescription(product: Pick<BrandProductRegistration, "name" | "category">) {
   const base = COPY_BY_CATEGORY[product.category?.toLowerCase() ?? ""] ?? "A demonstration product used to exercise Racked's wardrobe and wear features.";
-  return `${base} ${product.name} is a fictional product created to demonstrate Racked; it does not exist and cannot be purchased.`;
+  return `${base} ${product.name} is a fictional product created to demonstrate Racked; it does not exist, and its checkout simulation never charges.`;
 }

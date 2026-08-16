@@ -16,7 +16,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Salted scrypt password hashes and signed HTTP-only role sessions.
 - [x] DynamoDB persistence for accounts, wardrobes, outfits, wears, products, consent, and posts.
 - [x] Private encrypted S3 images with public access blocked and expiring links.
-- [x] Phone camera/library upload for real front, back, and label photos.
+- [x] Separate, explicitly labeled **Take photo** and **Choose image** controls for whole-look intake and every real front/back/label evidence slot.
 - [x] Mobile photos are resized in the browser before the combined AWS request, with readable 413/non-JSON error handling.
 - [x] Automatic rotation plus a garment auto-crop for display, with a preserved unmodified evidence photo and a tested fallback to original framing when the crop is not confident.
 - [x] Human confirmation and server-signed garment save authorization.
@@ -28,7 +28,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Community publishes one selected saved outfit with all pieces, explicit product-resolution states, public garment IDs, and a post-scoped image proxy; owner/outfit/wardrobe IDs and S3 keys cannot leak.
 - [x] Outfit-first Community feed: the garment gallery leads each card, Brand Looks and Community Looks are visually distinguished, synthetic records carry a demo label, and commerce stays secondary to inspiration.
 - [x] "Recreate with my wardrobe" leads with coverage, splits pieces into what you already own versus what is missing in plain language, and lets any matched piece be inspected for the reason it was chosen.
-- [x] "Shop the Look" is an in-app inspection sheet; only an exact registry-verified product with a server-validated destination is openable, and similar/estimated/unverified/unavailable pieces are never presented as the exact piece worn.
+- [x] "Shop the Look" is an in-app inspection sheet; only an exact registry-verified product with a server-validated destination is openable, and similar/estimated/unverified/unavailable pieces are never presented as the exact piece worn. Fictional DEMO destinations include a visibly labeled $0.00 bag/checkout simulation with no payment or order backend.
 - [x] Brand Community Intelligence aggregates public Looks, likes, recreate requests, outbound interest, and pairings separately from private `k ≥ 25` wear analytics; only brand-owned product IDs are queryable.
 - [x] Public brand pages separate Products, brand-authored Brand Looks, and consumer-authored Community Looks, with a tested guarantee that neither provenance can be presented as the other.
 - [x] The Brand dashboard answers business questions in plain language ("Are people actually wearing it?", "Do they wear it more than once?", "What does it get worn with?") instead of naming metrics, with a tested guarantee that brand-facing copy never claims sales, revenue, conversion, purchase intent, or causation.
@@ -41,7 +41,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 152 automated tests, production build, and production dependency audit pass (verified 2026-08-16).
+- [x] Lint, type check (`tsc --noEmit`), 157 automated tests, production build, and production dependency audit pass (verified 2026-08-16).
 
 ## 3. AI integration / innovation — 20%
 

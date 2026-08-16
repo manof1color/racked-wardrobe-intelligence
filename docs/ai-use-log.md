@@ -84,3 +84,7 @@ The Brand wear agent applies the existing consent filter and k≥25 privacy thre
 ## Claims not made
 
 Racked does not claim photorealistic virtual try-on, body fit, recognition accuracy, purchase probability, sales lift, demographic classification, or production-scale validation.
+
+## Fictional demo product imagery
+
+OpenAI image generation was used to create three clearly fictional, unbranded catalog sheets: apparel (ivory T-shirt, navy trousers, orange bomber), footwear (off-white sneaker, charcoal runner, oxblood loafer), and jewelry (gold orbit ring, silver chain, gold cuff). Each prompt required isolated ecommerce product photography with no people, logos, labels, text, watermarks, or real-brand imitation. The sheets were deterministically split into nine WebP assets under `public/demo-products/`. These images are presentation fixtures for `DEMO` records only; they are not recognition training data, evaluation data, customer uploads, or evidence of real inventory.

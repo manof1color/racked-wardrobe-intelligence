@@ -46,3 +46,9 @@ test("the image proxy resolves only explicitly published garment IDs",()=>{
   assert.equal(publishedImageKey(stored,"public-top"),"wardrobe/private-account-uuid/top.png");
   assert.equal(publishedImageKey(stored,"not-published"),undefined);
 });
+
+test("fictional DEMO posts use only curated public product photography",()=>{
+  const demo=toPublicOutfitPost({...stored,fictional:true,dataClassification:"DEMO" as const,publishedGarments:stored.publishedGarments.map((garment,index)=>index===0?{...garment,verifiedProduct:{...garment.verifiedProduct!,sku:"RTA-001"}}:garment)});
+  assert.equal(demo.garments[0].image,"/demo-products/RTA-001.webp");
+  assert.equal(demo.garments[1].image,"/api/community/images/post-1/public-bottom","unverified pieces keep the post-scoped proxy");
+});

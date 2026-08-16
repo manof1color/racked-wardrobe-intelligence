@@ -15,6 +15,8 @@ The Brand account remains responsible for having rights to uploaded product phot
 
 Unit tests use small in-memory descriptors and typed fixture records to verify validation, registry matching, privacy thresholds, sessions, agents, and failure behavior. These fixtures are not served from `public/`, cannot be loaded from the production UI, and are not represented as real user or brand observations.
 
+The nine files in `public/demo-products/` are a separate class of clearly labeled presentation asset: AI-generated, unbranded fictional catalog photography for the three `DEMO` brands. They are not model-training or evaluation samples, and the application allowlists them only for known fictional SKU patterns.
+
 ## External evaluation source
 
 Racked selected the corrected [Clothing Dataset for Second-Hand Fashion, version 3](https://zenodo.org/records/13788681) as its independent recognition benchmark. The CC BY 4.0 release contains 31,638 main garments plus a separately identified 100-garment annotator-agreement set, with front, back, and brand-label photographs where available and human annotations. RISE Research Institutes of Sweden AB curated and released it with data collected by Wargön Innovation AB and Myrorna AB.

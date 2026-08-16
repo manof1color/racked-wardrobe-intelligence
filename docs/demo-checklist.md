@@ -50,14 +50,14 @@ Use public post `demo-consumer-post-01` (**Synthetic Consumer Look 01**) while s
 
 ## Shop the Look - seeded demo commerce
 
-All fictional demo products now carry a Racked demo-storefront URL, fictional USD price, and availability. At least 29 are available; `LTO-010` is deliberately unavailable. All remain `DEMO`.
+All fictional demo products carry a Racked demo-storefront URL, fictional USD price, and availability. At least 29 are available; `LTO-010` is deliberately unavailable. All remain `DEMO`. Nine committed AI-generated, unbranded product photographs cover representative apparel, footwear, and jewelry SKUs.
 
-- [ ] Sign in as a demo Brand and add a `productUrl` (and optionally `price`, `currency`, `availability`) to at least one enrolled product
-- [ ] Confirm the product then reports `EXACT_AVAILABLE`
-- [ ] Confirm **Shop the Look** now appears on a Community look containing it
-- [ ] Confirm the outbound link redirects through `/api/products/[id]/outbound`
-
-If this is not configured before the demo, **skip the step** and describe the state distinction from the brand page instead. Do not fake it.
+- [ ] Open a seeded Community look with an exact verified demo product and confirm the product photograph depicts a recognizable fictional garment, shoe, or jewelry piece
+- [ ] Confirm **Shop the Look** appears and exact, similar, unverified, and unavailable states stay visually distinct
+- [ ] Confirm the exact-product outbound link redirects through `/api/products/[id]/outbound` to the internal fictional storefront
+- [ ] Select **Add to demo bag**, then **Complete demo purchase — $0.00**
+- [ ] Confirm the completion screen states no card, payment, order, shipping, contact, or account data was collected
+- [ ] Use the visible **Return to Racked** button to return to Community
 
 ## Fallback plan
 

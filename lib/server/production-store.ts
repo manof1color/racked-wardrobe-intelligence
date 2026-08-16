@@ -17,6 +17,7 @@ import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type S
 import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
 import { findByPaginatedQuery } from "@/lib/community-lookup";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
+import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
 
 const scrypt = promisify(scryptCallback);
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -166,7 +167,7 @@ export async function incrementOutfitWears(ownerId:string,outfitId:string) {
 
 export async function listOwnedBrandProducts(ownerId:string):Promise<BrandProductRegistration[]> {
   const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"PRODUCT#"}}));
-  return Promise.all((result.Items??[]).map(async raw=>{const product=raw as unknown as BrandProductRegistration;return {...product,imageUrls:{front:await privateImageUrl(product.views.front.storageKey),back:await privateImageUrl(product.views.back.storageKey),label:await privateImageUrl(product.views.label.storageKey)}};}));
+  return Promise.all((result.Items??[]).map(async raw=>{const product=raw as unknown as BrandProductRegistration;const demoFront=isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined;return {...product,imageUrls:{front:demoFront??await privateImageUrl(product.views.front.storageKey),back:await privateImageUrl(product.views.back.storageKey),label:await privateImageUrl(product.views.label.storageKey)}};}));
 }
 
 export async function listRegistryProducts():Promise<BrandProductRegistration[]> {
@@ -175,7 +176,7 @@ export async function listRegistryProducts():Promise<BrandProductRegistration[]>
 }
 export async function getRegistryProductById(productId:string){return (await listRegistryProducts()).find(product=>product.id===productId)??null;}
 
-export async function listPublicBrandProducts(brandSlug:string):Promise<BrandProductRegistration[]>{const products=await listRegistryProducts();return Promise.all(products.filter(product=>product.brandSlug===brandSlug).map(async product=>({...product,imageUrls:{front:await privateImageUrl(product.views.front.storageKey)}})));}
+export async function listPublicBrandProducts(brandSlug:string):Promise<BrandProductRegistration[]>{const products=await listRegistryProducts();return Promise.all(products.filter(product=>product.brandSlug===brandSlug).map(async product=>({...product,imageUrls:{front:(isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined)??await privateImageUrl(product.views.front.storageKey)}})));}
 
 export async function saveBrandProduct(ownerId:string,product:BrandProductRegistration) {
   await db.send(new PutCommand({TableName:requireTable(),Item:{...product,PK:`USER#${ownerId}`,SK:`PRODUCT#${product.id}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${product.brandSlug}#${product.sku}`},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}));
