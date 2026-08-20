@@ -59,6 +59,8 @@ export interface AccountRecord {
   passwordChangedAt?: number;
 }
 
+function requireAccountSecuritySecret(){const secret=process.env.SESSION_SECRET;if(!secret)throw new ProductionConfigurationError("Session security is not configured.");return secret;}
+
 interface PasswordResetRecord { accountId:string; tokenHash:string; issuedAt:number; expiresAt:number; usedAt?:number; PK:string; SK:string; }
 
 function normalizeEmail(email:string) { return email.trim().toLowerCase(); }
@@ -123,14 +125,14 @@ export async function updateOwnAccount(ownerId:string,input:{displayName:string;
 export async function issuePasswordReset(email:string) {
   const account=await findAccountByEmail(email);
   if(!account)return null;
-  const token=createPasswordResetToken(),tokenHash=passwordResetTokenHash(token),issuedAt=Date.now(),expiresAt=issuedAt+PASSWORD_RESET_WINDOW_MS;
+  const token=createPasswordResetToken(),tokenHash=passwordResetTokenHash(token,requireAccountSecuritySecret()),issuedAt=Date.now(),expiresAt=issuedAt+PASSWORD_RESET_WINDOW_MS;
   const record:PasswordResetRecord={accountId:account.id,tokenHash,issuedAt,expiresAt,PK:`RESET#${tokenHash}`,SK:"TOKEN"};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...record,ttl:Math.ceil(expiresAt/1000)},ConditionExpression:"attribute_not_exists(PK)"}));
   return {token,email:account.email};
 }
 
 export async function consumePasswordReset(token:string,newPassword:string) {
-  const tokenHash=passwordResetTokenHash(token),now=Date.now();
+  const tokenHash=passwordResetTokenHash(token,requireAccountSecuritySecret()),now=Date.now();
   const found=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`RESET#${tokenHash}`,SK:"TOKEN"}}));
   const reset=found.Item as PasswordResetRecord|undefined;
   if(!reset)return null;
