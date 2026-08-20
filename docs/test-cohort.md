@@ -36,3 +36,18 @@ The automated suite builds the three existing fictional registries and proves th
 4. Create or inspect Brand Looks; Community labels seeded content as fictional DEMO data.
 5. Open **Hanger** and ask a strategy question grounded in the selected product’s released aggregate.
 6. Sign in as a supplied demo Consumer to inspect the wardrobe, saved outfit, Community, Recreate This Look, and Consumer Hanger flows.
+
+## Judge accounts
+
+Two additional clearly labeled DEMO accounts exist for competition judging, created by `scripts/seed-judge-accounts.mjs` under the same guards as the main cohort.
+
+| Account | Email | What a judge sees on first login |
+| --- | --- | --- |
+| Judge Consumer | `judge.consumer@racked.local` | Ten varied wardrobe pieces across tops, bottoms, outerwear and shoes, a realistic wear spread from never-worn to worn 22 times, two saved outfits, and brand data sharing already ON |
+| Judge Brand | `judge.brand@racked.local` | Judge Demo Atelier with two products: `JDA-001` above the 25-owner threshold showing released metrics, and `JDA-002` deliberately below it showing suppression |
+
+The wardrobe is deliberately varied — different categories, colours, styles, seasons and wear counts — so Hanger outfit ranking has real material to work with. A wardrobe of near-identical pieces would make the ranking invisible.
+
+The two brand products exist as a pair on purpose: a judge should see genuine released intelligence immediately and also see the privacy control refusing to release. That contrast demonstrates more than either state alone.
+
+**Passwords are not in this repository.** Both accounts authenticate against the runtime-only `RACKED_TEST_PASSWORD` supplied when the seed is run, exactly like the rest of the cohort. Credentials are handed to judges in the competition submission packet, never committed here — this repository is public, and a committed password would let anyone alter the demonstration data before it is reviewed.
