@@ -73,7 +73,7 @@ Authenticated navigation behaves like a mobile app: the Racked logo returns to t
 3. Amazon Bedrock receives that hypothesis with the back and label views, then confirms or revises it from the combined evidence. The consumer can correct the name, category, subtype, brand, and SKU. Only enrolled SKU/GTIN registry matches are verified — AI text and manual corrections never are.
 4. The server rotates the front photo, preserves it unmodified as private evidence, and produces a separate auto-cropped display version that shows just the garment — falling back to the original framing whenever the crop is not confident.
 5. The consumer confirms or edits the garment name, category, subtype, brand label, and optional SKU before saving. Unverified garments remain usable.
-6. The Looks view builds outfits from saved garment photos in a horizontal slide view, saves them, and records wear.
+6. The Looks view builds outfits from saved garment photos in a category-arranged flat-lay preview, saves them, and records wear.
 7. The Outfits tab lists every saved outfit with its pieces and wear total, and records a repeat wear in one tap.
 8. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account’s current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
 9. In Community, **Recreate with my wardrobe** compares a public outfit only against the signed-in consumer's wardrobe. The result leads with how much of the look they can already build, splits pieces into *use yours* and *you're missing* in plain language, and lets them open any matched piece to see which owned garment was chosen and why. **Shop the Look** then opens an in-app inspection sheet where only an exact registry-verified product with an authorized destination is openable — similar, AI-estimated, unverified, and unavailable pieces are labeled as such rather than sold, with affiliate disclosure where relevant. The rate-limited Similar Products API separately ranks only enrolled, available, same-category registry products with inspectable reasons; a suggestion never becomes an exact-match claim or exposes a consumer wardrobe.
@@ -169,7 +169,7 @@ components/look-scan-uploader.tsx  Select/edit/save UI for one-photo multi-piece
 components/photo-source-picker.tsx Explicit camera-versus-library input control
 components/demo-purchase-panel.tsx $0 fictional bag and checkout simulation
 components/workspace-mobile-nav.tsx Role-aware Consumer/Brand mobile navigation
-components/outfit-carousel.tsx     Outfit builder + horizontal slide view of cropped garments
+components/outfit-carousel.tsx     Outfit builder + flat-lay preview (with a legacy carousel fallback)
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
 tests/                         Privacy, recognition, evaluation, commerce, Brand Looks, Recreate suites
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
@@ -268,4 +268,4 @@ Multi-piece detection is functional but visibility-dependent: overlapping, occlu
 
 The AWS production data stack and Bedrock model access are configured, and `main` auto-deploys to the live URL above.
 
-Racked does **not** claim garment recognition accuracy, sales lift, purchase intent, demographic inference, photorealistic virtual try-on, body-fit prediction, or production-scale validation. The Looks slide view is a visual outfit composition tool. Private wear metrics are server-computed aggregates over opted-in owners above `k ≥ 25`; separately labeled Community metrics use only intentionally public posts and identity-free interaction events. The three-brand, 25-account cohort is synthetic and classified `DEMO` throughout. Pricing is a proposal; nothing is billed and no payment method is ever collected.
+Racked does **not** claim garment recognition accuracy, sales lift, purchase intent, demographic inference, photorealistic virtual try-on, body-fit prediction, or production-scale validation. The Looks flat-lay is a visual outfit composition tool, not virtual try-on. Private wear metrics are server-computed aggregates over opted-in owners above `k ≥ 25`; separately labeled Community metrics use only intentionally public posts and identity-free interaction events. The three-brand, 25-account cohort is synthetic and classified `DEMO` throughout. Pricing is a proposal; nothing is billed and no payment method is ever collected.

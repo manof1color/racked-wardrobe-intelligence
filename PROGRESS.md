@@ -77,6 +77,7 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 ## Phase 12 — Account recovery, right-brand proof, and outfit boards (2026-08-20)
 
 - [#66](https://github.com/manof1color/racked-wardrobe-intelligence/pull/66) adds own-account name/email/password settings, session-version invalidation, enumeration-safe 30-minute single-use password reset, category-arranged private flat-lay boards, mobile outfit overflow containment, an existing-cohort right-brand matching proof, and the small/medium Brand UX review. Amazon SES sender verification and sandbox exit remain an explicit owner-side delivery dependency rather than a false application claim.
+- Production verification confirmed the public recovery page, authenticated account settings, session-preserving return path, and a newly generated two-piece flat-lay saved to the synthetic Recreate Consumer. [#67](https://github.com/manof1color/racked-wardrobe-intelligence/pull/67) reconciles the remaining pre-flat-lay “slide view” wording in the interface and judge-facing summaries.
 
 ## Continuous verification
 
