@@ -2,6 +2,7 @@ import { BedrockRuntimeClient, ConverseCommand, type Message } from "@aws-sdk/cl
 import type { BrandMetrics } from "./metrics.ts";
 import type { AgentChatTurn, BrandCommunityMetrics, BrandProductRegistration } from "./platform-types.ts";
 import type { SavedOutfit, WardrobeItem } from "./types.ts";
+import { rankOutfit } from "./outfit-ranking.ts";
 
 const MAX_HISTORY_TURNS = 8;
 const MAX_MESSAGE_LENGTH = 1_000;
@@ -37,22 +38,13 @@ export function normalizeProviderHistory(value: unknown): AgentChatTurn[] {
   return normalized;
 }
 
-export function selectGroundedOutfit(wardrobe: WardrobeItem[], message: string) {
-  const request = message.toLowerCase();
-  const categories = ["top", "bottom", "shoe", "outerwear", "accessory"];
-  const ranked = [...wardrobe].sort((a, b) => {
-    if (a.wearCount !== b.wearCount) return a.wearCount - b.wearCount;
-    return (b.lastWornDays ?? 0) - (a.lastWornDays ?? 0);
-  });
-  if (/not worn|least worn|rotation|forgotten|underused/.test(request)) return ranked.slice(0, 4);
-  const chosen = categories
-    .map((category) => ranked.find((item) => item.category.toLowerCase().includes(category)))
-    .filter((item): item is WardrobeItem => Boolean(item));
-  for (const item of ranked) {
-    if (chosen.length >= 4) break;
-    if (!chosen.some((entry) => entry.id === item.id)) chosen.push(item);
-  }
-  return chosen.slice(0, 4);
+export function selectGroundedOutfit(wardrobe: WardrobeItem[], message: string, history: AgentChatTurn[] = []) {
+  return rankOutfit(wardrobe, message, { history }).pieces.map((piece) => piece.item);
+}
+
+/** Full ranking detail — score components and reasons — for evidence and prompting. */
+export function explainGroundedOutfit(wardrobe: WardrobeItem[], message: string, history: AgentChatTurn[] = []) {
+  return rankOutfit(wardrobe, message, { history });
 }
 
 function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[]) {

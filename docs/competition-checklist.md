@@ -50,6 +50,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
 - [x] Consumer Hanger Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
+- [x] Outfit selection is server-side and transparent: occasion, weather, style, underuse, and recency are scored per garment with inspectable components, the model never chooses or invents the items, selection is deterministic, and a follow-up sets aside what was already suggested so asking for something else returns something else.
 - [x] Brand Hanger Agent can access only brand-owned products and thresholded wear aggregates.
 - [x] Both Hanger roles support free-form follow-up conversation and retrieve fresh server-side context for every message.
 - [x] Consumer Hanger can save a grounded outfit or record it as worn; the save route revalidates item ownership.

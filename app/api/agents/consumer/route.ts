@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { generateConsumerHangerReply, sanitizeAgentHistory, selectGroundedOutfit } from "@/lib/hanger-conversation";
+import { explainGroundedOutfit, generateConsumerHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { listOutfits, listWardrobe } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -16,10 +16,13 @@ export async function POST(request: Request) {
   const message = (body.message?.trim() || legacyMessage).slice(0, 1_000);
 
   const [wardrobe, outfits] = await Promise.all([listWardrobe(session.subject), listOutfits(session.subject)]);
-  const suggested = selectGroundedOutfit(wardrobe, message);
+  const history = sanitizeAgentHistory(body.history);
+  // History is passed in so a follow-up sets aside what was already suggested.
+  const ranked = explainGroundedOutfit(wardrobe, message, history);
+  const suggested = ranked.pieces.map((piece) => piece.item);
   const generated = await generateConsumerHangerReply({
     message,
-    history: sanitizeAgentHistory(body.history),
+    history,
     wardrobe,
     outfits,
     suggested,
@@ -38,6 +41,8 @@ export async function POST(request: Request) {
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
       `${outfits.length} saved outfits checked this turn`,
+      ...ranked.pieces.map((piece) => `${piece.item.name}: ${piece.reasons[0] ?? "scored against this request"}`),
+      ...(ranked.setAside > 0 ? [`${ranked.setAside} piece${ranked.setAside === 1 ? "" : "s"} already suggested earlier in this conversation were set aside`] : []),
       "Only this signed-in account's wardrobe was available",
     ],
   };
