@@ -96,4 +96,4 @@ The Brand Hanger agent shares that exact function, so the dashboard and the conv
 
 ## Explicit non-claims
 
-The Looks slide view is a visual outfit composition tool, not photorealistic virtual try-on or body-fit prediction. Racked does not predict purchase likelihood, sales lift, identity, income, age, gender, ethnicity, or body measurements. The adaptive photo plan reduces unnecessary photos; it does not improve identification accuracy, and it never changes what counts as verified. Published pricing is a proposal with no billing integration behind it.
+The Looks flat-lay is a visual outfit composition tool, not photorealistic virtual try-on or body-fit prediction. Racked does not predict purchase likelihood, sales lift, identity, income, age, gender, ethnicity, or body measurements. The adaptive photo plan reduces unnecessary photos; it does not improve identification accuracy, and it never changes what counts as verified. Published pricing is a proposal with no billing integration behind it.

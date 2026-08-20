@@ -59,7 +59,7 @@ export function OutfitBuilder({ items, onRecord }: { items: WardrobeItem[]; onRe
     <div className="looks-copy">
       <div className="eyebrow">OUTFIT LAB · YOUR SAVED PIECES</div>
       <h2 id="looks-title">Build a look, piece by piece.</h2>
-      <p>Tap garments to add them to the look. The slide view previews your cropped garment photos in layer order. Saving stores the outfit and records one wear for every selected piece.</p>
+      <p>Tap garments to add them to the look. The flat-lay preview arranges your private cropped garment photos by category. Saving stores the outfit and records one wear for every selected piece.</p>
       <div className="outfit-picker">
         {[...groups, { category: "other", options: uncategorized }].filter((group) => group.options.length > 0).map((group) => <div key={group.category}>
           <span className="eyebrow">{group.category}</span>
