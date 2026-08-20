@@ -48,6 +48,7 @@ export function LoginPanel() {
         <label><span>Email</span><input type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="you@example.com"/></label>
         <label><span>Password</span><input type="password" autoComplete={mode==="create"?"new-password":"current-password"} value={password} onChange={event=>setPassword(event.target.value)} placeholder={mode==="create"?"12+ characters":"Your password"}/></label>
       </div>
+      {mode==="signin"&&<Link className="forgot-link" href="/forgot-password">Forgot password?</Link>}
       {mode==="create"&&role==="consumer"&&<label className="consent-row"><input type="checkbox" checked={consent} onChange={event=>setConsent(event.target.checked)}/><span><strong>I consent to wardrobe image processing.</strong><small>My photos and wear history remain private. Brands receive only qualifying anonymous aggregates when I separately enable sharing.</small></span></label>}
       {error&&<div className="form-error" role="alert">{error}</div>}
       <button className="button button-accent button-full" disabled={busy||!email||!password||(mode==="create"&&(!displayName||(role==="brand"&&!brandName)||(role==="consumer"&&!consent)))} onClick={submit}>{busy?"Please wait…":mode==="signin"?"Sign in →":"Create account →"}</button>

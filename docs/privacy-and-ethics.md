@@ -32,6 +32,8 @@ Consumer and Brand images are encrypted in an S3 bucket with all public access b
 
 The matching and wear systems do not store protected demographic attributes. Brand analytics do not query names, email addresses, images, or full wardrobes. Password hashes and salts are never returned by application APIs.
 
+Password recovery does not reveal account existence. Reset secrets are never stored directly: DynamoDB receives only a keyed HMAC derived with the private session secret. Tokens expire after 30 minutes, work once, and become invalid after any password change. SES delivery logs exclude the email address and token.
+
 ## Retention and deletion
 
 Production account deletion must remove the exact account partition, owned S3 objects, public posts, and brand product records, then recompute affected product aggregates. Security logs must exclude tokens, passwords, signed URLs, and image bytes.

@@ -26,6 +26,9 @@ export interface SavedOutfit {
   wears: number;
   /** V2 snapshot; itemIds remains for backward-compatible wear recording. */
   pieces?: OutfitPieceReference[];
+  /** Private, generated flat-lay presentation; evidence photos remain separate. */
+  boardImageKey?: string;
+  boardImageUrl?: string;
 }
 
 export type ProductResolutionState = "EXACT_VERIFIED_PRODUCT" | "AI_ESTIMATED_PRODUCT" | "SIMILAR_PRODUCT" | "GENERIC_UNVERIFIED" | "VERIFIED_UNAVAILABLE";

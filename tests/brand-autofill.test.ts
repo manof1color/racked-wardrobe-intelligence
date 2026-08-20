@@ -48,6 +48,8 @@ test("REGRESSION: AI-detected brand text alone can never produce verified status
   });
   assert.equal(withSku.label.matched, true);
   assert.equal(withSku.label.matchMethod, "brand-sku");
+  assert.equal(withSku.label.registryProductId,"registry-na-ow-1042");
+  assert.equal(withSku.label.brand,"Northstar Atelier");
 });
 
 test("placeholder or unreadable brand text is discarded instead of autofilled", async () => {

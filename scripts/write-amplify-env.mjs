@@ -11,6 +11,8 @@ const allowlist = [
   "NEXT_PUBLIC_SITE_URL",
   "RACKED_TABLE_NAME",
   "RACKED_UPLOAD_BUCKET",
+  "RACKED_PASSWORD_RESET_FROM",
+  "RACKED_PUBLIC_ORIGIN",
 ];
 
 const sessionSecret = process.env.SESSION_SECRET ?? "";

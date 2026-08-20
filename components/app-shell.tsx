@@ -31,6 +31,7 @@ export function AppShell({ role, children }: { role:Role; children:ReactNode }) 
       <nav aria-label="Workspace navigation">
         <Link href={workspaceHome(role)}>Workspace</Link>
         <Link href="/community">Community</Link>
+        <Link href="/settings">Settings</Link>
         <button className="text-button" onClick={logout}>Sign out</button>
       </nav>
       <div className="app-menu" ref={menuRef}>
@@ -38,6 +39,7 @@ export function AppShell({ role, children }: { role:Role; children:ReactNode }) 
         {menuOpen&&<nav className="app-menu-popover account-menu-popover" id="authenticated-account-menu" aria-label={`${role} account menu`}>
           <div className="app-menu-heading"><small>SIGNED IN</small><strong>{role==="consumer"?"Consumer account":"Brand account"}</strong></div>
           <p className="account-menu-note">Use the bottom tabs to move around Racked. This menu is only for your session.</p>
+          <Link className="app-menu-settings" href="/settings" onClick={()=>setMenuOpen(false)}><strong>Account settings</strong><small>Name, email, and password</small></Link>
           <button type="button" className="app-menu-signout" disabled={signingOut} onClick={logout}><strong>{signingOut?"Signing out…":"Sign out"}</strong><small>End this session on this device</small></button>
         </nav>}
       </div>

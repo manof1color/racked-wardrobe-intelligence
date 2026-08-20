@@ -20,6 +20,9 @@ export interface RateLimitDecision {
 export const RATE_LIMIT_RULES = {
   login: { limit: 10, windowMs: 5 * 60 * 1000 },
   register: { limit: 5, windowMs: 60 * 60 * 1000 },
+  passwordResetRequest: { limit: 5, windowMs: 60 * 60 * 1000 },
+  passwordResetConsume: { limit: 10, windowMs: 60 * 60 * 1000 },
+  accountSettings: { limit: 10, windowMs: 15 * 60 * 1000 },
   garmentAnalyze: { limit: 12, windowMs: 10 * 60 * 1000 },
   garmentClassify: { limit: 20, windowMs: 10 * 60 * 1000 },
   lookDetect: { limit: 12, windowMs: 10 * 60 * 1000 },

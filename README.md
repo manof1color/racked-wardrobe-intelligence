@@ -79,6 +79,8 @@ Authenticated navigation behaves like a mobile app: the Racked logo returns to t
 9. In Community, **Recreate with my wardrobe** compares a public outfit only against the signed-in consumer's wardrobe. The result leads with how much of the look they can already build, splits pieces into *use yours* and *you're missing* in plain language, and lets them open any matched piece to see which owned garment was chosen and why. **Shop the Look** then opens an in-app inspection sheet where only an exact registry-verified product with an authorized destination is openable — similar, AI-estimated, unverified, and unavailable pieces are labeled as such rather than sold, with affiliate disclosure where relevant. The rate-limited Similar Products API separately ranks only enrolled, available, same-category registry products with inspectable reasons; a suggestion never becomes an exact-match claim or exposes a consumer wardrobe.
 10. The consumer may separately opt in to anonymous brand aggregates and may publish one explicitly selected saved outfit to Community. Every public garment gets a new public ID; private wardrobe IDs and S3 keys never enter the feed.
 
+Saved Looks also generate a private, static flat-lay board from the existing cropped/cutout garment images. Category-aware placement keeps layers toward the top, bottoms lower, footwear at the base, and accessories toward the corners. Original evidence photos remain unchanged and private.
+
 ### Brand
 
 1. Create a Brand account bound to the represented brand name.
@@ -87,6 +89,12 @@ Authenticated navigation behaves like a mobile app: the Racked logo returns to t
 4. The Brand dashboard reports actual wears, active owners, and repeat-wear rate only when at least 25 opted-in owners qualify.
 5. Hanger on the Brand dashboard supports follow-up strategy conversations but is restricted to the brand’s own products and the same consent-filtered, `k ≥ 25` aggregates.
 6. A brand can create a clearly labeled Brand Look using only its enrolled products. Optional product/affiliate destinations are validated public HTTPS links; Racked records aggregate outbound interest and redirects to external checkout.
+
+### Account access
+
+Signed-in Consumer and Brand accounts have a Settings screen for their own display name, email, and password. Every update requires the current password; changing it re-hashes with a new salt, invalidates other sessions through a session version, and renews only the current session. Forgot-password links are random, stored only as hashes, expire after 30 minutes, work once, and return the same request response for known and unknown emails.
+
+Reset delivery uses Amazon SES. **Code completion does not guarantee public email delivery:** `RACKED_PASSWORD_RESET_FROM` must be a verified SES identity, and an account still in the SES sandbox can send only to verified recipients. That supports pre-verified judge accounts but is not a general public reset service until AWS grants production sending access.
 
 ## Why the AI is substantive
 
@@ -126,6 +134,8 @@ The Amplify compute role has only the DynamoDB, S3-object, and Bedrock permissio
 
 ```text
 app/api/auth/…                 Register/login/logout: scrypt hashes, signed sessions, rate limits
+app/api/account/               Own-account settings + current-password authorization
+app/api/auth/password-reset/   Enumeration-safe request + single-use reset confirmation
 app/api/garments/classify/     Adaptive first-photo category + subtype hypothesis (photo plan)
 app/api/garments/analyze/      Bedrock vision + registry identity + evidence/display image storage
 app/api/garments/detect/       One-photo multi-piece detection + private per-garment crops
@@ -148,6 +158,8 @@ lib/commerce.ts                Public-HTTPS validation and controlled destinatio
 lib/brand-looks.ts             Brand-owned authorization for Brand Looks
 lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
 lib/garment-cutout.ts          Conservative edge-connected transparency for detected pieces
+lib/outfit-board.ts            Deterministic category-aware flat-lay placement
+lib/account-security.ts        Password policy and reset-token lifetime/hash rules
 lib/photo-plan.ts              Category → photo-plan agent logic (identity-free by construction)
 lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output privacy review
 lib/privacy.ts                 k ≥ 25 gate + product-enumeration budget
@@ -167,6 +179,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 
 - Passwords are salted with a random value and hashed with scrypt.
 - Sessions are signed, expiring, secure, HTTP-only cookies.
+- Account updates are scoped only to the signed-in subject and require the current password. Password changes increment a server-side session version; reset tokens are hashed, single-use, and valid for 30 minutes.
 - Garment saves require a server-signed confirmation token tied to the account and both private image keys.
 - S3 public access is blocked; URLs expire after one hour.
 - Consumer photos and raw wardrobe records are never returned to brands. Community publishes only a selected saved outfit, replaces wardrobe IDs with public garment IDs, and serves its presentation through a post-scoped image proxy. The public allowlist cannot serialize owner IDs, saved-outfit IDs, private S3 keys, or database keys.
@@ -183,8 +196,8 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled)—the post-purchase signal brands lack |
 | Functionality — 25% | Live AWS PWA, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a k≥25 dashboard with charts and CSV export |
 | AI & innovation — 20% | Bedrock multi-view garment vision, distinct context-grounded Consumer and Brand Hanger agents, and explainable Recreate/Similar Product scoring that never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **157 passing tests** incl. multi-piece detection, cutout safety, camera/library controls, session navigation, demo commerce, evaluation, community, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
-| UX & polish — 10% | Mobile-first bottom tabs, session-only account menu, explicit camera/library choices, photorealistic fictional catalog assets, $0 purchase simulation, empty/loading/error/suppressed states, and installable PWA |
+| Code, docs & GitHub — 15% | Typed modules, **166 passing tests** incl. account recovery, own-account authorization, right-brand matching, flat-lay layout, multi-piece detection, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| UX & polish — 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choices, static flat-lay boards, fictional catalog assets, $0 purchase simulation, honest first-time/suppressed states, and installable PWA |
 | Business impact — 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
 
@@ -224,7 +237,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 157 passing tests (verified 2026-08-16). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application. The nine images under `public/demo-products/` are AI-generated, fictional, unbranded competition assets—not real catalog or customer photography.
+All five run in CI on every push and pull request. The suite currently has 166 passing tests (verified 2026-08-20). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application. The nine images under `public/demo-products/` are AI-generated, fictional, unbranded competition assets—not real catalog or customer photography.
 
 ## Install on a phone
 
@@ -243,6 +256,7 @@ Everything above is self-contained; these go deeper.
 - [Independent recognition evaluation](docs/evaluation.md) — 31,638-item source, license, protocol, claim rules
 - [Dataset provenance](docs/dataset-provenance.md) — production, synthetic, and external-data boundaries
 - [Clearly labeled test cohort](docs/test-cohort.md)
+- [Small/medium Brand UX review](docs/brand-ux-review.md)
 - [Privacy and ethics](docs/privacy-and-ethics.md) — consent, k ≥ 25, brand identity boundary
 - [AWS deployment](docs/aws-deployment.md)
 - [Presentation script](docs/demo-script.md)
