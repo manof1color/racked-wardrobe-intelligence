@@ -46,6 +46,22 @@ Allowed tools:
 
 It is a multi-turn conversation, not a one-click summary. The browser sends at most eight prior user/assistant turns; the server treats that history only as conversational text and reloads authoritative wardrobe context on every message. It may select only owned items, returns its evidence and tool list, and exposes server-selected actions to save the outfit or record those pieces as worn. The save endpoint independently checks that every submitted item belongs to the signed-in wardrobe.
 
+### Outfit selection
+
+Which garments are proposed is decided by `lib/outfit-ranking.ts` on the server, never by the model — the model writes the explanation around a set it is given, and cannot introduce, rename, or invent an item. Selection reads occasion, weather, and style signals out of the request itself, then scores every owned garment on five weighted signals:
+
+| Signal | Outfit request | Rotation request |
+| --- | ---: | ---: |
+| Occasion fit (style tags vs. the stated occasion) | 30% | 10% |
+| Weather and season | 20% | 10% |
+| Requested style | 15% | 10% |
+| Underuse (wear count) | 20% | 45% |
+| Time since last worn | 15% | 25% |
+
+The highest-scoring garment fills each category slot before any remainder is filled, so an outfit covers distinct categories instead of stacking one. Every returned piece carries its five score components with evidence, and those reasons are surfaced in the reply's evidence list, so a judge can see why each garment was chosen.
+
+Two properties matter for honesty. Selection is **deterministic** — weighted scores with an id tie-break, never sampling — so the same request against the same wardrobe always produces the same outfit and can be tested. And a follow-up **sets aside** garments Hanger already proposed earlier in the same conversation (matched by name against prior assistant turns, since stored history is plain text), so asking for something else genuinely returns something else. If a wardrobe is too small to avoid repeating, it returns a real outfit rather than an empty one, and reports that nothing was set aside.
+
 ## Brand Hanger Agent
 
 Allowed tools:
