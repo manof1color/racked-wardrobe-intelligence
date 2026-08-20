@@ -4,6 +4,17 @@ All private routes verify the signed HTTP-only session and role on the server. S
 
 ## Abuse controls
 
+Account recovery and settings use separate rate-limit buckets in addition to login and registration limits.
+
+## Account and recovery
+
+- `GET /api/account` — authenticated; returns only the signed-in account's editable name/email plus role and immutable brand name.
+- `PATCH /api/account` — authenticated; accepts no account ID, scopes the write to the session subject, requires the current password, rejects duplicate email ownership, and optionally changes the password. A password change invalidates other sessions and renews the current cookie.
+- `POST /api/auth/password-reset/request` — public and enumeration-resistant. Known/unknown/malformed email requests receive the same `202` message. For a real account, Racked stores only a hash of a random reset token and attempts SES delivery.
+- `POST /api/auth/password-reset/confirm` — public, rate-limited; consumes a valid token once, within 30 minutes, applies the normal password policy, re-hashes, and invalidates sessions and older reset links.
+
+SES delivery requires `RACKED_PASSWORD_RESET_FROM` to be verified. Sandbox accounts can send only to verified recipients.
+
 Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, accept public writes, discover products, or record outbound interest apply sliding-window rate limits and answer excess traffic with HTTP 429 plus a `retry-after` header: sign-in (per client and per email), registration, garment analysis, both Hanger agents, brand metrics, community publishing and likes, Similar Products, and outbound product redirects. Counters are held in compute-instance memory (documented in `SECURITY.md` as a first layer). Separately, brand aggregate reads are governed by a persistent DynamoDB enumeration budget — at most six distinct products per brand account per five minutes — enforced inside the shared metrics function so the dashboard and Brand Hanger cannot be used to sweep near-threshold cohorts.
 
 | Route | Access | Production behavior |
@@ -16,7 +27,7 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, accep
 | `POST /api/garments/classify` | Consumer | Classifies the first photo into a controlled category/subtype hypothesis with confidence, visible reasoning, and bounded alternatives; returns a category-specific photo plan, stores nothing, exposes no identity fields, and falls back honestly on provider failure |
 | `POST /api/garments/analyze` | Consumer | Receives front/back/label views plus the bounded initial hypothesis, asks Bedrock to confirm or revise it, normalizes subtype/pattern/material/alternatives, separately resolves registry identity, stores private evidence plus an auto-cropped display image, and returns an HMAC-signed confirmation |
 | `POST /api/consumer/wardrobe` | Consumer | Verifies the account/image confirmation HMAC and persists controlled category/subtype plus bounded Consumer-confirmed name, brand, and optional SKU; descriptive corrections cannot create a verified product link |
-| `POST /api/consumer/outfits` | Consumer | Saves an account-owned outfit of 1–10 unique wardrobe items |
+| `POST /api/consumer/outfits` | Consumer | Saves an account-owned outfit of 1–10 unique wardrobe items and generates a private category-arranged flat-lay WebP when display crops are available |
 | `POST /api/wears` | Consumer | Atomically increments owned-item totals and writes a timestamped product wear event when the garment is registry-linked |
 | `GET/PATCH /api/consumer/consent` | Consumer | Reads or changes that account’s brand-aggregate opt-in |
 | `POST /api/agents/consumer` | Consumer | Accepts a free-form message plus at most eight bounded chat turns, reloads that account’s current garments/wears/outfits, and returns a grounded answer with validated save/wear actions |

@@ -20,7 +20,13 @@ Brand login emails are safe to document because they are fictional:
 
 Consumer emails follow `demo.consumer01@racked.local` through `demo.consumer25@racked.local`. The password must be given privately by the project owner.
 
+These `.local` addresses are deliberately non-deliverable and therefore cannot receive SES password-reset messages. Recovery testing must use a separate synthetic account tied to an SES-verified recipient; no real recipient address belongs in this public document or the seed.
+
 The seed is idempotent by stable demo IDs. Re-running refreshes only clearly classified DEMO records. A real business first registers normally as `REGULAR`; the guarded `scripts/classify-pilot-brand.mjs` can mark that real Brand account `PILOT` and explicitly refuses DEMO/test-cohort accounts. No synthetic activity is copied into a pilot account.
+
+## Right-brand verification
+
+The automated suite builds the three existing fictional registries and proves that each brand+SKU label resolves to that exact registry record—not either neighboring brand. With production AWS runtime access, run `pnpm verify:demo-match` to query the deployed `BRAND_PRODUCTS` index and verify `RTA-001` (or set `RACKED_MATCH_TEST_SKU`) against the real seeded table. The script reports only DEMO identifiers and fails if the resolved brand/product differs. This repository does not claim that production-table command was run unless its output is recorded in a deployment report.
 
 ## Judge path
 

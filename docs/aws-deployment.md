@@ -29,11 +29,17 @@ Amplify is configured with the table and bucket names, the compute role, `AI_PRO
 SESSION_SECRET
 RACKED_TABLE_NAME
 RACKED_UPLOAD_BUCKET
+RACKED_PASSWORD_RESET_FROM
+RACKED_PUBLIC_ORIGIN
 AI_PROVIDER=bedrock
 AI_MODEL=amazon.nova-lite-v1:0
 AI_BRAND_MODEL=amazon.nova-lite-v1:0
 NEXT_PUBLIC_SITE_URL
 ```
+
+`RACKED_PASSWORD_RESET_FROM` must be a verified Amazon SES identity. If SES remains in sandbox mode, reset email works only for recipient addresses that are also verified. Before public recovery can be claimed, request SES production access and verify SPF/DKIM for the sender domain. The Amplify compute role includes only `ses:SendEmail`; no SMTP/API credential is committed.
+
+The committed synthetic cohort uses reserved `.local` addresses, so those accounts cannot receive real email. To demonstrate recovery before SES leaves its sandbox, use a separately created synthetic test account whose recipient address is verified in SES; never replace the documented cohort addresses with a judge's or customer's private email in source control. Deploying the application code also does not update an already-created IAM role automatically: apply the `infra/template.yaml` permission change (or add the equivalent narrowly scoped `ses:SendEmail` policy) before expecting delivery.
 
 `AWS_REGION` is supplied by the AWS runtime and must not be added as an Amplify environment variable because the prefix is reserved.
 
@@ -45,7 +51,7 @@ NEXT_PUBLIC_SITE_URL
 - [x] Amazon Bedrock model is available in `us-east-2`.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
-- [x] All 157 automated tests pass locally (re-verified 2026-08-16; CI and CodeQL remain the merge gate).
+- [x] All 166 automated tests pass locally (re-verified 2026-08-20; CI and CodeQL remain the merge gate).
 - [x] Production Next.js build passed.
 - [x] Amplify deployment 39 deployed PR #52 merge commit `893c4fb`; the synthetic seed was rerun and the documented 62% exact + strong substitute + missing Recreate result was verified live.
 - [ ] Post-merge live account, photo, persistence, and brand enrollment smoke test.

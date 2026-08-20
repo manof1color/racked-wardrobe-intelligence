@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import type { WardrobeItem } from "@/lib/types";
+import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
 
 const CATEGORY_ORDER = ["outerwear", "top", "bottom", "shoe", "accessory"];
 const MAX_OUTFIT_PIECES = 10;
@@ -25,6 +26,8 @@ export function OutfitPieceCarousel({ pieces, label }: { pieces: WardrobeItem[];
     </figure>)}
   </div>;
 }
+
+export function OutfitFlatLay({pieces,label}:{pieces:WardrobeItem[];label:string}){const placements=outfitBoardLayout(pieces);return <div className="flatlay-board" role="img" aria-label={label}>{placements.map(placement=>{const item=pieces.find(entry=>entry.id===placement.id)!;return <figure key={item.id} style={{left:`${placement.x/OUTFIT_BOARD_WIDTH*100}%`,top:`${placement.y/OUTFIT_BOARD_HEIGHT*100}%`,width:`${placement.width/OUTFIT_BOARD_WIDTH*100}%`,height:`${placement.height/OUTFIT_BOARD_HEIGHT*100}%`}}>{item.imageUrl?<img src={item.imageUrl} alt=""/>:<span>{item.name}</span>}</figure>;})}</div>}
 
 export function OutfitBuilder({ items, onRecord }: { items: WardrobeItem[]; onRecord: (ids: string[]) => Promise<void> }) {
   const [selected, setSelected] = useState<string[]>([]);
@@ -71,7 +74,7 @@ export function OutfitBuilder({ items, onRecord }: { items: WardrobeItem[]; onRe
       <div className="panel-heading"><div><div className="eyebrow">THIS LOOK</div><h3>{chosen.length} piece{chosen.length === 1 ? "" : "s"} selected</h3></div><span>{MAX_OUTFIT_PIECES} max</span></div>
       {chosen.length === 0
         ? <div className="empty-match looks-empty"><h3>No pieces selected yet.</h3><p>Choose garments on the left (or above on a phone) to preview the look.</p></div>
-        : <OutfitPieceCarousel pieces={chosen} label={`Selected outfit with ${chosen.length} pieces`} />}
+        : <OutfitFlatLay pieces={chosen} label={`Flat-lay preview of selected outfit with ${chosen.length} pieces`} />}
       {error && <div className="form-error" role="alert">{error}</div>}
       <button type="button" className="button button-accent button-full" onClick={record} disabled={busy || chosen.length === 0}>{busy ? "Saving outfit…" : "Save & wear this look"}</button>
     </div>

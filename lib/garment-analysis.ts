@@ -252,7 +252,7 @@ export async function analyzeGarmentImages(
       const matched=registryResult.label.matched;
       const majorSuggestion=!matched?suggestMajorBrand(combinedLabelText):null;
       const aiBrand=!matched&&!majorSuggestion?cleanVisibleBrandText(vision.brandText):null;
-      const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:aiBrand?{brand:aiBrand,sku:"UNVERIFIED",brandSlug:null,matched:false,suggested:true,registryProductId:null,matchMethod:"ai-label-text" as const}:registryResult.label;
+      const label=matched?registryResult.label:majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:aiBrand?{brand:aiBrand,sku:"UNVERIFIED",brandSlug:null,matched:false,suggested:true,registryProductId:null,matchMethod:"ai-label-text" as const}:registryResult.label;
       return {provider:"multimodal",fallback:false,confidence:vision.confidence,dataSufficiency:parts.length===3?"complete":"partial",garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,label,evidence:vision.evidence,warnings:[matched?"Visible label text matched a brand-enrolled registry record. Confirm all suggested attributes before saving.":majorSuggestion?`${majorSuggestion.brand} was suggested from visible label evidence. Confirm or edit the name; it is not a verified product link.`:aiBrand?`“${aiBrand}” was read from the visible label or logo and prefilled for you. Confirm or edit it; it is not a verified product link.`:"AI analyzed visible attributes, but brand and SKU remain unverified until evidence matches a brand-enrolled registry record."]};
     } catch(error) {
       console.error("Bedrock garment analysis failed",{name:error instanceof Error?error.name:"UnknownError",message:error instanceof Error?error.message:"Unknown provider failure",modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,views:images.map(image=>image.view),imageBytes:images.map(image=>Buffer.byteLength(image.base64,"base64"))});
@@ -290,7 +290,7 @@ export async function analyzeGarmentImages(
     const matched=registryResult.label.matched;
     const majorSuggestion=!matched?suggestMajorBrand(combinedLabelText):null;
     const aiBrand=!matched&&!majorSuggestion?cleanVisibleBrandText(vision.brandText):null;
-    const label=majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:aiBrand?{brand:aiBrand,sku:"UNVERIFIED",brandSlug:null,matched:false,suggested:true,registryProductId:null,matchMethod:"ai-label-text" as const}:registryResult.label;
+    const label=matched?registryResult.label:majorSuggestion?{brand:majorSuggestion.brand,sku:"UNVERIFIED",brandSlug:majorSuggestion.brandSlug,matched:false,suggested:true,registryProductId:null,matchMethod:"major-brand-suggestion" as const}:aiBrand?{brand:aiBrand,sku:"UNVERIFIED",brandSlug:null,matched:false,suggested:true,registryProductId:null,matchMethod:"ai-label-text" as const}:registryResult.label;
     return {
       provider:"multimodal", fallback:false, confidence:vision.confidence, dataSufficiency:parts.length===3?"complete":"partial",
       garment:matched?{...vision.garment,name:registryResult.garment.name}:vision.garment,

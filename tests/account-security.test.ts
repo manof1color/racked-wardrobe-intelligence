@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import test from "node:test";
+import {GENERIC_RESET_RESPONSE,PASSWORD_RESET_WINDOW_MS,createPasswordResetToken,passwordResetIsUsable,passwordResetTokenHash,passwordValidationError} from "../lib/account-security.ts";
+
+test("password reset tokens are random and only their stable hash is stored",()=>{const first=createPasswordResetToken(),second=createPasswordResetToken();assert.notEqual(first,second);assert.notEqual(passwordResetTokenHash(first),first);assert.equal(passwordResetTokenHash(first),passwordResetTokenHash(first));});
+test("reset state expires after 30 minutes and is single use",()=>{const issuedAt=1_000_000,state={issuedAt,expiresAt:issuedAt+PASSWORD_RESET_WINDOW_MS};assert.equal(passwordResetIsUsable(state,0,issuedAt+1),true);assert.equal(passwordResetIsUsable({...state,usedAt:issuedAt+2},0,issuedAt+3),false);assert.equal(passwordResetIsUsable(state,0,state.expiresAt),false);assert.equal(passwordResetIsUsable(state,issuedAt,issuedAt+1),false);});
+test("request responses resist account enumeration",()=>{const source=readFileSync(new URL("../app/api/auth/password-reset/request/route.ts",import.meta.url),"utf8");assert.match(source,/GENERIC_RESET_RESPONSE/);assert.doesNotMatch(source,/account exists|account not found/i);assert.match(GENERIC_RESET_RESPONSE,/If an account exists/i);});
+test("settings are scoped to the session subject and require the current password",()=>{const source=readFileSync(new URL("../app/api/account/route.ts",import.meta.url),"utf8");assert.match(source,/updateOwnAccount\(session\.subject/);assert.match(source,/currentPassword/);assert.doesNotMatch(source,/body\.(ownerId|accountId|subject)/);});
+test("password policy remains consistent",()=>{assert.ok(passwordValidationError("weak"));assert.equal(passwordValidationError("LongEnoughPassword1"),null);});
+test("Amplify carries only the named reset variables into SSR",()=>{const source=readFileSync(new URL("../scripts/write-amplify-env.mjs",import.meta.url),"utf8");assert.match(source,/RACKED_PASSWORD_RESET_FROM/);assert.match(source,/RACKED_PUBLIC_ORIGIN/);assert.doesNotMatch(source,/Object\.entries\(process\.env\)/);});

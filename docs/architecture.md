@@ -17,6 +17,10 @@ Every private route resolves the signed session on the server before touching da
 
 ## Identity
 
+Account profiles carry a monotonically increasing `sessionVersion`. Signed cookies include the version; every authenticated request compares it with the account record. A password change increments the record, invalidating older cookies, while the successful Settings request issues one replacement cookie for the current device.
+
+Password-reset requests always return the same public response. A random 256-bit token is emailed while only its SHA-256 hash, account ID, issue time, 30-minute expiry, TTL, and use state are stored. The consuming DynamoDB update is conditional on the token being unused and unexpired. Any later password change also makes earlier reset records unusable.
+
 `POST /api/auth/register` creates a Consumer or Brand record. Email is normalized, passwords are salted and scrypt-hashed, and a signed HTTP-only session carries only the account subject, role, and expiry. Protected pages enforce the role on the server.
 
 ## Consumer ownership boundary
@@ -44,6 +48,8 @@ Saved-outfit mutations, including wear increments, are addressed inside the sign
 Brand products use the same account partition with `PRODUCT#<id>` sort keys. The brand name comes from the authenticated account, not a submitted form field. Authorized product images are private. A cross-product registry index contains only product registry records needed for label/SKU resolution.
 
 ## Image and AI path
+
+Saved-outfit flat lays reuse only the signed-in Consumer's existing private display crops. Sharp places them into deterministic category regions, writes a separate private WebP under that owner's wardrobe prefix, and leaves evidence images untouched. Signed one-hour URLs are returned only to that owner.
 
 The default Consumer Add mode is a one-photo instance-detection path. Bedrock may return up to eight distinct visible wearable items with normalized bounds and controlled attributes. The parser rejects unknown, tiny, and near-duplicate candidates; Sharp stores one private source image and produces a separate private display image for each candidate. A deterministic flood fill removes only background-like pixels connected to a consistent crop edge. Plain backgrounds therefore become transparent, while busy or ambiguous edges fail safely to an opaque tight crop. The Consumer chooses and edits candidates before saving, and every candidate receives its own account- and content-bound HMAC. This path explicitly prohibits person or demographic inference, and AI-read logo text has no registry-verification authority. If the provider fails or no clear piece is visible, the API returns an honest error instead of inventing detections.
 

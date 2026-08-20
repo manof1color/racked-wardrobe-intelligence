@@ -156,6 +156,10 @@ Resources:
                 Resource:
                   - "arn:aws:bedrock:*::foundation-model/amazon.nova-*"
                   - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
 
 Outputs:
   TableName:

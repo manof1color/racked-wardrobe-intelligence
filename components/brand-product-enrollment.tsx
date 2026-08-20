@@ -35,7 +35,7 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
   }
 
   return <section className="registry-panel" id="products">
-    <div className="registry-heading"><div><div className="eyebrow">YOUR PRODUCT REGISTRY</div><h2>Connect real products to actual wear.</h2><p>Enroll an authorized front, back, and label image with the SKU. Consumer scans can then connect to your product without exposing the consumer’s photo.</p></div><button type="button" className="button button-accent" onClick={()=>setOpen(value=>!value)}>{open?"Close enrollment":"+ Enroll product"}</button></div>
+    <div className="registry-heading"><div><div className="eyebrow">YOUR PRODUCT REGISTRY · ONE PRODUCT AT A TIME</div><h2>Connect real products to actual wear.</h2><p>No catalog system or CSV is required. Add the product details, upload its authorized front/back/label photos, then register it. Consumer scans can connect to that exact SKU without exposing the consumer’s photo.</p></div><button type="button" className="button button-accent" onClick={()=>setOpen(value=>!value)}>{open?"Close enrollment":"+ Enroll one product"}</button></div>
     {open&&<div className="registry-form">
       <div className="registry-fields">
         <label>Product name<input value={form.name} onChange={event=>setForm({...form,name:event.target.value})} placeholder="Product name"/></label>

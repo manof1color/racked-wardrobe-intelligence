@@ -18,6 +18,9 @@ import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privac
 import { findByPaginatedQuery } from "@/lib/community-lookup";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
+import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, passwordResetIsUsable, passwordResetTokenHash } from "@/lib/account-security";
+import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
+import sharp from "sharp";
 
 const scrypt = promisify(scryptCallback);
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -52,7 +55,11 @@ export interface AccountRecord {
   createdAt: string;
   brandDataSharing?: boolean;
   dataClassification?: DataClassification;
+  sessionVersion?: number;
+  passwordChangedAt?: number;
 }
+
+interface PasswordResetRecord { accountId:string; tokenHash:string; issuedAt:number; expiresAt:number; usedAt?:number; PK:string; SK:string; }
 
 function normalizeEmail(email:string) { return email.trim().toLowerCase(); }
 function slugify(value:string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60); }
@@ -86,6 +93,53 @@ export async function authenticateAccount(email:string,password:string) {
   const supplied=Buffer.from(await passwordDigest(password,account.passwordSalt),"base64url");
   const expected=Buffer.from(account.passwordHash,"base64url");
   return supplied.length===expected.length&&timingSafeEqual(supplied,expected)?account:null;
+}
+
+export async function verifyAccountPassword(account:AccountRecord,password:string) {
+  const supplied=Buffer.from(await passwordDigest(password,account.passwordSalt),"base64url");
+  const expected=Buffer.from(account.passwordHash,"base64url");
+  return supplied.length===expected.length&&timingSafeEqual(supplied,expected);
+}
+
+export async function updateOwnAccount(ownerId:string,input:{displayName:string;email:string;currentPassword:string;newPassword?:string}) {
+  const account=await getAccount(ownerId);
+  if(!account||!await verifyAccountPassword(account,input.currentPassword))return null;
+  const email=normalizeEmail(input.email),displayName=input.displayName.trim().slice(0,100);
+  if(!displayName||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Enter a valid name and email address.");
+  const conflict=await findAccountByEmail(email);
+  if(conflict&&conflict.id!==ownerId)throw new AccountConflictError("That email is already connected to another account.");
+  const names:Record<string,string>={"#email":"email"};
+  const values:Record<string,unknown>={":displayName":displayName,":email":email,":emailPk":`EMAIL#${email}`};
+  let update="SET displayName = :displayName, #email = :email, GSI1PK = :emailPk";
+  if(input.newPassword){
+    const passwordSalt=randomBytes(18).toString("base64url"),passwordHash=await passwordDigest(input.newPassword,passwordSalt),changedAt=Date.now();
+    Object.assign(values,{":passwordSalt":passwordSalt,":passwordHash":passwordHash,":changedAt":changedAt,":zero":0,":one":1});
+    update+=", passwordSalt = :passwordSalt, passwordHash = :passwordHash, passwordChangedAt = :changedAt, sessionVersion = if_not_exists(sessionVersion, :zero) + :one";
+  }
+  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:update,ExpressionAttributeNames:names,ExpressionAttributeValues:values,ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
+  return result.Attributes as AccountRecord;
+}
+
+export async function issuePasswordReset(email:string) {
+  const account=await findAccountByEmail(email);
+  if(!account)return null;
+  const token=createPasswordResetToken(),tokenHash=passwordResetTokenHash(token),issuedAt=Date.now(),expiresAt=issuedAt+PASSWORD_RESET_WINDOW_MS;
+  const record:PasswordResetRecord={accountId:account.id,tokenHash,issuedAt,expiresAt,PK:`RESET#${tokenHash}`,SK:"TOKEN"};
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...record,ttl:Math.ceil(expiresAt/1000)},ConditionExpression:"attribute_not_exists(PK)"}));
+  return {token,email:account.email};
+}
+
+export async function consumePasswordReset(token:string,newPassword:string) {
+  const tokenHash=passwordResetTokenHash(token),now=Date.now();
+  const found=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`RESET#${tokenHash}`,SK:"TOKEN"}}));
+  const reset=found.Item as PasswordResetRecord|undefined;
+  if(!reset)return null;
+  const account=await getAccount(reset.accountId);
+  if(!account||!passwordResetIsUsable(reset,account.passwordChangedAt??0,now))return null;
+  try{await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:reset.PK,SK:reset.SK},UpdateExpression:"SET usedAt = :now",ConditionExpression:"attribute_not_exists(usedAt) AND expiresAt > :now",ExpressionAttributeValues:{":now":now}}));}catch{return null;}
+  const passwordSalt=randomBytes(18).toString("base64url"),passwordHash=await passwordDigest(newPassword,passwordSalt);
+  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${account.id}`,SK:"PROFILE"},UpdateExpression:"SET passwordSalt = :salt, passwordHash = :hash, passwordChangedAt = :now, sessionVersion = if_not_exists(sessionVersion, :zero) + :one",ExpressionAttributeValues:{":salt":passwordSalt,":hash":passwordHash,":now":now,":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
+  return result.Attributes as AccountRecord;
 }
 
 export async function getAccount(id:string) {
@@ -143,13 +197,21 @@ export async function recordRealWear(ownerId:string,itemIds:string[]) {
 
 export async function listOutfits(ownerId:string):Promise<SavedOutfit[]> {
   const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"OUTFIT#"},ScanIndexForward:false}));
-  return (result.Items??[]) as unknown as SavedOutfit[];
+  return Promise.all((result.Items??[]).map(async raw=>{const outfit=raw as unknown as SavedOutfit;return {...outfit,boardImageUrl:await privateImageUrl(outfit.boardImageKey)};}));
+}
+
+async function generateOutfitBoard(ownerId:string,outfitId:string,items:WardrobeItem[]){
+  const eligible=items.filter(item=>item.imageKey?.startsWith(`wardrobe/${ownerId}/`));if(!eligible.length)return undefined;
+  const placements=outfitBoardLayout(eligible),layers:Array<{input:Buffer;left:number;top:number}>=[];
+  for(const placement of placements){const item=eligible.find(entry=>entry.id===placement.id);if(!item?.imageKey)continue;const object=await s3.send(new GetObjectCommand({Bucket:requireBucket(),Key:item.imageKey}));if(!object.Body)continue;const bytes=Buffer.from(await object.Body.transformToByteArray());const image=await sharp(bytes).rotate().resize(placement.width,placement.height,{fit:"contain",background:{r:0,g:0,b:0,alpha:0}}).webp().toBuffer();layers.push({input:image,left:placement.x,top:placement.y});}
+  if(!layers.length)return undefined;const output=await sharp({create:{width:OUTFIT_BOARD_WIDTH,height:OUTFIT_BOARD_HEIGHT,channels:4,background:{r:248,g:246,b:239,alpha:1}}}).composite(layers).webp({quality:88}).toBuffer(),key=`wardrobe/${ownerId}/outfits/${outfitId}.webp`;await s3.send(new PutObjectCommand({Bucket:requireBucket(),Key:key,Body:output,ContentType:"image/webp",ServerSideEncryption:"AES256",Metadata:{owner:ownerId,purpose:"outfit-board"}}));return key;
 }
 
 export async function saveOutfit(ownerId:string,name:string,itemIds:string[]) {
   const unique=[...new Set(itemIds)];
   const wardrobe=await listWardrobe(ownerId);
-  const outfit:SavedOutfit={id:crypto.randomUUID(),name:name.trim().slice(0,80)||"Saved outfit",itemIds:unique,pieces:buildOutfitPieceReferences(unique,wardrobe),createdAt:new Date().toISOString(),wears:0};
+  const id=crypto.randomUUID(),selected=wardrobe.filter(item=>unique.includes(item.id)),boardImageKey=await generateOutfitBoard(ownerId,id,selected);
+  const outfit:SavedOutfit={id,name:name.trim().slice(0,80)||"Saved outfit",itemIds:unique,pieces:buildOutfitPieceReferences(unique,wardrobe),createdAt:new Date().toISOString(),wears:0,...(boardImageKey?{boardImageKey,boardImageUrl:await privateImageUrl(boardImageKey)}:{})};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...outfit,PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`}}));
   return outfit;
 }

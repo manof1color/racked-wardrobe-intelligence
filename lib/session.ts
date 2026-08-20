@@ -1,7 +1,7 @@
 import type { Role } from "./types";
 import { timingSafeEqual } from "node:crypto";
 
-export interface SessionPayload { subject: string; role: Role; expiresAt: number; }
+export interface SessionPayload { subject: string; role: Role; expiresAt: number; sessionVersion?: number; }
 const encoder = new TextEncoder();
 
 function base64url(input: Uint8Array | string) {
@@ -28,7 +28,7 @@ export async function verifySessionToken(token: string, secret: string, now = Da
     const expectedBytes=Buffer.from(await signature(body,secret),"base64url");
     if (suppliedBytes.length!==expectedBytes.length || !timingSafeEqual(suppliedBytes,expectedBytes)) return null;
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as SessionPayload;
-    if (!payload.subject || !["consumer","brand"].includes(payload.role) || payload.expiresAt <= now) return null;
+    if (!payload.subject || !["consumer","brand"].includes(payload.role) || payload.expiresAt <= now || (payload.sessionVersion!==undefined&&(!Number.isInteger(payload.sessionVersion)||payload.sessionVersion<0))) return null;
     return payload;
   } catch { return null; }
 }
