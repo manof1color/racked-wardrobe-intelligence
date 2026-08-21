@@ -40,6 +40,7 @@
 
 /* Saved outfits */
 .outfit-card{display:flex;flex-direction:column;padding:15px;gap:12px}.outfit-card .garment-info{padding:0}.outfit-card .button{margin-top:auto}
+.outfit-card-actions{display:grid;gap:.55rem;margin-top:auto}.outfit-card-actions .button{margin-top:0}.outfit-card .confirm-delete{background:#5d1712;color:white}.outfit-delete-note{display:block;padding:.7rem;background:#fff0eb;color:#69261d;line-height:1.45}.outfit-delete-note button{border:0;background:transparent;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;font-weight:800}
 .outfits-view,.outfits-grid,.outfit-card{min-width:0;max-width:100%}.outfit-card{overflow:hidden}.flatlay-board{position:relative;width:100%;aspect-ratio:6/7;background:#f8f6ef;border:1px solid var(--line);overflow:hidden}.flatlay-board figure{position:absolute;margin:0;display:grid;place-items:center}.flatlay-board img{width:100%;height:100%;object-fit:contain}.flatlay-board span{font:600 .55rem Inter,sans-serif;text-align:center;color:var(--muted)}.saved-flatlay{display:block;width:100%;aspect-ratio:6/7;object-fit:contain;background:#f8f6ef;border:1px solid var(--line)}
 
 /* Business flywheel */

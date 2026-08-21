@@ -3,8 +3,8 @@ import "server-only";
 import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { BatchGetCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost, DataClassification } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
@@ -216,6 +216,16 @@ export async function saveOutfit(ownerId:string,name:string,itemIds:string[]) {
   const outfit:SavedOutfit={id,name:name.trim().slice(0,80)||"Saved outfit",itemIds:unique,pieces:buildOutfitPieceReferences(unique,wardrobe),createdAt:new Date().toISOString(),wears:0,...(boardImageKey?{boardImageKey,boardImageUrl:await privateImageUrl(boardImageKey)}:{})};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...outfit,PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`}}));
   return outfit;
+}
+
+export async function deleteOutfit(ownerId:string,outfitId:string) {
+  const outfit=(await listOutfits(ownerId)).find(entry=>entry.id===outfitId);
+  if(!outfit)return false;
+  await db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`},ConditionExpression:"attribute_exists(PK)"}));
+  if(outfit.boardImageKey?.startsWith(`wardrobe/${ownerId}/outfits/`)){
+    try{await s3.send(new DeleteObjectCommand({Bucket:requireBucket(),Key:outfit.boardImageKey}));}catch(error){console.error("Saved outfit board cleanup failed",{name:error instanceof Error?error.name:"UnknownError"});}
+  }
+  return true;
 }
 
 // Fixes the dashboard "repeated wears" stat: outfit wear totals previously existed in the
