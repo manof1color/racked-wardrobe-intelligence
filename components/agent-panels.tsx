@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AgentChatTurn, AgentReply } from "@/lib/platform-types";
+import type { SavedOutfit } from "@/lib/types";
 
 type AgentAction = AgentReply["actions"][number];
 type ChatEntry = AgentChatTurn & { id: string; reply?: AgentReply };
@@ -66,7 +67,7 @@ function Composer({ value, setValue, send, busy, prompts, label }: { value: stri
   </>;
 }
 
-export function ConsumerAgentPanel({ onWearRecorded }: { onWearRecorded?: (counts: Record<string, number>) => void }) {
+export function ConsumerAgentPanel({ onWearRecorded,onOutfitSaved }: { onWearRecorded?: (counts: Record<string, number>) => void; onOutfitSaved?: (outfit:SavedOutfit)=>void }) {
   const [entries, setEntries] = useState<ChatEntry[]>([{ id: "consumer-intro", role: "assistant", content: "I’m Hanger. Ask me to create outfits from your saved wardrobe, find underused pieces, plan a rotation, or identify a wardrobe gap." }]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,6 +106,7 @@ export function ConsumerAgentPanel({ onWearRecorded }: { onWearRecorded?: (count
         const response = await fetch("/api/consumer/outfits", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemIds, name: action.payload.name ?? "Hanger outfit" }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "The outfit could not be saved.");
+        onOutfitSaved?.(data.outfit as SavedOutfit);
         setStatus(`Saved “${data.outfit.name}” to your outfits.`);
       }
     } catch (reason) {

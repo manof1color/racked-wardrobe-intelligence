@@ -29,6 +29,8 @@ All Consumer records use `PK=USER#<subject>` with typed sort keys such as `GARME
 
 Saved outfits retain `itemIds` for backward-compatible wear recording and add an explicit piece snapshot. Each piece has one non-collapsed resolution state: `EXACT_VERIFIED_PRODUCT`, `AI_ESTIMATED_PRODUCT`, `SIMILAR_PRODUCT`, `GENERIC_UNVERIFIED`, or `VERIFIED_UNAVAILABLE`. Exactness requires a persisted registry product ID; label suggestions remain generic/unverified.
 
+Saved-outfit deletion resolves the requested ID inside the signed-in Consumer's `USER#<subject>` partition, deletes only that outfit record, and best-effort removes a board image only when its key remains under `wardrobe/<subject>/outfits/`. Historical wear events and separately published Community snapshots are independent records and are not removed by this focused action.
+
 Community publication requires an account-owned saved outfit. The stored post snapshots only that outfit's pieces, generates unrelated public garment IDs, and keeps its source outfit ID, wardrobe IDs, and image keys private. Feed JSON is rebuilt from an allowlist, while `/api/community/images/<post>/<garment>` serves only an image explicitly attached to that post.
 
 `lib/recreate-look.ts` compares a public outfit with only the signed-in Consumer's loaded wardrobe. Exactness requires the same authorized registry product ID. Non-exact candidates must share the broad category and are scored with category 30%, subtype 25%, color 20%, pattern 10%, style 10%, and material 5%. One owned item may cover only one target. Results expose every component and map to exact, strong, acceptable, weak, or missing states; coverage credits are 100%, 85%, 60%, 25%, and 0% respectively.
