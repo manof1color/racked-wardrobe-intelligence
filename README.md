@@ -2,9 +2,11 @@
 
 **Brands know what consumers buy. Racked helps them understand what consumers actually wear.**
 
-Racked is a privacy-first wardrobe-intelligence platform with two connected products: a mobile wardrobe and outfit assistant for consumers, and an aggregate actual-wear dashboard for enrolled brands. Consumers receive useful closet organization, styling, wear tracking, and “Recreate This Look” results before any brand relationship exists. Brands receive only consented, minimum-cohort intelligence for their own verified products—never identities, raw wardrobes, or private photos.
+Racked is a privacy-first wardrobe-intelligence platform with two connected products: a mobile wardrobe and outfit assistant for consumers, and an aggregate actual-wear dashboard for enrolled brands.
 
-When a consumer explicitly publishes an outfit, Racked can also turn real-world wear into product discovery and measurable outbound interest without making the private wardrobe public.
+The consumer side has to earn its place on its own — organizing a closet, building outfits, recording what actually gets worn, and answering *“how much of this look can I already make?”* — all before any brand relationship exists. Only then do brands receive consented, minimum-cohort intelligence about their own verified products. Never identities, raw wardrobes, or private photos.
+
+When someone explicitly publishes an outfit, that real-world wear can also become product discovery and measurable outbound interest — without the private wardrobe behind it ever becoming public.
 
 ## Live demo
 
@@ -42,31 +44,22 @@ The result is a defensible two-sided loop:
 3. Sign in with a privately supplied synthetic Brand account to inspect the 25-owner privacy threshold, eight-week wear chart, frequency distribution, CSV export, public-look activity, and Brand Hanger.
 4. Open a fictional demo product destination, add it to the **Demo Bag**, and complete the clearly labeled **$0.00 purchase simulation**. This proves the commerce journey without collecting payment, shipping, contact, or order data.
 
-## Independent evaluation dataset
-
-Racked has selected the corrected CC BY 4.0 [Clothing Dataset for Second-Hand Fashion, version 3](https://zenodo.org/records/13788681) as its external recognition benchmark. It contains **31,638 real garments** plus a separately identified 100-garment annotator-agreement set, with human annotations and front, back, and brand-label photographs where available—the closest public match to Racked's three-view intake. Dataset photographs stay outside GitHub and the production application; only attribution, evaluation code, and aggregate results belong in this repository.
-
-**Accuracy is not claimed yet, and this is not training data.** Racked currently uses Amazon Nova Lite through Bedrock and has not fine-tuned that model on these garments. The benchmark will measure category, subtype, label-text, provider-failure, and AI-only-verification violations without allowing dataset brand text to create verified identity. The exact protocol and honest reporting rules are in [docs/evaluation.md](docs/evaluation.md).
-
-The first reproducible label-coverage audit sampled 1,000 evenly spaced records: **93.9%** map to Racked's broad categories, **62.6%** have source labels specific enough for exact-subtype scoring, and **94.0%** contain usable brand annotations. These percentages measure benchmark compatibility—not model accuracy. The aggregate, image-free report is committed at [`data/evaluation-label-coverage.json`](data/evaluation-label-coverage.json).
-
 ## Working product flows
 
 ### Consumer
 
-The Consumer **Add** tab defaults to **Add from one photo**: one outfit, flat-lay, or closet photo can become up to eight separate editable wardrobe candidates. The UI now presents two unambiguous actions—**Take photo** opens the rear camera, while **Choose image** opens the photo library. Common iPhone HEIC/HEIF inputs are accepted for browser normalization to a compressed JPEG before private upload, with explicit JPG guidance if an older device cannot decode its source format. Amazon Bedrock detects distinct visible garments, shoes, bags, jewelry, and accessories; the server creates an independent private item image for each candidate. A deterministic edge-connected background pass makes plain backgrounds transparent when it can do so safely; busy scenes retain a tight crop rather than risk erasing the garment. The Consumer selects, edits, and confirms each piece before it becomes a separately tracked wardrobe item. Overlapping or hidden items may require another photo. **Link a brand product** preserves the required front/back/label evidence flow for exact registry-backed brand/SKU tracking; AI or typed brand text alone never verifies identity.
+**Add from one photo** is the default way in. A single outfit, flat-lay, or closet photo becomes up to eight separate wardrobe items:
 
-Authenticated navigation behaves like a mobile app: the Racked logo returns to the signed-in role workspace, Community retains the role-appropriate bottom bar, and consumer views have stable deep links. To remove duplicate navigation, the persistent bottom tabs are the single primary mobile menu; the compact header control is now a session-only account menu that retains **Sign out**. Desktop keeps the top Workspace/Community navigation. Visiting `/` or `/login` with a valid session returns the user to the correct workspace. Only a successful explicit sign-out request ends the session; a failed request leaves it active instead of pretending it succeeded.
+- **Take photo** opens the rear camera; **Choose image** opens the library — two explicit actions rather than one ambiguous picker.
+- JPEG, PNG, WebP, HEIC, HEIF, and AVIF up to 25 MB are accepted, then normalized in the browser to a compressed JPEG before private upload.
+- Bedrock detects each distinct visible garment, shoe, bag, or accessory, and the server cuts an independent private image per candidate. Plain backgrounds become transparent only when that is safe to do; busy scenes keep a tight crop rather than risk erasing the garment.
+- **Nothing is saved until the person confirms it.** Every candidate is selectable and editable, and detection alone never writes to the wardrobe. Overlapping or hidden pieces may need a second photo.
 
-#### Test the mobile whole-look scanner
+**Link a brand product** keeps the front/back/label evidence flow for exact registry-backed tracking. AI-read or typed brand text alone never verifies identity.
 
-1. Sign in to a Consumer account and open **Add → Add from one photo**.
-2. Choose **Take photo** for the camera or **Choose image** for the photo library. The scan begins automatically after selection; there is no ambiguous combined picker.
-3. Wait for the preparation and private-upload status to finish. Racked accepts JPEG, PNG, WebP, HEIC, HEIF, and AVIF sources up to 25 MB, then sends a normalized JPEG analysis copy rather than the original phone file.
-4. Review every proposed crop and edit its wardrobe name, category, subtype, or optional unverified brand label. Deselect false detections.
-5. Check the confirmation box and choose **Add selected pieces**. Detection alone never writes a garment into the wardrobe.
+Signed-in navigation behaves like a mobile app: persistent bottom tabs are the single primary menu, the header control is a session-only account menu, and desktop keeps top navigation. Visiting `/` or `/login` with a valid session returns to the right workspace, and only a *successful* sign-out ends a session — a failed request leaves it active rather than pretending it worked.
 
-> **Production verification — August 15, 2026:** after PR [#56](https://github.com/manof1color/racked-wardrobe-intelligence/pull/56) deployed, an authenticated scan of the repository-owned synthetic apparel fixture automatically reached Bedrock and returned one editable T-shirt candidate at 90% confidence. The candidate was not saved. This verifies the deployed selection, preparation, upload, detection, and review path; a physical-iPhone HEIC capture remains the final device-specific test. If an older phone cannot decode its own HEIC/HEIF file in the browser, Racked explains how to use the camera's **Most Compatible** setting or export the image as JPG.
+> **Verified in production (2026-08-15):** an authenticated scan of the repository-owned synthetic fixture reached Bedrock and returned one editable candidate at 90% confidence, which was not saved. That confirms the deployed selection → preparation → upload → detection → review path end to end. A physical-iPhone HEIC capture remains the one device-specific test still outstanding.
 
 1. Create a Consumer account with explicit image-processing consent.
 2. Photograph the front of the piece. An optional AI photo plan proposes a controlled broad category and specific subtype, shows uncertainty alternatives, and requests only the shots that category needs.
@@ -103,6 +96,14 @@ Reset delivery uses Amazon SES. **Code completion does not guarantee public emai
 - **Consumer Hanger:** a multi-turn agent reloads only the signed-in consumer’s wardrobe, wear history, and saved outfits, then returns grounded styling guidance and validated save/wear actions.
 - **Brand Hanger:** a separate agent receives only that brand’s enrolled product plus privacy-released aggregate wear and public-community metrics; suppressed cohorts remain suppressed in the prompt.
 - **Explainable decisions:** Recreate This Look and Similar Products use inspectable weighted attributes rather than an opaque score. Similarity can suggest a substitute, but only authorized registry GTIN or brand-plus-SKU evidence can verify exact identity.
+
+## Independent evaluation dataset
+
+Racked has selected the corrected CC BY 4.0 [Clothing Dataset for Second-Hand Fashion, version 3](https://zenodo.org/records/13788681) as its external recognition benchmark. It contains **31,638 real garments** plus a separately identified 100-garment annotator-agreement set, with human annotations and front, back, and brand-label photographs where available—the closest public match to Racked's three-view intake. Dataset photographs stay outside GitHub and the production application; only attribution, evaluation code, and aggregate results belong in this repository.
+
+**Accuracy is not claimed yet, and this is not training data.** Racked currently uses Amazon Nova Lite through Bedrock and has not fine-tuned that model on these garments. The benchmark will measure category, subtype, label-text, provider-failure, and AI-only-verification violations without allowing dataset brand text to create verified identity. The exact protocol and honest reporting rules are in [docs/evaluation.md](docs/evaluation.md).
+
+The first reproducible label-coverage audit sampled 1,000 evenly spaced records: **93.9%** map to Racked's broad categories, **62.6%** have source labels specific enough for exact-subtype scoring, and **94.0%** contain usable brand annotations. These percentages measure benchmark compatibility—not model accuracy. The aggregate, image-free report is committed at [`data/evaluation-label-coverage.json`](data/evaluation-label-coverage.json).
 
 ## Production architecture
 
@@ -196,7 +197,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | Problem & relevance — 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled)—the post-purchase signal brands lack |
 | Functionality — 25% | Live AWS PWA, real registration/login, three-photo enrollment, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a k≥25 dashboard with charts and CSV export |
 | AI & innovation — 20% | Bedrock multi-view garment vision, distinct context-grounded Consumer and Brand Hanger agents, and explainable Recreate/Similar Product scoring that never turns similarity into exact ownership |
-| Code, docs & GitHub — 15% | Typed modules, **166 passing tests** incl. account recovery, own-account authorization, right-brand matching, flat-lay layout, multi-piece detection, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub — 15% | Typed modules, **178 passing tests** incl. account recovery, own-account authorization, right-brand matching, flat-lay layout, multi-piece detection, commerce, ownership, and privacy suites; CI runs lint + typecheck + tests + build + audit, CodeQL, and incremental PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish — 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choices, static flat-lay boards, fictional catalog assets, $0 purchase simulation, honest first-time/suppressed states, and installable PWA |
 | Business impact — 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | Explicit consent, private encrypted object storage, k-anonymity + enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -237,7 +238,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. The suite currently has 166 passing tests (verified 2026-08-20). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application. The nine images under `public/demo-products/` are AI-generated, fictional, unbranded competition assets—not real catalog or customer photography.
+All five run in CI on every push and pull request. The suite currently has 178 passing tests (verified 2026-08-20). The repository keeps automated unit fixtures under `tests/` for repeatable verification, but no test-upload images or fixture-loading controls are shipped in the public application. The nine images under `public/demo-products/` are AI-generated, fictional, unbranded competition assets—not real catalog or customer photography.
 
 ## Install on a phone
 
