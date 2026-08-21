@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { explainGroundedOutfit, generateConsumerHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
+import { generateConsumerHangerReply, hangerOutfitName, ownedSuggestionItemIds, sanitizeAgentHistory } from "@/lib/hanger-conversation";
+import { rankOutfit } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { listOutfits, listWardrobe } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -11,14 +12,16 @@ export async function POST(request: Request) {
   if (session.role !== "consumer") return NextResponse.json({ error: "Consumer account required." }, { status: 403 });
   const limit = consumeRateLimit(`consumer-agent:${session.subject}`, RATE_LIMIT_RULES.consumerAgent);
   if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
-  const body = await request.json().catch(() => ({})) as { message?: string; history?: unknown; occasion?: string; weather?: string };
+  const body = await request.json().catch(() => ({})) as { message?: string; history?: unknown; previousSuggestionItemIds?: unknown; occasion?: string; weather?: string };
   const legacyMessage = `Build an outfit for ${body.occasion?.trim() || "my plans"}${body.weather?.trim() ? ` in ${body.weather.trim()}` : ""}.`;
   const message = (body.message?.trim() || legacyMessage).slice(0, 1_000);
 
   const [wardrobe, outfits] = await Promise.all([listWardrobe(session.subject), listOutfits(session.subject)]);
   const history = sanitizeAgentHistory(body.history);
   // History is passed in so a follow-up sets aside what was already suggested.
-  const ranked = explainGroundedOutfit(wardrobe, message, history);
+  const previousSuggestionItemIds = ownedSuggestionItemIds(body.previousSuggestionItemIds, wardrobe);
+  const mostRecentSavedItemIds = outfits[0]?.itemIds ?? [];
+  const ranked = rankOutfit(wardrobe, message, { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds] });
   const suggested = ranked.pieces.map((piece) => piece.item);
   const generated = await generateConsumerHangerReply({
     message,
@@ -28,7 +31,7 @@ export async function POST(request: Request) {
     suggested,
   });
   const actions: AgentReply["actions"] = suggested.length ? [
-    { label: "Save this outfit", type: "save-outfit", payload: { itemIds: suggested.map((item) => item.id).join(","), name: "Hanger outfit" } },
+    { label: "Save this outfit", type: "save-outfit", payload: { itemIds: suggested.map((item) => item.id).join(","), name: hangerOutfitName(suggested) } },
     { label: "Record these pieces as worn", type: "record-outfit", payload: { itemIds: suggested.map((item) => item.id).join(",") } },
   ] : [];
   const reply: AgentReply = {

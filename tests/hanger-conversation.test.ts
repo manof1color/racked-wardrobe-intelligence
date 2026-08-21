@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, formatHangerText, normalizeProviderHistory, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
+import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, formatHangerText, hangerOutfitName, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -37,6 +37,16 @@ test("consumer Hanger context includes useful wardrobe facts but excludes storag
   assert.match(prompt, /candidateOutfitItemIds/);
   assert.doesNotMatch(prompt, /private\/account|imageKey|imageUrl/);
   assert.ok(suggested.every((item) => wardrobe.some((owned) => owned.id === item.id)));
+});
+
+test("prior recommendation ids are bounded to garments the signed-in account owns", () => {
+  assert.deepEqual(ownedSuggestionItemIds(["top-1", "foreign-item", "top-1", 42], wardrobe), ["top-1"]);
+  assert.deepEqual(ownedSuggestionItemIds("top-1", wardrobe), []);
+});
+
+test("saved Hanger outfits are named from their actual selected pieces", () => {
+  assert.equal(hangerOutfitName(wardrobe.slice(0, 2)), "Hanger: Blue Oxford + Black Trouser");
+  assert.equal(hangerOutfitName([]), "Hanger outfit");
 });
 
 test("brand Hanger receives only brand product fields and released aggregate metrics", () => {
