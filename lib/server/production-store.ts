@@ -218,6 +218,40 @@ export async function saveOutfit(ownerId:string,name:string,itemIds:string[]) {
   return outfit;
 }
 
+export async function updateOutfitItems(ownerId:string,outfitId:string,itemIds:string[]) {
+  const unique=[...new Set(itemIds)];
+  if(unique.length<1||unique.length>10)throw new Error("Choose 1–10 wardrobe pieces.");
+  const [outfits,wardrobe]=await Promise.all([listOutfits(ownerId),listWardrobe(ownerId)]);
+  const outfit=outfits.find(entry=>entry.id===outfitId);
+  if(!outfit)return null;
+  if(unique.some(id=>!wardrobe.some(item=>item.id===id)))throw new Error("Every outfit piece must belong to your wardrobe.");
+  const selected=wardrobe.filter(item=>unique.includes(item.id));
+  // A new object key prevents a signed URL or installed app from displaying the
+  // previous board after pieces change. The former private board is removed only
+  // after DynamoDB accepts the owner-scoped update.
+  const nextBoardImageKey=await generateOutfitBoard(ownerId,`${outfit.id}-${crypto.randomUUID()}`,selected);
+  const key={PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`};
+  try{
+    const result=await db.send(new UpdateCommand({
+      TableName:requireTable(),Key:key,
+      UpdateExpression:nextBoardImageKey
+        ? "SET itemIds = :itemIds, pieces = :pieces, boardImageKey = :boardImageKey"
+        : "SET itemIds = :itemIds, pieces = :pieces REMOVE boardImageKey",
+      ConditionExpression:"attribute_exists(PK)",
+      ExpressionAttributeValues:{":itemIds":unique,":pieces":buildOutfitPieceReferences(unique,wardrobe),...(nextBoardImageKey?{":boardImageKey":nextBoardImageKey}:{})},
+      ReturnValues:"ALL_NEW",
+    }));
+    if(outfit.boardImageKey?.startsWith(`wardrobe/${ownerId}/outfits/`)&&outfit.boardImageKey!==nextBoardImageKey){
+      try{await s3.send(new DeleteObjectCommand({Bucket:requireBucket(),Key:outfit.boardImageKey}));}catch(error){console.error("Replaced outfit board cleanup failed",{name:error instanceof Error?error.name:"UnknownError"});}
+    }
+    const updated=result.Attributes as unknown as SavedOutfit;
+    return {...updated,boardImageUrl:await privateImageUrl(updated.boardImageKey)};
+  }catch(error){
+    if(nextBoardImageKey)try{await s3.send(new DeleteObjectCommand({Bucket:requireBucket(),Key:nextBoardImageKey}));}catch(cleanupError){console.error("Uncommitted outfit board cleanup failed",{name:cleanupError instanceof Error?cleanupError.name:"UnknownError"});}
+    throw error;
+  }
+}
+
 export async function deleteOutfit(ownerId:string,outfitId:string) {
   const outfit=(await listOutfits(ownerId)).find(entry=>entry.id===outfitId);
   if(!outfit)return false;

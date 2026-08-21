@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -32,6 +33,12 @@ function ReplyDetails({ reply, onAction, working }: { reply: AgentReply; onActio
       {reply.provider && <span>{reply.provider.replaceAll("-", " ")}</span>}
       <span>context refreshed</span>
     </div>
+    {reply.selection && reply.selection.length > 0 && <div className="hanger-outfit-preview" role="group" aria-label="Pieces in Hanger's current outfit">
+      {reply.selection.map((item) => <figure key={item.id}>
+        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <span aria-hidden="true">{item.category.slice(0, 1).toUpperCase()}</span>}
+        <figcaption><strong>{item.name}</strong><small>{item.category}</small></figcaption>
+      </figure>)}
+    </div>}
     <ul className="agent-evidence">{reply.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
     {reply.actions.length > 0 && <div className="agent-actions">
       {reply.actions.map((action) => <button type="button" key={action.type} onClick={() => onAction(action)} disabled={working !== null}>{working === action.type ? "Working…" : action.label}</button>)}
@@ -79,8 +86,10 @@ export function ConsumerAgentPanel({ onWearRecorded,onOutfitSaved }: { onWearRec
     const message = (provided ?? draft).trim();
     if (!message || busy) return;
     const history = entries.slice(-8).map(({ role, content }) => ({ role, content }));
-    const previousSuggestionItemIds = [...entries].reverse().find((entry) => entry.reply)?.reply?.actions
-      .find((action) => action.type === "save-outfit")?.payload.itemIds?.split(",").filter(Boolean) ?? [];
+    const previousSuggestionItemIds = [...new Set([...entries].reverse()
+      .flatMap((entry) => entry.reply?.actions ?? [])
+      .filter((action) => action.type === "save-outfit")
+      .flatMap((action) => action.payload.itemIds?.split(",").filter(Boolean) ?? []))];
     setEntries((current) => [...current, { id: id(), role: "user", content: message }]);
     setDraft(""); setBusy(true); setError(""); setStatus("");
     try {

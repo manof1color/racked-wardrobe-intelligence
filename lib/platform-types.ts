@@ -155,6 +155,8 @@ export interface AgentReply {
   toolsUsed: string[];
   actions: Array<{ label:string; type:string; payload:Record<string,string> }>;
   evidence: string[];
+  /** Consumer-only visual grounding for the exact owned pieces Hanger selected. */
+  selection?: Array<{ id:string; name:string; category:string; imageUrl?:string }>;
 }
 
 export interface AgentChatTurn {

@@ -41,6 +41,12 @@ export async function POST(request: Request) {
     confidence: suggested.length >= 3 ? "high" : suggested.length ? "medium" : "low",
     toolsUsed: ["private wardrobe", "wear history", "saved outfits", "bounded conversation history"],
     actions,
+    selection: suggested.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
+    })),
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
       `${outfits.length} saved outfits checked this turn`,
