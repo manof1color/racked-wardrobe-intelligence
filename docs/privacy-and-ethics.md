@@ -38,6 +38,8 @@ Password recovery does not reveal account existence. Reset secrets are never sto
 
 Production account deletion must remove the exact account partition, owned S3 objects, public posts, and brand product records, then recompute affected product aggregates. Security logs must exclude tokens, passwords, signed URLs, and image bytes.
 
+A Consumer may also delete an individual saved outfit. That owner-scoped action removes the private outfit record and best-effort deletes its generated board image. It deliberately retains historical wear events so past usage totals are not falsified, and it does not silently retract a Community snapshot the Consumer separately chose to publish.
+
 ## Known limitations
 
 `DEMO`, `PILOT`, and `REGULAR` classifications prevent synthetic activity from being mistaken for real pilot evidence. A guarded pilot-classification script rejects synthetic accounts; demo records remain explicitly fictional in public Community output.

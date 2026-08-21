@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { listOutfits, listWardrobe, saveOutfit } from "@/lib/server/production-store";
+import { deleteOutfit, listOutfits, listWardrobe, saveOutfit } from "@/lib/server/production-store";
 
 export async function GET() {
   const session = await getSession();
@@ -17,4 +17,14 @@ export async function POST(request: Request) {
   const wardrobe = await listWardrobe(session.subject);
   if (unique.some((id) => !wardrobe.some((item) => item.id === id))) return NextResponse.json({ error: "Every outfit piece must belong to your wardrobe." }, { status: 400 });
   return NextResponse.json({ outfit: await saveOutfit(session.subject, body.name ?? "Saved outfit", unique) }, { status: 201 });
+}
+
+export async function DELETE(request: Request) {
+  const session=await getSession();
+  if(!session||session.role!=="consumer")return NextResponse.json({error:"Consumer account required."},{status:403});
+  const body=await request.json().catch(()=>null) as {outfitId?:string}|null;
+  const outfitId=body?.outfitId?.trim();
+  if(!outfitId||outfitId.length>128)return NextResponse.json({error:"Choose a valid saved outfit."},{status:400});
+  if(!await deleteOutfit(session.subject,outfitId))return NextResponse.json({error:"Saved outfit not found."},{status:404});
+  return NextResponse.json({deleted:true,outfitId});
 }

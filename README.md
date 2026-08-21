@@ -126,8 +126,8 @@ The full enrollment-to-discovery path:
 4. The server rotates the front photo, preserves it unmodified as private evidence, and produces a separate auto-cropped display version showing just the garment — falling back to the original framing whenever the crop is not confident.
 5. The consumer confirms or edits the garment name, category, subtype, brand label, and optional SKU before saving. Unverified garments remain usable.
 6. The Looks view builds outfits from saved garment photos in a category-arranged flat-lay preview, saves them, and records wear.
-7. The Outfits tab lists every saved outfit with its pieces and wear total, and records a repeat wear in one tap.
-8. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account's current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn.
+7. The Outfits tab lists every saved outfit with its pieces and wear total, records a repeat wear in one tap, and offers a two-step delete action. Deletion removes that private saved outfit and its generated board while retaining historical wear events.
+8. Hanger opens from the bottom of the dashboard as a multi-turn stylist. Every message reloads the account's current wardrobe, wear history, and saved outfits; grounded recommendations can be saved or recorded as worn, and a successful Hanger save appears in the Outfits tab immediately without a reload.
 9. In Community, **Recreate with my wardrobe** compares a public outfit only against the signed-in consumer's wardrobe. The result leads with how much of the look they can already build, splits pieces into *use yours* and *you're missing* in plain language, and lets them open any matched piece to see which owned garment was chosen and why. **Shop the Look** then opens an in-app inspection sheet where only an exact registry-verified product with an authorized destination is openable — similar, AI-estimated, unverified, and unavailable pieces are labeled as such rather than sold, with affiliate disclosure where relevant. The rate-limited Similar Products API separately ranks only enrolled, available, same-category registry products with inspectable reasons; a suggestion never becomes an exact-match claim or exposes a consumer wardrobe.
 10. The consumer may separately opt in to anonymous brand aggregates and may publish one explicitly selected saved outfit to Community. Every public garment gets a new public ID; private wardrobe IDs and S3 keys never enter the feed.
 
@@ -258,7 +258,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **178 passing tests** (verified 2026-08-20), covering privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, commerce URL validation, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **182 passing tests** (verified 2026-08-20), covering privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, saved-outfit deletion, commerce URL validation, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -269,7 +269,7 @@ The suite currently has **178 passing tests** (verified 2026-08-20), covering pr
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **178 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **182 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, flat-lay boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
