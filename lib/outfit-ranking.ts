@@ -18,6 +18,7 @@ export interface OutfitIntent {
   occasion: OutfitOccasion | null;
   weather: OutfitWeather | null;
   styleHints: string[];
+  alternativeRequested: boolean;
 }
 
 export interface OutfitScoreComponent {
@@ -75,7 +76,8 @@ const WEATHER_SEASONS: Record<OutfitWeather, string[]> = {
   wet: ["fall", "winter"],
 };
 
-const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|neglected|barely worn|something else|different|another/;
+const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|neglected|barely worn/;
+const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|change (?:it|the outfit)|switch (?:it|the outfit)/;
 const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
 
 const CATEGORY_SLOTS = ["top", "bottom", "shoe", "outerwear", "accessory"];
@@ -93,7 +95,7 @@ export function readOutfitIntent(message: string): OutfitIntent {
   const occasion = OCCASION_KEYWORDS.find(([, words]) => words.some((word) => request.includes(word)))?.[0] ?? null;
   const weather = WEATHER_KEYWORDS.find(([, words]) => words.some((word) => request.includes(word)))?.[0] ?? null;
   const styleHints = STYLE_VOCABULARY.filter((style) => request.includes(style));
-  return { mode: ROTATION_KEYWORDS.test(request) ? "rotation" : "outfit", occasion, weather, styleHints };
+  return { mode: ROTATION_KEYWORDS.test(request) ? "rotation" : "outfit", occasion, weather, styleHints, alternativeRequested: ALTERNATIVE_KEYWORDS.test(request) };
 }
 
 function occasionScore(item: WardrobeItem, intent: OutfitIntent) {
@@ -198,6 +200,26 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number) {
   return chosen;
 }
 
+function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGarment[], maxPieces: number) {
+  const chosen: RankedGarment[] = [];
+  const usedItems = new Set<string>();
+  const usedCategories = new Set<string>();
+  const categorySlot = (entry: RankedGarment) => CATEGORY_SLOTS.find((slot) => clean(entry.item.category).includes(slot)) ?? clean(entry.item.category);
+  const add = (entry: RankedGarment | undefined) => {
+    if (!entry || chosen.length >= maxPieces || usedItems.has(entry.item.id)) return;
+    chosen.push(entry); usedItems.add(entry.item.id); usedCategories.add(categorySlot(entry));
+  };
+  // Take every distinct-category fresh option before reusing an older suggestion.
+  for (const slot of CATEGORY_SLOTS) add(fresh.find((entry) => clean(entry.item.category).includes(slot)));
+  for (const slot of CATEGORY_SLOTS) {
+    if (chosen.length >= maxPieces) break;
+    if (!usedCategories.has(slot)) add(repeated.find((entry) => clean(entry.item.category).includes(slot)));
+  }
+  for (const entry of fresh) add(entry);
+  for (const entry of repeated) add(entry);
+  return chosen;
+}
+
 /**
  * Scores every owned garment against the request, then covers one piece per category
  * slot before filling any remainder with the next best. Items already suggested in
@@ -207,20 +229,33 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number) {
 export function rankOutfit(
   wardrobe: WardrobeItem[],
   message: string,
-  options: { history?: AgentChatTurn[]; maxPieces?: number } = {},
+  options: { history?: AgentChatTurn[]; maxPieces?: number; avoidItemIds?: Iterable<string> } = {},
 ): GroundedOutfit {
   const intent = readOutfitIntent(message);
   const maxPieces = Math.max(1, options.maxPieces ?? MAX_OUTFIT_PIECES);
   const alreadySuggested = previouslySuggestedItemIds(wardrobe, options.history ?? []);
+  if (intent.alternativeRequested) {
+    const owned = new Set(wardrobe.map((item) => item.id));
+    for (const id of options.avoidItemIds ?? []) if (owned.has(id)) alreadySuggested.add(id);
+  }
   const fresh = wardrobe.filter((item) => !alreadySuggested.has(item.id));
-  const useFresh = fresh.length >= Math.min(maxPieces, wardrobe.length) && fresh.length > 0;
-  const pool = useFresh ? fresh : wardrobe;
-  const ranked = rankGarments(pool, intent);
-  const pieces = intent.mode === "rotation" ? ranked.slice(0, maxPieces) : fillCategorySlots(ranked, maxPieces);
+  const repeated = wardrobe.filter((item) => alreadySuggested.has(item.id));
+  // Fresh pieces always rank before repeats. When the wardrobe cannot supply a
+  // completely new outfit, Hanger fills only the missing slots from earlier pieces
+  // instead of abandoning the alternative and returning the identical outfit.
+  const freshRanked = rankGarments(fresh, intent);
+  const repeatedRanked = rankGarments(repeated, intent);
+  const ranked = alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : rankGarments(wardrobe, intent);
+  const pieces = intent.mode === "rotation"
+    ? ranked.slice(0, maxPieces)
+    : alreadySuggested.size && fresh.length
+      ? fillAlternativeCategorySlots(freshRanked, repeatedRanked, maxPieces)
+      : fillCategorySlots(ranked, maxPieces);
+  const reused = pieces.filter((piece) => alreadySuggested.has(piece.item.id)).length;
   return {
     intent,
     pieces,
-    setAside: useFresh ? alreadySuggested.size : 0,
+    setAside: Math.max(0, alreadySuggested.size - reused),
     methodology: intent.mode === "rotation"
       ? "Ranked owned pieces by how little they have been worn and how long since they were last worn, with occasion, weather, and style as secondary signals."
       : "Scored owned pieces on occasion fit, weather and season, requested style, underuse, and time since last worn, then covered one piece per category before filling the rest.",

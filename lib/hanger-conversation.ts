@@ -47,6 +47,21 @@ export function explainGroundedOutfit(wardrobe: WardrobeItem[], message: string,
   return rankOutfit(wardrobe, message, { history });
 }
 
+export function ownedSuggestionItemIds(value: unknown, wardrobe: WardrobeItem[]) {
+  if (!Array.isArray(value)) return [];
+  const owned = new Set(wardrobe.map((item) => item.id));
+  return [...new Set(value
+    .filter((id): id is string => typeof id === "string")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0 && id.length <= 128 && owned.has(id)))]
+    .slice(0, 10);
+}
+
+export function hangerOutfitName(suggested: WardrobeItem[]) {
+  const names = suggested.slice(0, 2).map((item) => item.name.trim()).filter(Boolean);
+  return (names.length ? `Hanger: ${names.join(" + ")}` : "Hanger outfit").slice(0, 80);
+}
+
 function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[]) {
   return {
     wardrobe: wardrobe.slice(0, 60).map((item) => ({
@@ -162,7 +177,11 @@ export async function generateConsumerHangerReply(input: {
 }) {
   const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. Refer to items by name, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
-  if (generated) return { message: generated, usedModel: true };
+  if (generated) {
+    const names = input.suggested.map((item) => item.name);
+    const groundedSelection = names.length ? `\n\nThis save action uses: ${names.join(", ")}.` : "";
+    return { message: `${generated}${groundedSelection}`, usedModel: true };
+  }
   if (input.wardrobe.length === 0) return { message: "I can help you plan a wardrobe, but I do not see any saved garments yet. Add your front, back, and label photos first, then ask me for an outfit, rotation, or gap analysis. What kind of outfit do you want to build first?", usedModel: false };
   const names = input.suggested.map((item) => item.name);
   if (names.length === 0) return { message: "I can see your wardrobe, but I could not form a grounded outfit from the current item details. Tell me the occasion and the type of piece you want to start with.", usedModel: false };
