@@ -16,3 +16,5 @@ test("deletion removes the owned outfit and private board without erasing wear h
 test("the outfit screen requires an explicit second delete confirmation",()=>{assert.match(dashboard,/confirmDeleteId!==outfit\.id/);assert.match(dashboard,/Confirm delete/);assert.match(dashboard,/method:"DELETE"/);assert.match(dashboard,/Historical wear records were kept/);});
 
 test("Hanger's successful save immediately reaches the dashboard outfit state",()=>{assert.match(agent,/onOutfitSaved\?\.\(data\.outfit as SavedOutfit\)/);assert.match(dock,/onOutfitSaved=\{onOutfitSaved\}/);assert.match(dashboard,/onOutfitSaved=\{outfit=>/);assert.match(dashboard,/\[outfit,\.\.\.current\]/);});
+
+test("the client returns the latest Hanger action ids for a genuine alternative",()=>{assert.match(agent,/previousSuggestionItemIds/);assert.match(agent,/action\.type === "save-outfit"/);assert.match(agent,/JSON\.stringify\(\{ message, history, previousSuggestionItemIds \}\)/);});

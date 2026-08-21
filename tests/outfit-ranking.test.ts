@@ -74,6 +74,26 @@ test("REGRESSION: a follow-up sets aside what was already suggested", () => {
   assert.ok(second.setAside > 0, "the set-aside count should be reported");
 });
 
+test("REGRESSION: an explicit different-outfit request honors validated prior action ids", () => {
+  const first = rankOutfit(wardrobe, "Build me a casual outfit");
+  const firstIds = first.pieces.map((piece) => piece.item.id);
+  const second = rankOutfit(wardrobe, "Make me a different outfit", { avoidItemIds: firstIds });
+  assert.equal(second.intent.alternativeRequested, true);
+  assert.notDeepEqual(second.pieces.map((piece) => piece.item.id), firstIds);
+  assert.equal(second.pieces.some((piece) => firstIds.includes(piece.item.id)), false, "a large enough wardrobe should produce an entirely fresh alternative");
+});
+
+test("a medium wardrobe uses every available fresh category before repeating only required slots", () => {
+  const medium = wardrobe.slice(0, 6);
+  const first = rankOutfit(medium, "Build me an outfit");
+  const firstIds = first.pieces.map((piece) => piece.item.id);
+  const freshIds = medium.filter((item) => !firstIds.includes(item.id)).map((item) => item.id);
+  const second = rankOutfit(medium, "Give me another outfit", { avoidItemIds: firstIds });
+  const secondIds = second.pieces.map((piece) => piece.item.id);
+  assert.ok(freshIds.length > 0 && freshIds.every((id) => secondIds.includes(id)), "every available new piece should be used before a repeat");
+  assert.notDeepEqual(secondIds, firstIds);
+});
+
 test("a wardrobe too small to avoid repeats still returns a real outfit", () => {
   const tiny = wardrobe.slice(0, 2);
   const history = [{ role: "assistant" as const, content: "I would start with Tailored Blazer, Blue Oxford." }];

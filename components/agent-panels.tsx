@@ -79,10 +79,12 @@ export function ConsumerAgentPanel({ onWearRecorded,onOutfitSaved }: { onWearRec
     const message = (provided ?? draft).trim();
     if (!message || busy) return;
     const history = entries.slice(-8).map(({ role, content }) => ({ role, content }));
+    const previousSuggestionItemIds = [...entries].reverse().find((entry) => entry.reply)?.reply?.actions
+      .find((action) => action.type === "save-outfit")?.payload.itemIds?.split(",").filter(Boolean) ?? [];
     setEntries((current) => [...current, { id: id(), role: "user", content: message }]);
     setDraft(""); setBusy(true); setError(""); setStatus("");
     try {
-      const response = await fetch("/api/agents/consumer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, history }) });
+      const response = await fetch("/api/agents/consumer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, history, previousSuggestionItemIds }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Hanger could not respond.");
       const reply = data.reply as AgentReply;

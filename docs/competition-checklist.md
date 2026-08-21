@@ -41,7 +41,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 182 automated tests, production build, and production dependency audit pass (verified 2026-08-20).
+- [x] Lint, type check (`tsc --noEmit`), 187 automated tests, production build, and production dependency audit pass (verified 2026-08-21).
 
 ## 3. AI integration / innovation — 20%
 
@@ -54,6 +54,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand Hanger Agent can access only brand-owned products and thresholded wear aggregates.
 - [x] Both Hanger roles support free-form follow-up conversation and retrieve fresh server-side context for every message.
 - [x] Consumer Hanger can save a grounded outfit or record it as worn; the save route revalidates item ownership.
+- [x] “Different outfit” requests carry the prior recommendation through an owner-validated structured handoff, maximize unseen pieces before necessary repeats, and display the exact pieces bound to Save.
 - [x] Brand Hanger can discuss product, retention, merchandising, and campaign strategy without receiving identities or suppressed values.
 - [x] Brand strategy output is rejected if it recommends individualized outreach inferred from anonymous wear groups.
 - [x] Production provider failure opens explicit manual review and saves no invented fallback attributes.
