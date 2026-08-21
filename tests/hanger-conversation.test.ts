@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, formatHangerText, hangerOutfitName, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
+import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, formatHangerText, hangerOutfitName, MAX_PRIOR_SUGGESTION_IDS, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 import type { WardrobeItem } from "../lib/types.ts";
+
+function ownedItem(id:string,name:string,category:string):WardrobeItem{return {id,name,category,color:"black",style:[],season:"all-season",wearCount:0,lastWornDays:999,source:"manual",art:"photo"};}
 
 const wardrobe: WardrobeItem[] = [
   { id: "top-1", name: "Blue Oxford", category: "top", color: "blue", style: ["classic"], season: "all-season", wearCount: 1, lastWornDays: 21, source: "ai-confirmed", art: "photo", imageKey: "private/account/photo.png", brand: "Example Brand", identityStatus: "verified" },
@@ -42,6 +44,14 @@ test("consumer Hanger context includes useful wardrobe facts but excludes storag
 test("prior recommendation ids are bounded to garments the signed-in account owns", () => {
   assert.deepEqual(ownedSuggestionItemIds(["top-1", "foreign-item", "top-1", 42], wardrobe), ["top-1"]);
   assert.deepEqual(ownedSuggestionItemIds("top-1", wardrobe), []);
+});
+
+test("prior recommendation memory no longer forgets garments after ten ids", () => {
+  const expanded=Array.from({length:24},(_,index)=>ownedItem(`owned-${index}`,`Owned ${index}`,index%2?"top":"bottom"));
+  const remembered=ownedSuggestionItemIds(expanded.map(entry=>entry.id),expanded);
+  assert.equal(remembered.length,24,"four-piece recommendations must remain remembered beyond the third turn");
+  const oversized=Array.from({length:MAX_PRIOR_SUGGESTION_IDS+20},(_,index)=>ownedItem(`bounded-${index}`,`Bounded ${index}`,"top"));
+  assert.equal(ownedSuggestionItemIds(oversized.map(entry=>entry.id),oversized).length,MAX_PRIOR_SUGGESTION_IDS,"client history remains server-bounded");
 });
 
 test("saved Hanger outfits are named from their actual selected pieces", () => {

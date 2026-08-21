@@ -81,6 +81,7 @@ const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|negl
 // recognized before ranking so "redo it" and "use other pieces" do not silently
 // return the same deterministic selection.
 const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|adjust(?: it| the outfit| this look)?|redo(?: it| the outfit| this look)?|remake(?: it| the outfit| this look)?|revise(?: it| the outfit| this look)?|try again|start over|use (?:my )?other pieces|change (?:it|the outfit|this look)|switch (?:it|the outfit|this look)|swap (?:it|the outfit|this look|the pieces)|refresh (?:it|the outfit|this look)/;
+const OUTFIT_CREATION_KEYWORDS = /(?:build|create|make|style|suggest|give|show)(?:\s+[a-z0-9'-]+){0,8}\s+(?:outfit|look|rotation)|what (?:can|should) i wear/;
 const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
 
 const CATEGORY_SLOTS = ["top", "bottom", "shoe", "outerwear", "accessory"];
@@ -203,6 +204,11 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number) {
   return chosen;
 }
 
+/** True only for a request to produce a look, not general wardrobe advice. */
+export function asksForOutfitSuggestion(message: string) {
+  return OUTFIT_CREATION_KEYWORDS.test(clean(message));
+}
+
 function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGarment[], maxPieces: number) {
   const chosen: RankedGarment[] = [];
   const usedItems = new Set<string>();
@@ -232,12 +238,12 @@ function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGa
 export function rankOutfit(
   wardrobe: WardrobeItem[],
   message: string,
-  options: { history?: AgentChatTurn[]; maxPieces?: number; avoidItemIds?: Iterable<string> } = {},
+  options: { history?: AgentChatTurn[]; maxPieces?: number; avoidItemIds?: Iterable<string>; rotatePriorSuggestions?: boolean } = {},
 ): GroundedOutfit {
   const intent = readOutfitIntent(message);
   const maxPieces = Math.max(1, options.maxPieces ?? MAX_OUTFIT_PIECES);
   const alreadySuggested = previouslySuggestedItemIds(wardrobe, options.history ?? []);
-  if (intent.alternativeRequested) {
+  if (intent.alternativeRequested || options.rotatePriorSuggestions) {
     const owned = new Set(wardrobe.map((item) => item.id));
     for (const id of options.avoidItemIds ?? []) if (owned.has(id)) alreadySuggested.add(id);
   }

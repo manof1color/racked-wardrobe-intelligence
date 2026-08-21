@@ -8,6 +8,7 @@ const store=read("lib/server/production-store.ts");
 const dashboard=read("components/consumer-dashboard.tsx");
 const dock=read("components/hanger-dock.tsx");
 const agent=read("components/agent-panels.tsx");
+const consumerAgentRoute=read("app/api/agents/consumer/route.ts");
 
 test("saved outfit deletion is scoped to the authenticated consumer",()=>{assert.match(route,/session\.role\s*!==\s*"consumer"/);assert.match(route,/deleteOutfit\(session\.subject,outfitId\)/);assert.doesNotMatch(route,/body\?\.(ownerId|accountId|subject)/);});
 
@@ -18,6 +19,8 @@ test("the outfit screen requires an explicit second delete confirmation",()=>{as
 test("Hanger's successful save immediately reaches the dashboard outfit state",()=>{assert.match(agent,/onOutfitSaved\?\.\(data\.outfit as SavedOutfit\)/);assert.match(dock,/onOutfitSaved=\{onOutfitSaved\}/);assert.match(dashboard,/onOutfitSaved=\{outfit=>/);assert.match(dashboard,/\[outfit,\.\.\.current\]/);});
 
 test("the client returns accumulated recent Hanger action ids for genuine alternatives",()=>{assert.match(agent,/previousSuggestionItemIds/);assert.match(agent,/filter\(\(action\) => action\.type === "save-outfit"\)/);assert.match(agent,/flatMap\(\(action\) => action\.payload\.itemIds/);assert.match(agent,/JSON\.stringify\(\{ message, history, previousSuggestionItemIds \}\)/);});
+
+test("repeated creation prompts rotate accumulated owned suggestions server-side",()=>{assert.match(consumerAgentRoute,/previousSuggestionItemIds\.length>0&&asksForOutfitSuggestion\(message\)/);assert.match(consumerAgentRoute,/rotatePriorSuggestions/);assert.match(consumerAgentRoute,/ownedSuggestionItemIds\(body\.previousSuggestionItemIds, wardrobe\)/);});
 
 test("Hanger displays the exact owned garment images before an outfit is saved",()=>{assert.match(agent,/reply\.selection/);assert.match(agent,/hanger-outfit-preview/);assert.match(agent,/item\.imageUrl/);});
 

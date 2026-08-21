@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MAX_OUTFIT_PIECES, previouslySuggestedItemIds, rankOutfit, readOutfitIntent } from "../lib/outfit-ranking.ts";
+import { asksForOutfitSuggestion, MAX_OUTFIT_PIECES, previouslySuggestedItemIds, rankOutfit, readOutfitIntent } from "../lib/outfit-ranking.ts";
 import { selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -91,6 +91,29 @@ test("REGRESSION: natural adjust and redo follow-ups request a genuinely new sel
     assert.equal(next.intent.alternativeRequested, true, `${message} must be understood as an alternative request`);
     assert.notDeepEqual(next.pieces.map((piece) => piece.item.id), firstIds, `${message} must not reproduce the same outfit`);
   }
+});
+
+test("repeating an outfit-creation prompt rotates pieces without changing advice questions", () => {
+  for(const message of ["Build an outfit for dinner", "Create a casual three-piece rotation", "Make me another look", "What should I wear?"])assert.equal(asksForOutfitSuggestion(message),true);
+  for(const message of ["What wardrobe gap should I prioritize?", "Why is this underused?", "Summarize my closet"])assert.equal(asksForOutfitSuggestion(message),false);
+  const first=rankOutfit(wardrobe,"Build me a casual outfit");
+  const firstIds=first.pieces.map(piece=>piece.item.id);
+  const repeatedPrompt=rankOutfit(wardrobe,"Build me a casual outfit",{avoidItemIds:firstIds,rotatePriorSuggestions:true});
+  assert.notDeepEqual(repeatedPrompt.pieces.map(piece=>piece.item.id),firstIds,"the same creation prompt is a request for a fresh look once Hanger has already answered it");
+});
+
+test("four conversation turns use unseen pieces before cycling older suggestions", () => {
+  const categories=["top","bottom","shoe","outerwear"];
+  const expanded=categories.flatMap(category=>Array.from({length:4},(_,index)=>garment({id:`${category}-${index}`,name:`${category} ${index}`,category})));
+  const remembered:string[]=[];
+  for(let turn=0;turn<4;turn+=1){
+    const result=rankOutfit(expanded,"Build me an outfit",{avoidItemIds:remembered,rotatePriorSuggestions:remembered.length>0});
+    const ids=result.pieces.map(piece=>piece.item.id);
+    assert.equal(ids.length,4);
+    assert.equal(ids.some(id=>remembered.includes(id)),false,`turn ${turn+1} must use unseen pieces while every category still has one`);
+    remembered.unshift(...ids);
+  }
+  assert.equal(new Set(remembered).size,16);
 });
 
 test("a medium wardrobe uses every available fresh category before repeating only required slots", () => {
