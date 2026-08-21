@@ -77,7 +77,10 @@ const WEATHER_SEASONS: Record<OutfitWeather, string[]> = {
 };
 
 const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|neglected|barely worn/;
-const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|change (?:it|the outfit)|switch (?:it|the outfit)/;
+// Natural follow-ups people use after seeing an outfit. These words must be
+// recognized before ranking so "redo it" and "use other pieces" do not silently
+// return the same deterministic selection.
+const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|adjust(?: it| the outfit| this look)?|redo(?: it| the outfit| this look)?|remake(?: it| the outfit| this look)?|revise(?: it| the outfit| this look)?|try again|start over|use (?:my )?other pieces|change (?:it|the outfit|this look)|switch (?:it|the outfit|this look)|swap (?:it|the outfit|this look|the pieces)|refresh (?:it|the outfit|this look)/;
 const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
 
 const CATEGORY_SLOTS = ["top", "bottom", "shoe", "outerwear", "accessory"];

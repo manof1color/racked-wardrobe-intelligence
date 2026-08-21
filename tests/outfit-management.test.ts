@@ -17,4 +17,12 @@ test("the outfit screen requires an explicit second delete confirmation",()=>{as
 
 test("Hanger's successful save immediately reaches the dashboard outfit state",()=>{assert.match(agent,/onOutfitSaved\?\.\(data\.outfit as SavedOutfit\)/);assert.match(dock,/onOutfitSaved=\{onOutfitSaved\}/);assert.match(dashboard,/onOutfitSaved=\{outfit=>/);assert.match(dashboard,/\[outfit,\.\.\.current\]/);});
 
-test("the client returns the latest Hanger action ids for a genuine alternative",()=>{assert.match(agent,/previousSuggestionItemIds/);assert.match(agent,/action\.type === "save-outfit"/);assert.match(agent,/JSON\.stringify\(\{ message, history, previousSuggestionItemIds \}\)/);});
+test("the client returns accumulated recent Hanger action ids for genuine alternatives",()=>{assert.match(agent,/previousSuggestionItemIds/);assert.match(agent,/filter\(\(action\) => action\.type === "save-outfit"\)/);assert.match(agent,/flatMap\(\(action\) => action\.payload\.itemIds/);assert.match(agent,/JSON\.stringify\(\{ message, history, previousSuggestionItemIds \}\)/);});
+
+test("Hanger displays the exact owned garment images before an outfit is saved",()=>{assert.match(agent,/reply\.selection/);assert.match(agent,/hanger-outfit-preview/);assert.match(agent,/item\.imageUrl/);});
+
+test("piece-level outfit updates remain scoped to the signed-in consumer",()=>{assert.match(route,/export async function PATCH/);assert.match(route,/updateOutfitItems\(session\.subject,outfitId,unique\)/);assert.doesNotMatch(route,/body\?\.(ownerId|accountId|subject)/);});
+
+test("removing a piece regenerates the board and preserves the wardrobe garment",()=>{const start=store.indexOf("export async function updateOutfitItems");const end=store.indexOf("export async function deleteOutfit",start);const implementation=store.slice(start,end);assert.match(implementation,/generateOutfitBoard\(ownerId,`\$\{outfit\.id\}-\$\{crypto\.randomUUID\(\)\}`/);assert.match(implementation,/SET itemIds = :itemIds, pieces = :pieces/);assert.match(implementation,/DeleteObjectCommand/);assert.doesNotMatch(implementation,/GARMENT#|WEAR#|COMMUNITY#/);});
+
+test("the outfit screen requires confirmation before removing a piece",()=>{assert.match(dashboard,/confirmRemovePieceKey!==key/);assert.match(dashboard,/Confirm remove/);assert.match(dashboard,/method:"PATCH"/);assert.match(dashboard,/garment remains in your wardrobe/);});

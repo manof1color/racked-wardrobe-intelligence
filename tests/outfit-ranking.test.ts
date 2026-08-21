@@ -83,6 +83,16 @@ test("REGRESSION: an explicit different-outfit request honors validated prior ac
   assert.equal(second.pieces.some((piece) => firstIds.includes(piece.item.id)), false, "a large enough wardrobe should produce an entirely fresh alternative");
 });
 
+test("REGRESSION: natural adjust and redo follow-ups request a genuinely new selection", () => {
+  const first = rankOutfit(wardrobe, "Build me a casual outfit");
+  const firstIds = first.pieces.map((piece) => piece.item.id);
+  for (const message of ["Adjust it", "Redo this look", "Use my other pieces", "Try again", "Remake the outfit"]) {
+    const next = rankOutfit(wardrobe, message, { avoidItemIds: firstIds });
+    assert.equal(next.intent.alternativeRequested, true, `${message} must be understood as an alternative request`);
+    assert.notDeepEqual(next.pieces.map((piece) => piece.item.id), firstIds, `${message} must not reproduce the same outfit`);
+  }
+});
+
 test("a medium wardrobe uses every available fresh category before repeating only required slots", () => {
   const medium = wardrobe.slice(0, 6);
   const first = rankOutfit(medium, "Build me an outfit");

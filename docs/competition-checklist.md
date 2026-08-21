@@ -41,7 +41,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 187 automated tests, production build, and production dependency audit pass (verified 2026-08-21).
+- [x] Lint, type check (`tsc --noEmit`), 192 automated tests, and production build pass locally (verified 2026-08-21); the production dependency audit and CodeQL remain required merge checks.
 
 ## 3. AI integration / innovation — 20%
 
@@ -54,6 +54,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand Hanger Agent can access only brand-owned products and thresholded wear aggregates.
 - [x] Both Hanger roles support free-form follow-up conversation and retrieve fresh server-side context for every message.
 - [x] Consumer Hanger can save a grounded outfit or record it as worn; the save route revalidates item ownership.
+- [x] Consumer Hanger recognizes natural revision language, maximizes unused owned pieces, and previews the exact private garment images attached to Save before persistence.
 - [x] “Different outfit” requests carry the prior recommendation through an owner-validated structured handoff, maximize unseen pieces before necessary repeats, and display the exact pieces bound to Save.
 - [x] Brand Hanger can discuss product, retention, merchandising, and campaign strategy without receiving identities or suppressed values.
 - [x] Brand strategy output is rejected if it recommends individualized outreach inferred from anonymous wear groups.
@@ -85,7 +86,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Authenticated logo/tabs preserve the role workspace; Community keeps the role-specific mobile bottom bar and only explicit Sign out ends the session.
 - [x] Compact mobile header menu is session-only, links to own-account Settings, retains Sign out, closes on outside tap/Escape, and contains no `/login` or public-home escape route.
 - [x] Saved outfits receive a private, category-arranged flat-lay image; mobile outfit cards constrain their own width and horizontal scrollers.
-- [x] Consumers can delete an owned saved outfit through a two-step confirmation; Hanger saves flow into the live Outfits state without requiring a reload.
+- [x] Consumers can remove one owned piece from a saved outfit or delete the entire outfit through separate two-step controls; edited flat-lays use a new private object key so stale mobile image caches cannot show the old piece set.
 - [x] Forgot-password requests resist enumeration; reset links are hashed, 30-minute, and single-use. SES delivery remains explicitly dependent on verified AWS identities.
 - [x] Small/medium Brand terminology and enrollment were reviewed; cheap fixes and limitations are recorded in `docs/brand-ux-review.md`.
 

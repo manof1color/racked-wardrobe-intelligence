@@ -14,15 +14,21 @@ export function PwaInstall() {
   const [hidden,setHidden]=useState(true);
 
   useEffect(()=>{
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    let refreshing=false;
+    const hadController="serviceWorker" in navigator&&Boolean(navigator.serviceWorker.controller);
+    const refreshForUpdate=()=>{if(hadController&&!refreshing){refreshing=true;window.location.reload();}};
+    if ("serviceWorker" in navigator&&window.isSecureContext){
+      navigator.serviceWorker.addEventListener("controllerchange",refreshForUpdate);
+      navigator.serviceWorker.register("/sw.js").then(registration=>registration.update()).catch(()=>undefined);
+    }
+    if (window.matchMedia("(display-mode: standalone)").matches) return ()=>navigator.serviceWorker?.removeEventListener("controllerchange",refreshForUpdate);
     const navigatorWithStandalone=navigator as Navigator&{standalone?:boolean};
-    if (navigatorWithStandalone.standalone) return;
+    if (navigatorWithStandalone.standalone) return ()=>navigator.serviceWorker?.removeEventListener("controllerchange",refreshForUpdate);
     const isIos=/iPad|iPhone|iPod/.test(navigator.userAgent);
     const iosTimer=isIos?window.setTimeout(()=>{setIosHelp(true);setHidden(false);},0):null;
     const capture=(event:Event)=>{event.preventDefault();setPrompt(event as InstallPromptEvent);setHidden(false);};
     window.addEventListener("beforeinstallprompt",capture);
-    if ("serviceWorker" in navigator&&window.isSecureContext) navigator.serviceWorker.register("/sw.js").catch(()=>undefined);
-    return ()=>{window.removeEventListener("beforeinstallprompt",capture);if(iosTimer!==null)window.clearTimeout(iosTimer);};
+    return ()=>{window.removeEventListener("beforeinstallprompt",capture);navigator.serviceWorker?.removeEventListener("controllerchange",refreshForUpdate);if(iosTimer!==null)window.clearTimeout(iosTimer);};
   },[]);
 
   async function install(){
