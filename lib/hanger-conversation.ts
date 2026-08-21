@@ -47,14 +47,16 @@ export function explainGroundedOutfit(wardrobe: WardrobeItem[], message: string,
   return rankOutfit(wardrobe, message, { history });
 }
 
+export const MAX_PRIOR_SUGGESTION_IDS = 100;
+
 export function ownedSuggestionItemIds(value: unknown, wardrobe: WardrobeItem[]) {
   if (!Array.isArray(value)) return [];
   const owned = new Set(wardrobe.map((item) => item.id));
-  return [...new Set(value
+  return [...new Set(value.slice(0, MAX_PRIOR_SUGGESTION_IDS * 4)
     .filter((id): id is string => typeof id === "string")
     .map((id) => id.trim())
     .filter((id) => id.length > 0 && id.length <= 128 && owned.has(id)))]
-    .slice(0, 10);
+    .slice(0, MAX_PRIOR_SUGGESTION_IDS);
 }
 
 export function hangerOutfitName(suggested: WardrobeItem[]) {

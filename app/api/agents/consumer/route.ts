@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { generateConsumerHangerReply, hangerOutfitName, ownedSuggestionItemIds, sanitizeAgentHistory } from "@/lib/hanger-conversation";
-import { rankOutfit } from "@/lib/outfit-ranking";
+import { asksForOutfitSuggestion, rankOutfit } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { listOutfits, listWardrobe } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -21,7 +21,11 @@ export async function POST(request: Request) {
   // History is passed in so a follow-up sets aside what was already suggested.
   const previousSuggestionItemIds = ownedSuggestionItemIds(body.previousSuggestionItemIds, wardrobe);
   const mostRecentSavedItemIds = outfits[0]?.itemIds ?? [];
-  const ranked = rankOutfit(wardrobe, message, { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds] });
+  // Repeating an outfit-creation prompt inside the same conversation means
+  // "show me another" even when the person did not type the word "another".
+  // Advice questions remain deterministic and do not rotate implicitly.
+  const rotatePriorSuggestions=previousSuggestionItemIds.length>0&&asksForOutfitSuggestion(message);
+  const ranked = rankOutfit(wardrobe, message, { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds], rotatePriorSuggestions });
   const suggested = ranked.pieces.map((piece) => piece.item);
   const generated = await generateConsumerHangerReply({
     message,
