@@ -105,7 +105,7 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 
 ## Phase 19 — Pair-aware shoe-rack scanning (2026-08-22)
 
-- [#82](https://github.com/manof1color/racked-wardrobe-intelligence/pull/82) expands one-photo intake to 16 wardrobe units and explicitly performs a whole-image coverage check. Matching left/right shoes are represented and persisted as one `pair`; a deterministic shared-pair guard combines split provider boxes into one complete crop without merging adjacent different pairs. Three focused regressions cover the provider contract and split-box behavior.
+- [#82](https://github.com/manof1color/racked-wardrobe-intelligence/pull/82) expands one-photo intake to 16 wardrobe units and explicitly performs a whole-image coverage check. Matching left/right shoes are represented and persisted as one `pair`; a deterministic shared-pair guard combines split provider boxes into one complete crop without merging adjacent different pairs. Three focused regressions cover the provider contract and split-box behavior. Validate Racked and CodeQL passed; AWS Amplify published merge commit `6bc2557` by 2026-08-22 18:45 UTC, with the public login returning HTTP 200 and the signed-out Consumer route preserving its redirect boundary.
 
 ## Continuous verification
 
