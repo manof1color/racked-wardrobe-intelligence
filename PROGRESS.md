@@ -105,7 +105,7 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 
 ## Phase 19 — Pair-aware shoe-rack scanning (2026-08-22)
 
-- One-photo intake now scans for up to 16 wardrobe units instead of eight and explicitly performs a whole-image coverage check. Matching left/right shoes are represented and persisted as one `pair`; a deterministic shared-pair guard combines split provider boxes into one complete crop without merging adjacent different pairs. Three focused regressions cover the provider contract, pair persistence boundary, and split-box behavior.
+- [#82](https://github.com/manof1color/racked-wardrobe-intelligence/pull/82) expands one-photo intake to 16 wardrobe units and explicitly performs a whole-image coverage check. Matching left/right shoes are represented and persisted as one `pair`; a deterministic shared-pair guard combines split provider boxes into one complete crop without merging adjacent different pairs. Three focused regressions cover the provider contract and split-box behavior.
 
 ## Continuous verification
 
