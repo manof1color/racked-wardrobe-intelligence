@@ -51,8 +51,8 @@ The committed synthetic cohort uses reserved `.local` addresses, so those accoun
 - [x] Amazon Bedrock model is available in `us-east-2`.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
-- [x] All 200 automated tests pass locally (re-verified 2026-08-21); CI and CodeQL remain mandatory on every PR.
-- [x] PR #75 merged as `d8fca8f`; Amplify's replacement is visible at the production URL through `racked-shell-v2` (published 2026-08-21 23:20 UTC).
+- [x] All 200 automated tests pass locally (re-verified 2026-08-22); CI and CodeQL remain mandatory on every PR.
+- [x] PR #78 merged as `50e1e0d` after Validate Racked and CodeQL passed; Amplify's replacement is visible at the production URL (published 2026-08-22 04:28 UTC). Landing and Consumer routes return HTTP 200 and the signed-out Consumer route preserves the access-control boundary.
 - [x] Production Next.js build passed.
 - [x] Amplify deployment 39 deployed PR #52 merge commit `893c4fb`; the synthetic seed was rerun and the documented 62% exact + strong substitute + missing Recreate result was verified live.
 - [ ] Post-merge live account, photo, persistence, and brand enrollment smoke test.
