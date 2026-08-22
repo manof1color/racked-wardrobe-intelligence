@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { asksForOutfitSuggestion, MAX_OUTFIT_PIECES, previouslySuggestedItemIds, rankOutfit, readOutfitIntent } from "../lib/outfit-ranking.ts";
+import { asksForOutfitSuggestion, explicitlyRequestedWardrobeItems, MAX_OUTFIT_PIECES, previouslySuggestedItemIds, rankOutfit, readOutfitIntent } from "../lib/outfit-ranking.ts";
 import { selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -58,6 +58,49 @@ test("weather steers season selection", () => {
   const cold = rankOutfit(wardrobe, "It is freezing and snowing today").pieces.map((piece) => piece.item.id);
   assert.ok(cold.includes("d-trouser"), "winter trousers should win in cold weather");
   assert.equal(cold.includes("e-shorts"), false, "summer shorts must not be chosen for snow");
+});
+
+test("REGRESSION: explicitly named owned pieces are hard constraints, not low-wear suggestions", () => {
+  const result = rankOutfit(wardrobe, "Make a casual outfit using my Grey Hoodie and White Sneaker");
+  const ids = result.pieces.map((piece) => piece.item.id);
+  assert.ok(ids.includes("c-hoodie"), "the high-wear hoodie must remain because the customer named it");
+  assert.ok(ids.includes("g-sneaker"), "the most-worn sneaker must remain because the customer named it");
+  assert.deepEqual(result.requiredPieceIds, ["c-hoodie", "g-sneaker"]);
+  assert.equal(result.pieces.find((piece) => piece.item.id === "c-hoodie")?.reasons[0], "Directly requested by the customer.");
+});
+
+test("a current keep request overrides prior-suggestion rotation", () => {
+  const result = rankOutfit(wardrobe, "Make another outfit but keep my Blue Oxford", {
+    avoidItemIds: ["b-oxford", "d-trouser", "f-derby", "h-belt"],
+    rotatePriorSuggestions: true,
+  });
+  assert.ok(result.pieces.some((piece) => piece.item.id === "b-oxford"));
+  assert.deepEqual(result.requiredPieceIds, ["b-oxford"]);
+});
+
+test("multiple requested pieces in the same category all survive category filling", () => {
+  const result = rankOutfit(wardrobe, "Build a layered look with Blue Oxford and Grey Hoodie");
+  const ids = result.pieces.map((piece) => piece.item.id);
+  assert.ok(ids.includes("b-oxford") && ids.includes("c-hoodie"), "category diversity must not drop either requested top");
+});
+
+test("structured color and subtype can identify one owned piece without guessing", () => {
+  const descriptive = [
+    garment({ id: "red-crew", name: "Weekend Crew", category: "top", subtype: "sweatshirt", color: "red" }),
+    garment({ id: "blue-crew", name: "Ocean Crew", category: "top", subtype: "sweatshirt", color: "blue" }),
+    ...wardrobe.filter((item) => item.category !== "top"),
+  ];
+  const requested = explicitlyRequestedWardrobeItems(descriptive, "Use my red sweatshirt with an outfit for dinner");
+  assert.deepEqual(requested.map((item) => item.id), ["red-crew"]);
+  assert.ok(rankOutfit(descriptive, "Use my red sweatshirt with an outfit for dinner").pieces.some((piece) => piece.item.id === "red-crew"));
+});
+
+test("negative and unknown garment requests never force the wrong wardrobe item", () => {
+  const requested = explicitlyRequestedWardrobeItems(wardrobe, "Build with Wool Trouser but do not use Grey Hoodie or a Purple Fedora");
+  assert.deepEqual(requested.map((item) => item.id), ["d-trouser"]);
+  assert.deepEqual(explicitlyRequestedWardrobeItems(wardrobe, "Style a casual outfit. I wore Blue Oxford yesterday."), [], "an unrelated wardrobe mention in another sentence is not a requirement");
+  const result = rankOutfit(wardrobe, "Make an outfit with a Purple Fedora");
+  assert.deepEqual(result.requiredPieceIds, [], "Hanger cannot invent or force a piece the customer does not own");
 });
 
 test("REGRESSION: a follow-up sets aside what was already suggested", () => {

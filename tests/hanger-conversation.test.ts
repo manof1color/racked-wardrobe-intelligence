@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, consumerReplyPassesSelectionReview, formatHangerText, groundedSelectionText, hangerOutfitName, MAX_PRIOR_SUGGESTION_IDS, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
+import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, consumerReplyPassesSelectionReview, formatHangerText, generateConsumerHangerReply, groundedSelectionText, hangerOutfitName, MAX_PRIOR_SUGGESTION_IDS, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -65,6 +65,21 @@ test("Hanger's canonical words list the same selected garments shown and saved",
   assert.equal(groundedSelectionText(wardrobe.slice(0, 2)), "Selected outfit — these exact pieces appear in the photos and Save action:\n• Blue Oxford (top)\n• Black Trouser (bottom)");
   assert.equal(consumerReplyPassesSelectionReview("Pair Blue Oxford with Black Trouser.", wardrobe, wardrobe.slice(0, 2)), true);
   assert.equal(consumerReplyPassesSelectionReview("Pair Blue Oxford with White Sneaker.", wardrobe, wardrobe.slice(0, 2)), false);
+});
+
+test("Hanger acknowledges a required piece instead of claiming low-wear selection", async () => {
+  const reply = await generateConsumerHangerReply({
+    message: "Use my Blue Oxford",
+    history: [],
+    wardrobe,
+    outfits: [],
+    suggested: wardrobe.slice(0, 2),
+    required: wardrobe.slice(0, 1),
+  });
+  assert.match(reply.message, /explicitly asked to use that piece/);
+  assert.doesNotMatch(reply.message, /prioritized lower-wear pieces/);
+  const prompt = buildConsumerHangerPrompt({ message: "Use my Blue Oxford", wardrobe, outfits: [], suggested: wardrobe.slice(0, 2), required: wardrobe.slice(0, 1) });
+  assert.match(prompt, /"directlyRequested":true/);
 });
 
 test("brand Hanger receives only brand product fields and released aggregate metrics", () => {
