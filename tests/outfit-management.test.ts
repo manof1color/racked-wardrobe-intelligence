@@ -24,6 +24,12 @@ test("repeated creation prompts rotate accumulated owned suggestions server-side
 
 test("Hanger displays the exact owned garment images before an outfit is saved",()=>{assert.match(agent,/reply\.selection/);assert.match(agent,/hanger-outfit-preview/);assert.match(agent,/item\.imageUrl/);});
 
+test("Hanger derives preview and save ids from one canonical server selection",()=>{assert.match(consumerAgentRoute,/const selection = suggested\.map/);assert.match(consumerAgentRoute,/const selectedItemIds = selection\.map/);assert.match(consumerAgentRoute,/itemIds: selectedItemIds/);assert.match(consumerAgentRoute,/selection,/);});
+
+test("the client blocks saving when visible cards and action ids do not match",()=>{assert.match(agent,/const visibleItemIds = reply\.selection/);assert.match(agent,/visibleItemIds\.length !== itemIds\.length/);assert.match(agent,/visibleItemIds\.some\(\(itemId, index\) => itemId !== itemIds\[index\]\)/);});
+
+test("the saved board preserves Hanger's selected piece order",()=>{const start=store.indexOf("export async function saveOutfit");const end=store.indexOf("export async function updateOutfitItems",start);const implementation=store.slice(start,end);assert.match(implementation,/unique\.map\(itemId=>byId\.get\(itemId\)\)/);assert.doesNotMatch(implementation,/wardrobe\.filter\(item=>unique\.includes\(item\.id\)\)/);});
+
 test("piece-level outfit updates remain scoped to the signed-in consumer",()=>{assert.match(route,/export async function PATCH/);assert.match(route,/updateOutfitItems\(session\.subject,outfitId,unique\)/);assert.doesNotMatch(route,/body\?\.(ownerId|accountId|subject)/);});
 
 test("removing a piece regenerates the board and preserves the wardrobe garment",()=>{const start=store.indexOf("export async function updateOutfitItems");const end=store.indexOf("export async function deleteOutfit",start);const implementation=store.slice(start,end);assert.match(implementation,/generateOutfitBoard\(ownerId,`\$\{outfit\.id\}-\$\{crypto\.randomUUID\(\)\}`/);assert.match(implementation,/SET itemIds = :itemIds, pieces = :pieces/);assert.match(implementation,/DeleteObjectCommand/);assert.doesNotMatch(implementation,/GARMENT#|WEAR#|COMMUNITY#/);});

@@ -60,8 +60,27 @@ export function ownedSuggestionItemIds(value: unknown, wardrobe: WardrobeItem[])
 }
 
 export function hangerOutfitName(suggested: WardrobeItem[]) {
-  const names = suggested.slice(0, 2).map((item) => item.name.trim()).filter(Boolean);
-  return (names.length ? `Hanger: ${names.join(" + ")}` : "Hanger outfit").slice(0, 80);
+  const names = suggested.map((item) => item.name.trim()).filter(Boolean);
+  if (!names.length) return "Hanger outfit";
+  const completeName = `Hanger: ${names.join(" + ")}`;
+  return completeName.length <= 80 ? completeName : `Hanger outfit · ${names.length} selected pieces`;
+}
+
+export function groundedSelectionText(suggested: WardrobeItem[]) {
+  if (!suggested.length) return "";
+  const lines = suggested.map((item) => `• ${item.name} (${item.category})`).join("\n");
+  return `Selected outfit — these exact pieces appear in the photos and Save action:\n${lines}`;
+}
+
+/** Reject model prose that names a different owned garment than the ranked selection. */
+export function consumerReplyPassesSelectionReview(text: string, wardrobe: WardrobeItem[], suggested: WardrobeItem[]) {
+  const selectedIds = new Set(suggested.map((item) => item.id));
+  const normalized = text.toLocaleLowerCase();
+  return !wardrobe.some((item) => {
+    if (selectedIds.has(item.id)) return false;
+    const name = item.name.trim().toLocaleLowerCase();
+    return name.length >= 4 && normalized.includes(name);
+  });
 }
 
 function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[]) {
@@ -82,7 +101,7 @@ function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], sugge
       itemIds: outfit.itemIds,
       wears: outfit.wears,
     })),
-    candidateOutfitItemIds: suggested.map((item) => item.id),
+    candidateOutfit: suggested.map((item) => ({ id: item.id, name: item.name, category: item.category })),
   };
 }
 
@@ -177,17 +196,17 @@ export async function generateConsumerHangerReply(input: {
   outfits: SavedOutfit[];
   suggested: WardrobeItem[];
 }) {
-  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. Refer to items by name, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
+  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
-  if (generated) {
-    const names = input.suggested.map((item) => item.name);
-    const groundedSelection = names.length ? `\n\nThis save action uses: ${names.join(", ")}.` : "";
-    return { message: `${generated}${groundedSelection}`, usedModel: true };
+  const groundedSelection = groundedSelectionText(input.suggested);
+  if (generated && consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested)) {
+    return { message: `${generated}${groundedSelection ? `\n\n${groundedSelection}` : ""}`, usedModel: true };
   }
+  if (generated) console.warn("Hanger rejected a consumer response that named a garment outside the canonical selection.");
   if (input.wardrobe.length === 0) return { message: "I can help you plan a wardrobe, but I do not see any saved garments yet. Add your front, back, and label photos first, then ask me for an outfit, rotation, or gap analysis. What kind of outfit do you want to build first?", usedModel: false };
   const names = input.suggested.map((item) => item.name);
   if (names.length === 0) return { message: "I can see your wardrobe, but I could not form a grounded outfit from the current item details. Tell me the occasion and the type of piece you want to start with.", usedModel: false };
-  return { message: `I pulled your latest wardrobe and would start with ${names.join(", ")}. These are all pieces you already own, and I prioritized lower-wear items to bring more of your closet into rotation. What occasion, weather, or dress code should I refine this for?`, usedModel: false };
+  return { message: `I pulled your latest wardrobe and prioritized lower-wear pieces to bring more of your closet into rotation.\n\n${groundedSelection}\n\nWhat occasion, weather, or dress code should I refine this for?`, usedModel: false };
 }
 
 export async function generateBrandHangerReply(input: {
