@@ -83,7 +83,8 @@ export function consumerReplyPassesSelectionReview(text: string, wardrobe: Wardr
   });
 }
 
-function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[]) {
+function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[], required: WardrobeItem[] = []) {
+  const requiredIds = new Set(required.map((item) => item.id));
   return {
     wardrobe: wardrobe.slice(0, 60).map((item) => ({
       id: item.id,
@@ -101,7 +102,7 @@ function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], sugge
       itemIds: outfit.itemIds,
       wears: outfit.wears,
     })),
-    candidateOutfit: suggested.map((item) => ({ id: item.id, name: item.name, category: item.category })),
+    candidateOutfit: suggested.map((item) => ({ id: item.id, name: item.name, category: item.category, directlyRequested: requiredIds.has(item.id) })),
   };
 }
 
@@ -110,8 +111,9 @@ export function buildConsumerHangerPrompt(input: {
   wardrobe: WardrobeItem[];
   outfits: SavedOutfit[];
   suggested: WardrobeItem[];
+  required?: WardrobeItem[];
 }) {
-  return `Fresh private wardrobe context for this turn: ${JSON.stringify(consumerContext(input.wardrobe, input.outfits, input.suggested))}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
+  return `Fresh private wardrobe context for this turn: ${JSON.stringify(consumerContext(input.wardrobe, input.outfits, input.suggested, input.required))}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
 }
 
 function releasedBrandContext(product: BrandProductRegistration, metrics: BrandMetrics, communityMetrics?:BrandCommunityMetrics) {
@@ -195,8 +197,9 @@ export async function generateConsumerHangerReply(input: {
   wardrobe: WardrobeItem[];
   outfits: SavedOutfit[];
   suggested: WardrobeItem[];
+  required?: WardrobeItem[];
 }) {
-  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
+  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that it was kept for that reason and never claim it was chosen because it was underused. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
   const groundedSelection = groundedSelectionText(input.suggested);
   if (generated && consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested)) {
@@ -206,7 +209,11 @@ export async function generateConsumerHangerReply(input: {
   if (input.wardrobe.length === 0) return { message: "I can help you plan a wardrobe, but I do not see any saved garments yet. Add your front, back, and label photos first, then ask me for an outfit, rotation, or gap analysis. What kind of outfit do you want to build first?", usedModel: false };
   const names = input.suggested.map((item) => item.name);
   if (names.length === 0) return { message: "I can see your wardrobe, but I could not form a grounded outfit from the current item details. Tell me the occasion and the type of piece you want to start with.", usedModel: false };
-  return { message: `I pulled your latest wardrobe and prioritized lower-wear pieces to bring more of your closet into rotation.\n\n${groundedSelection}\n\nWhat occasion, weather, or dress code should I refine this for?`, usedModel: false };
+  const requestedNames = (input.required ?? []).map((item) => item.name);
+  const selectionReason = requestedNames.length
+    ? `I kept ${requestedNames.join(", ")} because you explicitly asked to use ${requestedNames.length === 1 ? "that piece" : "those pieces"}, then built the rest of the outfit around ${requestedNames.length === 1 ? "it" : "them"}.`
+    : "I prioritized lower-wear pieces to bring more of your closet into rotation.";
+  return { message: `I pulled your latest wardrobe. ${selectionReason}\n\n${groundedSelection}\n\nWhat occasion, weather, or dress code should I refine this for?`, usedModel: false };
 }
 
 export async function generateBrandHangerReply(input: {

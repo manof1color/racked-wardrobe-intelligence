@@ -27,6 +27,7 @@ export async function POST(request: Request) {
   const rotatePriorSuggestions=previousSuggestionItemIds.length>0&&asksForOutfitSuggestion(message);
   const ranked = rankOutfit(wardrobe, message, { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds], rotatePriorSuggestions });
   const suggested = ranked.pieces.map((piece) => piece.item);
+  const required = ranked.requiredPieceIds.map((itemId) => wardrobe.find((item) => item.id === itemId)).filter((item): item is typeof wardrobe[number] => Boolean(item));
   // One canonical selection feeds the visible cards and every action. Keeping
   // this as a single object prevents names, photos, and saved IDs from drifting.
   const selection = suggested.map((item) => ({
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
     wardrobe,
     outfits,
     suggested,
+    required,
   });
   const actions: AgentReply["actions"] = suggested.length ? [
     { label: "Save this exact outfit", type: "save-outfit", payload: { itemIds: selectedItemIds, name: hangerOutfitName(suggested) } },
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
       `${wardrobe.length} owned garments checked this turn`,
       `${outfits.length} saved outfits checked this turn`,
       ...ranked.pieces.map((piece) => `${piece.item.name}: ${piece.reasons[0] ?? "scored against this request"}`),
+      ...(required.length ? [`${required.map((item) => item.name).join(", ")} locked because the customer explicitly requested ${required.length === 1 ? "it" : "them"}`] : []),
       ...(ranked.setAside > 0 ? [`${ranked.setAside} piece${ranked.setAside === 1 ? "" : "s"} already suggested earlier in this conversation were set aside`] : []),
       "Only this signed-in account's wardrobe was available",
     ],

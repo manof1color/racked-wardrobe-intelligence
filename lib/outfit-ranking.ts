@@ -39,6 +39,8 @@ export interface RankedGarment {
 export interface GroundedOutfit {
   intent: OutfitIntent;
   pieces: RankedGarment[];
+  /** Owned pieces the customer explicitly required in this request. */
+  requiredPieceIds: string[];
   /** Items held back because Hanger already suggested them earlier in this conversation. */
   setAside: number;
   methodology: string;
@@ -83,6 +85,13 @@ const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|negl
 const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|adjust(?: it| the outfit| this look)?|redo(?: it| the outfit| this look)?|remake(?: it| the outfit| this look)?|revise(?: it| the outfit| this look)?|try again|start over|use (?:my )?other pieces|change (?:it|the outfit|this look)|switch (?:it|the outfit|this look)|swap (?:it|the outfit|this look|the pieces)|refresh (?:it|the outfit|this look)/;
 const OUTFIT_CREATION_KEYWORDS = /(?:build|create|make|style|suggest|give|show)(?:\s+[a-z0-9'-]+){0,8}\s+(?:outfit|look|rotation)|what (?:can|should) i wear/;
 const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
+const REQUIRED_PIECE_CUE = /\b(?:use|using|wear|wearing|include|including|incorporate|pair|pairing|style|styling|with|from|around|centered|starting|start|featuring|feature|add|keep|want|need|must have)\b/;
+const REQUIRED_PIECE_NEGATION = /\b(?:without|except|other than|instead of|rather than|avoid|exclude|excluding|skip|leave out|do not use|don t use|dont use|do not wear|don t wear|dont wear|do not include|don t include|dont include|no|not)\b[^,.!?;]{0,40}$/;
+const ITEM_ALIAS_STOPWORDS = new Set([
+  "black", "white", "blue", "brown", "grey", "gray", "red", "green", "yellow", "orange", "purple", "pink", "navy", "beige", "tan",
+  "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined",
+  "piece", "item", "outfit", "look", "clothing", "garment",
+]);
 
 const CATEGORY_SLOTS = ["top", "bottom", "shoe", "outerwear", "accessory"];
 
@@ -91,6 +100,71 @@ const ROTATION_WEIGHTS = { occasion: 0.1, weather: 0.1, style: 0.1, underuse: 0.
 
 function clean(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function searchable(value: unknown) {
+  return ` ${clean(value).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim()} `;
+}
+
+function searchableRequest(value: unknown) {
+  return ` ${clean(value).replace(/[.!?;]/g, " | ").replace(/[^a-z0-9|]+/g, " ").replace(/\s+/g, " ").trim()} `;
+}
+
+function aliasesFor(item: WardrobeItem) {
+  const fullName = searchable(item.name).trim();
+  const aliases = new Set<string>([fullName]);
+  const subtype = searchable(item.subtype).trim();
+  if (subtype.length >= 4) aliases.add(subtype);
+  const color = searchable(item.color).trim();
+  const category = searchable(item.category).trim();
+  const brand = searchable(item.brand).trim();
+  if (color.length >= 3 && subtype.length >= 4) aliases.add(`${color} ${subtype}`);
+  if (color.length >= 3 && category.length >= 4) aliases.add(`${color} ${category}`);
+  if (brand.length >= 3 && subtype.length >= 4) aliases.add(`${brand} ${subtype}`);
+  if (brand.length >= 3 && category.length >= 4) aliases.add(`${brand} ${category}`);
+  const sku = searchable(item.sku).trim();
+  if (sku.length >= 4) aliases.add(sku);
+  for (const token of fullName.split(" ")) {
+    if (token.length >= 4 && !ITEM_ALIAS_STOPWORDS.has(token)) aliases.add(token);
+  }
+  return [...aliases].filter((alias) => alias.length >= 4);
+}
+
+/**
+ * Resolves explicit natural-language inclusion requests to owned garments only.
+ * Ambiguous aliases are ignored rather than forcing the wrong wardrobe item.
+ */
+export function explicitlyRequestedWardrobeItems(wardrobe: WardrobeItem[], message: string) {
+  const request = searchableRequest(message);
+  const aliases = new Map<string, WardrobeItem[]>();
+  for (const item of wardrobe) {
+    for (const alias of aliasesFor(item)) aliases.set(alias, [...(aliases.get(alias) ?? []), item]);
+  }
+  const mentions: Array<{ item: WardrobeItem; index: number; specificity: number }> = [];
+  for (const [alias, owners] of aliases) {
+    if (owners.length !== 1) continue;
+    const needle = ` ${alias} `;
+    const index = request.indexOf(needle);
+    if (index < 0) continue;
+    const before = request.slice(Math.max(0, index - 90), index);
+    // A cue must be in the same sentence as the garment mention. This supports
+    // comma-separated lists without treating a garment mentioned in unrelated
+    // conversation context as a required piece.
+    const sentenceBefore = before.split("|").at(-1) ?? before;
+    const after = request.slice(index + needle.length, Math.min(request.length, index + needle.length + 30));
+    const sentenceContext = `${sentenceBefore} ${after.split("|")[0]}`;
+    if (!REQUIRED_PIECE_CUE.test(sentenceContext) || REQUIRED_PIECE_NEGATION.test(sentenceBefore)) continue;
+    mentions.push({ item: owners[0], index, specificity: alias.length });
+  }
+  mentions.sort((a, b) => a.index - b.index || b.specificity - a.specificity || a.item.id.localeCompare(b.item.id));
+  const seen = new Set<string>();
+  const requested: WardrobeItem[] = [];
+  for (const { item } of mentions) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    requested.push(item);
+  }
+  return requested;
 }
 
 /** Reads occasion, weather, style, and rotation signals out of the request itself. */
@@ -189,9 +263,15 @@ function rankGarments(wardrobe: WardrobeItem[], intent: OutfitIntent): RankedGar
     .sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
 }
 
-function fillCategorySlots(ranked: RankedGarment[], maxPieces: number) {
-  const chosen: RankedGarment[] = [];
+function seedRequired(ranked: RankedGarment[], requiredIds: string[], maxPieces: number) {
+  const byId = new Map(ranked.map((entry) => [entry.item.id, entry]));
+  return requiredIds.map((id) => byId.get(id)).filter((entry): entry is RankedGarment => Boolean(entry)).slice(0, maxPieces);
+}
+
+function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredIds: string[] = []) {
+  const chosen: RankedGarment[] = seedRequired(ranked, requiredIds, maxPieces);
   const used = new Set<string>();
+  for (const entry of chosen) used.add(entry.item.id);
   for (const slot of CATEGORY_SLOTS) {
     if (chosen.length >= maxPieces) break;
     const best = ranked.find((entry) => !used.has(entry.item.id) && clean(entry.item.category).includes(slot));
@@ -209,11 +289,13 @@ export function asksForOutfitSuggestion(message: string) {
   return OUTFIT_CREATION_KEYWORDS.test(clean(message));
 }
 
-function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGarment[], maxPieces: number) {
-  const chosen: RankedGarment[] = [];
+function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGarment[], maxPieces: number, requiredIds: string[] = []) {
+  const allRanked = [...fresh, ...repeated];
+  const chosen: RankedGarment[] = seedRequired(allRanked, requiredIds, maxPieces);
   const usedItems = new Set<string>();
   const usedCategories = new Set<string>();
   const categorySlot = (entry: RankedGarment) => CATEGORY_SLOTS.find((slot) => clean(entry.item.category).includes(slot)) ?? clean(entry.item.category);
+  for (const entry of chosen) { usedItems.add(entry.item.id); usedCategories.add(categorySlot(entry)); }
   const add = (entry: RankedGarment | undefined) => {
     if (!entry || chosen.length >= maxPieces || usedItems.has(entry.item.id)) return;
     chosen.push(entry); usedItems.add(entry.item.id); usedCategories.add(categorySlot(entry));
@@ -242,11 +324,17 @@ export function rankOutfit(
 ): GroundedOutfit {
   const intent = readOutfitIntent(message);
   const maxPieces = Math.max(1, options.maxPieces ?? MAX_OUTFIT_PIECES);
+  const requiredItems = explicitlyRequestedWardrobeItems(wardrobe, message).slice(0, maxPieces);
+  const requiredPieceIds = requiredItems.map((item) => item.id);
+  const requiredIdSet = new Set(requiredPieceIds);
   const alreadySuggested = previouslySuggestedItemIds(wardrobe, options.history ?? []);
   if (intent.alternativeRequested || options.rotatePriorSuggestions) {
     const owned = new Set(wardrobe.map((item) => item.id));
     for (const id of options.avoidItemIds ?? []) if (owned.has(id)) alreadySuggested.add(id);
   }
+  // An explicit current request outranks rotation: the customer may deliberately
+  // ask to reuse a garment Hanger suggested earlier.
+  for (const id of requiredPieceIds) alreadySuggested.delete(id);
   const fresh = wardrobe.filter((item) => !alreadySuggested.has(item.id));
   const repeated = wardrobe.filter((item) => alreadySuggested.has(item.id));
   // Fresh pieces always rank before repeats. When the wardrobe cannot supply a
@@ -256,16 +344,22 @@ export function rankOutfit(
   const repeatedRanked = rankGarments(repeated, intent);
   const ranked = alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : rankGarments(wardrobe, intent);
   const pieces = intent.mode === "rotation"
-    ? ranked.slice(0, maxPieces)
+    ? [...seedRequired(ranked, requiredPieceIds, maxPieces), ...ranked.filter((entry) => !requiredIdSet.has(entry.item.id))].slice(0, maxPieces)
     : alreadySuggested.size && fresh.length
-      ? fillAlternativeCategorySlots(freshRanked, repeatedRanked, maxPieces)
-      : fillCategorySlots(ranked, maxPieces);
-  const reused = pieces.filter((piece) => alreadySuggested.has(piece.item.id)).length;
+      ? fillAlternativeCategorySlots(freshRanked, repeatedRanked, maxPieces, requiredPieceIds)
+      : fillCategorySlots(ranked, maxPieces, requiredPieceIds);
+  const groundedPieces = pieces.map((piece) => requiredIdSet.has(piece.item.id)
+    ? { ...piece, reasons: ["Directly requested by the customer.", ...piece.reasons] }
+    : piece);
+  const reused = groundedPieces.filter((piece) => alreadySuggested.has(piece.item.id)).length;
   return {
     intent,
-    pieces,
+    pieces: groundedPieces,
+    requiredPieceIds,
     setAside: Math.max(0, alreadySuggested.size - reused),
-    methodology: intent.mode === "rotation"
+    methodology: requiredPieceIds.length
+      ? "Locked the explicitly requested owned pieces first, then scored compatible owned pieces to complete the outfit."
+      : intent.mode === "rotation"
       ? "Ranked owned pieces by how little they have been worn and how long since they were last worn, with occasion, weather, and style as secondary signals."
       : "Scored owned pieces on occasion fit, weather and season, requested style, underuse, and time since last worn, then covered one piece per category before filling the rest.",
   };
