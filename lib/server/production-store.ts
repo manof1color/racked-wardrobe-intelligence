@@ -212,7 +212,8 @@ async function generateOutfitBoard(ownerId:string,outfitId:string,items:Wardrobe
 export async function saveOutfit(ownerId:string,name:string,itemIds:string[]) {
   const unique=[...new Set(itemIds)];
   const wardrobe=await listWardrobe(ownerId);
-  const id=crypto.randomUUID(),selected=wardrobe.filter(item=>unique.includes(item.id)),boardImageKey=await generateOutfitBoard(ownerId,id,selected);
+  const byId=new Map(wardrobe.map(item=>[item.id,item]));
+  const id=crypto.randomUUID(),selected=unique.map(itemId=>byId.get(itemId)).filter((item):item is WardrobeItem=>Boolean(item)),boardImageKey=await generateOutfitBoard(ownerId,id,selected);
   const outfit:SavedOutfit={id,name:name.trim().slice(0,80)||"Saved outfit",itemIds:unique,pieces:buildOutfitPieceReferences(unique,wardrobe),createdAt:new Date().toISOString(),wears:0,...(boardImageKey?{boardImageKey,boardImageUrl:await privateImageUrl(boardImageKey)}:{})};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...outfit,PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`}}));
   return outfit;
@@ -225,7 +226,8 @@ export async function updateOutfitItems(ownerId:string,outfitId:string,itemIds:s
   const outfit=outfits.find(entry=>entry.id===outfitId);
   if(!outfit)return null;
   if(unique.some(id=>!wardrobe.some(item=>item.id===id)))throw new Error("Every outfit piece must belong to your wardrobe.");
-  const selected=wardrobe.filter(item=>unique.includes(item.id));
+  const byId=new Map(wardrobe.map(item=>[item.id,item]));
+  const selected=unique.map(itemId=>byId.get(itemId)).filter((item):item is WardrobeItem=>Boolean(item));
   // A new object key prevents a signed URL or installed app from displaying the
   // previous board after pieces change. The former private board is removed only
   // after DynamoDB accepts the owner-scoped update.

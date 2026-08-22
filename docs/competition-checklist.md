@@ -41,7 +41,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 196 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-21); CI and CodeQL remain mandatory on every PR.
+- [x] Lint, type check (`tsc --noEmit`), 200 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-21); CI and CodeQL remain mandatory on every PR.
 
 ## 3. AI integration / innovation — 20%
 
@@ -54,7 +54,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand Hanger Agent can access only brand-owned products and thresholded wear aggregates.
 - [x] Both Hanger roles support free-form follow-up conversation and retrieve fresh server-side context for every message.
 - [x] Consumer Hanger can save a grounded outfit or record it as worn; the save route revalidates item ownership.
-- [x] Consumer Hanger recognizes natural revision language, maximizes unused owned pieces, and previews the exact private garment images attached to Save before persistence.
+- [x] Consumer Hanger recognizes natural revision language, maximizes unused owned pieces, and derives its written list, exact private image preview, action IDs, saved title, and board order from one canonical selection; mismatches are rejected before persistence.
 - [x] “Different outfit” requests carry the prior recommendation through an owner-validated structured handoff, maximize unseen pieces before necessary repeats, and display the exact pieces bound to Save.
 - [x] Hanger retains up to 100 owner-validated recommendation IDs, proves four four-piece turns use 16 unseen garments before cycling, and treats a repeated outfit-creation prompt as a fresh-look request without rotating general advice.
 - [x] Brand Hanger can discuss product, retention, merchandising, and campaign strategy without receiving identities or suppressed values.

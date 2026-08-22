@@ -26,7 +26,7 @@ function id() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 }
 
-function ReplyDetails({ reply, onAction, working }: { reply: AgentReply; onAction: (action: AgentAction) => void; working: string | null }) {
+function ReplyDetails({ reply, onAction, working }: { reply: AgentReply; onAction: (action: AgentAction, reply: AgentReply) => void; working: string | null }) {
   return <>
     <div className="agent-meta">
       <span>{reply.confidence} confidence</span>
@@ -41,13 +41,13 @@ function ReplyDetails({ reply, onAction, working }: { reply: AgentReply; onActio
     </div>}
     <ul className="agent-evidence">{reply.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
     {reply.actions.length > 0 && <div className="agent-actions">
-      {reply.actions.map((action) => <button type="button" key={action.type} onClick={() => onAction(action)} disabled={working !== null}>{working === action.type ? "Working…" : action.label}</button>)}
+      {reply.actions.map((action) => <button type="button" key={action.type} onClick={() => onAction(action, reply)} disabled={working !== null}>{working === action.type ? "Working…" : action.label}</button>)}
     </div>}
     <details><summary>Why Hanger could say this</summary><code>{reply.toolsUsed.join(" → ")}</code></details>
   </>;
 }
 
-function Conversation({ entries, onAction, working }: { entries: ChatEntry[]; onAction: (action: AgentAction) => void; working: string | null }) {
+function Conversation({ entries, onAction, working }: { entries: ChatEntry[]; onAction: (action: AgentAction, reply: AgentReply) => void; working: string | null }) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [entries]);
   return <div className="hanger-chat-log" role="log" aria-live="polite" aria-label="Conversation with Hanger">
@@ -103,10 +103,15 @@ export function ConsumerAgentPanel({ onWearRecorded,onOutfitSaved }: { onWearRec
     } finally { setBusy(false); }
   }
 
-  async function handleAction(action: AgentAction) {
+  async function handleAction(action: AgentAction, reply: AgentReply) {
     setWorking(action.type); setError(""); setStatus("");
     try {
       const itemIds = action.payload.itemIds?.split(",").filter(Boolean) ?? [];
+      const visibleItemIds = reply.selection?.map((item) => item.id) ?? [];
+      if ((action.type === "save-outfit" || action.type === "record-outfit") &&
+        (visibleItemIds.length !== itemIds.length || visibleItemIds.some((itemId, index) => itemId !== itemIds[index]))) {
+        throw new Error("Hanger's visible outfit changed before saving. Ask Hanger to create the outfit again so every photo and label stays matched.");
+      }
       if (action.type === "record-outfit") {
         const response = await fetch("/api/wears", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemIds }) });
         const data = await response.json();

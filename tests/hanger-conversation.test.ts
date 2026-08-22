@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, formatHangerText, hangerOutfitName, MAX_PRIOR_SUGGESTION_IDS, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
+import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, consumerReplyPassesSelectionReview, formatHangerText, groundedSelectionText, hangerOutfitName, MAX_PRIOR_SUGGESTION_IDS, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -36,7 +36,8 @@ test("consumer Hanger context includes useful wardrobe facts but excludes storag
   const suggested = selectGroundedOutfit(wardrobe, "Build a casual outfit");
   const prompt = buildConsumerHangerPrompt({ message: "Build a casual outfit", wardrobe, outfits: [], suggested });
   assert.match(prompt, /Blue Oxford/);
-  assert.match(prompt, /candidateOutfitItemIds/);
+  assert.match(prompt, /candidateOutfit/);
+  assert.match(prompt, /White Sneaker/);
   assert.doesNotMatch(prompt, /private\/account|imageKey|imageUrl/);
   assert.ok(suggested.every((item) => wardrobe.some((owned) => owned.id === item.id)));
 });
@@ -56,7 +57,14 @@ test("prior recommendation memory no longer forgets garments after ten ids", () 
 
 test("saved Hanger outfits are named from their actual selected pieces", () => {
   assert.equal(hangerOutfitName(wardrobe.slice(0, 2)), "Hanger: Blue Oxford + Black Trouser");
+  assert.equal(hangerOutfitName(wardrobe), "Hanger: Blue Oxford + Black Trouser + White Sneaker");
   assert.equal(hangerOutfitName([]), "Hanger outfit");
+});
+
+test("Hanger's canonical words list the same selected garments shown and saved", () => {
+  assert.equal(groundedSelectionText(wardrobe.slice(0, 2)), "Selected outfit — these exact pieces appear in the photos and Save action:\n• Blue Oxford (top)\n• Black Trouser (bottom)");
+  assert.equal(consumerReplyPassesSelectionReview("Pair Blue Oxford with Black Trouser.", wardrobe, wardrobe.slice(0, 2)), true);
+  assert.equal(consumerReplyPassesSelectionReview("Pair Blue Oxford with White Sneaker.", wardrobe, wardrobe.slice(0, 2)), false);
 });
 
 test("brand Hanger receives only brand product fields and released aggregate metrics", () => {

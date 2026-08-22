@@ -27,6 +27,15 @@ export async function POST(request: Request) {
   const rotatePriorSuggestions=previousSuggestionItemIds.length>0&&asksForOutfitSuggestion(message);
   const ranked = rankOutfit(wardrobe, message, { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds], rotatePriorSuggestions });
   const suggested = ranked.pieces.map((piece) => piece.item);
+  // One canonical selection feeds the visible cards and every action. Keeping
+  // this as a single object prevents names, photos, and saved IDs from drifting.
+  const selection = suggested.map((item) => ({
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
+  }));
+  const selectedItemIds = selection.map((item) => item.id).join(",");
   const generated = await generateConsumerHangerReply({
     message,
     history,
@@ -35,8 +44,8 @@ export async function POST(request: Request) {
     suggested,
   });
   const actions: AgentReply["actions"] = suggested.length ? [
-    { label: "Save this outfit", type: "save-outfit", payload: { itemIds: suggested.map((item) => item.id).join(","), name: hangerOutfitName(suggested) } },
-    { label: "Record these pieces as worn", type: "record-outfit", payload: { itemIds: suggested.map((item) => item.id).join(",") } },
+    { label: "Save this exact outfit", type: "save-outfit", payload: { itemIds: selectedItemIds, name: hangerOutfitName(suggested) } },
+    { label: "Record these exact pieces as worn", type: "record-outfit", payload: { itemIds: selectedItemIds } },
   ] : [];
   const reply: AgentReply = {
     agent: "consumer-stylist",
@@ -45,12 +54,7 @@ export async function POST(request: Request) {
     confidence: suggested.length >= 3 ? "high" : suggested.length ? "medium" : "low",
     toolsUsed: ["private wardrobe", "wear history", "saved outfits", "bounded conversation history"],
     actions,
-    selection: suggested.map((item) => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
-    })),
+    selection,
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
       `${outfits.length} saved outfits checked this turn`,
