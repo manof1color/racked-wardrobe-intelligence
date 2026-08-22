@@ -83,12 +83,12 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
   }
 
   return <div className="look-scan-flow">
-    <div className="upload-toolbar"><div><strong>Scan one photo into separate wardrobe pieces</strong><span>Use an outfit photo, a flat lay, or several garments placed where each item remains visible.</span></div><span className="fallback-pill">UP TO 8 PIECES</span></div>
+    <div className="upload-toolbar"><div><strong>Scan one photo into separate wardrobe pieces</strong><span>Use an outfit photo, a flat lay, or a full closet or shoe rack. Matching left and right shoes become one pair.</span></div><span className="fallback-pill">UP TO 16 PIECES</span></div>
     <div className={`look-photo-upload ${file?"has-file":""}`}>
       {file?<><span>✓</span><strong>{busy?"Preparing and scanning photo":"Photo selected"}</strong><small>{file.name}</small></>:<><span>＋</span><strong>Add an outfit or flat-lay photo</strong><small>iPhone HEIC/HEIF supported · compressed before upload</small></>}
       <PhotoSourcePicker label="Add a whole-look photo" onFile={chooseFile}/>
     </div>
-    <div className="ai-notice"><span>HOW IT WORKS</span>AI finds distinct visible garments, crops each one into its own private wardrobe image, and asks you to confirm every label. Overlapping or hidden pieces may need a second photo.</div>
+    <div className="ai-notice"><span>HOW IT WORKS</span>AI scans the whole image, groups matching left and right shoes as one wearable pair, crops each wardrobe unit into a private image, and asks you to confirm every result. Fully hidden pieces may still need a second photo.</div>
     {progress&&<div className="upload-progress" role="status" aria-live="polite"><span/><strong>{progress}…</strong><small>The original stays on your device; Racked uploads a smaller analysis copy.</small></div>}
     {error&&<div className="form-error" role="alert">{error}</div>}
     {detections.length===0&&<button type="button" className="button button-dark button-full" disabled={!file||busy} onClick={()=>void analyze()}>{busy?"Separating visible pieces…":"Try scan again"}</button>}
@@ -104,7 +104,7 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
           <label>Specific type<select value={item.overrides.subtype} disabled={!item.selected} onChange={event=>updateDetection(item.id,current=>({...current,overrides:{...current.overrides,subtype:event.target.value}}))}>{GARMENT_TAXONOMY[item.overrides.category].map(subtype=><option value={subtype} key={subtype}>{subtype}</option>)}</select></label>
           <label>Brand <small>optional, unverified</small><input value={item.overrides.brand} maxLength={100} disabled={!item.selected} placeholder="Add or correct the label" onChange={event=>updateDetection(item.id,current=>({...current,overrides:{...current.overrides,brand:event.target.value}}))}/></label>
         </div>
-        <p>{item.analysis.garment.color} · {item.analysis.garment.pattern} · {item.analysis.garment.material}</p>
+        <p>{item.analysis.garment.wearableUnit==="pair"?"footwear pair · ":""}{item.analysis.garment.color} · {item.analysis.garment.pattern} · {item.analysis.garment.material}</p>
       </article>)}</div>
       <label className="consent-row compact"><input type="checkbox" checked={confirmed} onChange={event=>setConfirmed(event.target.checked)}/><span><strong>I confirm the selected detections are separate pieces in my wardrobe.</strong><small>Only the {selectedCount} selected crop{selectedCount===1?"":"s"} will be added. The source photo remains private.</small></span></label>
       <button type="button" className="button button-accent button-full" disabled={busy||selectedCount===0} onClick={save}>{busy?"Adding private wardrobe pieces…":`Add ${selectedCount} selected piece${selectedCount===1?"":"s"}`}</button>

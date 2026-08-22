@@ -5,6 +5,8 @@ export type Season = "all-season" | "spring" | "summer" | "fall" | "winter";
 
 export interface WardrobeItem {
   id: string; name: string; category: GarmentCategory | string; subtype?: GarmentSubtype; color: string; pattern?: string; material?: string; style: string[];
+  /** A matching left/right footwear set is stored and worn as one wardrobe unit. */
+  wearableUnit?: "single" | "pair";
   season: Season; wearCount: number; lastWornDays: number;
   source: "manual" | "ai-confirmed"; art: string;
   imageUrl?: string;
