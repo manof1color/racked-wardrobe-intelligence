@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MAX_LOOK_GARMENTS, parseLookGarmentDetections } from "../lib/look-garment-detection.ts";
+import { buildLookDetectionPrompt, MAX_LOOK_GARMENTS, parseLookGarmentDetections } from "../lib/look-garment-detection.ts";
 
 test("look detection creates separate controlled garment candidates",()=>{
   const results=parseLookGarmentDetections({garments:[
@@ -10,6 +10,35 @@ test("look detection creates separate controlled garment candidates",()=>{
   assert.equal(results.length,2);
   assert.deepEqual(results.map(result=>[result.analysis.garment.category,result.analysis.garment.subtype]),[["outerwear","bomber-jacket"],["shoe","sneakers"]]);
   assert.equal(results[0].analysis.processedImage,undefined);
+});
+
+test("a photographed left/right shoe set is one wardrobe pair",()=>{
+  const results=parseLookGarmentDetections({garments:[{
+    name:"Tan work boots",category:"shoe",subtype:"boots",wearableUnit:"pair",pairId:"tan-boots-1",color:"tan",pattern:"solid",material:"leather",style:["workwear"],confidence:92,visibleBrandText:"",visibleEvidence:["matching construction"],bounds:{x:.48,y:.02,width:.4,height:.32},
+  }]});
+  assert.equal(results.length,1);
+  assert.equal(results[0].analysis.garment.wearableUnit,"pair");
+  assert.equal(results[0].analysis.garment.category,"shoe");
+});
+
+test("separate model boxes sharing a footwear pair id are merged without making doubles",()=>{
+  const results=parseLookGarmentDetections({garments:[
+    {name:"Black hiking boots",category:"shoe",subtype:"boots",wearableUnit:"single",pairId:"keen-pair",color:"black",pattern:"solid",material:"leather",style:["outdoor"],confidence:88,visibleBrandText:"",visibleEvidence:["left boot"],bounds:{x:.05,y:.05,width:.18,height:.3}},
+    {name:"Black hiking boots",category:"shoe",subtype:"boots",wearableUnit:"single",pairId:"keen-pair",color:"black",pattern:"solid",material:"leather",style:["outdoor"],confidence:90,visibleBrandText:"",visibleEvidence:["right boot"],bounds:{x:.22,y:.05,width:.18,height:.3}},
+    {name:"Other black boots",category:"shoe",subtype:"boots",wearableUnit:"pair",pairId:"other-pair",color:"black",pattern:"solid",material:"leather",style:["outdoor"],confidence:84,visibleBrandText:"",visibleEvidence:["different sole"],bounds:{x:.55,y:.05,width:.35,height:.3}},
+  ]});
+  assert.equal(results.length,2,"two physical pairs must remain two wardrobe units");
+  assert.equal(results[0].analysis.garment.wearableUnit,"pair");
+  assert.ok(results[0].bounds.width>.34,"the merged crop must contain both shoes");
+  assert.match(results[0].analysis.garment.construction.join(" "),/grouped as one wearable pair/i);
+});
+
+test("the provider prompt requires full-image coverage and pair-aware footwear counting",()=>{
+  const prompt=buildLookDetectionPrompt();
+  assert.match(prompt,/ENTIRE image/);
+  assert.match(prompt,/matching left and right shoe together are ONE wardrobe unit/i);
+  assert.match(prompt,/coverage check of every row, shelf, image edge/i);
+  assert.match(prompt,new RegExp(`at most ${MAX_LOOK_GARMENTS} wardrobe units`));
 });
 
 test("AI brand text remains suggestion-only and can never verify a product",()=>{

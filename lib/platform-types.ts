@@ -54,6 +54,8 @@ export interface GarmentAnalysis {
     name: string;
     category: GarmentCategory;
     subtype: GarmentSubtype;
+    /** One wardrobe unit. Footwear photographed as a matching left/right set is one pair, not two items. */
+    wearableUnit?: "single" | "pair";
     color: string;
     pattern: string;
     style: string[];

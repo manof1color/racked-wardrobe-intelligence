@@ -41,7 +41,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 206 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-22); CI and CodeQL remain mandatory on every PR.
+- [x] Lint, type check (`tsc --noEmit`), 209 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-22); CI and CodeQL remain mandatory on every PR.
 
 ## 3. AI integration / innovation — 20%
 
@@ -84,7 +84,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Real empty, loading, validation, success, suppression, and provider-error states.
 - [x] Semantic inputs, dialogs, labels, focus styles, and reduced-motion support.
 - [x] Camera-friendly capture and a visible cropped-display preview before saving.
-- [x] Whole-look scanning creates independently tracked item images and safely makes a consistent edge-connected background transparent, with an opaque tight-crop fallback for ambiguous scenes.
+- [x] Whole-look scanning covers up to 16 wardrobe units, groups matching left/right footwear as one persisted pair, keeps adjacent different pairs separate, creates independently tracked item images, and safely makes a consistent edge-connected background transparent, with an opaque tight-crop fallback for ambiguous scenes.
 - [x] Authenticated logo/tabs preserve the role workspace; Community keeps the role-specific mobile bottom bar and only explicit Sign out ends the session.
 - [x] Compact mobile header menu is session-only, links to own-account Settings, retains Sign out, closes on outside tap/Escape, and contains no `/login` or public-home escape route.
 - [x] Saved outfits receive a private, category-arranged flat-lay image; mobile outfit cards constrain their own width and horizontal scrollers.
