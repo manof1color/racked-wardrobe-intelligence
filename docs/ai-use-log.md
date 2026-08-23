@@ -42,6 +42,7 @@ Allowed tools:
 - signed-in account wardrobe;
 - that account’s wear totals;
 - that account’s saved outfits;
+- bounded clothing/style signals from Community Looks that account intentionally saved as inspiration;
 - submitted occasion and weather context.
 
 It is a multi-turn conversation, not a one-click summary. The browser sends at most eight prior user/assistant turns; the server treats that history only as conversational text and reloads authoritative wardrobe context on every message. It may select only owned items, returns its evidence and tool list, and exposes server-selected actions to save the outfit or record those pieces as worn. The save endpoint independently checks that every submitted item belongs to the signed-in wardrobe.
@@ -58,7 +59,9 @@ Which garments are proposed is decided by `lib/outfit-ranking.ts` on the server,
 | Underuse (wear count) | 20% | 45% |
 | Time since last worn | 15% | 25% |
 
-The highest-scoring garment fills each category slot before any remainder is filled, so an outfit covers distinct categories instead of stacking one. Every returned piece carries its five score components with evidence, and those reasons are surfaced in the reply's evidence list, so a judge can see why each garment was chosen.
+The highest-scoring garment fills each category slot before any remainder is filled, so an outfit covers distinct categories instead of stacking one. If the current request contains no style direction, Hanger may use the most repeated controlled style tags from up to 50 public Looks the Consumer intentionally saved. This is a deterministic fallback: a current request such as “casual” or “formal” always replaces saved inspiration for that turn. Every returned piece carries its five score components with evidence, and those reasons are surfaced in the reply's evidence list, so a judge can see whether saved inspiration influenced it.
+
+Racked does not scrape Pinterest or another social network. A future Pinterest connection would require a separately registered application, explicit OAuth consent, minimum read scopes, protected token storage/refresh, and the appropriate Pinterest access tier. The current first-party path provides useful, testable inspiration without adding those credentials or making Racked dependent on an external platform.
 
 Two properties matter for honesty. Selection is **deterministic** — weighted scores with an id tie-break, never sampling — so the same request against the same wardrobe and conversation state is reproducible and testable. Inside an active outfit-building conversation, structured owner-validated recommendation IDs intentionally change that state: a revision or repeated creation prompt sets aside previously proposed pieces before necessary reuse. Non-outfit advice does not rotate implicitly. If a wardrobe category is too small to avoid repeating, Hanger returns a real outfit rather than an empty one.
 

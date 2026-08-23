@@ -20,6 +20,7 @@ import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/li
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
 import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, passwordResetIsUsable, passwordResetTokenHash } from "@/lib/account-security";
 import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
+import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
 import sharp from "sharp";
 
 const scrypt = promisify(scryptCallback);
@@ -392,7 +393,57 @@ export async function saveBrandLook(ownerId:string,input:{title:string;caption:s
   }
   return {look,post};
 }
+async function currentCommunityLikes(post:StoredPost) {
+  const result=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},ProjectionExpression:"likes"}));
+  return Number(result.Item?.likes??0);
+}
+
 export async function incrementCommunityLike(postId:string){const post=await findCommunityPostById(postId);if(!post)throw new Error("Community post not found.");const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
+
+/**
+ * Saves an intentional Community inspiration under the signed-in Consumer only.
+ * The public post receives one aggregate like, while the private record retains a
+ * bounded attribute snapshot for Hanger — never the creator identity or images.
+ */
+export async function saveConsumerInspiration(ownerId:string,postId:string) {
+  const post=await findCommunityPostById(postId);
+  if(!post)throw new Error("Community post not found.");
+  const publicPost=toPublicOutfitPost(post);
+  const record=consumerInspirationRecord(publicPost);
+  const inspirationKey={PK:`USER#${ownerId}`,SK:`INSPIRATION#${postId}`};
+  const existing=await db.send(new GetCommand({TableName:requireTable(),Key:inspirationKey,ProjectionExpression:"postId"}));
+  if(existing.Item)return {likes:await currentCommunityLikes(post),inspired:true,alreadySaved:true};
+  try{
+    await db.send(new PutCommand({TableName:requireTable(),Item:{...record,...inspirationKey},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}));
+  }catch(error){
+    const raced=await db.send(new GetCommand({TableName:requireTable(),Key:inspirationKey,ProjectionExpression:"postId"}));
+    if(!raced.Item)throw error;
+    return {likes:await currentCommunityLikes(post),inspired:true,alreadySaved:true};
+  }
+  try{
+    await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)"}));
+  }catch(error){
+    // Keep the private inspiration and public aggregate consistent if the second
+    // write fails; this uses only the role's existing least-privilege actions.
+    await db.send(new DeleteCommand({TableName:requireTable(),Key:inspirationKey})).catch(()=>undefined);
+    throw error;
+  }
+  return {likes:await currentCommunityLikes(post),inspired:true,alreadySaved:false};
+}
+
+export async function getConsumerInspirationProfile(ownerId:string):Promise<ConsumerInspirationProfile> {
+  const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"INSPIRATION#"},ScanIndexForward:false,Limit:50}));
+  const records=(result.Items??[]).map(item=>({
+    postId:typeof item.postId==="string"?item.postId.slice(0,128):"",
+    outfitTitle:typeof item.outfitTitle==="string"?item.outfitTitle.slice(0,80):"Inspired Look",
+    styleHints:boundedInspirationStrings(item.styleHints,12),
+    colors:boundedInspirationStrings(item.colors,12),
+    categories:boundedInspirationStrings(item.categories,12),
+    subtypes:boundedInspirationStrings(item.subtypes,12),
+    createdAt:typeof item.createdAt==="string"?item.createdAt:"",
+  })).filter(record=>record.postId) as ConsumerInspirationRecord[];
+  return consumerInspirationProfile(records);
+}
 
 // Judge note: the differencing/enumeration control from lib/privacy.ts is enforced here,
 // on the production aggregate path shared by the Brand dashboard and Brand Hanger. The

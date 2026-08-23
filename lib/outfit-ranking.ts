@@ -18,6 +18,7 @@ export interface OutfitIntent {
   occasion: OutfitOccasion | null;
   weather: OutfitWeather | null;
   styleHints: string[];
+  styleSource: "request" | "inspiration" | "none";
   alternativeRequested: boolean;
 }
 
@@ -173,7 +174,7 @@ export function readOutfitIntent(message: string): OutfitIntent {
   const occasion = OCCASION_KEYWORDS.find(([, words]) => words.some((word) => request.includes(word)))?.[0] ?? null;
   const weather = WEATHER_KEYWORDS.find(([, words]) => words.some((word) => request.includes(word)))?.[0] ?? null;
   const styleHints = STYLE_VOCABULARY.filter((style) => request.includes(style));
-  return { mode: ROTATION_KEYWORDS.test(request) ? "rotation" : "outfit", occasion, weather, styleHints, alternativeRequested: ALTERNATIVE_KEYWORDS.test(request) };
+  return { mode: ROTATION_KEYWORDS.test(request) ? "rotation" : "outfit", occasion, weather, styleHints, styleSource:styleHints.length?"request":"none", alternativeRequested: ALTERNATIVE_KEYWORDS.test(request) };
 }
 
 function occasionScore(item: WardrobeItem, intent: OutfitIntent) {
@@ -195,11 +196,12 @@ function weatherScore(item: WardrobeItem, intent: OutfitIntent) {
 }
 
 function styleScore(item: WardrobeItem, intent: OutfitIntent) {
-  if (intent.styleHints.length === 0) return { score: 50, evidence: "No style asked for, so style match is neutral." };
+  if (intent.styleHints.length === 0) return { score: 50, evidence: "No style request or saved inspiration signal, so style match is neutral." };
   const tags = (item.style ?? []).map(clean);
   const overlap = intent.styleHints.filter((hint) => tags.some((tag) => tag.includes(hint) || hint.includes(tag)));
-  if (overlap.length === 0) return { score: 15, evidence: `Does not carry the requested ${intent.styleHints.join(", ")} style.` };
-  return { score: Math.min(100, 60 + overlap.length * 25), evidence: `Matches the requested ${overlap.join(", ")} style.` };
+  const source=intent.styleSource==="inspiration"?"saved inspiration":"request";
+  if (overlap.length === 0) return { score: 15, evidence: `Does not carry the ${intent.styleHints.join(", ")} signal from the ${source}.` };
+  return { score: Math.min(100, 60 + overlap.length * 25), evidence: `Matches ${overlap.join(", ")} from the ${source}.` };
 }
 
 function underuseScore(item: WardrobeItem) {
@@ -225,7 +227,7 @@ function componentsFor(item: WardrobeItem, intent: OutfitIntent): OutfitScoreCom
   return [
     { key: "occasion", label: "Occasion fit", score: occasion.score, weight: weights.occasion, evidence: occasion.evidence },
     { key: "weather", label: "Weather and season", score: weather.score, weight: weights.weather, evidence: weather.evidence },
-    { key: "style", label: "Requested style", score: style.score, weight: weights.style, evidence: style.evidence },
+    { key: "style", label: intent.styleSource==="inspiration"?"Inspired style":"Requested style", score: style.score, weight: weights.style, evidence: style.evidence },
     { key: "underuse", label: "Bringing it back into rotation", score: underuse.score, weight: weights.underuse, evidence: underuse.evidence },
     { key: "recency", label: "Time since last worn", score: recency.score, weight: weights.recency, evidence: recency.evidence },
   ];
@@ -320,9 +322,14 @@ function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGa
 export function rankOutfit(
   wardrobe: WardrobeItem[],
   message: string,
-  options: { history?: AgentChatTurn[]; maxPieces?: number; avoidItemIds?: Iterable<string>; rotatePriorSuggestions?: boolean } = {},
+  options: { history?: AgentChatTurn[]; maxPieces?: number; avoidItemIds?: Iterable<string>; rotatePriorSuggestions?: boolean; inspirationStyleHints?: Iterable<string> } = {},
 ): GroundedOutfit {
-  const intent = readOutfitIntent(message);
+  const requestedIntent = readOutfitIntent(message);
+  const suppliedInspiration=[...new Set([...(options.inspirationStyleHints??[])].map(clean).filter(Boolean))];
+  const inspirationStyleHints=STYLE_VOCABULARY.filter(style=>suppliedInspiration.some(hint=>style===hint||style.includes(hint)||hint.includes(style))).slice(0,8);
+  // A style stated in the current message always outranks historical inspiration.
+  // Inspiration is a transparent fallback, never an instruction override.
+  const intent=requestedIntent.styleHints.length||!inspirationStyleHints.length?requestedIntent:{...requestedIntent,styleHints:inspirationStyleHints,styleSource:"inspiration" as const};
   const maxPieces = Math.max(1, options.maxPieces ?? MAX_OUTFIT_PIECES);
   const requiredItems = explicitlyRequestedWardrobeItems(wardrobe, message).slice(0, maxPieces);
   const requiredPieceIds = requiredItems.map((item) => item.id);
@@ -359,6 +366,8 @@ export function rankOutfit(
     setAside: Math.max(0, alreadySuggested.size - reused),
     methodology: requiredPieceIds.length
       ? "Locked the explicitly requested owned pieces first, then scored compatible owned pieces to complete the outfit."
+      : intent.styleSource==="inspiration"
+      ? "Scored only owned pieces using the request plus style signals from Looks this Consumer intentionally saved as inspiration; current instructions still take priority."
       : intent.mode === "rotation"
       ? "Ranked owned pieces by how little they have been worn and how long since they were last worn, with occasion, weather, and style as secondary signals."
       : "Scored owned pieces on occasion fit, weather and season, requested style, underuse, and time since last worn, then covered one piece per category before filling the rest.",
