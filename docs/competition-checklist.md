@@ -40,8 +40,8 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand Looks contain only products authorized under the signed-in Brand account and remain visibly distinct from Consumer Looks.
 - [x] Saved Outfits view with piece thumbnails and one-tap repeat-wear recording that increments real outfit wear totals.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
-- [x] Installable responsive PWA.
-- [x] Lint, type check (`tsc --noEmit`), 214 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-22); CI and CodeQL remain mandatory on every PR.
+- [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
+- [x] Lint, type check (`tsc --noEmit`), 216 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-23); CI and CodeQL remain mandatory on every PR.
 
 ## 3. AI integration / innovation — 20%
 

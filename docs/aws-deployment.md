@@ -51,7 +51,7 @@ The committed synthetic cohort uses reserved `.local` addresses, so those accoun
 - [x] Amazon Bedrock model is available in `us-east-2`.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
-- [x] All 214 automated tests pass locally (re-verified 2026-08-22); CI and CodeQL remain mandatory on every PR.
+- [x] All 216 automated tests pass locally (re-verified 2026-08-23); CI and CodeQL remain mandatory on every PR.
 - [x] PR #84 merged as `17e73ed` after Validate Racked and CodeQL passed. By 2026-08-23 02:28 UTC, the production Community page returned HTTP 200 and served the new Hanger-inspiration JavaScript bundle; `/login` returned HTTP 200 and the signed-out Consumer route retained its expected HTTP 307 redirect to `/login`. The exact Amplify job ID was not recorded because the AWS console session had expired, so deployment is evidenced by the public production artifact rather than an invented console identifier.
 - [x] PR #82 merged as `6bc2557` after Validate Racked and CodeQL passed; Amplify's replacement build `BJCT2zWZITIpnwl872W83` was visible at the production URL by 2026-08-22 18:45 UTC. The public login returns HTTP 200 and the signed-out Consumer route returns its expected HTTP 307 redirect to login, preserving the access-control boundary.
 - [x] Production Next.js build passed.
