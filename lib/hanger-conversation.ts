@@ -83,7 +83,16 @@ export function consumerReplyPassesSelectionReview(text: string, wardrobe: Wardr
   });
 }
 
-function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[], required: WardrobeItem[] = []) {
+export interface ConsumerInspirationContext {
+  lookCount:number;
+  styleHints:string[];
+  colors:string[];
+  categories:string[];
+  subtypes:string[];
+  recentLookTitles:string[];
+}
+
+function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[], required: WardrobeItem[] = [], inspiration?:ConsumerInspirationContext) {
   const requiredIds = new Set(required.map((item) => item.id));
   return {
     wardrobe: wardrobe.slice(0, 60).map((item) => ({
@@ -102,6 +111,15 @@ function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], sugge
       itemIds: outfit.itemIds,
       wears: outfit.wears,
     })),
+    ...(inspiration&&inspiration.lookCount>0?{savedInspiration:{
+      lookCount:inspiration.lookCount,
+      styleHints:inspiration.styleHints.slice(0,8),
+      colors:inspiration.colors.slice(0,8),
+      categories:inspiration.categories.slice(0,8),
+      subtypes:inspiration.subtypes.slice(0,8),
+      recentLookTitles:inspiration.recentLookTitles.slice(0,5),
+      boundary:"Signals come only from public Looks this Consumer intentionally saved; current instructions take priority.",
+    }}:{}),
     candidateOutfit: suggested.map((item) => ({ id: item.id, name: item.name, category: item.category, directlyRequested: requiredIds.has(item.id) })),
   };
 }
@@ -112,8 +130,9 @@ export function buildConsumerHangerPrompt(input: {
   outfits: SavedOutfit[];
   suggested: WardrobeItem[];
   required?: WardrobeItem[];
+  inspiration?:ConsumerInspirationContext;
 }) {
-  return `Fresh private wardrobe context for this turn: ${JSON.stringify(consumerContext(input.wardrobe, input.outfits, input.suggested, input.required))}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
+  return `Fresh private wardrobe context for this turn: ${JSON.stringify(consumerContext(input.wardrobe, input.outfits, input.suggested, input.required,input.inspiration))}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
 }
 
 function releasedBrandContext(product: BrandProductRegistration, metrics: BrandMetrics, communityMetrics?:BrandCommunityMetrics) {
@@ -198,8 +217,9 @@ export async function generateConsumerHangerReply(input: {
   outfits: SavedOutfit[];
   suggested: WardrobeItem[];
   required?: WardrobeItem[];
+  inspiration?:ConsumerInspirationContext;
 }) {
-  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that it was kept for that reason and never claim it was chosen because it was underused. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, or health. Never claim live weather access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
+  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that it was kept for that reason and never claim it was chosen because it was underused. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only as optional inspiration when the current message does not state a conflicting preference, and say when it influenced the outfit. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather access or external social-network access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
   const groundedSelection = groundedSelectionText(input.suggested);
   if (generated && consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested)) {
@@ -210,8 +230,11 @@ export async function generateConsumerHangerReply(input: {
   const names = input.suggested.map((item) => item.name);
   if (names.length === 0) return { message: "I can see your wardrobe, but I could not form a grounded outfit from the current item details. Tell me the occasion and the type of piece you want to start with.", usedModel: false };
   const requestedNames = (input.required ?? []).map((item) => item.name);
+  const usedInspiration=!requestedNames.length&&(input.inspiration?.lookCount??0)>0;
   const selectionReason = requestedNames.length
     ? `I kept ${requestedNames.join(", ")} because you explicitly asked to use ${requestedNames.length === 1 ? "that piece" : "those pieces"}, then built the rest of the outfit around ${requestedNames.length === 1 ? "it" : "them"}.`
+    : usedInspiration
+    ? `I used the style patterns from ${input.inspiration!.lookCount} Community Look${input.inspiration!.lookCount===1?"":"s"} you intentionally saved as inspiration, while keeping the outfit inside your own wardrobe.`
     : "I prioritized lower-wear pieces to bring more of your closet into rotation.";
   return { message: `I pulled your latest wardrobe. ${selectionReason}\n\n${groundedSelection}\n\nWhat occasion, weather, or dress code should I refine this for?`, usedModel: false };
 }

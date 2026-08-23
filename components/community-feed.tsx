@@ -22,7 +22,7 @@ function OutfitGallery({ post }: { post: OutfitPost }) {
   </div>;
 }
 
-export function CommunityFeed({initialPosts,canPost,savedOutfits}:{initialPosts:OutfitPost[];canPost:boolean;savedOutfits:SavedOutfitOption[]}) {
+export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,savedOutfits}:{initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];savedOutfits:SavedOutfitOption[]}) {
   const [posts,setPosts]=useState(initialPosts);
   const [title,setTitle]=useState("");
   const [caption,setCaption]=useState("");
@@ -31,6 +31,7 @@ export function CommunityFeed({initialPosts,canPost,savedOutfits}:{initialPosts:
   const [error,setError]=useState("");
   const [filter,setFilter]=useState<Filter>("all");
   const [pendingLike,setPendingLike]=useState<string|null>(null);
+  const [inspiredPostIds,setInspiredPostIds]=useState(()=>new Set(initialInspiredPostIds));
   const [pendingRecreate,setPendingRecreate]=useState<string|null>(null);
   const [recreations,setRecreations]=useState<Record<string,RecreateLookResult>>({});
   const [shopping,setShopping]=useState<OutfitPost|null>(null);
@@ -46,7 +47,7 @@ export function CommunityFeed({initialPosts,canPost,savedOutfits}:{initialPosts:
   }
   async function like(postId:string){
     setPendingLike(postId);setError("");
-    try{const response=await fetch("/api/community",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({postId})});const data=await response.json();if(!response.ok)throw new Error(data.error??"Like could not be recorded.");setPosts(current=>current.map(item=>item.id===postId?{...item,likes:data.likes}:item));}
+    try{const response=await fetch("/api/community",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({postId})});const data=await response.json();if(!response.ok)throw new Error(data.error??"Inspiration could not be saved.");setPosts(current=>current.map(item=>item.id===postId?{...item,likes:data.likes}:item));if(data.inspired)setInspiredPostIds(current=>new Set([...current,postId]));}
     catch(reason){setError(reason instanceof Error?reason.message:"Like could not be recorded.");}finally{setPendingLike(null);}
   }
   async function recreate(postId:string){
@@ -112,7 +113,7 @@ export function CommunityFeed({initialPosts,canPost,savedOutfits}:{initialPosts:
                 ? <button type="button" className="button button-accent button-small" disabled={pendingRecreate===post.id||post.garments.length===0} onClick={()=>recreate(post.id)}>{pendingRecreate===post.id?"Checking your wardrobe…":"Recreate with my wardrobe"}</button>
                 : <Link className="button button-accent button-small" href="/login">Recreate with my wardrobe</Link>}
               {shoppable&&<button type="button" className="button button-light button-small" onClick={()=>setShopping(post)}>Shop the look</button>}
-              <button type="button" className="like-button" disabled={pendingLike===post.id} onClick={()=>like(post.id)} aria-label={`Mark ${post.outfitTitle} as inspiring. Currently ${post.likes}.`}>♡ {post.likes}{pendingLike===post.id?" saving…":""}</button>
+              <button type="button" className="like-button" disabled={pendingLike===post.id||inspiredPostIds.has(post.id)} onClick={()=>like(post.id)} aria-label={inspiredPostIds.has(post.id)?`${post.outfitTitle} is saved as Hanger inspiration.`:`Save ${post.outfitTitle} as Hanger inspiration. Currently ${post.likes}.`}>{inspiredPostIds.has(post.id)?"♥ Inspired":`♡ ${post.likes}`}{pendingLike===post.id?" saving…":""}</button>
             </div>
 
             {recreated&&<RecreatePanel result={recreated} canShop={shoppable} onShop={()=>setShopping(post)}/>}

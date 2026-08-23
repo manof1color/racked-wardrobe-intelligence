@@ -43,6 +43,8 @@ Brand Looks use separate `BRANDLOOK#` records and `sourceType=brand`. Creation r
 
 Brand community intelligence is computed from the public-post partition and identity-free interaction events, separately from private product-wear records. A Brand can request it only for an owned enrolled product. The result reports public outfit appearances, source mix, likes, recreate requests, outbound interest, and pairings—but never handles or account IDs and never joins to private wear rows. `DEMO | PILOT | REGULAR` classification keeps deterministic synthetic records distinct from real pilot and ordinary accounts.
 
+When a signed-in Consumer marks a public Look as inspiring, a conditional record under `USER#<consumer> / INSPIRATION#<public-post>` stores only bounded garment style, color, category, subtype, and public-title signals. It contains no creator handle, image, private wardrobe reference, or liker identity in the Community partition. The public post counter increments once; repeated taps cannot inflate it. Hanger aggregates at most 50 such records into bounded private hints. A style stated in the current message always wins, and the selector may use inspiration only as a fallback while still returning owned wardrobe pieces. Racked does not scrape or require an external social network for this path.
+
 Saved-outfit mutations, including wear increments, are addressed inside the signed-in account's own partition, so one account cannot reach another account's outfits even with a guessed identifier.
 
 ## Brand ownership boundary
