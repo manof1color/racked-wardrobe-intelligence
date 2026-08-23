@@ -113,7 +113,7 @@ A judge-facing summary of how Racked was actually built, sourced from the reposi
 
 ## Phase 21 — Reliable Add Racked installation path (2026-08-23)
 
-- The global **Add Racked** action no longer disappears when `beforeinstallprompt` is unavailable. Compatible browsers still open their native installer; iPhone/iPad, Android fallback, and desktop fallback paths now open an accessible device-specific guide. The iOS guide states the unavoidable Safari Share → Add to Home Screen → Add sequence rather than claiming a website can press the operating-system confirmation. Standalone mode and the `appinstalled` event hide the prompt after installation.
+- [#86](https://github.com/manof1color/racked-wardrobe-intelligence/pull/86) ensures the global **Add Racked** action no longer disappears when `beforeinstallprompt` is unavailable. Compatible browsers still open their native installer; iPhone/iPad, Android fallback, and desktop fallback paths now open an accessible device-specific guide. The iOS guide states the unavoidable Safari Share → Add to Home Screen → Add sequence rather than claiming a website can press the operating-system confirmation. Standalone mode and the `appinstalled` event hide the prompt after installation. Validate Racked and CodeQL passed before merge commit `ae315b4`; by 2026-08-23 19:40 UTC the production root returned HTTP 200 and served the new Home Screen confirmation flow from `/_next/static/chunks/app/layout-2d79734cfefd5cc0.js`.
 
 ## Continuous verification
 
