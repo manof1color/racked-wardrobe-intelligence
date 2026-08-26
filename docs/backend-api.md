@@ -31,6 +31,7 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, accep
 | `PATCH /api/consumer/outfits` | Consumer | Replaces the piece list of one account-owned saved outfit, revalidates every remaining wardrobe ID, writes a cache-distinct private flat-lay, and best-effort removes the replaced board; at least one piece must remain |
 | `DELETE /api/consumer/outfits` | Consumer | Deletes one account-owned saved outfit and best-effort removes its private flat-lay object; historical wear events and separately published Community snapshots remain intact |
 | `POST /api/wears` | Consumer | Atomically increments owned-item totals and writes a timestamped product wear event when the garment is registry-linked |
+| — | — | Wardrobe reads derive each garment age from its stored wear timestamp, so a recorded wear does not revert to a stale value on reload and seeded fixtures do not drift with time |
 | `GET/PATCH /api/consumer/consent` | Consumer | Reads or changes that account’s brand-aggregate opt-in |
 | `POST /api/agents/consumer` | Consumer | Accepts a free-form message plus at most eight bounded chat turns, reloads that account’s current garments/wears/outfits, and returns a grounded answer with validated save/wear actions plus a consumer-only visual projection of the exact selected owned pieces |
 | `GET /api/brand/products` | Brand | Lists only products enrolled by that brand account |

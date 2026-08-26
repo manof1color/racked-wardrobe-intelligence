@@ -16,6 +16,7 @@ import { buildWearUsageAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
 import { findByPaginatedQuery } from "@/lib/community-lookup";
+import { wornDaysAgo } from "@/lib/wear-recency";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
 import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, passwordResetIsUsable, passwordResetTokenHash } from "@/lib/account-security";
@@ -164,7 +165,7 @@ export async function privateImageUrl(key?:string) {
 
 export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
   const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"GARMENT#"}}));
-  return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem&{GSI1PK?:string};const classification=normalizeGarmentClassification(item.category,item.subtype??item.name);const registryProductId=item.registryProductId??(item.GSI1PK?.startsWith("PRODUCT#")?item.GSI1PK.slice(8):null);return {...item,GSI1PK:undefined,...classification,registryProductId,pattern:item.pattern??"unknown",material:item.material??"unknown",imageUrl:await privateImageUrl(item.imageKey)};}));
+  return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem&{GSI1PK?:string};const classification=normalizeGarmentClassification(item.category,item.subtype??item.name);const registryProductId=item.registryProductId??(item.GSI1PK?.startsWith("PRODUCT#")?item.GSI1PK.slice(8):null);return {...item,GSI1PK:undefined,...classification,registryProductId,pattern:item.pattern??"unknown",material:item.material??"unknown",lastWornDays:wornDaysAgo((item as {lastWornAt?:unknown}).lastWornAt,item.lastWornDays),imageUrl:await privateImageUrl(item.imageKey)};}));
 }
 
 export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string}) {
