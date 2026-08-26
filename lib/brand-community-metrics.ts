@@ -3,7 +3,7 @@ import type { BrandCommunityMetrics, OutfitPost } from "./platform-types.ts";
 export interface PrivacySafeCommunityEvent {
   postId?: string;
   productId?: string;
-  eventType: "recreate-look-request" | "product-click" | "outbound-product-click";
+  eventType: "recreate-look-request" | "product-click" | "outbound-product-click" | "demo-purchase";
   createdAt: string;
 }
 
@@ -17,6 +17,9 @@ export function buildBrandCommunityMetrics(productId:string,posts:OutfitPost[],e
   const appearances=posts.filter(post=>post.garments.some(garment=>garment.verifiedProduct?.registryProductId===productId));
   const appearanceIds=new Set(appearances.map(post=>post.id));
   const pairedGarments=appearances.flatMap(post=>post.garments.filter(garment=>garment.verifiedProduct?.registryProductId!==productId));
+  // A demo purchase counts for this product only when the simulation named it, or when
+  // it happened on a published look that actually contains it.
+  const demoPurchases=events.filter(event=>event.eventType==="demo-purchase"&&(event.productId?event.productId===productId:Boolean(event.postId&&appearanceIds.has(event.postId))));
   const pairedProducts=new Map<string,{productId:string;name:string;brand:string;appearances:number}>();
   for(const garment of pairedGarments){
     const product=garment.verifiedProduct;
@@ -32,6 +35,8 @@ export function buildBrandCommunityMetrics(productId:string,posts:OutfitPost[],e
     inspirationCount:appearances.reduce((sum,post)=>sum+post.likes,0),
     recreateLookRequests:events.filter(event=>event.eventType==="recreate-look-request"&&event.postId&&appearanceIds.has(event.postId)).length,
     outboundProductClicks:events.filter(event=>event.eventType==="outbound-product-click"&&(event.productId?event.productId===productId:Boolean(event.postId&&appearanceIds.has(event.postId)))).length,
+    demoPurchaseSimulations:demoPurchases.length,
+    lastDemoPurchaseAt:demoPurchases.map(event=>event.createdAt).sort().at(-1)??null,
     pairedCategories:rankedCounts(pairedGarments.map(garment=>garment.category)).slice(0,6).map(([category,count])=>({category,appearances:count})),
     pairedVerifiedProducts:[...pairedProducts.values()].sort((a,b)=>b.appearances-a.appearances||a.name.localeCompare(b.name)).slice(0,6),
     privacyBoundary:"PUBLIC_ACTIVITY_ONLY",

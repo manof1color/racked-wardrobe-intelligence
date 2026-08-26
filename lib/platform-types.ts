@@ -144,6 +144,9 @@ export interface BrandCommunityMetrics {
   inspirationCount: number;
   recreateLookRequests: number;
   outboundProductClicks: number;
+  /** Clearly labeled $0.00 demo checkout simulations. Never a sale, order, or revenue figure. */
+  demoPurchaseSimulations: number;
+  lastDemoPurchaseAt: string | null;
   pairedCategories: Array<{ category:string; appearances:number }>;
   pairedVerifiedProducts: Array<{ productId:string; name:string; brand:string; appearances:number }>;
   privacyBoundary: "PUBLIC_ACTIVITY_ONLY";

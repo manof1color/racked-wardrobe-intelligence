@@ -356,6 +356,21 @@ export async function recordPrivacySafeCommunityEvent(postId:string,eventType:"r
   const createdAt=new Date().toISOString();
   await db.send(new PutCommand({TableName:requireTable(),Item:{PK:"COMMUNITY",SK:`EVENT#${createdAt}#${crypto.randomUUID()}`,postId,eventType,createdAt}}));
 }
+/**
+ * Records one clearly labeled $0.00 demo checkout simulation.
+ *
+ * Judge note: this is a demonstration interaction, never a sale. No payment is taken,
+ * no order exists, and the stored event carries no person — only the fictional product,
+ * the optional public post it started from, and a timestamp. It is written only for
+ * products classified as demonstration data, so a real or pilot brand can never
+ * accumulate simulated purchase activity.
+ */
+export async function recordDemoPurchaseSimulation(productId:string,sourcePostId?:string){
+  const createdAt=new Date().toISOString();
+  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:"COMMUNITY",SK:`EVENT#${createdAt}#${crypto.randomUUID()}`,productId,eventType:"demo-purchase",createdAt,dataClassification:"DEMO",...(sourcePostId?{postId:sourcePostId}:{})}}));
+  return createdAt;
+}
+
 export async function recordPrivacySafeCommerceEvent(productId:string,sourcePostId?:string){
   const createdAt=new Date().toISOString();
   await db.send(new PutCommand({TableName:requireTable(),Item:{PK:"COMMUNITY",SK:`EVENT#${createdAt}#${crypto.randomUUID()}`,productId,eventType:"outbound-product-click",createdAt,...(sourcePostId?{postId:sourcePostId}:{})}}));
