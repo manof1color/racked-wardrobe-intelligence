@@ -64,12 +64,15 @@ export function communityReadouts(metrics: BrandCommunityMetrics): BusinessReado
     { question: "Do those looks resonate?", value: `${metrics.inspirationCount}`, detail: "Inspirations saved on public Looks featuring this product.", tone: metrics.inspirationCount > 0 ? "strong" : "neutral" },
     { question: "Does it make people check their own closet?", value: `${metrics.recreateLookRequests}`, detail: "Identity-free 'recreate this look' requests on Looks featuring this product.", tone: metrics.recreateLookRequests > 0 ? "strong" : "neutral" },
     { question: "Does it send people to your product page?", value: `${metrics.outboundProductClicks}`, detail: "Clicks through Racked's controlled outbound link. A click is not a sale — Racked does not observe what happens on your site.", tone: metrics.outboundProductClicks > 0 ? "strong" : "neutral" },
+    // Deliberately phrased as a demonstration count. This is a $0.00 simulation on a
+    // fictional storefront; calling it a purchase, an order, or revenue would be false.
+    { question: "How many demo checkouts have been completed?", value: `${metrics.demoPurchaseSimulations}`, detail: "Completed $0.00 purchase simulations on the fictional demo storefront. Nothing was charged and no order exists — this is a demonstration count, not a sale.", tone: "neutral" },
   ];
 }
 
 /** True when nothing public has happened yet, so the UI can say so instead of showing zeroes. */
 export function communityIsEmpty(metrics: BrandCommunityMetrics) {
-  return metrics.publicOutfitAppearances === 0 && metrics.inspirationCount === 0 && metrics.recreateLookRequests === 0 && metrics.outboundProductClicks === 0;
+  return metrics.publicOutfitAppearances === 0 && metrics.inspirationCount === 0 && metrics.recreateLookRequests === 0 && metrics.outboundProductClicks === 0 && metrics.demoPurchaseSimulations === 0;
 }
 
 /** "What is it worn with?" — ranked pairings, public activity only. */

@@ -44,7 +44,7 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
           <div><dt>Availability</dt><dd>{unavailable?"Not available":"Demonstration only"}</dd></div>
         </dl>
 
-        <DemoPurchasePanel productName={product.name} unavailable={unavailable}/>
+        <DemoPurchasePanel productId={product.id} productName={product.name} unavailable={unavailable}/>
 
         <Link className="text-link" href={`/brands/${brandSlug}`}>See how this product is measured on Racked →</Link>
       </div>

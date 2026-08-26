@@ -15,7 +15,7 @@ const suppressed: BrandMetrics = { opportunity: null, gapPrevalence: null, dupli
 const community: BrandCommunityMetrics = {
   productId: "p1", publicOutfitAppearances: 11, consumerOutfitAppearances: 9, brandLookAppearances: 2,
   inspirationCount: 37, recreateLookRequests: 15, outboundProductClicks: 4,
-  pairedCategories: [{ category: "bottom", appearances: 7 }], pairedVerifiedProducts: [{ productId: "p2", name: "City Sneaker", brand: "Other", appearances: 5 }],
+  pairedCategories: [{ category: "bottom", appearances: 7 }], pairedVerifiedProducts: [{ productId: "p2", name: "City Sneaker", brand: "Other", appearances: 5 }], demoPurchaseSimulations: 0, lastDemoPurchaseAt: null,
   privacyBoundary: "PUBLIC_ACTIVITY_ONLY",
 };
 

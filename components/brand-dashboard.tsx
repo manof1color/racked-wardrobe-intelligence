@@ -18,6 +18,8 @@ export function BrandDashboard() {
   const [productId,setProductId]=useState("");
   const [metrics,setMetrics]=useState<BrandMetrics|null>(null);
   const [communityMetrics,setCommunityMetrics]=useState<BrandCommunityMetrics|null>(null);
+  const [liveActivity,setLiveActivity]=useState(true);
+  const [lastRefreshedAt,setLastRefreshedAt]=useState<Date|null>(null);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const product=products.find(item=>item.id===productId)??products[0];
@@ -36,6 +38,22 @@ export function BrandDashboard() {
       .finally(()=>{if(current)setLoading(false);});
     return()=>{current=false;};
   },[product?.id]);
+
+  // Live public-activity refresh. Only the community measure polls: private wear
+  // aggregates are consent-gated and enumeration-budgeted, so re-pulling them on a
+  // timer would burn that budget for no benefit. The interval stays well inside the
+  // brand-metrics rate limit, and polling pauses whenever the tab is hidden.
+  useEffect(()=>{
+    if(!product?.id||!liveActivity)return;
+    let current=true;
+    const timer=setInterval(()=>{
+      if(document.visibilityState!=="visible")return;
+      fetch("/api/brand/community-metrics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({productId:product.id})})
+        .then(async response=>{const data=await response.json();if(response.ok&&current){setCommunityMetrics(data.metrics);setLastRefreshedAt(new Date());}})
+        .catch(()=>{/* a dropped poll is not an error worth showing mid-demo */});
+    },20_000);
+    return()=>{current=false;clearInterval(timer);};
+  },[product?.id,liveActivity]);
 
   function downloadAggregate(){
     if(!metrics||metrics.suppressed||!product)return;
@@ -73,7 +91,8 @@ export function BrandDashboard() {
         <section className="business-read"><div className="section-title"><div><span className="card-label">WHAT THIS MEANS</span><h3>Your questions, answered from confirmed wear</h3></div></div><div className="readout-grid">{wearReadouts(metrics).map(readout=><article key={readout.question} className={`readout tone-${readout.tone}`}><h4>{readout.question}</h4><strong>{readout.value}</strong><p>{readout.detail}</p></article>)}</div><p className="readout-footnote">Every figure is observed usage from opted-in owners after the {metrics.minimumCohortSize}-owner threshold. Racked reports what was worn — never sales, revenue, or why someone bought.</p></section>
       </>}
       {error&&<div className="form-error" role="alert">{error}</div>}
-      {communityMetrics&&<section className="business-read"><div className="section-title"><div><span className="card-label">PUBLIC COMMUNITY ACTIVITY</span><h3>How this product shows up in shared Looks</h3><p>A separate measure built only from posts people chose to publish and identity-free interactions. No private wardrobe or individual wear data is used here.</p></div></div>
+      {communityMetrics&&<section className="business-read"><div className="section-title"><div><span className="card-label">PUBLIC COMMUNITY ACTIVITY</span><h3>How this product shows up in shared Looks</h3><p>A separate measure built only from posts people chose to publish and identity-free interactions. No private wardrobe or individual wear data is used here.</p></div>
+        <div className="live-activity"><button type="button" className={liveActivity?"live-toggle on":"live-toggle"} aria-pressed={liveActivity} onClick={()=>setLiveActivity(value=>!value)}><i aria-hidden="true"/>{liveActivity?"Live":"Paused"}</button><small>{liveActivity?`Refreshes every 20s${lastRefreshedAt?` · updated ${lastRefreshedAt.toLocaleTimeString([], {hour:"numeric",minute:"2-digit",second:"2-digit"})}`:""}`:"Auto-refresh paused"}</small></div></div>
         {communityIsEmpty(communityMetrics)
           ? <div className="empty-match"><h3>No public activity yet.</h3><p>Nothing has been published featuring this product, so there is nothing to report. Racked shows this honestly rather than filling the space.</p></div>
           : <><div className="readout-grid">{communityReadouts(communityMetrics).map(readout=><article key={readout.question} className={`readout tone-${readout.tone}`}><h4>{readout.question}</h4><strong>{readout.value}</strong><p>{readout.detail}</p></article>)}</div>

@@ -32,6 +32,7 @@ export const RATE_LIMIT_RULES = {
   communityPublish: { limit: 10, windowMs: 60 * 60 * 1000 },
   communityLike: { limit: 40, windowMs: 5 * 60 * 1000 },
   outboundClick: { limit: 30, windowMs: 5 * 60 * 1000 },
+  demoPurchase: { limit: 20, windowMs: 5 * 60 * 1000 },
   recreateLook: { limit: 30, windowMs: 5 * 60 * 1000 },
   similarProducts: { limit: 30, windowMs: 5 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
