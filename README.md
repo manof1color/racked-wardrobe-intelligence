@@ -166,6 +166,7 @@ Reset delivery uses Amazon SES. **Code completion does not guarantee public emai
 | `POST /api/agents/consumer` · `/agents/brand` | Role-bound | Hanger conversations; fresh authoritative context per message |
 | `POST /api/brand/metrics` · `/community-metrics` | Brand | Consent-filtered `k ≥ 25` aggregates and public-activity metrics |
 | `GET/POST /api/brand/products` · `/brand/looks` | Brand | Own registry products and brand-authored Looks |
+| `POST /api/products/[productId]/demo-purchase` | Public | Records a $0.00 demo checkout simulation — DEMO products only, never a sale |
 | `GET/POST/PATCH /api/community` | Public / Consumer | Read the feed; publish one selected saved outfit; record inspiration |
 | `POST /api/community/[postId]/recreate` | Consumer | Recreate This Look against only the signed-in wardrobe |
 | `GET /api/community/images/[postId]/[garmentId]` | Public | Post-scoped image proxy; never exposes a private S3 key |
@@ -199,6 +200,7 @@ lib/garment-taxonomy.ts        Controlled categories, subtypes, and bounded unce
 lib/outfit-ranking.ts          Deterministic, conversation-aware outfit scoring with evidence
 lib/evaluation-dataset.ts      External-dataset normalization, deterministic sampling, scoring
 lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
+lib/look-discovery.ts          Inferred look styles, category filters, public-field search
 lib/recreate-look.ts           Deterministic owned/substitute/missing scoring with evidence
 lib/similar-products.ts        Same-category suggestions using the same scoring weights
 lib/commerce.ts                Public-HTTPS validation and controlled destination states
@@ -259,7 +261,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **216 passing tests** (verified 2026-08-23), covering browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **236 passing tests** (verified 2026-08-24), covering browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -270,7 +272,7 @@ The suite currently has **216 passing tests** (verified 2026-08-23), covering br
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **216 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **236 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, flat-lay boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
