@@ -155,6 +155,9 @@ Resources:
                   - bedrock:InvokeModel
                 Resource:
                   - "arn:aws:bedrock:*::foundation-model/amazon.nova-*"
+                  - "arn:aws:bedrock:us-east-1::foundation-model/stability.stable-image-remove-background-v1:0"
+                  - "arn:aws:bedrock:us-east-2::foundation-model/stability.stable-image-remove-background-v1:0"
+                  - "arn:aws:bedrock:us-west-2::foundation-model/stability.stable-image-remove-background-v1:0"
                   - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
               - Effect: Allow
                 Action:

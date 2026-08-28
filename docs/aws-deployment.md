@@ -13,7 +13,7 @@ The `racked-production` CloudFormation stack is deployed in `us-east-2` and prov
 
 The DynamoDB policy covers both the table ARN and `${tableArn}/index/*`. The index resource is required because registration and sign-in query the `GSI1` email lookup index; table-only `Query` permission is insufficient.
 
-Amplify is configured with the table and bucket names, the compute role, `AI_PROVIDER=bedrock`, and `AI_MODEL=amazon.nova-lite-v1:0`. Secret values are not printed or stored in GitHub.
+Amplify is configured with the table and bucket names, the compute role, `AI_PROVIDER=bedrock`, and `AI_MODEL=amazon.nova-lite-v1:0`. Whole-look cutouts default to the US geographic profile `us.stability.stable-image-remove-background-v1:0`; `AI_BACKGROUND_REMOVAL_MODEL` may pin that documented ID explicitly. Secret values are not printed or stored in GitHub.
 
 ## Deployment path
 
@@ -34,6 +34,7 @@ RACKED_PUBLIC_ORIGIN
 AI_PROVIDER=bedrock
 AI_MODEL=amazon.nova-lite-v1:0
 AI_BRAND_MODEL=amazon.nova-lite-v1:0
+AI_BACKGROUND_REMOVAL_MODEL=us.stability.stable-image-remove-background-v1:0
 NEXT_PUBLIC_SITE_URL
 ```
 
@@ -48,10 +49,10 @@ The committed synthetic cohort uses reserved `.local` addresses, so those accoun
 - [x] CloudFormation stack created successfully.
 - [x] Amplify compute role attached.
 - [x] DynamoDB and S3 runtime names configured.
-- [x] Amazon Bedrock model is available in `us-east-2`.
+- [x] Amazon Nova Lite is available in `us-east-2`; Stable Image background removal supports that source Region through the US geographic inference profile.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
-- [x] All 216 automated tests pass locally (re-verified 2026-08-23); CI and CodeQL remain mandatory on every PR.
+- [x] All 245 automated tests and the production dependency audit pass locally (re-verified 2026-08-28); CI and CodeQL remain mandatory before merge.
 - [x] PR #86 merged as `ae315b4` after Validate Racked and CodeQL passed. By 2026-08-23 19:40 UTC the production root returned HTTP 200 and served the corrected Add Racked flow from `/_next/static/chunks/app/layout-2d79734cfefd5cc0.js`; compatible browsers receive the native prompt and browsers without one receive the device-specific guide.
 - [x] PR #84 merged as `17e73ed` after Validate Racked and CodeQL passed. By 2026-08-23 02:28 UTC, the production Community page returned HTTP 200 and served the new Hanger-inspiration JavaScript bundle; `/login` returned HTTP 200 and the signed-out Consumer route retained its expected HTTP 307 redirect to `/login`. The exact Amplify job ID was not recorded because the AWS console session had expired, so deployment is evidenced by the public production artifact rather than an invented console identifier.
 - [x] PR #82 merged as `6bc2557` after Validate Racked and CodeQL passed; Amplify's replacement build `BJCT2zWZITIpnwl872W83` was visible at the production URL by 2026-08-22 18:45 UTC. The public login returns HTTP 200 and the signed-out Consumer route returns its expected HTTP 307 redirect to login, preserving the access-control boundary.
