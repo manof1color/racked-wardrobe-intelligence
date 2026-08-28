@@ -84,8 +84,10 @@ export interface GarmentAnalysis {
     evidenceKey?: string;
     /** True when the display version received the tighter garment crop; false means original framing. */
     cropped?: boolean;
-    /** True when edge-connected background pixels were safely made transparent. */
+    /** True when the background was made transparent without generating garment pixels. */
     backgroundRemoved?: boolean;
+    /** Records whether AI segmentation or the deterministic edge fallback produced the display image. */
+    backgroundRemovalMethod?: "ai-segmentation"|"edge-fallback"|"none";
   };
 }
 

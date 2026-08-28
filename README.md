@@ -6,7 +6,7 @@
 **Live application:** https://main.d2iv0khybuuaeh.amplifyapp.com
 **Planned pricing:** https://main.d2iv0khybuuaeh.amplifyapp.com/pricing
 **GitHub:** https://github.com/manof1color/racked-wardrobe-intelligence
-**Stack:** Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Lite) · GitHub Actions · CodeQL
+**Stack:** Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Lite + Stable Image background removal) · GitHub Actions · CodeQL
 
 ---
 
@@ -86,13 +86,13 @@ The result is a defensible two-sided loop:
                     names, emails, photos, raw wardrobes, or owner IDs)
 ```
 
-**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock in `us-east-2`. The Amplify compute role has only the DynamoDB, S3-object, Bedrock, and SES permissions these flows require (`infra/template.yaml`). No AWS credentials or secrets are committed to GitHub.
+**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock Nova Lite in `us-east-2`, plus a US-only Stable Image inference profile for foreground segmentation. The Amplify compute role has only the DynamoDB, S3-object, Bedrock, and SES permissions these flows require (`infra/template.yaml`). No AWS credentials or secrets are committed to GitHub.
 
 ---
 
 ## Why the AI Is Substantive
 
-- **Multi-piece garment vision:** Amazon Bedrock instance-detects each visible wardrobe piece in a general photo, returns bounded coordinates and controlled attributes, and lets the server generate a separate private item crop/cutout and human-confirmed wardrobe record for every selected detection. Edge-connected plain backgrounds become transparent when safe; ambiguous backgrounds remain opaque. It never infers personal traits or grants verified product identity.
+- **Multi-piece garment vision:** Amazon Bedrock instance-detects each visible wardrobe piece in a general photo, returns bounded coordinates and controlled attributes, and lets the server create a separate private item image for every selected detection. A second Bedrock task removes the background without generating or restyling the garment, trims transparent margins, and produces the product-style cutouts used by wardrobe cards and outfit boards. A conservative local edge pass keeps uploads usable when segmentation is unavailable. It never infers personal traits or grants verified product identity.
 - **Garment vision:** Bedrock analyzes front, back, and label evidence into a controlled category, subtype, color, pattern, material, style, confidence, alternatives, and visible evidence. Additional views may revise the first-photo hypothesis.
 - **Consumer Hanger:** a multi-turn agent reloads only the signed-in consumer's wardrobe, wear history, saved outfits, and private clothing signals from Community Looks that person intentionally saved as inspiration, then returns grounded styling guidance and validated save/wear actions. Current instructions always outrank historical inspiration. Explicitly requested owned garments are locked before scoring—even when recently worn or previously suggested—and the remaining pieces are selected around them. One canonical server selection drives the written list, private photo cards, action IDs, saved title, and flat-lay order; generated prose that names a different owned garment is rejected.
 - **Brand Hanger:** a separate agent receives only that brand's enrolled product plus privacy-released aggregate wear and public-community metrics; suppressed cohorts remain suppressed in the prompt.
@@ -109,7 +109,7 @@ The result is a defensible two-sided loop:
 
 - **Take photo** opens the rear camera; **Choose image** opens the library — two explicit actions rather than one ambiguous picker.
 - JPEG, PNG, WebP, HEIC, HEIF, and AVIF up to 25 MB are accepted, then normalized in the browser to a compressed JPEG before private upload.
-- Bedrock scans the full image top-to-bottom and left-to-right, performs a missed-region coverage check, and detects each distinct visible garment, footwear set, bag, or accessory. A matching left/right shoe set is one wearable pair—not two wardrobe entries—and a deterministic shared-pair guard combines the sides if the provider returns separate boxes. Adjacent different pairs remain separate. The server cuts one independent private image per wardrobe unit; plain backgrounds become transparent only when safe, while busy scenes keep a tight crop.
+- Bedrock scans the full image top-to-bottom and left-to-right, performs a missed-region coverage check, and detects each distinct visible garment, footwear set, bag, or accessory. A matching left/right shoe set is one wearable pair—not two wardrobe entries—and a deterministic shared-pair guard combines the sides if the provider returns separate boxes. Adjacent different pairs remain separate. The server cuts one independent private image per wardrobe unit, asks Bedrock to isolate its foreground into a transparent PNG, and trims excess transparent space. If that task is unavailable, a tested conservative edge pass supplies a transparent plain-background cutout or an honest tight-crop fallback.
 - **Nothing is saved until the person confirms it.** Every candidate is selectable and editable, and detection alone never writes to the wardrobe. Overlapping or hidden pieces may need a second photo.
 
 **Link a brand product** keeps the front/back/label evidence flow for exact registry-backed tracking. AI-read or typed brand text alone never verifies identity.
@@ -131,7 +131,7 @@ The full enrollment-to-discovery path:
 9. In Community, **Recreate with my wardrobe** compares a public outfit only against the signed-in consumer's wardrobe. The result leads with how much of the look they can already build, splits pieces into *use yours* and *you're missing* in plain language, and lets them open any matched piece to see which owned garment was chosen and why. **Shop the Look** then opens an in-app inspection sheet where only an exact registry-verified product with an authorized destination is openable — similar, AI-estimated, unverified, and unavailable pieces are labeled as such rather than sold, with affiliate disclosure where relevant. The rate-limited Similar Products API separately ranks only enrolled, available, same-category registry products with inspectable reasons; a suggestion never becomes an exact-match claim or exposes a consumer wardrobe.
 10. The consumer may separately opt in to anonymous brand aggregates and may publish one explicitly selected saved outfit to Community. Every public garment gets a new public ID; private wardrobe IDs and S3 keys never enter the feed.
 
-Saved Looks also generate a private, static flat-lay board from the existing cropped/cutout garment images. Category-aware placement keeps layers toward the top, bottoms lower, footwear at the base, and accessories toward the corners. Original evidence photos remain unchanged and private.
+Saved Looks also generate a private, static flat-lay board from the existing transparent garment cutouts on a clean white canvas. Category-aware placement keeps layers toward the top, bottoms lower, footwear at the base, and accessories toward the corners. Original evidence photos remain unchanged and private.
 
 ### Brand
 
@@ -185,7 +185,7 @@ app/api/account/               Own-account settings + current-password authoriza
 app/api/auth/password-reset/   Enumeration-safe request + single-use reset confirmation
 app/api/garments/classify/     Adaptive first-photo category + subtype hypothesis (photo plan)
 app/api/garments/analyze/      Bedrock vision + registry identity + evidence/display image storage
-app/api/garments/detect/       One-photo multi-piece detection + private per-garment crops
+app/api/garments/detect/       One-photo multi-piece detection + private per-garment cutouts
 app/api/consumer/…             Wardrobe, outfits, consent — always scoped to the signed-in account
 app/api/wears/                 Confirmed wear events + saved-outfit wear totals
 app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
@@ -206,6 +206,7 @@ lib/similar-products.ts        Same-category suggestions using the same scoring 
 lib/commerce.ts                Public-HTTPS validation and controlled destination states
 lib/brand-looks.ts             Brand-owned authorization for Brand Looks
 lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
+lib/ai-background-removal.ts   Bedrock foreground segmentation + transparent-output validation
 lib/garment-cutout.ts          Conservative edge-connected transparency for detected pieces
 lib/outfit-board.ts            Deterministic category-aware flat-lay placement
 lib/account-security.ts        Password policy and reset-token lifetime/hash rules
@@ -261,7 +262,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **242 passing tests** (verified 2026-08-24), covering browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **245 passing tests** (verified 2026-08-28), covering transparent-output validation and safe segmentation fallback, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -272,8 +273,8 @@ The suite currently has **242 passing tests** (verified 2026-08-24), covering br
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **242 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
-| UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, flat-lay boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
+| Code, docs & GitHub | 15% | Typed modules, **245 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, individually isolated garment cutouts on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
 

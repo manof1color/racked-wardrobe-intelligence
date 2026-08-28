@@ -5,7 +5,7 @@
 - Image-processing consent is required before Consumer account creation.
 - Brand-data sharing is a separate, ongoing preference stored per account.
 - AI fields require human confirmation before a wardrobe record exists. Category/subtype predictions use a controlled vocabulary, show bounded alternatives when uncertain, and remain editable; neither prediction nor correction has authority to verify brand identity.
-- One-photo multi-piece intake detects only wearable instances and explicitly prohibits person, body, demographic, preference, and ownership inference. Its source photo and separate item images remain in the signed-in Consumer’s private S3 prefix; each selected candidate requires human confirmation and an account-bound HMAC before it can become a wardrobe record. Background removal is deterministic and conservative: ambiguous scenes remain opaque rather than sacrificing garment pixels. AI-read logo text remains unverified.
+- One-photo multi-piece intake detects only wearable instances and explicitly prohibits person, body, demographic, preference, and ownership inference. Its source photo and separate item images remain in the signed-in Consumer’s private S3 prefix; each selected candidate requires human confirmation and an account-bound HMAC before it can become a wardrobe record. Background removal uses a US-only Bedrock segmentation profile that isolates existing pixels without restyling the garment. The server rejects opaque or degenerate output; a conservative deterministic fallback preserves the crop rather than sacrificing garment pixels. AI-read logo text remains unverified.
 
 - Authenticated app links preserve the signed-in role workspace and never clear a session as a navigation side effect. The logo, Community, and primary mobile bottom tabs remain inside the authenticated shell; the compact header menu is session-only, and only its explicit Sign out action calls the logout endpoint.
 - Public Community posts require one explicitly selected saved outfit. Each published piece gets a new public ID, while source outfit IDs, wardrobe IDs, account IDs, and S3 keys remain private. Images are served only through a post-scoped proxy. Exact brand links require registry evidence; user/AI labels remain visibly unverified.
@@ -45,6 +45,6 @@ A Consumer may also delete an individual saved outfit. That owner-scoped action 
 
 `DEMO`, `PILOT`, and `REGULAR` classifications prevent synthetic activity from being mistaken for real pilot evidence. A guarded pilot-classification script rejects synthetic accounts; demo records remain explicitly fictional in public Community output.
 
-- Plain-background trim is not a full body-aware virtual try-on system.
+- Transparent garment isolation and flat-lay composition are not a full body-aware virtual try-on system.
 - Brand enrollment confirms control of an account and supplied catalog evidence; a later business-verification workflow should validate legal brand authority.
 - K-anonymity reduces re-identification risk but does not replace broader governance, audit logging, rate limits, and legal review.

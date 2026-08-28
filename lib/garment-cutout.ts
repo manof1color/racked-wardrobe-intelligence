@@ -6,6 +6,7 @@ export interface GarmentCutout {
   height:number;
   backgroundRemoved:boolean;
   removedPixelRatio:number;
+  method:"edge-fallback"|"none";
 }
 
 const MAX_WIDTH=700;
@@ -50,7 +51,7 @@ export async function prepareDetectedGarmentCutout(input:Buffer):Promise<Garment
   const spread=median(edge.map(index=>colorDistance(pixels,index,background)));
   if(spread>MAX_BACKGROUND_SPREAD){
     const buffer=await sharp(pixels,{raw:{width,height,channels:4}}).png().toBuffer();
-    return {buffer,width,height,backgroundRemoved:false,removedPixelRatio:0};
+    return {buffer,width,height,backgroundRemoved:false,removedPixelRatio:0,method:"none"};
   }
 
   const tolerance=Math.max(30,Math.min(74,Math.round(34+(spread*1.35))));
@@ -74,9 +75,9 @@ export async function prepareDetectedGarmentCutout(input:Buffer):Promise<Garment
   const removedPixelRatio=tail/(width*height);
   if(removedPixelRatio<0.03||removedPixelRatio>0.92){
     const buffer=await sharp(pixels,{raw:{width,height,channels:4}}).png().toBuffer();
-    return {buffer,width,height,backgroundRemoved:false,removedPixelRatio:0};
+    return {buffer,width,height,backgroundRemoved:false,removedPixelRatio:0,method:"none"};
   }
   for(let index=0;index<visited.length;index++)if(visited[index])pixels[(index*4)+3]=0;
   const buffer=await sharp(pixels,{raw:{width,height,channels:4}}).png({compressionLevel:9}).toBuffer();
-  return {buffer,width,height,backgroundRemoved:true,removedPixelRatio:Number(removedPixelRatio.toFixed(4))};
+  return {buffer,width,height,backgroundRemoved:true,removedPixelRatio:Number(removedPixelRatio.toFixed(4)),method:"edge-fallback"};
 }

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
 import { detectGarmentsInLook, type NormalizedBounds } from "@/lib/look-garment-detection";
 import { prepareDetectedGarmentCutout } from "@/lib/garment-cutout";
+import { removeGarmentBackground } from "@/lib/ai-background-removal";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
@@ -45,23 +46,28 @@ export async function POST(request:Request) {
     if(detections.length===0)return NextResponse.json({error:"No distinct clothing pieces were detected. Try a clearer, well-lit photo where each piece is visible."},{status:422});
 
     const evidenceKey=await putPrivateImage(session.subject,"wardrobe",prepared.data,"image/jpeg","evidence");
-    for(const detection of detections) {
-      const crop=pixelCrop(detection.bounds,prepared.info.width,prepared.info.height);
-      const cropBytes=await sharp(prepared.data).extract(crop).png().toBuffer();
-      const display=await prepareDetectedGarmentCutout(cropBytes);
-      const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
-      detection.analysis.processedImage={
-        key,
-        url:(await privateImageUrl(key))!,
-        width:display.width,
-        height:display.height,
-        confirmationToken:"",
-        evidenceKey,
-        cropped:true,
-        backgroundRemoved:display.backgroundRemoved,
-      };
-      detection.analysis.processedImage.confirmationToken=signGarmentConfirmation(session.subject,key,detection.analysis);
-    }
+    // A small batch keeps a full 16-piece look responsive without sending an
+    // uncontrolled burst of image-model and S3 requests.
+    for(let offset=0;offset<detections.length;offset+=4)await Promise.all(detections.slice(offset,offset+4).map(async detection=>{
+        const crop=pixelCrop(detection.bounds,prepared.info.width,prepared.info.height);
+        const cropBytes=await sharp(prepared.data).extract(crop).png().toBuffer();
+        // Prefer model segmentation for a clean catalog-style cutout. The existing
+        // conservative edge algorithm remains an honest availability fallback.
+        const display=await removeGarmentBackground(cropBytes)??await prepareDetectedGarmentCutout(cropBytes);
+        const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
+        detection.analysis.processedImage={
+          key,
+          url:(await privateImageUrl(key))!,
+          width:display.width,
+          height:display.height,
+          confirmationToken:"",
+          evidenceKey,
+          cropped:true,
+          backgroundRemoved:display.backgroundRemoved,
+          backgroundRemovalMethod:display.method,
+        };
+        detection.analysis.processedImage.confirmationToken=signGarmentConfirmation(session.subject,key,detection.analysis);
+      }));
     return NextResponse.json({
       detections,
       retention:"The source image and each isolated display cutout are private, encrypted at rest, and returned only through expiring links.",
