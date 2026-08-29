@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
 import { detectGarmentsInLook, type NormalizedBounds } from "@/lib/look-garment-detection";
 import { prepareDetectedGarmentCutout } from "@/lib/garment-cutout";
+import { isolateGarment } from "@/lib/garment-isolation";
 import { removeGarmentBackground } from "@/lib/ai-background-removal";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
@@ -51,9 +52,14 @@ export async function POST(request:Request) {
     for(let offset=0;offset<detections.length;offset+=4)await Promise.all(detections.slice(offset,offset+4).map(async detection=>{
         const crop=pixelCrop(detection.bounds,prepared.info.width,prepared.info.height);
         const cropBytes=await sharp(prepared.data).extract(crop).png().toBuffer();
-        // Prefer model segmentation for a clean catalog-style cutout. The existing
-        // conservative edge algorithm remains an honest availability fallback.
-        const display=await removeGarmentBackground(cropBytes)??await prepareDetectedGarmentCutout(cropBytes);
+        // Prefer model segmentation for a clean catalog-style cutout. Below it, the
+        // silhouette pass crops to the largest connected piece, which matters here
+        // because a detection box on a crowded rail often clips the neighbouring
+        // garment; the older edge algorithm kept those pixels and widened the crop.
+        // The conservative edge algorithm remains the last honest fallback.
+        const display=await removeGarmentBackground(cropBytes)
+          ??await isolateGarment(cropBytes)
+          ??await prepareDetectedGarmentCutout(cropBytes);
         const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
         detection.analysis.processedImage={
           key,

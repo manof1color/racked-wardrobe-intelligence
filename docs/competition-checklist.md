@@ -18,7 +18,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Private encrypted S3 images with public access blocked and expiring links.
 - [x] Separate, explicitly labeled **Take photo** and **Choose image** controls for whole-look intake and every real front/back/label evidence slot.
 - [x] Mobile photos are resized in the browser before the combined AWS request, with readable 413/non-JSON error handling.
-- [x] Automatic rotation plus a garment auto-crop for display, with a preserved unmodified evidence photo and a tested fallback to original framing when the crop is not confident.
+- [x] Automatic rotation plus a three-pass garment crop for display — silhouette isolation, then border trim, then original framing — with a preserved unmodified evidence photo and a tested fallback at every step. `scripts/crop-benchmark.ts` scores each pass by intersection-over-union against a known garment rectangle across 14 seeded backdrops: the border trim alone reached 61% mean IoU (7/14 usable), and the silhouette pass reaches 85% (12/14). Its largest gains are the cases that previously produced a visibly wrong crop — a second object in shot (44% to 97%) and neighbours on a crowded rail (37% to 97%).
 - [x] Human confirmation and server-signed garment save authorization.
 - [x] Carousel outfit composition (Looks), persistent outfit save, and multi-piece wear recording.
 - [x] Brand-authoritative three-view enrollment with SKU/MPN, GTIN, aliases, hashes, and label text.
@@ -44,7 +44,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the deterministic cutout, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
-- [x] Lint, type check (`tsc --noEmit`), 251 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-29); CI and CodeQL remain mandatory before merge.
+- [x] Lint, type check (`tsc --noEmit`), 259 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-29); CI and CodeQL remain mandatory before merge.
 
 ## 3. AI integration / innovation — 20%
 
