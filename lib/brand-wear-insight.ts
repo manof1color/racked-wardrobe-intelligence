@@ -1,5 +1,6 @@
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { parseModelJson } from "./bedrock-json.ts";
+import { BEDROCK_CHAT_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
 
 export interface BrandWearAggregate {
   productName: string;
@@ -43,7 +44,7 @@ export async function generateBrandWearInsight(aggregate:BrandWearAggregate):Pro
       system:[{text:"You are Racked's brand wear analyst. Use only supplied anonymous aggregate values. Never claim causation, sales lift, identity, demographics, or individual customer behavior."}],
       messages:[{role:"user",content:[{text:buildBrandWearPrompt(aggregate)}]}],
       inferenceConfig:{maxTokens:420,temperature:0},
-    }));
+    }),bedrockRequestOptions(BEDROCK_CHAT_TIMEOUT_MS));
     const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
     if(!raw)throw new Error("Bedrock returned no brand wear analysis.");
     return parseBrandWearInsight(raw);

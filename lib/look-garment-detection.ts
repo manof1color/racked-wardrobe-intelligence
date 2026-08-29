@@ -2,6 +2,7 @@ import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from
 import { parseModelJson } from "./bedrock-json.ts";
 import { garmentTaxonomyPrompt, normalizeGarmentClassification } from "./garment-taxonomy.ts";
 import type { GarmentAnalysis } from "./platform-types.ts";
+import { BEDROCK_VISION_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
 
 export const MAX_LOOK_GARMENTS = 16;
 export const DEFAULT_LOOK_DETECTION_MODEL = "amazon.nova-lite-v1:0";
@@ -203,7 +204,7 @@ export async function detectGarmentsInLook(input:{base64:string;contentType:"ima
     ]}] as ConverseCommandInput["messages"],
     inferenceConfig:{maxTokens:3600,temperature:0},
   };
-  const response=await client.send(new ConverseCommand(request));
+  const response=await client.send(new ConverseCommand(request),bedrockRequestOptions(BEDROCK_VISION_TIMEOUT_MS));
   const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
   if(!raw)throw new Error("The image model returned no garment detections.");
   return parseLookGarmentDetections(parseModelJson(raw));

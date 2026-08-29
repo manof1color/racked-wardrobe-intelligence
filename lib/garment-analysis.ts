@@ -2,6 +2,7 @@ import { matchBrandProduct, seedBrandProducts, suggestMajorBrand } from "./produ
 import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
 import { parseModelJson } from "./bedrock-json.ts";
+import { BEDROCK_VISION_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
 import { cleanHypothesis, garmentTaxonomyPrompt, normalizeGarmentClassification, type GarmentHypothesis } from "./garment-taxonomy.ts";
 
 const allowedTypes = new Set(["image/jpeg","image/png","image/webp"]);
@@ -212,7 +213,7 @@ export async function classifyGarmentImage(image:InMemoryGarmentImage,options:{p
       ]}] as ConverseCommandInput["messages"],
       inferenceConfig:{maxTokens:500,temperature:0},
     };
-    const response=await client.send(new ConverseCommand(input));
+    const response=await client.send(new ConverseCommand(input),bedrockRequestOptions(BEDROCK_VISION_TIMEOUT_MS));
     const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
     if(!raw)return null;
     return cleanHypothesis(parseModelJson(raw));
@@ -243,7 +244,7 @@ export async function analyzeGarmentImages(
       const client=new BedrockRuntimeClient({region:process.env.AWS_REGION??process.env.AWS_DEFAULT_REGION??"us-east-2"});
       const content=[...images.map(image=>({image:{format:image.contentType.split("/")[1],source:{bytes:Buffer.from(image.base64,"base64")}}})),{text:analysisInstruction}];
       const input:ConverseCommandInput={modelId:options.model??process.env.AI_MODEL??DEFAULT_BEDROCK_VISION_MODEL,system:[{text:"Analyze garments only. Never infer a person, body, gender, age, ethnicity, income, or ownership. Label text is evidence only; the Racked brand registry verifies identity."}],messages:[{role:"user",content}] as ConverseCommandInput["messages"],inferenceConfig:{maxTokens:900,temperature:0}};
-      const response=await client.send(new ConverseCommand(input));
+      const response=await client.send(new ConverseCommand(input),bedrockRequestOptions(BEDROCK_VISION_TIMEOUT_MS));
       const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
       if(!raw)throw new Error("Bedrock returned no garment analysis.");
       const vision=parseVisionResult(parseModelJson(raw),new Set(images.map(image=>image.view)));

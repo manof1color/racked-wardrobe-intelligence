@@ -1,5 +1,6 @@
 import { BedrockRuntimeClient, InvokeModelCommand, type InvokeModelCommandInput } from "@aws-sdk/client-bedrock-runtime";
 import sharp from "sharp";
+import { BEDROCK_IMAGE_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
 
 export const DEFAULT_BACKGROUND_REMOVAL_MODEL="us.stability.stable-image-remove-background-v1:0";
 const INPUT_SIZE=1024;
@@ -7,7 +8,7 @@ const MAX_OUTPUT_WIDTH=700;
 const MAX_OUTPUT_HEIGHT=900;
 
 interface BedrockInvoker {
-  send(command:InvokeModelCommand):Promise<{body?:Uint8Array}>;
+  send(command:InvokeModelCommand,options?:{abortSignal?:AbortSignal}):Promise<{body?:Uint8Array}>;
 }
 interface BackgroundRemovalOptions {
   client?:BedrockInvoker;
@@ -53,7 +54,7 @@ export async function removeGarmentBackground(input:Buffer,options:BackgroundRem
   };
   const client=options.client??new BedrockRuntimeClient({region:process.env.AWS_REGION??"us-east-2"});
   try {
-    const response=await client.send(new InvokeModelCommand(request));
+    const response=await client.send(new InvokeModelCommand(request),bedrockRequestOptions(BEDROCK_IMAGE_TIMEOUT_MS));
     if(!response.body)return null;
     const payload=JSON.parse(Buffer.from(response.body).toString("utf8")) as {images?:unknown[]};
     const encoded=typeof payload.images?.[0]==="string"?payload.images[0]:"";
