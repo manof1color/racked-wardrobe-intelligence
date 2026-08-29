@@ -3,6 +3,7 @@ import type { BrandMetrics } from "./metrics.ts";
 import type { AgentChatTurn, BrandCommunityMetrics, BrandProductRegistration } from "./platform-types.ts";
 import type { SavedOutfit, WardrobeItem } from "./types.ts";
 import { rankOutfit } from "./outfit-ranking.ts";
+import { BEDROCK_CHAT_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
 
 const MAX_HISTORY_TURNS = 8;
 const MAX_MESSAGE_LENGTH = 1_000;
@@ -183,7 +184,7 @@ async function converse(system: string, history: AgentChatTurn[], prompt: string
       system: [{ text: system }],
       messages,
       inferenceConfig: { maxTokens: 650, temperature: 0.25 },
-    }));
+    }), bedrockRequestOptions(BEDROCK_CHAT_TIMEOUT_MS));
     const text = response.output?.message?.content?.find((block) => "text" in block)?.text?.trim();
     return text ? formatHangerText(text).slice(0, 2_500) : null;
   } catch (error) {

@@ -76,7 +76,11 @@ export async function POST(request:Request) {
   } catch(error) {
     if(error instanceof UploadValidationError)return NextResponse.json({error:error.message},{status:error.status});
     if(error instanceof ProductionConfigurationError)return NextResponse.json({error:error.message},{status:503});
-    console.error("Multi-garment look detection failed",{name:error instanceof Error?error.name:"UnknownError",message:error instanceof Error?error.message:"Unknown provider failure"});
+    const failure=error instanceof Error?error.name:"UnknownError";
+    console.error("Multi-garment look detection failed",{name:failure,message:error instanceof Error?error.message:"Unknown provider failure"});
+    // A provider that ran out of time is not a bad photo; saying so would send the
+    // person off to retake a picture that was never the problem.
+    if(failure==="TimeoutError"||failure==="AbortError")return NextResponse.json({error:"The image service took too long to respond. Your photo was not the problem — try again in a moment."},{status:504});
     return NextResponse.json({error:"AI could not separate the clothing in this photo. Try a clearer image with less overlap."},{status:502});
   }
 }
