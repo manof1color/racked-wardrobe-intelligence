@@ -86,7 +86,7 @@ The result is a defensible two-sided loop:
                     names, emails, photos, raw wardrobes, or owner IDs)
 ```
 
-**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock Nova Lite in `us-east-2`, plus a US-only Stable Image inference profile for foreground segmentation. The Amplify compute role has only the DynamoDB, S3-object, Bedrock, and SES permissions these flows require (`infra/template.yaml`). No AWS credentials or secrets are committed to GitHub.
+**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock Nova Lite in `us-east-2`, plus a US-only Stable Image inference profile for foreground segmentation. The deployed Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions, including the three Stable Image foundation-model ARNs required by the US inference profile. The committed template also describes narrowly scoped SES sending for password recovery, but that separate permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
 
 ---
 
