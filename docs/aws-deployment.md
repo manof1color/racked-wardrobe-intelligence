@@ -38,7 +38,7 @@ AI_BACKGROUND_REMOVAL_MODEL=us.stability.stable-image-remove-background-v1:0
 NEXT_PUBLIC_SITE_URL
 ```
 
-`RACKED_PASSWORD_RESET_FROM` must be a verified Amazon SES identity. If SES remains in sandbox mode, reset email works only for recipient addresses that are also verified. Before public recovery can be claimed, request SES production access and verify SPF/DKIM for the sender domain. The Amplify compute role includes only `ses:SendEmail`; no SMTP/API credential is committed.
+`RACKED_PASSWORD_RESET_FROM` must be a verified Amazon SES identity. If SES remains in sandbox mode, reset email works only for recipient addresses that are also verified. Before public recovery can be claimed, request SES production access and verify SPF/DKIM for the sender domain. The committed template describes only `ses:SendEmail`, but the 2026-08-28 Stable Image-only stack update deliberately did not deploy that unrelated permission. No SMTP/API credential is committed.
 
 The committed synthetic cohort uses reserved `.local` addresses, so those accounts cannot receive real email. To demonstrate recovery before SES leaves its sandbox, use a separately created synthetic test account whose recipient address is verified in SES; never replace the documented cohort addresses with a judge's or customer's private email in source control. Deploying the application code also does not update an already-created IAM role automatically: apply the `infra/template.yaml` permission change (or add the equivalent narrowly scoped `ses:SendEmail` policy) before expecting delivery.
 
@@ -48,11 +48,13 @@ The committed synthetic cohort uses reserved `.local` addresses, so those accoun
 
 - [x] CloudFormation stack created successfully.
 - [x] Amplify compute role attached.
+- [x] On 2026-08-28, change set `racked-stable-image-only` added exactly the three US Stable Image foundation-model ARNs to the existing Bedrock `InvokeModel` statement. The role was modified in place (`Replacement: False`); `AmplifyComputeRole` and `racked-production` both reached `UPDATE_COMPLETE`.
 - [x] DynamoDB and S3 runtime names configured.
 - [x] Amazon Nova Lite is available in `us-east-2`; Stable Image background removal supports that source Region through the US geographic inference profile.
 - [x] Direct Bedrock response test passed.
 - [x] Local lint passed.
 - [x] All 245 automated tests and the production dependency audit pass locally (re-verified 2026-08-28); CI and CodeQL remain mandatory before merge.
+- [x] PR #91 merged as `3a5c0d9` after Validate Racked and CodeQL passed. Amplify deployment 78 completed successfully from that commit in 3 minutes 30 seconds, and the production root served the expected Racked application immediately after the CloudFormation update. A physical-phone garment segmentation retest remains outstanding.
 - [x] PR #86 merged as `ae315b4` after Validate Racked and CodeQL passed. By 2026-08-23 19:40 UTC the production root returned HTTP 200 and served the corrected Add Racked flow from `/_next/static/chunks/app/layout-2d79734cfefd5cc0.js`; compatible browsers receive the native prompt and browsers without one receive the device-specific guide.
 - [x] PR #84 merged as `17e73ed` after Validate Racked and CodeQL passed. By 2026-08-23 02:28 UTC, the production Community page returned HTTP 200 and served the new Hanger-inspiration JavaScript bundle; `/login` returned HTTP 200 and the signed-out Consumer route retained its expected HTTP 307 redirect to `/login`. The exact Amplify job ID was not recorded because the AWS console session had expired, so deployment is evidenced by the public production artifact rather than an invented console identifier.
 - [x] PR #82 merged as `6bc2557` after Validate Racked and CodeQL passed; Amplify's replacement build `BJCT2zWZITIpnwl872W83` was visible at the production URL by 2026-08-22 18:45 UTC. The public login returns HTTP 200 and the signed-out Consumer route returns its expected HTTP 307 redirect to login, preserving the access-control boundary.
