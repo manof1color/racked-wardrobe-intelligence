@@ -26,55 +26,87 @@ function id() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 }
 
+/**
+ * The pieces Hanger chose, and what to do with them. This is the part of a reply people
+ * act on, so it stays open; the scoring behind it folds away into one disclosure rather
+ * than stacking three separate blocks under every message.
+ */
 function ReplyDetails({ reply, onAction, working }: { reply: AgentReply; onAction: (action: AgentAction, reply: AgentReply) => void; working: string | null }) {
+  const hasSelection = Boolean(reply.selection && reply.selection.length > 0);
   return <>
-    <div className="agent-meta">
-      <span>{reply.confidence} confidence</span>
-      {reply.provider && <span>{reply.provider.replaceAll("-", " ")}</span>}
-      <span>context refreshed</span>
-    </div>
-    {reply.selection && reply.selection.length > 0 && <div className="hanger-outfit-preview" role="group" aria-label="Pieces in Hanger's current outfit">
-      {reply.selection.map((item) => <figure key={item.id}>
+    {hasSelection && <div className="hanger-outfit-preview" role="group" aria-label="Pieces in Hanger's current outfit">
+      {reply.selection!.map((item) => <figure key={item.id}>
         {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <span aria-hidden="true">{item.category.slice(0, 1).toUpperCase()}</span>}
         <figcaption><strong>{item.name}</strong><small>{item.category}</small></figcaption>
       </figure>)}
     </div>}
-    <ul className="agent-evidence">{reply.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
     {reply.actions.length > 0 && <div className="agent-actions">
-      {reply.actions.map((action) => <button type="button" key={action.type} onClick={() => onAction(action, reply)} disabled={working !== null}>{working === action.type ? "Working…" : action.label}</button>)}
+      {reply.actions.map((action, index) => <button type="button" key={action.type} className={index === 0 ? "hanger-action primary" : "hanger-action"} onClick={() => onAction(action, reply)} disabled={working !== null}>
+        {working === action.type ? "Working…" : action.label}
+      </button>)}
     </div>}
-    <details><summary>Why Hanger could say this</summary><code>{reply.toolsUsed.join(" → ")}</code></details>
+    <details className="hanger-reasoning">
+      <summary>{hasSelection ? "Why these pieces" : "How Hanger answered"}</summary>
+      <div className="agent-meta">
+        <span>{reply.confidence} confidence</span>
+        {reply.provider && <span>{reply.provider.replaceAll("-", " ")}</span>}
+        <span>context refreshed</span>
+      </div>
+      {reply.evidence.length > 0 && <ul className="agent-evidence">{reply.evidence.map((item) => <li key={item}>{item}</li>)}</ul>}
+      <code>{reply.toolsUsed.join(" → ")}</code>
+    </details>
   </>;
 }
 
-function Conversation({ entries, onAction, working }: { entries: ChatEntry[]; onAction: (action: AgentAction, reply: AgentReply) => void; working: string | null }) {
+function Conversation({ entries, busy, onAction, working }: { entries: ChatEntry[]; busy: boolean; onAction: (action: AgentAction, reply: AgentReply) => void; working: string | null }) {
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [entries]);
+  useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [entries, busy]);
   return <div className="hanger-chat-log" role="log" aria-live="polite" aria-label="Conversation with Hanger">
     {entries.map((entry) => <article key={entry.id} className={`hanger-message ${entry.role}`}>
       <span>{entry.role === "assistant" ? "Hanger" : "You"}</span>
       <p>{entry.content}</p>
       {entry.reply && <ReplyDetails reply={entry.reply} onAction={onAction} working={working} />}
     </article>)}
+    {busy && <article className="hanger-message assistant hanger-thinking" aria-label="Hanger is thinking">
+      <span>Hanger</span>
+      <p aria-hidden="true"><i /><i /><i /></p>
+    </article>}
     <div ref={end} />
   </div>;
 }
 
-function Composer({ value, setValue, send, busy, prompts, label }: { value: string; setValue: (value: string) => void; send: (message?: string) => void; busy: boolean; prompts: string[]; label: string }) {
-  return <>
-    <div className="hanger-suggestions" aria-label="Suggested questions">
+function Composer({ value, setValue, send, busy, prompts, label, showPrompts, status, error }: {
+  value: string; setValue: (value: string) => void; send: (message?: string) => void; busy: boolean;
+  prompts: string[]; label: string; showPrompts: boolean; status: string; error: string;
+}) {
+  return <div className="hanger-composer-shell">
+    {/* Prompts are scaffolding for a blank conversation. Once someone is talking they are
+        just clutter above the box they are typing in. */}
+    {showPrompts && <div className="hanger-suggestions" aria-label="Suggested questions">
       {prompts.map((prompt) => <button type="button" key={prompt} onClick={() => send(prompt)} disabled={busy}>{prompt}</button>)}
-    </div>
+    </div>}
+    {status && <div className="agent-action-status" role="status">✓ {status}</div>}
+    {error && <div className="form-error" role="alert">{error}</div>}
     <div className="hanger-composer">
-      <label htmlFor={`hanger-${label}`}>Message Hanger</label>
-      <textarea id={`hanger-${label}`} rows={3} maxLength={1_000} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); } }} placeholder={label === "consumer" ? "Ask for an outfit, rotation, or wardrobe advice…" : "Ask about wear patterns, retention, or brand strategy…"} />
-      <button type="button" className="button button-accent" onClick={() => send()} disabled={busy || !value.trim()}>{busy ? "Hanger is thinking…" : "Send →"}</button>
-      <small>Fresh account context is loaded securely for every message.</small>
+      <label className="sr-only" htmlFor={`hanger-${label}`}>Message Hanger</label>
+      <textarea
+        id={`hanger-${label}`}
+        rows={1}
+        maxLength={1_000}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); send(); } }}
+        placeholder={label === "consumer" ? "Ask for an outfit, rotation, or advice…" : "Ask about wear, retention, or strategy…"}
+      />
+      <button type="button" className="hanger-send" onClick={() => send()} disabled={busy || !value.trim()} aria-label="Send message to Hanger">
+        {busy ? <span className="hanger-send-busy" aria-hidden="true" /> : "↑"}
+      </button>
     </div>
-  </>;
+    <small className="hanger-composer-note">Enter sends · Shift + Enter adds a line. Fresh account context is loaded securely for every message.</small>
+  </div>;
 }
 
-export function ConsumerAgentPanel({ onWearRecorded,onOutfitSaved }: { onWearRecorded?: (counts: Record<string, number>) => void; onOutfitSaved?: (outfit:SavedOutfit)=>void }) {
+export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRecorded?: (counts: Record<string, number>) => void; onOutfitSaved?: (outfit: SavedOutfit) => void }) {
   const [entries, setEntries] = useState<ChatEntry[]>([{ id: "consumer-intro", role: "assistant", content: "I’m Hanger. Ask me to create outfits from your saved wardrobe, find underused pieces, plan a rotation, or identify a wardrobe gap." }]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -131,16 +163,14 @@ export function ConsumerAgentPanel({ onWearRecorded,onOutfitSaved }: { onWearRec
   }
 
   return <section className="agent-panel consumer-agent">
-    <div className="agent-heading"><span className="agent-orb">AI</span><div><div className="eyebrow">CONSUMER AGENT · HANGER</div><h2>Talk through your wardrobe.</h2></div><span className="fallback-pill">PRIVATE CONTEXT</span></div>
-    <Conversation entries={entries} onAction={handleAction} working={working} />
-    <Composer value={draft} setValue={setDraft} send={send} busy={busy} prompts={consumerPrompts} label="consumer" />
-    {status && <div className="agent-action-status" role="status">✓ {status}</div>}
-    {error && <div className="form-error" role="alert">{error}</div>}
+    <Conversation entries={entries} busy={busy} onAction={handleAction} working={working} />
+    <Composer value={draft} setValue={setDraft} send={send} busy={busy} prompts={consumerPrompts} label="consumer"
+      showPrompts={!entries.some((entry) => entry.role === "user")} status={status} error={error} />
   </section>;
 }
 
 export function BrandAgentPanel({ productId }: { productId: string }) {
-  const [entries, setEntries] = useState<ChatEntry[]>([{ id: "brand-intro", role: "assistant", content: "I’m Hanger. Ask me to interpret privacy-safe wear patterns, build a retention strategy, shape a campaign, or decide which aggregate metric matters next." }]);
+  const [entries, setEntries] = useState<ChatEntry[]>([{ id: "brand-intro", role: "assistant", content: "I’m Hanger. Ask me to interpret privacy-safe wear patterns, build a retention strategy, shape a campaign, or decide which aggregate metric matters next. I refresh this product’s consent-filtered metrics for every message, and I cannot access names, emails, photos, or individual wardrobes." }]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
@@ -173,11 +203,8 @@ export function BrandAgentPanel({ productId }: { productId: string }) {
   }
 
   return <section className="agent-panel brand-agent">
-    <div className="agent-heading"><span className="agent-orb">AI</span><div><div className="eyebrow">BRAND AGENT · HANGER</div><h2>Discuss the strategy behind actual wear.</h2></div><span className="fallback-pill">AGGREGATES ONLY</span></div>
-    <p className="agent-intro">Hanger refreshes the selected product’s consent-filtered metrics for each message. It cannot access names, emails, photos, or individual wardrobes.</p>
-    <Conversation entries={entries} onAction={handleAction} working={working} />
-    <Composer value={draft} setValue={setDraft} send={send} busy={busy} prompts={brandPrompts} label="brand" />
-    {status && <div className="agent-action-status" role="status">✓ {status}</div>}
-    {error && <div className="form-error" role="alert">{error}</div>}
+    <Conversation entries={entries} busy={busy} onAction={handleAction} working={working} />
+    <Composer value={draft} setValue={setDraft} send={send} busy={busy} prompts={brandPrompts} label="brand"
+      showPrompts={!entries.some((entry) => entry.role === "user")} status={status} error={error} />
   </section>;
 }
