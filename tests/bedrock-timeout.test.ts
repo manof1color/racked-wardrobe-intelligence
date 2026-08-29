@@ -71,3 +71,12 @@ test("no Bedrock call site sends a command without a timeout",()=>{
   }
   assert.equal(checked,6,"all six Bedrock call sites are covered");
 });
+
+// SES is the other AWS call awaited inside a request. Delivery is deliberately
+// best-effort so password-reset responses stay enumeration-safe, but "best effort"
+// still has to end.
+test("the password reset email send is bounded as well",()=>{
+  const source=readFileSync(new URL("../lib/server/password-reset-email.ts",import.meta.url),"utf8");
+  assert.ok(source.includes("abortSignal:AbortSignal.timeout(SES_SEND_TIMEOUT_MS)"),"a stalled SES call would hold the reset request open");
+  assert.match(source,/SES_SEND_TIMEOUT_MS=1?[0-9]_000;/,"the SES deadline must stay inside a normal request budget");
+});
