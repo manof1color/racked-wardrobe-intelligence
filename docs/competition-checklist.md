@@ -44,7 +44,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the deterministic cutout, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
-- [x] Lint, type check (`tsc --noEmit`), 259 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-29); CI and CodeQL remain mandatory before merge.
+- [x] Lint, type check (`tsc --noEmit`), 269 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-29); CI and CodeQL remain mandatory before merge.
 
 ## 3. AI integration / innovation — 20%
 
@@ -86,6 +86,8 @@ This is the judge’s index for the CUA rubric.
 - [x] Responsive desktop and phone layouts.
 - [x] Real empty, loading, validation, success, suppression, and provider-error states.
 - [x] Semantic inputs, dialogs, labels, focus styles, and reduced-motion support.
+- [x] The Hanger drawer behaves as the dialog it declares: Escape dismisses it, opening moves focus into it, closing returns focus to the launcher, and the page behind it cannot scroll.
+- [x] Hanger is laid out as a fixed-height column — header, conversation, pinned composer — so a reply’s outfit preview and its Save/Record actions are always reachable instead of being clipped by a viewport-fraction cap. Scoring detail folds into one disclosure, suggested prompts appear only while the conversation is empty, an animated indicator shows a reply in flight, and the keyboard contract is stated in the composer.
 - [x] Camera-friendly capture and a visible cropped-display preview before saving.
 - [x] Whole-look scanning covers up to 16 wardrobe units, groups matching left/right footwear as one persisted pair, keeps adjacent different pairs separate, and creates independently tracked item images. A US-only Bedrock segmentation task produces validated, trimmed transparent cutouts without generating garment pixels; a conservative edge pass or honest opaque tight crop remains the tested fallback.
 - [x] Community inspirations become private, bounded, account-owned clothing signals for Consumer Hanger; duplicate taps cannot inflate counts, brands receive no liker identity, and current instructions override historical inspiration.
