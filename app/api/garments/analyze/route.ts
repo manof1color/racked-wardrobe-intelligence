@@ -68,8 +68,8 @@ export async function POST(request:Request) {
     const {evidence,display}=await prepareWardrobeImages(evidenceBytes);
     const evidenceKey=await putPrivateImage(session.subject,"wardrobe",evidence.buffer,evidence.contentType,"evidence");
     const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
-    if(display.fallbackReason)analysis.warnings=[...analysis.warnings,"Automatic garment cropping was not confident on this photo, so the original framing is shown."];
-    analysis.processedImage={key,url:(await privateImageUrl(key))!,width:display.width,height:display.height,confirmationToken:"",evidenceKey,cropped:display.cropped};
+    if(display.method==="original")analysis.warnings=[...analysis.warnings,"Automatic garment cropping was not confident on this photo, so the original framing is shown."];
+    analysis.processedImage={key,url:(await privateImageUrl(key))!,width:display.width,height:display.height,confirmationToken:"",evidenceKey,cropped:display.cropped,backgroundRemoved:display.backgroundRemoved,backgroundRemovalMethod:display.method==="silhouette"?"silhouette":"none"};
     analysis.processedImage.confirmationToken=signGarmentConfirmation(session.subject,key,analysis);
     return NextResponse.json({analysis,retention:"The cropped display image and the unmodified evidence photo are stored privately and returned through one-hour signed links."});
   } catch (error) {

@@ -87,7 +87,7 @@ export interface GarmentAnalysis {
     /** True when the background was made transparent without generating garment pixels. */
     backgroundRemoved?: boolean;
     /** Records whether AI segmentation or the deterministic edge fallback produced the display image. */
-    backgroundRemovalMethod?: "ai-segmentation"|"edge-fallback"|"none";
+    backgroundRemovalMethod?: "ai-segmentation"|"silhouette"|"edge-fallback"|"none";
   };
 }
 
