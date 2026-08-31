@@ -446,3 +446,5 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 /* Product-style garment cutouts stay color-faithful on a neutral white canvas. */
 .photo-garment,.flatlay-board,.saved-flatlay{background:#fff}
 .photo-garment>img{mix-blend-mode:normal}
+
+.look-piece-manual{margin:0 0 8px;padding:8px 10px;border-left:3px solid var(--coral);background:#fff6f3;font-size:.72rem;line-height:1.5}
