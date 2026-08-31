@@ -27,6 +27,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Brand ownership, consent filtering, and `k ≥ 25` enforced before aggregate calculation.
 - [x] Community publishes one selected saved outfit with all pieces, explicit product-resolution states, public garment IDs, and a post-scoped image proxy; owner/outfit/wardrobe IDs and S3 keys cannot leak.
 - [x] Outfit-first Community feed: the garment gallery leads each card, Brand Looks and Community Looks are visually distinguished, synthetic records carry a demo label, and commerce stays secondary to inspiration.
+- [x] Whole-look detection accepts every bounding-box convention a vision model may return — 0-1 fractions, 0-100 percentages, source pixels, corner arrays, and left/top/right/bottom keys — and a garment the model named is never discarded for an unreadable box or a generic category word; it falls back to the whole frame or an explicitly unknown category the person can correct. When detection returns nothing at all, the photo becomes one editable manual-review candidate with no invented attributes rather than a dead end that blames the photograph.
 - [x] Community discovery: looks are filterable by inferred style (formal, workwear, streetwear, casual, athletic, evening, minimal, outdoor), by garment category, and by free-text search across public fields only; style is derived from the published pieces rather than a declared tag, and only filters with real results are offered.
 - [x] Completing the fictional $0.00 demo checkout records an identity-free demonstration event that the owning fictional brand sees arrive live on its dashboard, labeled a purchase simulation and never a sale, and refused outright for non-DEMO products.
 - [x] "Recreate with my wardrobe" leads with coverage, splits pieces into what you already own versus what is missing in plain language, and lets any matched piece be inspected for the reason it was chosen.
@@ -44,7 +45,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the deterministic cutout, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
-- [x] Lint, type check (`tsc --noEmit`), 269 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-29); CI and CodeQL remain mandatory before merge.
+- [x] Lint, type check (`tsc --noEmit`), 279 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-29); CI and CodeQL remain mandatory before merge.
 
 ## 3. AI integration / innovation — 20%
 

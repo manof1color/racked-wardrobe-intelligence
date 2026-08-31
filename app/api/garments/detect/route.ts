@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
-import { detectGarmentsInLook, type NormalizedBounds } from "@/lib/look-garment-detection";
+import { detectGarmentsInLook, type DetectedLookGarment, type NormalizedBounds } from "@/lib/look-garment-detection";
+import { WHOLE_FRAME } from "@/lib/detection-bounds";
 import { prepareDetectedGarmentCutout } from "@/lib/garment-cutout";
 import { isolateGarment } from "@/lib/garment-isolation";
 import { removeGarmentBackground } from "@/lib/ai-background-removal";
@@ -21,6 +22,29 @@ function pixelCrop(bounds:NormalizedBounds,imageWidth:number,imageHeight:number)
   const right=Math.min(imageWidth,Math.ceil(((bounds.x+bounds.width)*imageWidth)+horizontalPadding));
   const bottom=Math.min(imageHeight,Math.ceil(((bounds.y+bounds.height)*imageHeight)+verticalPadding));
   return {left,top,width:Math.max(1,right-left),height:Math.max(1,bottom-top)};
+}
+
+/**
+ * The photo as one unlabelled piece, for when detection returns nothing. Every garment
+ * attribute is left unknown and flagged for manual review rather than guessed, so this
+ * can never be mistaken for a recognition result.
+ */
+function manualReviewCandidate():DetectedLookGarment {
+  return {
+    id:crypto.randomUUID(),
+    bounds:WHOLE_FRAME,
+    exactBounds:false,
+    analysis:{
+      provider:"manual-review",
+      fallback:true,
+      confidence:0,
+      dataSufficiency:"partial",
+      garment:{name:"Unrecognized piece",category:"unknown",subtype:"other-garment",wearableUnit:"single",color:"unknown",pattern:"unknown",style:[],construction:[],material:"unknown",alternatives:[]},
+      label:{brand:"Brand not verified",sku:"UNVERIFIED",brandSlug:null,matched:false,registryProductId:null,matchMethod:"none"},
+      evidence:[{view:"front",findings:["AI did not return a confident detection for this photo."]}],
+      warnings:["AI could not classify this photo. Set the category and name yourself before saving, or retake the photo with the piece laid flat and fully in frame."],
+    },
+  };
 }
 
 export async function POST(request:Request) {
@@ -43,8 +67,16 @@ export async function POST(request:Request) {
       .resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true})
       .jpeg({quality:84,mozjpeg:true})
       .toBuffer({resolveWithObject:true});
-    const detections=await detectGarmentsInLook({base64:prepared.data.toString("base64"),contentType:"image/jpeg"});
-    if(detections.length===0)return NextResponse.json({error:"No distinct clothing pieces were detected. Try a clearer, well-lit photo where each piece is visible."},{status:422});
+    const detections=await detectGarmentsInLook({
+      base64:prepared.data.toString("base64"),
+      contentType:"image/jpeg",
+      image:{width:prepared.info.width,height:prepared.info.height},
+    });
+    // A dead end here used to blame the photo. When the model returns nothing at all the
+    // person still has a garment in front of them, so the whole frame becomes one
+    // editable candidate they can label and save themselves. Nothing is invented: the
+    // record is explicitly marked as needing manual review with no AI attributes.
+    if(detections.length===0)detections.push(manualReviewCandidate());
 
     const evidenceKey=await putPrivateImage(session.subject,"wardrobe",prepared.data,"image/jpeg","evidence");
     // A small batch keeps a full 16-piece look responsive without sending an
