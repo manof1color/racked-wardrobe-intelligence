@@ -96,11 +96,12 @@ test("the prompt tells the model the coordinate convention and that one garment 
 
 test("detection failure offers an editable piece instead of blaming the photo", () => {
   const route = readFileSync(new URL("../app/api/garments/detect/route.ts", import.meta.url), "utf8");
-  assert.match(route, /manualReviewCandidate\(\)/);
+  assert.match(route, /detectLookOrManualReview/);
   assert.doesNotMatch(route, /status:422/, "a photo with a real garment in it must not dead-end");
-  assert.match(route, /provider:"manual-review"/);
-  assert.match(route, /confidence:0/, "a stand-in must never claim confidence");
-  assert.match(route, /category:"unknown"/, "no attribute may be invented for an unclassified piece");
+  const resilience = readFileSync(new URL("../lib/look-scan-resilience.ts", import.meta.url), "utf8");
+  assert.match(resilience, /provider:"manual-review"/);
+  assert.match(resilience, /confidence:0/, "a stand-in must never claim confidence");
+  assert.match(resilience, /category:"unknown"/, "no attribute may be invented for an unclassified piece");
   const uploader = readFileSync(new URL("../components/look-scan-uploader.tsx", import.meta.url), "utf8");
   assert.match(uploader, /NEEDS YOUR LABEL/);
   assert.match(uploader, /AI could not classify this photo/);

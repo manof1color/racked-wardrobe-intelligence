@@ -72,7 +72,7 @@ Both one-photo intake and each front/back/label slot expose separate camera and 
 8. Store both variants privately and return one-hour signed links plus a server confirmation token bound to the account and both keys.
 9. Require human confirmation and allow bounded name, category, subtype, brand, and SKU corrections before creating the wardrobe record. Corrections never create a registry product link. Older records without V2 attributes are normalized safely when read.
 
-In production, provider failure at either the classification or analysis step degrades to a documented deterministic path: the standard back-plus-label photo set, and an explicitly unverified manual-review result. The Consumer can save their own reviewed labels, but Racked creates no invented AI attributes or verified product link.
+In production, provider failure at classification, whole-look recognition, or multi-view analysis degrades to a documented deterministic path: the standard back-plus-label photo set or an explicitly zero-confidence unverified manual-review result. Whole-look display preparation treats AI background removal, silhouette isolation, and edge removal as independent enhancements; if all are unavailable, the bounded original crop remains usable. The Consumer can save their own reviewed labels, but Racked creates no invented AI attributes or verified product link.
 
 ## Abuse and enumeration controls
 
