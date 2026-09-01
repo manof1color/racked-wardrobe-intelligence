@@ -24,7 +24,7 @@ test("optional crop failures retain a simple usable photo instead of rejecting i
   assert.equal(metadata.hasAlpha,true);
 });
 
-test("a recognition outage does not immediately spend another provider timeout on background removal",async()=>{
+test("synchronous look intake never multiplies recognition into per-piece provider calls",async()=>{
   const input=await ordinaryPhonePhoto();
   let aiCalls=0;
   const result=await prepareResilientLookDisplay(input,{
@@ -35,7 +35,8 @@ test("a recognition outage does not immediately spend another provider timeout o
   assert.equal(aiCalls,0);
   assert.ok(["edge-fallback","none"].includes(result.method));
   const route=readFileSync(new URL("../app/api/garments/detect/route.ts",import.meta.url),"utf8");
-  assert.match(route,/skipAi:recognition\.providerFailed/);
+  assert.match(route,/prepareResilientLookDisplay\(cropBytes,\{skipAi:true\}\)/);
+  assert.doesNotMatch(route,/skipAi:recognition\.providerFailed/);
 });
 
 test("a recognition-provider exception becomes an honest editable wardrobe candidate",async()=>{

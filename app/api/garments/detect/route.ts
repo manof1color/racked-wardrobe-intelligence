@@ -57,15 +57,15 @@ export async function POST(request:Request) {
     for(let offset=0;offset<detections.length;offset+=4)await Promise.all(detections.slice(offset,offset+4).map(async detection=>{
         const crop=pixelCrop(detection.bounds,prepared.info.width,prepared.info.height);
         const cropBytes=await sharp(prepared.data).extract(crop).png().toBuffer();
-        // Prefer model segmentation for a clean catalog-style cutout. Below it, the
-        // silhouette pass crops to the largest connected piece, which matters here
-        // because a detection box on a crowded rail often clips the neighbouring
-        // garment; the older edge algorithm kept those pixels and widened the crop.
-        // The conservative edge algorithm remains the last honest fallback.
-        // When recognition itself timed out or failed, do not spend a second provider
-        // timeout on optional background removal. The deterministic/simple display
-        // paths keep the manual-review item inside the same request budget.
-        const display=await prepareResilientLookDisplay(cropBytes,{skipAi:recognition.providerFailed});
+        // Recognition is the only remote vision call allowed on the synchronous intake
+        // path. Calling the background-removal model once per detected piece made a
+        // crowded rack multiply one mobile request into as many as sixteen additional
+        // Bedrock calls. A correct detection could therefore time out while it was only
+        // being cosmetically cleaned up. The measured deterministic silhouette pass is
+        // tried first here, followed by the conservative edge pass and finally the
+        // ordinary bounded crop. The optional AI segmentation helper remains available
+        // for a future asynchronous enhancement, but can never block wardrobe intake.
+        const display=await prepareResilientLookDisplay(cropBytes,{skipAi:true});
         const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
         detection.analysis.processedImage={
           key,

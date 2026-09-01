@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "eval:run": "node --experimental-strip-types scripts/run-garment-evaluation.mjs",
     "eval:score": "node --experimental-strip-types scripts/score-garment-evaluation.mjs",
     "eval:audit-labels": "node --experimental-strip-types scripts/audit-second-hand-label-coverage.mjs",
     "verify:demo-match": "node --experimental-strip-types scripts/verify-test-cohort-match.mjs",
