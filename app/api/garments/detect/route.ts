@@ -2,11 +2,8 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
-import { detectGarmentsInLook, type DetectedLookGarment, type NormalizedBounds } from "@/lib/look-garment-detection";
-import { WHOLE_FRAME } from "@/lib/detection-bounds";
-import { prepareDetectedGarmentCutout } from "@/lib/garment-cutout";
-import { isolateGarment } from "@/lib/garment-isolation";
-import { removeGarmentBackground } from "@/lib/ai-background-removal";
+import { type NormalizedBounds } from "@/lib/look-garment-detection";
+import { detectLookOrManualReview, prepareResilientLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
@@ -24,29 +21,6 @@ function pixelCrop(bounds:NormalizedBounds,imageWidth:number,imageHeight:number)
   return {left,top,width:Math.max(1,right-left),height:Math.max(1,bottom-top)};
 }
 
-/**
- * The photo as one unlabelled piece, for when detection returns nothing. Every garment
- * attribute is left unknown and flagged for manual review rather than guessed, so this
- * can never be mistaken for a recognition result.
- */
-function manualReviewCandidate():DetectedLookGarment {
-  return {
-    id:crypto.randomUUID(),
-    bounds:WHOLE_FRAME,
-    exactBounds:false,
-    analysis:{
-      provider:"manual-review",
-      fallback:true,
-      confidence:0,
-      dataSufficiency:"partial",
-      garment:{name:"Unrecognized piece",category:"unknown",subtype:"other-garment",wearableUnit:"single",color:"unknown",pattern:"unknown",style:[],construction:[],material:"unknown",alternatives:[]},
-      label:{brand:"Brand not verified",sku:"UNVERIFIED",brandSlug:null,matched:false,registryProductId:null,matchMethod:"none"},
-      evidence:[{view:"front",findings:["AI did not return a confident detection for this photo."]}],
-      warnings:["AI could not classify this photo. Set the category and name yourself before saving, or retake the photo with the piece laid flat and fully in frame."],
-    },
-  };
-}
-
 export async function POST(request:Request) {
   const session=await getSession();
   if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
@@ -54,6 +28,7 @@ export async function POST(request:Request) {
   const limit=consumeRateLimit(`look-detect:${session.subject}`,RATE_LIMIT_RULES.lookDetect);
   if(!limit.allowed)return NextResponse.json({error:"Too many look scans. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   if(Number(request.headers.get("content-length")??0)>MAX_UPLOAD_BYTES+1_000_000)return NextResponse.json({error:"The photo must be no more than 5 MB."},{status:413});
+  let stage:"input"|"recognition"|"storage"="input";
   try {
     const form=await request.formData();
     const file=form.get("photo");
@@ -67,17 +42,15 @@ export async function POST(request:Request) {
       .resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true})
       .jpeg({quality:84,mozjpeg:true})
       .toBuffer({resolveWithObject:true});
-    const detections=await detectGarmentsInLook({
+    stage="recognition";
+    const recognition=await detectLookOrManualReview({
       base64:prepared.data.toString("base64"),
       contentType:"image/jpeg",
       image:{width:prepared.info.width,height:prepared.info.height},
     });
-    // A dead end here used to blame the photo. When the model returns nothing at all the
-    // person still has a garment in front of them, so the whole frame becomes one
-    // editable candidate they can label and save themselves. Nothing is invented: the
-    // record is explicitly marked as needing manual review with no AI attributes.
-    if(detections.length===0)detections.push(manualReviewCandidate());
+    const detections=recognition.detections;
 
+    stage="storage";
     const evidenceKey=await putPrivateImage(session.subject,"wardrobe",prepared.data,"image/jpeg","evidence");
     // A small batch keeps a full 16-piece look responsive without sending an
     // uncontrolled burst of image-model and S3 requests.
@@ -89,9 +62,10 @@ export async function POST(request:Request) {
         // because a detection box on a crowded rail often clips the neighbouring
         // garment; the older edge algorithm kept those pixels and widened the crop.
         // The conservative edge algorithm remains the last honest fallback.
-        const display=await removeGarmentBackground(cropBytes)
-          ??await isolateGarment(cropBytes)
-          ??await prepareDetectedGarmentCutout(cropBytes);
+        // When recognition itself timed out or failed, do not spend a second provider
+        // timeout on optional background removal. The deterministic/simple display
+        // paths keep the manual-review item inside the same request budget.
+        const display=await prepareResilientLookDisplay(cropBytes,{skipAi:recognition.providerFailed});
         const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
         detection.analysis.processedImage={
           key,
@@ -100,7 +74,7 @@ export async function POST(request:Request) {
           height:display.height,
           confirmationToken:"",
           evidenceKey,
-          cropped:true,
+          cropped:detection.exactBounds||display.method!=="none",
           backgroundRemoved:display.backgroundRemoved,
           backgroundRemovalMethod:display.method,
         };
@@ -108,6 +82,7 @@ export async function POST(request:Request) {
       }));
     return NextResponse.json({
       detections,
+      recognition:recognition.providerFailed?"manual-review-fallback":"ai-complete",
       retention:"The source image and each isolated display cutout are private, encrypted at rest, and returned only through expiring links.",
       verification:"Detected brand text is editable suggestion evidence only; it never creates verified product identity.",
     });
@@ -115,10 +90,9 @@ export async function POST(request:Request) {
     if(error instanceof UploadValidationError)return NextResponse.json({error:error.message},{status:error.status});
     if(error instanceof ProductionConfigurationError)return NextResponse.json({error:error.message},{status:503});
     const failure=error instanceof Error?error.name:"UnknownError";
-    console.error("Multi-garment look detection failed",{name:failure,message:error instanceof Error?error.message:"Unknown provider failure"});
-    // A provider that ran out of time is not a bad photo; saying so would send the
-    // person off to retake a picture that was never the problem.
-    if(failure==="TimeoutError"||failure==="AbortError")return NextResponse.json({error:"The image service took too long to respond. Your photo was not the problem — try again in a moment."},{status:504});
-    return NextResponse.json({error:"AI could not separate the clothing in this photo. Try a clearer image with less overlap."},{status:502});
+    console.error("Multi-garment look scan failed",{stage,name:failure,message:error instanceof Error?error.message:"Unknown failure"});
+    if(stage==="input")return NextResponse.json({error:"Racked could not read this image. Choose a valid JPG, PNG, or WebP file under 5 MB."},{status:400});
+    if(stage==="storage")return NextResponse.json({error:"Racked recognized the upload but could not store the private wardrobe image. Your photo was not the problem — try again in a moment."},{status:503});
+    return NextResponse.json({error:"Racked could not finish this scan. Your photo was not rejected — try again in a moment."},{status:502});
   }
 }
