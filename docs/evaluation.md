@@ -22,8 +22,15 @@ Racked is **not trained or fine-tuned on these 31,638 garments**. Production cur
 2. Retain only records with a readable annotation plus front, back, and label views. Log exclusions, especially the privacy-removed or absent label photos.
 3. Convert the source `type` field into Racked's controlled category/subtype vocabulary with `normalizeSecondHandAnnotation`. The source `category` can describe the intended wearer and is not treated as garment identity.
 4. Select a deterministic, stratified subset. Keep its manifest and source IDs, but not its photographs, in the evaluation workspace.
-5. Run the production multi-view analysis without placing these records into a consumer wardrobe or brand registry.
-6. Save provider outputs to a local predictions JSON file, then calculate the aggregate report:
+5. Run the production multi-view analysis without placing these records into a consumer wardrobe or brand registry. Paths in the manifest are resolved relative to the manifest file, outputs checkpoint after every case, and an interrupted run resumes by external ID:
+
+```bash
+pnpm eval:run path/to/manifest.json path/to/predictions.json 100
+```
+
+The optional final number is a deterministic maximum case count. The runner uses the production Bedrock multi-view analyzer with an explicitly empty product registry, never persists source images, and always records `verified: false`. Provider/manual-review fallbacks are counted as failures rather than guessed classifications.
+
+6. Score an existing predictions file independently when needed:
 
 ```bash
 pnpm eval:score path/to/manifest.json path/to/predictions.json path/to/report.json
