@@ -2,6 +2,7 @@
 
 **Status:** ready to hand to an implementing agent
 **Opened:** 2026-08-30
+**Last checked against `main`:** 2026-08-30, commit `0967450`
 **Owner:** unassigned
 
 ---
@@ -24,11 +25,17 @@ nobody knows what that accuracy is.**
 ### The actual blocker
 
 `docs/evaluation.md` documents a complete evaluation protocol against a 31,638-garment
-CC BY 4.0 corpus. `scripts/score-garment-evaluation.mjs` and `pnpm eval:score` exist and
-work.
+CC BY 4.0 corpus. Since #99 both halves of the harness exist: `pnpm eval:run` produces
+predictions and `pnpm eval:score` scores them.
 
-**The harness has never been run. There is no measured recognition number anywhere in this
-repository.**
+**Neither has been run against the corpus. There is no measured recognition number anywhere
+in this repository.**
+
+One thing to know before starting: `scripts/run-garment-evaluation.mjs` calls
+`analyzeGarmentImages`, which is the **three-view single-garment path**. It does not
+exercise `detectGarmentsInLook`, the whole-look path where the reported failure actually
+happened. RC1 therefore has to measure both, and the detection-rate metric needs a runner
+that does not exist yet.
 
 Every proposal below is guesswork until that changes. RC1 is therefore blocking: do not
 start RC3–RC5 before it produces a number.
@@ -79,8 +86,13 @@ number, and neither is "recognition feels better".
    photographs.
 2. Take a deterministic, stratified sample — at least 200 garments, spread across every
    category in `GARMENT_TAXONOMY`, seeded so the selection is reproducible.
-3. Run the production path unchanged, against the current default `amazon.nova-lite-v1:0`.
-4. Score with `pnpm eval:score`.
+3. Run the three-view path with `pnpm eval:run <manifest> <predictions> <n>`, unchanged,
+   against the current default `amazon.nova-lite-v1:0`.
+4. Score with `pnpm eval:score <manifest> <predictions> <report>`.
+5. **Add a second runner for the whole-look path.** `eval:run` covers
+   `analyzeGarmentImages` only; detection rate — the metric the reported bug lives in —
+   needs `detectGarmentsInLook` driven over the same sample. Report it separately, since a
+   whole-look scan and a three-view upload are different tasks with different failure modes.
 
 **Report, broken out separately.**
 
@@ -92,7 +104,8 @@ number, and neither is "recognition feels better".
 - Any AI-only identity violation (must be zero)
 
 **Deliverables.** `docs/evaluation-baseline.md` with the numbers, sample size, seed, model
-ID, and date. The manifest, not the images.
+ID, and date, reported separately for the three-view and whole-look paths. The manifest, not
+the images.
 
 **Done when** a reader can state today's category accuracy and detection rate from the repo
 alone.
