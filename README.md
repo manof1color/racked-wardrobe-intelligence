@@ -356,6 +356,8 @@ Racked does **not** claim garment recognition accuracy, sales lift, purchase int
 Everything above is self-contained; these go deeper.
 
 - [PROGRESS.md](PROGRESS.md) — real merged-PR history of how this was built
+- [User workflow](docs/user-workflow.md) — the Consumer and Brand journeys end to end
+- [Recognition work order](docs/work-order-recognition.md) — open tasks for measuring and improving garment recognition
 - [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist
 - [Demo checklist and fallbacks](docs/demo-checklist.md) — pre-flight, accounts, and what to do when something fails live
 - [Presentation script](docs/demo-script.md) — the eight-minute run
