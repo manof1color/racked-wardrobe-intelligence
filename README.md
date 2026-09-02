@@ -6,7 +6,7 @@
 **Live application:** https://main.d2iv0khybuuaeh.amplifyapp.com
 **Planned pricing:** https://main.d2iv0khybuuaeh.amplifyapp.com/pricing
 **GitHub:** https://github.com/manof1color/racked-wardrobe-intelligence
-**Stack:** Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock Nova Lite · GitHub Actions · CodeQL
+**Stack:** Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock Nova Pro + Nova Lite · GitHub Actions · CodeQL
 
 ---
 
@@ -76,17 +76,17 @@ The result is a defensible two-sided loop:
              │                   │                  │
              ▼                   ▼                  ▼
    Amazon Bedrock          DynamoDB (on-demand)   Private S3 (encrypted,
-   Nova Lite vision:       single table:          public access blocked):
-   garment analysis,       USER#/GARMENT#/OUTFIT#/ evidence photo +
-   category classify,      PRODUCT#/WEAR#/         auto-cropped display
-   Hanger agents           COMMUNITY/AGGQ#          image, 1-hour links
+   Nova Pro: whole-look    single table:          public access blocked):
+   instance detection      USER#/GARMENT#/OUTFIT#/ evidence photo +
+   Nova Lite: garment      PRODUCT#/WEAR#/         auto-cropped display
+   analysis + Hanger       COMMUNITY/AGGQ#          image, 1-hour links
              │                   │
              └──── consent filter → k ≥ 25 threshold → enumeration budget
                    (brands receive released aggregates only — never
                     names, emails, photos, raw wardrobes, or owner IDs)
 ```
 
-**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock Nova Lite in `us-east-2`, plus a US-only Stable Image inference profile for foreground segmentation. The deployed Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions, including the three Stable Image foundation-model ARNs required by the US inference profile. The committed template also describes narrowly scoped SES sending for password recovery, but that separate permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
+**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock from `us-east-2`. Whole-look instance detection uses the US Nova Pro geographic profile; routine garment analysis and both Hanger agents remain on Nova Lite. The synchronous scan uses local foreground isolation, so it does not fan out into a remote segmentation request for every detected piece. The deployed Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions. The committed template also describes narrowly scoped SES sending for password recovery, but that separate permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
 
 ---
 
@@ -109,7 +109,7 @@ The result is a defensible two-sided loop:
 
 - **Take photo** opens the rear camera; **Choose image** opens the library — two explicit actions rather than one ambiguous picker.
 - JPEG, PNG, WebP, HEIC, HEIF, and AVIF up to 25 MB are accepted, then normalized in the browser to a compressed JPEG before private upload.
-- Bedrock scans the full image top-to-bottom and left-to-right, performs a missed-region coverage check, and detects each distinct visible garment, footwear set, bag, or accessory. A matching left/right shoe set is one wearable pair—not two wardrobe entries—and a deterministic shared-pair guard combines the sides if the provider returns separate boxes. Adjacent different pairs remain separate. The server cuts one independent private image per wardrobe unit, then runs the deterministic silhouette and conservative edge passes before retaining the ordinary bounded crop when neither is safe. Recognition remains the only remote vision call in this synchronous path. A recognition outage or malformed response likewise produces one zero-confidence editable manual-review item instead of rejecting the photograph or inventing attributes.
+- Bedrock Nova Pro scans the full image top-to-bottom and left-to-right, inventories it by row/shelf, performs a second missed-region coverage check, and detects each distinct visible garment, footwear set, bag, or accessory. A matching left/right shoe set is one wearable pair—not two wardrobe entries—and a deterministic shared-pair guard combines the sides if the provider returns separate boxes. Adjacent different pairs remain separate. If the Pro inference profile is immediately unavailable because of model configuration or permission, Racked retries once with the configured Nova Lite model; timeouts never trigger a second wait. The server cuts one independent private image per wardrobe unit, then runs the deterministic silhouette and conservative edge passes before retaining the ordinary bounded crop when neither is safe. Recognition remains the only remote vision stage in this synchronous path. A recognition outage or malformed response likewise produces one zero-confidence editable manual-review item instead of rejecting the photograph or inventing attributes.
 - **Nothing is saved until the person confirms it.** Every candidate is selectable and editable, and detection alone never writes to the wardrobe. Overlapping or hidden pieces may need a second photo.
 
 **Link a brand product** keeps the front/back/label evidence flow for exact registry-backed tracking. AI-read or typed brand text alone never verifies identity.
@@ -245,7 +245,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 
 Racked has selected the corrected CC BY 4.0 [Clothing Dataset for Second-Hand Fashion, version 3](https://zenodo.org/records/13788681) as its external recognition benchmark. It contains **31,638 real garments** plus a separately identified 100-garment annotator-agreement set, with human annotations and front, back, and brand-label photographs where available — the closest public match to Racked's three-view intake. Dataset photographs stay outside GitHub and the production application; only attribution, evaluation code, and aggregate results belong in this repository.
 
-**Accuracy is not claimed yet, and this is not training data.** Racked currently uses Amazon Nova Lite through Bedrock and has not fine-tuned that model on these garments. The benchmark will measure category, subtype, label-text, provider-failure, and AI-only-verification violations without allowing dataset brand text to create verified identity. The exact protocol and honest reporting rules are in [docs/evaluation.md](docs/evaluation.md).
+**Accuracy is not claimed yet, and this is not training data.** Racked uses Amazon Nova Lite for the documented three-view benchmark path and the US Nova Pro profile for the harder whole-look instance-detection path; neither model is fine-tuned on these garments. The benchmark will measure category, subtype, label-text, provider-failure, and AI-only-verification violations without allowing dataset brand text to create verified identity. The exact protocol and honest reporting rules are in [docs/evaluation.md](docs/evaluation.md).
 
 The first reproducible label-coverage audit sampled 1,000 evenly spaced records: **93.9%** map to Racked's broad categories, **62.6%** have source labels specific enough for exact-subtype scoring, and **94.0%** contain usable brand annotations. These percentages measure benchmark compatibility — not model accuracy. The aggregate, image-free report is committed at [`data/evaluation-label-coverage.json`](data/evaluation-label-coverage.json).
 
@@ -263,7 +263,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **287 passing tests** (verified 2026-09-01), covering provider-exception/manual-review recovery, one-call synchronous recognition, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **289 passing tests** (verified 2026-09-01), covering provider-exception/manual-review recovery, one-call synchronous recognition, the dedicated Pro-to-Lite model policy, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -274,7 +274,7 @@ The suite currently has **287 passing tests** (verified 2026-09-01), covering pr
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **287 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **289 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, individually isolated garment cutouts on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
