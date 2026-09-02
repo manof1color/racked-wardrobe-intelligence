@@ -6,7 +6,17 @@ import { BEDROCK_VISION_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-time
 import { boundsOrWholeFrame, type NormalizedBounds as Bounds } from "./detection-bounds.ts";
 
 export const MAX_LOOK_GARMENTS = 16;
-export const DEFAULT_LOOK_DETECTION_MODEL = "amazon.nova-lite-v1:0";
+/**
+ * Whole-look scans are the one vision task where a stronger model earns its cost:
+ * it must count overlapping instances, keep adjacent footwear pairs separate, and
+ * return usable boxes for every item. Routine single-garment analysis and Hanger
+ * remain on the less expensive AI_MODEL (currently Nova Lite).
+ *
+ * The US geographic inference profile is valid from the production us-east-2 region
+ * and keeps processing within the documented US destination regions.
+ */
+export const DEFAULT_LOOK_DETECTION_MODEL = "us.amazon.nova-pro-v1:0";
+export const FALLBACK_LOOK_DETECTION_MODEL = "amazon.nova-lite-v1:0";
 
 export type { NormalizedBounds } from "./detection-bounds.ts";
 
@@ -178,29 +188,66 @@ export function parseLookGarmentDetections(value:unknown,image?:{width:number;he
 }
 
 export function buildLookDetectionPrompt() {
-  return `Inspect the ENTIRE image systematically from top to bottom and left to right. Detect every distinct visible clothing, footwear, bag, jewelry, and wearable accessory wardrobe unit, including partially obscured pieces when enough shape is visible to classify them. Do not identify or describe people, bodies, age, gender, ethnicity, or ownership. Ignore furniture, shelves, hangers, laundry baskets, containers, and background objects.
+  return `Inspect the ENTIRE image systematically from top to bottom and left to right. Before returning JSON, make an internal inventory by row or shelf, count every visible wardrobe unit in each region, and reconcile that inventory with the final garments array. Detect every distinct visible clothing, footwear, bag, jewelry, and wearable accessory wardrobe unit, including partially obscured pieces when enough shape is visible to classify them. Do not identify or describe people, bodies, age, gender, ethnicity, or ownership. Ignore furniture, shelves, hangers, laundry baskets, containers, and background objects.
 
-FOOTWEAR PAIR RULE: a matching left and right shoe together are ONE wardrobe unit, not two garments. Return one footwear object with wearableUnit "pair" and one tight bounds rectangle enclosing both shoes. Never return separate detections for the two shoes in a pair. Do not combine adjacent shoes with different designs, colors, construction, or visible branding. If you must emit the two sides separately because of overlap, give both exactly the same nonempty pairId so the server can combine them. If only one unmatched shoe is visibly present, use wearableUnit "single" and an empty pairId.
+FOOTWEAR PAIR RULE: a matching left and right shoe together are ONE wardrobe unit, not two garments. Return one footwear object with wearableUnit "pair" and one tight bounds rectangle enclosing both shoes. Never return separate detections for the two shoes in a pair. Do not combine adjacent shoes with different designs, colors, construction, sole shape, lacing, or visible branding. Use a unique stable pairId such as "row-2-pair-3" for every complete pair. If you must emit the two sides separately because of overlap, give both exactly the same nonempty pairId so the server can combine them. Never reuse one pairId for a neighboring pair. If only one unmatched shoe is visibly present, use wearableUnit "single" and an empty pairId.
 
-After the first pass, perform a coverage check of every row, shelf, image edge, and partially hidden region, adding any missed wearable units. Do not emit the same physical item or pair twice. Use this controlled taxonomy: ${garmentTaxonomyPrompt()}. SINGLE GARMENT: a photo containing exactly one garment is normal and expected. Return that one garment. Never return an empty array because there is only one item, because the item is folded, creased, or laid flat, or because you cannot read a brand.
+After the first pass, perform a second coverage check of every row, shelf, image edge, and partially hidden region, adding any missed wearable units. On a shoe rack, the final count is the number of complete matching pairs plus the number of genuinely unmatched single shoes — never the raw number of visible shoe objects. Do not emit the same physical item or pair twice. Use this controlled taxonomy: ${garmentTaxonomyPrompt()}. SINGLE GARMENT: a photo containing exactly one garment is normal and expected. Return that one garment. Never return an empty array because there is only one item, because the item is folded, creased, or laid flat, or because you cannot read a brand.
 
 Return only JSON with {"garments":[...]}. Each garment must contain: name, category, subtype, wearableUnit (single or pair), pairId (shared only by two sides of one footwear pair, otherwise empty), color, pattern, material, style (array), confidence (integer 0-95), visibleBrandText (only text genuinely visible, otherwise empty), visibleEvidence (array), and bounds. Give bounds as {"x":,"y":,"width":,"height":} where every value is a fraction of the full image between 0 and 1 — for example a garment filling the middle half of the photo is {"x":0.25,"y":0.25,"width":0.5,"height":0.5}. Bounds must tightly contain the complete garment or complete footwear pair. If you are unsure of the exact rectangle, still return the garment with your best estimate; a garment with an imprecise box is far more useful than a missing garment. Return at most ${MAX_LOOK_GARMENTS} wardrobe units, and return an empty array only when the image genuinely contains no wearable item at all.`;
 }
 
-export async function detectGarmentsInLook(input:{base64:string;contentType:"image/jpeg"|"image/png"|"image/webp";model?:string;region?:string;image?:{width:number;height:number}}) {
+export function lookDetectionModelCandidates(inputModel?:string,environment:{AI_LOOK_DETECTION_MODEL?:string;AI_MODEL?:string}={AI_LOOK_DETECTION_MODEL:process.env.AI_LOOK_DETECTION_MODEL,AI_MODEL:process.env.AI_MODEL}) {
+  const primary=inputModel?.trim()||environment.AI_LOOK_DETECTION_MODEL?.trim()||DEFAULT_LOOK_DETECTION_MODEL;
+  const fallback=environment.AI_MODEL?.trim()||FALLBACK_LOOK_DETECTION_MODEL;
+  return [...new Set([primary,fallback].filter(Boolean))];
+}
+
+/**
+ * A second model call is allowed only for an immediate model-selection/configuration
+ * failure. A timeout or service failure must return to the route's honest manual-review
+ * fallback instead of doubling mobile latency.
+ */
+export function mayTryLookDetectionFallback(error:unknown) {
+  if(!(error instanceof Error))return false;
+  const name=error.name.toLowerCase();
+  const message=error.message.toLowerCase();
+  if(name.includes("accessdenied")||name.includes("resourcenotfound"))return true;
+  return name.includes("validation")&&/(model|inference|profile|throughput)/.test(message);
+}
+
+interface LookDetectionDependencies {
+  invoke?: (modelId:string,request:ConverseCommandInput)=>Promise<{output?:{message?:{content?:Array<{text?:string}>}}}>;
+}
+
+export async function detectGarmentsInLook(input:{base64:string;contentType:"image/jpeg"|"image/png"|"image/webp";model?:string;region?:string;image?:{width:number;height:number}},dependencies:LookDetectionDependencies={}) {
   const client=new BedrockRuntimeClient({region:input.region??process.env.AWS_REGION??process.env.AWS_DEFAULT_REGION??"us-east-2"});
   const prompt=buildLookDetectionPrompt();
-  const request:ConverseCommandInput={
-    modelId:input.model??process.env.AI_LOOK_DETECTION_MODEL??process.env.AI_MODEL??DEFAULT_LOOK_DETECTION_MODEL,
-    system:[{text:"You are a clothing-instance detector. Return structured visible evidence only. Never infer personal traits or claim product verification."}],
-    messages:[{role:"user",content:[
-      {image:{format:input.contentType.split("/")[1] as "jpeg"|"png"|"webp",source:{bytes:Buffer.from(input.base64,"base64")}}},
-      {text:prompt},
-    ]}] as ConverseCommandInput["messages"],
-    inferenceConfig:{maxTokens:3600,temperature:0},
-  };
-  const response=await client.send(new ConverseCommand(request),bedrockRequestOptions(BEDROCK_VISION_TIMEOUT_MS));
-  const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
-  if(!raw)throw new Error("The image model returned no garment detections.");
-  return parseLookGarmentDetections(parseModelJson(raw),input.image);
+  const models=lookDetectionModelCandidates(input.model);
+  let finalError:unknown;
+  for(const [index,modelId] of models.entries()) {
+    const request:ConverseCommandInput={
+      modelId,
+      system:[{text:"You are a clothing-instance detector. Return structured visible evidence only. Never infer personal traits or claim product verification."}],
+      messages:[{role:"user",content:[
+        {image:{format:input.contentType.split("/")[1] as "jpeg"|"png"|"webp",source:{bytes:Buffer.from(input.base64,"base64")}}},
+        {text:prompt},
+      ]}] as ConverseCommandInput["messages"],
+      inferenceConfig:{maxTokens:3600,temperature:0},
+    };
+    try {
+      const response=dependencies.invoke
+        ? await dependencies.invoke(modelId,request)
+        : await client.send(new ConverseCommand(request),bedrockRequestOptions(BEDROCK_VISION_TIMEOUT_MS));
+      const raw=response.output?.message?.content?.find(block=>"text" in block)?.text;
+      if(!raw)throw new Error("The image model returned no garment detections.");
+      return parseLookGarmentDetections(parseModelJson(raw),input.image);
+    } catch(error) {
+      finalError=error;
+      const hasFallback=index<models.length-1;
+      if(!hasFallback||!mayTryLookDetectionFallback(error))throw error;
+      console.warn("Primary whole-look model unavailable; trying configured fallback",{modelId,name:error instanceof Error?error.name:"UnknownError"});
+    }
+  }
+  throw finalError instanceof Error?finalError:new Error("The image model returned no garment detections.");
 }

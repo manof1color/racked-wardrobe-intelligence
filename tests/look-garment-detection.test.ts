@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildLookDetectionPrompt, MAX_LOOK_GARMENTS, parseLookGarmentDetections } from "../lib/look-garment-detection.ts";
+import { buildLookDetectionPrompt, DEFAULT_LOOK_DETECTION_MODEL, detectGarmentsInLook, lookDetectionModelCandidates, MAX_LOOK_GARMENTS, mayTryLookDetectionFallback, parseLookGarmentDetections } from "../lib/look-garment-detection.ts";
 
 test("look detection creates separate controlled garment candidates",()=>{
   const results=parseLookGarmentDetections({garments:[
@@ -36,9 +36,35 @@ test("separate model boxes sharing a footwear pair id are merged without making 
 test("the provider prompt requires full-image coverage and pair-aware footwear counting",()=>{
   const prompt=buildLookDetectionPrompt();
   assert.match(prompt,/ENTIRE image/);
+  assert.match(prompt,/internal inventory by row or shelf/i);
   assert.match(prompt,/matching left and right shoe together are ONE wardrobe unit/i);
+  assert.match(prompt,/complete matching pairs plus the number of genuinely unmatched single shoes/i);
+  assert.match(prompt,/Never reuse one pairId for a neighboring pair/i);
   assert.match(prompt,/coverage check of every row, shelf, image edge/i);
   assert.match(prompt,new RegExp(`at most ${MAX_LOOK_GARMENTS} wardrobe units`));
+});
+
+test("whole-look detection uses Nova Pro without moving routine AI calls off Lite",()=>{
+  assert.equal(DEFAULT_LOOK_DETECTION_MODEL,"us.amazon.nova-pro-v1:0");
+  assert.deepEqual(lookDetectionModelCandidates(undefined,{AI_LOOK_DETECTION_MODEL:undefined,AI_MODEL:"amazon.nova-lite-v1:0"}),[
+    "us.amazon.nova-pro-v1:0",
+    "amazon.nova-lite-v1:0",
+  ]);
+  assert.deepEqual(lookDetectionModelCandidates("custom-model",{AI_LOOK_DETECTION_MODEL:"ignored",AI_MODEL:"custom-model"}),["custom-model"]);
+});
+
+test("an immediate unavailable-model error falls back once, but a timeout never doubles mobile latency",async()=>{
+  const calls:string[]=[];
+  const input={base64:"aW1hZ2U=",contentType:"image/jpeg" as const};
+  const detections=await detectGarmentsInLook(input,{invoke:async(modelId)=>{
+    calls.push(modelId);
+    if(calls.length===1){const error=new Error("The inference profile is not available");error.name="ValidationException";throw error;}
+    return {output:{message:{content:[{text:JSON.stringify({garments:[{name:"Black boots",category:"shoe",subtype:"boots",wearableUnit:"pair",pairId:"row-1-pair-1",color:"black",pattern:"solid",material:"leather",style:[],confidence:88,visibleBrandText:"",visibleEvidence:["matching pair"],bounds:{x:.1,y:.1,width:.5,height:.5}}]})}]}}};
+  }});
+  assert.equal(detections.length,1);
+  assert.deepEqual(calls,["us.amazon.nova-pro-v1:0","amazon.nova-lite-v1:0"]);
+  const timeout=new Error("The operation was aborted");timeout.name="TimeoutError";
+  assert.equal(mayTryLookDetectionFallback(timeout),false);
 });
 
 test("AI brand text remains suggestion-only and can never verify a product",()=>{

@@ -45,11 +45,11 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the deterministic cutout, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
-- [x] Lint, type check (`tsc --noEmit`), 279 automated tests, production build, and production dependency audit pass locally (re-verified 2026-08-29); CI and CodeQL remain mandatory before merge.
+- [x] 289 automated tests and lint pass locally (re-verified 2026-09-01); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 
 ## 3. AI integration / innovation — 20%
 
-- [x] Amazon Bedrock Nova Lite analyzes real garment image bytes.
+- [x] Amazon Bedrock uses Nova Lite for routine garment analysis/Hanger and reserves the US Nova Pro geographic profile for the harder whole-look instance-detection task; an immediate model-selection error may fall back once, while a timeout never doubles the mobile wait.
 - [x] Garment Recognition V2: controlled category/subtype taxonomy, uncertainty alternatives, first-photo hypothesis carried into confirm-or-revise multi-view reasoning, manual correction, and honest fallback; verification evidence is unchanged.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.

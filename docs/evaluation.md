@@ -14,7 +14,7 @@ RISE Research Institutes of Sweden AB curated and released the dataset with data
 
 ## Training claim
 
-Racked is **not trained or fine-tuned on these 31,638 garments**. Production currently calls the Amazon Nova Lite foundation model through Amazon Bedrock. This dataset is an independent benchmark used to measure that system. Describing evaluation data as training data would make the competition claim inaccurate and would contaminate a future held-out test.
+Racked is **not trained or fine-tuned on these 31,638 garments**. The documented three-view benchmark calls Amazon Nova Lite through Bedrock; the separate whole-look instance detector uses the US Nova Pro geographic profile because counting and boxing many overlapping objects is a different task. This dataset is an independent benchmark used to measure the three-view system. Describing evaluation data as training data would make the competition claim inaccurate and would contaminate a future held-out test. Whole-look recall and footwear-pair completeness require a separate scene-level evaluation set and are not inferred from this single-garment corpus.
 
 ## Evaluation protocol
 
