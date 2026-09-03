@@ -1,8 +1,8 @@
 # Work order — garment recognition quality
 
 **Status:** ready to hand to an implementing agent
-**Opened:** 2026-08-30
-**Last checked against `main`:** 2026-08-30, commit `0967450`
+**Opened:** 2026-09-02
+**Last checked against `main`:** 2026-09-03, commit `6f3ef59`
 **Owner:** unassigned
 
 ---

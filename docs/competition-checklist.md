@@ -45,7 +45,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the deterministic cutout, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
-- [x] 289 automated tests and lint pass locally (re-verified 2026-09-01); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
+- [x] 289 automated tests and lint pass locally (re-verified 2026-09-03); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 
 ## 3. AI integration / innovation — 20%
 

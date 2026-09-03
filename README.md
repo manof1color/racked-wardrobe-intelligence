@@ -10,6 +10,24 @@
 
 ---
 
+## Start Here
+
+**New to this repository?** Pick the row that matches how much time you have.
+
+| If you have… | Go to | What you get |
+| --- | --- | --- |
+| **5 minutes** | [Five-Minute Judge Path](#five-minute-judge-path) | Four clicks through the live app, no sign-in needed for most of it |
+| **Credentials** | [Demo Access](#demo-access) | Judge Consumer and Judge Brand accounts, and why passwords are not in this repo |
+| **The headline numbers** | [Competition Proof Point](#competition-proof-point) | 76 wears / 25 owners / 88% engagement per hero SKU, clearly labeled synthetic |
+| **A rubric to score** | [Rubric Alignment](#rubric-alignment) | Each weighted category mapped to what is actually built |
+| **To judge the AI** | [Why the AI Is Substantive](#why-the-ai-is-substantive) | Six concrete AI capabilities and the boundaries around each |
+| **To judge the engineering** | [Architecture](#architecture-overview) · [Key Files](#key-files) · [CI](#ci--github-actions) | Trust boundaries, the module map, and the green gate |
+| **To judge the ethics** | [Privacy Boundaries](#security-and-privacy-boundaries) · [Ethical Stance](#ethical-stance-and-claims) | `k ≥ 25`, consent, and an explicit list of what is *not* claimed |
+| **To see how it was built** | [PROGRESS.md](PROGRESS.md) | Real merged-PR history, phase by phase |
+| **To use the product** | [User workflow](docs/user-workflow.md) | The Consumer and Brand journeys, step by step |
+
+---
+
 ## What This Is
 
 **Brands know what consumers buy. Racked helps them understand what consumers actually wear.**
@@ -21,6 +39,29 @@ The consumer side has to earn its place on its own — organizing a closet, buil
 The core question: **what happens to a garment after checkout, and how can a brand learn from that without ever seeing someone's closet?**
 
 The answer this system demonstrates: confirmed wear, repeat use, and styling pairings released only above a 25-owner consent threshold — and, when someone explicitly publishes an outfit, that real-world wear becoming product discovery without the private wardrobe behind it ever becoming public.
+
+---
+
+## Five-Minute Judge Path
+
+1. Open [Community](https://main.d2iv0khybuuaeh.amplifyapp.com/community) to see complete Consumer and Brand Looks with explicit product-resolution states.
+2. Use the synthetic Recreate Consumer from the [demo checklist](docs/demo-checklist.md) on **Synthetic Consumer Look 01**. The live deterministic result is **62% coverage**: one exact owned product, one strong owned substitute, and one genuinely missing category.
+3. Sign in with a privately supplied synthetic Brand account to inspect the 25-owner privacy threshold, eight-week wear chart, frequency distribution, CSV export, public-look activity, and Brand Hanger.
+4. Open a fictional demo product destination, add it to the **Demo Bag**, and complete the clearly labeled **$0.00 purchase simulation**. This proves the commerce journey without collecting payment, shipping, contact, or order data.
+
+---
+
+## Demo Access
+
+| Account | Address | What it shows |
+| --- | --- | --- |
+| Judge Consumer | `judge.consumer@racked.local` | Ten varied wardrobe pieces, a realistic wear spread, two saved outfits, consent already on |
+| Judge Brand | `judge.brand@racked.local` | One product above the 25-owner threshold showing released metrics, one deliberately below it showing suppression |
+| Synthetic cohort | 25 `DEMO` consumers, 3 fictional brands | Community feed, Recreate This Look, public-activity metrics |
+
+**Passwords are deliberately not in this repository.** All demonstration accounts authenticate against a runtime-only secret supplied when the seed is run, and credentials are handed to judges in the competition submission packet. This repository is public: a committed password would let anyone alter the demonstration data before it is reviewed. See [docs/test-cohort.md](docs/test-cohort.md).
+
+The public pages — landing, Community, brand profiles, fictional storefronts, and pricing — need no sign-in at all, so most of the judge path is reachable immediately.
 
 ---
 
@@ -53,12 +94,14 @@ The result is a defensible two-sided loop:
 
 ---
 
-## Five-Minute Judge Path
+## Why the AI Is Substantive
 
-1. Open [Community](https://main.d2iv0khybuuaeh.amplifyapp.com/community) to see complete Consumer and Brand Looks with explicit product-resolution states.
-2. Use the synthetic Recreate Consumer from the [demo checklist](docs/demo-checklist.md) on **Synthetic Consumer Look 01**. The live deterministic result is **62% coverage**: one exact owned product, one strong owned substitute, and one genuinely missing category.
-3. Sign in with a privately supplied synthetic Brand account to inspect the 25-owner privacy threshold, eight-week wear chart, frequency distribution, CSV export, public-look activity, and Brand Hanger.
-4. Open a fictional demo product destination, add it to the **Demo Bag**, and complete the clearly labeled **$0.00 purchase simulation**. This proves the commerce journey without collecting payment, shipping, contact, or order data.
+- **Multi-piece garment vision:** Amazon Bedrock instance-detects each visible wardrobe piece in a general photo, returns bounded coordinates and controlled attributes, and lets the server create a separate private item image for every selected detection. The synchronous mobile path then uses measured local silhouette isolation, conservative edge removal, or the ordinary bounded crop—never another remote call per piece—so visual cleanup cannot turn one crowded-rack scan into sixteen additional provider waits. It never infers personal traits or grants verified product identity.
+- **Garment vision:** Bedrock analyzes front, back, and label evidence into a controlled category, subtype, color, pattern, material, style, confidence, alternatives, and visible evidence. Additional views may revise the first-photo hypothesis.
+- **Consumer Hanger:** a multi-turn agent reloads only the signed-in consumer's wardrobe, wear history, saved outfits, and private clothing signals from Community Looks that person intentionally saved as inspiration, then returns grounded styling guidance and validated save/wear actions. Current instructions always outrank historical inspiration. Explicitly requested owned garments are locked before scoring—even when recently worn or previously suggested—and the remaining pieces are selected around them. One canonical server selection drives the written list, private photo cards, action IDs, saved title, and flat-lay order; generated prose that names a different owned garment is rejected.
+- **Brand Hanger:** a separate agent receives only that brand's enrolled product plus privacy-released aggregate wear and public-community metrics; suppressed cohorts remain suppressed in the prompt.
+- **Server-side outfit ranking:** explicit natural-language inclusion requests resolve only to unambiguous, account-owned garments and act as hard constraints. The server then scores the remaining pieces on occasion, weather, requested style, underuse, and time since last worn—never allowing low-wear scoring or the model to override a named piece. Selection is deterministic, exclusions are respected, and unknown or ambiguous descriptions cannot invent an item.
+- **Explainable decisions:** Recreate This Look and Similar Products use inspectable weighted attributes rather than an opaque score. Similarity can suggest a substitute, but only authorized registry GTIN or brand-plus-SKU evidence can verify exact identity.
 
 ---
 
@@ -87,17 +130,6 @@ The result is a defensible two-sided loop:
 ```
 
 **Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock from `us-east-2`. Whole-look instance detection uses the US Nova Pro geographic profile; routine garment analysis and both Hanger agents remain on Nova Lite. The synchronous scan uses local foreground isolation, so it does not fan out into a remote segmentation request for every detected piece. The deployed Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions. The committed template also describes narrowly scoped SES sending for password recovery, but that separate permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
-
----
-
-## Why the AI Is Substantive
-
-- **Multi-piece garment vision:** Amazon Bedrock instance-detects each visible wardrobe piece in a general photo, returns bounded coordinates and controlled attributes, and lets the server create a separate private item image for every selected detection. The synchronous mobile path then uses measured local silhouette isolation, conservative edge removal, or the ordinary bounded crop—never another remote call per piece—so visual cleanup cannot turn one crowded-rack scan into sixteen additional provider waits. It never infers personal traits or grants verified product identity.
-- **Garment vision:** Bedrock analyzes front, back, and label evidence into a controlled category, subtype, color, pattern, material, style, confidence, alternatives, and visible evidence. Additional views may revise the first-photo hypothesis.
-- **Consumer Hanger:** a multi-turn agent reloads only the signed-in consumer's wardrobe, wear history, saved outfits, and private clothing signals from Community Looks that person intentionally saved as inspiration, then returns grounded styling guidance and validated save/wear actions. Current instructions always outrank historical inspiration. Explicitly requested owned garments are locked before scoring—even when recently worn or previously suggested—and the remaining pieces are selected around them. One canonical server selection drives the written list, private photo cards, action IDs, saved title, and flat-lay order; generated prose that names a different owned garment is rejected.
-- **Brand Hanger:** a separate agent receives only that brand's enrolled product plus privacy-released aggregate wear and public-community metrics; suppressed cohorts remain suppressed in the prompt.
-- **Server-side outfit ranking:** explicit natural-language inclusion requests resolve only to unambiguous, account-owned garments and act as hard constraints. The server then scores the remaining pieces on occasion, weather, requested style, underuse, and time since last worn—never allowing low-wear scoring or the model to override a named piece. Selection is deterministic, exclusions are respected, and unknown or ambiguous descriptions cannot invent an item.
-- **Explainable decisions:** Recreate This Look and Similar Products use inspectable weighted attributes rather than an opaque score. Similarity can suggest a substitute, but only authorized registry GTIN or brand-plus-SKU evidence can verify exact identity.
 
 ---
 
@@ -153,6 +185,9 @@ Reset delivery uses Amazon SES. **Code completion does not guarantee public emai
 
 ## Routes
 
+<details>
+<summary><strong>Every route, its access level, and what it does — expand</strong></summary>
+
 | Route | Access | What it does |
 | --- | --- | --- |
 | `/` · `/community` · `/brands/[slug]` · `/pricing` · `/privacy` | Public | Landing, outfit discovery feed, public brand pages, planned pricing |
@@ -175,9 +210,13 @@ Reset delivery uses Amazon SES. **Code completion does not guarantee public emai
 
 Full access levels and abuse controls: [docs/backend-api.md](docs/backend-api.md).
 
----
+</details>
 
+---
 ## Key Files
+
+<details>
+<summary><strong>Module map: where each responsibility lives — expand</strong></summary>
 
 ```text
 app/api/auth/…                 Register/login/logout: scrypt hashes, signed sessions, rate limits
@@ -223,8 +262,9 @@ tests/                         Privacy, recognition, evaluation, commerce, Brand
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
 
----
+</details>
 
+---
 ## Security and Privacy Boundaries
 
 - Passwords are salted with a random value and hashed with scrypt.
@@ -263,7 +303,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **289 passing tests** (verified 2026-09-01), covering provider-exception/manual-review recovery, one-call synchronous recognition, the dedicated Pro-to-Lite model policy, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **289 passing tests** (verified 2026-09-03), covering provider-exception/manual-review recovery, one-call synchronous recognition, the dedicated Pro-to-Lite model policy, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -299,6 +339,9 @@ Consumers stay free to solve the cold-start problem; the brand side carries reve
 
 ## Local Development
 
+<details>
+<summary><strong>Clone, configure, run the gate, install on a phone — expand</strong></summary>
+
 Requirements: Node.js 22+ and pnpm.
 
 ```bash
@@ -323,22 +366,9 @@ Local account and upload mutations require a DynamoDB table, private S3 bucket, 
 
 **Install on a phone:** open the [HTTPS application](https://main.d2iv0khybuuaeh.amplifyapp.com) and tap **Add Racked**. Android and other compatible browsers open their native install prompt directly. Because iPhone browsers do not expose that prompt to websites, the same button opens a focused guide for **Safari → Share → Add to Home Screen → Add** instead of becoming a dead button.
 
----
-
-## Demo Access
-
-| Account | Address | What it shows |
-| --- | --- | --- |
-| Judge Consumer | `judge.consumer@racked.local` | Ten varied wardrobe pieces, a realistic wear spread, two saved outfits, consent already on |
-| Judge Brand | `judge.brand@racked.local` | One product above the 25-owner threshold showing released metrics, one deliberately below it showing suppression |
-| Synthetic cohort | 25 `DEMO` consumers, 3 fictional brands | Community feed, Recreate This Look, public-activity metrics |
-
-**Passwords are deliberately not in this repository.** All demonstration accounts authenticate against a runtime-only secret supplied when the seed is run, and credentials are handed to judges in the competition submission packet. This repository is public: a committed password would let anyone alter the demonstration data before it is reviewed. See [docs/test-cohort.md](docs/test-cohort.md).
-
-The public pages — landing, Community, brand profiles, fictional storefronts, and pricing — need no sign-in at all, so most of the judge path is reachable immediately.
+</details>
 
 ---
-
 ## Ethical Stance and Claims
 
 Racked augments a person's judgment about their own wardrobe and never replaces their consent.
@@ -376,6 +406,6 @@ Everything above is self-contained; these go deeper.
 
 ---
 
-**Last updated:** August 2026 — active competition build
+**Last updated:** September 2026 — active competition build
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA AI Vibe Coding Competition
