@@ -283,6 +283,7 @@ it before there is a baseline to beat.
 | [DEIM](https://github.com/Intellindust-AI-Lab/DEIM) | Apache 2.0 | DETR-based real-time detector. Nano is 4M params at ~2.1 ms; ONNX and TensorRT export included | **Best runtime fit.** Needs fine-tuning — see below |
 | [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) | Apache 2.0 | Open-vocabulary detection from a text prompt — ask it for "shorts" with no training | **Best accuracy-per-effort.** Far larger; needs a container, not in-process |
 | [segformer_b*_clothes](https://huggingface.co/mattmdjaga/segformer_b2_clothes) | see model card | Clothes segmentation, ONNX available, trained on ATR | Poor fit: it parses clothing **on a person**, and Racked's photos are flat lays |
+| Ultralytics YOLO and anything built on it | **AGPL-3.0** | The base of most clothing-detection repos on GitHub | **Blocked.** AGPL covers models the training code produces; a network service must publish its whole source or buy an Enterprise licence |
 
 ### The catch that decides the work
 
@@ -346,6 +347,93 @@ appeal of running one's own model.
 
 ---
 
+## Why most clothing-detection repositories do not fit Racked
+
+Searched before writing RC8 and RC9. GitHub has many clothing-detection projects; almost
+none survive contact with Racked's constraints, and it is worth recording why so the same
+ground is not covered again.
+
+**Three filters, applied in order.**
+
+**1. The code licence.** Most clothing detectors are built on Ultralytics YOLO, which is
+**AGPL-3.0** — and Ultralytics extends that to the models the training code produces. For a
+network service the AGPL obligation is to publish the complete corresponding source of the
+whole application, or to buy an Enterprise licence. [simaiden/Clothing-Detection](https://github.com/simaiden/Clothing-Detection)
+is GPL-3.0. Racked currently has **no `LICENSE` file at all**, which means this is a live
+decision rather than a settled one, and adding copyleft code would make it for us.
+
+**2. The dataset licence.** The two largest fashion datasets are unusable commercially:
+**DeepFashion2** is non-commercial research only, and **ModaNet** is a research release with
+no permissive grant found. **Fashionpedia** is the exception at CC BY 4.0.
+
+**3. The domain — this is the one that actually matters.** DeepFashion2 is shop and street
+photography. ModaNet is street fashion. ATR, which the SegFormer clothes models use, is a
+*human-parsing* dataset. Fashionpedia is everyday and celebrity event photographs. **Every
+one of them is people wearing clothes.**
+
+Racked's photographs are flat lays — a garment on a bed, a rug, a floor, photographed from
+above. A detector trained on worn clothing has never seen a folded pair of shorts on a rug,
+which is exactly the photograph that produced the report behind this work order. There is
+no large public flat-lay garment-detection corpus. Two consequences follow:
+
+- Fine-tuning on a person-centric dataset may make flat-lay recognition **worse**, not
+  better, and any such attempt must be measured on RC2's real-phone cohort before it is
+  believed.
+- Racked's own confirmed detections — every piece a person corrected and saved — are
+  training data nobody else has, in a domain nobody else covers. That is worth treating as
+  an asset, under the consent terms people actually agreed to and not before.
+
+A general foundation model is currently doing well here for an unglamorous reason: it was
+trained on everything, so a flat lay is not out of distribution for it.
+
+---
+
+## RC9 — Replace the hand-written isolation pass with a promptable segmenter · **INDEPENDENT**
+
+**Goal.** Decide whether [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) crops
+garments better than the deterministic silhouette pass, on the benchmark that already
+exists.
+
+**Why this one is different from RC8.** RC8 asks a hard question — can an open model
+*identify* garments — that runs into all three filters above. RC9 asks a much easier one:
+can an open model *cut a garment out of a photo*. Segmentation is class-agnostic, so it
+sidesteps every filter at once:
+
+- **Apache 2.0**, so no copyleft obligation.
+- **No training**, so no dataset licence question.
+- **It does not know or care what the object is**, so it cannot infer a person, and no
+  `person` class exists to strip.
+- Roughly **9.66M parameters** with official ONNX export, so it fits the same in-process
+  Node path RC8 describes.
+- It takes a **box prompt** — and Racked already has a box, from whole-look detection.
+
+**And it is immediately measurable.** `scripts/crop-benchmark.ts` already scores crop
+quality by intersection-over-union against known garment rectangles across 14 seeded scenes.
+The current silhouette pass scores **85% mean IoU, 12/14 usable**, with recorded failures on
+patterned backdrops and near-identical garment/backdrop pairs. RC9 has a baseline to beat on
+day one, which is exactly what RC1 has to go and create for recognition.
+
+**Do.**
+
+1. Add MobileSAM as a third method in `scripts/crop-benchmark.ts`, alongside `trim` and
+   `isolate`, prompted with each scene's known box.
+2. Score it on the same 14 scenes. Report mean IoU and usable count against the 85% / 12-14
+   baseline, plus latency and ONNX size.
+3. Only if it wins, wire it into `prepareResilientLookDisplay` **ahead of** `isolateGarment`
+   and keep both existing passes as fallbacks. The chain must still degrade to the ordinary
+   bounded crop.
+4. Confirm the ONNX bundle fits the deployed Amplify package before claiming it ships.
+
+**Guardrail.** Whole-look intake is currently one remote call by deliberate design — #100
+removed a per-piece fan-out that could turn one crowded-rack scan into sixteen extra
+provider waits. If MobileSAM runs in-process this is not a fan-out and the design holds; if
+it needs a network call per piece, **it does not ship on the synchronous path**, whatever
+its IoU.
+
+**Done when** the benchmark table has a third column and the decision follows from it.
+
+---
+
 ## Sequencing
 
 ```
@@ -357,6 +445,7 @@ RC6 depends on RC1's confidence data.
 RC7 is independent and can start immediately.
 RC8 depends on RC1's whole-look numbers: it asks whether to replace the detector,
 which cannot be answered before the current detector has been measured.
+RC9 is independent: crop quality already has a committed baseline to beat.
 ```
 
 **Start with RC1 and RC7.** RC1 unblocks the rest; RC7 is independent and stops the next
