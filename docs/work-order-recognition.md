@@ -2,7 +2,7 @@
 
 **Status:** ready to hand to an implementing agent
 **Opened:** 2026-09-02
-**Last checked against `main`:** 2026-09-03, commit `6f3ef59`
+**Last checked against `main`:** 2026-09-03, commit `161d773`
 **Owner:** unassigned
 
 ---
@@ -264,6 +264,88 @@ no way to know whether that was rare or routine.
 
 ---
 
+## RC8 — Evaluate a self-hosted detector against Bedrock · **AFTER RC1**
+
+**Goal.** Decide, on measured evidence, whether Racked should keep calling a foundation
+model for whole-look detection or run its own detector.
+
+**Why this is worth asking.** Racked currently pays Amazon Bedrock per scan for a task —
+"find the garments in this photo" — that purpose-built open-source detectors do in a few
+milliseconds on CPU. A self-hosted detector would make the marginal cost of a wardrobe scan
+**zero**, remove a network round trip from the intake path, and turn the AI story from
+"we call an API" into "we evaluated and deployed a model". None of that is a reason to do
+it before there is a baseline to beat.
+
+### Candidates, with the licence checked
+
+| Project | Licence | What it is | Fit |
+| --- | --- | --- | --- |
+| [DEIM](https://github.com/Intellindust-AI-Lab/DEIM) | Apache 2.0 | DETR-based real-time detector. Nano is 4M params at ~2.1 ms; ONNX and TensorRT export included | **Best runtime fit.** Needs fine-tuning — see below |
+| [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) | Apache 2.0 | Open-vocabulary detection from a text prompt — ask it for "shorts" with no training | **Best accuracy-per-effort.** Far larger; needs a container, not in-process |
+| [segformer_b*_clothes](https://huggingface.co/mattmdjaga/segformer_b2_clothes) | see model card | Clothes segmentation, ONNX available, trained on ATR | Poor fit: it parses clothing **on a person**, and Racked's photos are flat lays |
+
+### The catch that decides the work
+
+**DEIM's released checkpoints are trained on COCO2017 — the 80 COCO classes.** COCO
+contains `person`, `handbag`, `tie`, `suitcase`. It does **not** contain shirt, trousers,
+shorts, dress, or shoes. Out of the box DEIM would detect almost nothing Racked cares
+about. Using it means fine-tuning on a fashion dataset in COCO format.
+
+**Two fashion datasets, and only one of them is usable here:**
+
+- **[DeepFashion2](https://github.com/switchablenorms/DeepFashion2)** — 491K images, and the
+  larger of the two. **Licensed for non-commercial research only.** Racked publishes a
+  pricing page and a business model, so fine-tuning on it would be a licence violation.
+  **Do not use it.**
+- **[Fashionpedia](https://github.com/cvdfoundation/fashionpedia)** — 48K images, 27 apparel
+  categories, already COCO-format, **CC BY 4.0**, commercial use permitted with
+  attribution. This is the one to use, and Racked already has the pattern for handling a
+  CC BY 4.0 corpus correctly in `docs/dataset-provenance.md`.
+
+### A privacy tension to resolve before any of this ships
+
+Every COCO-pretrained detector carries `person` as a class, and open-vocabulary models will
+answer a person-shaped prompt. Racked's stated boundary is that no model may infer or
+describe people. A self-hosted detector must therefore **drop the `person` class at the
+label-mapping layer**, not merely decline to display it, and a test must assert that no
+person-class detection can reach a wardrobe record. Fine-tuning on Fashionpedia's apparel
+categories alone satisfies this by construction, which is a further argument for it.
+
+### Where it would run
+
+Racked's compute is AWS Amplify — a Node runtime. PyTorch cannot run there, so the model
+must be exported to ONNX and executed by `onnxruntime-node`, or moved behind its own
+service.
+
+| Approach | Fits? | Ongoing cost |
+| --- | --- | --- |
+| ONNX in-process on the existing Amplify Node runtime | DEIM Nano (~4M params) plausibly yes; verify against the deployed bundle limit | **None** |
+| Lambda container, invoked from the API route | Yes — a container image lifts the 250 MB package ceiling | Per-invocation only |
+| SageMaker real-time endpoint | Yes | **Always-on hourly billing — do not choose this for a demo** |
+
+**Do.**
+
+1. **Do not fine-tune anything yet.** First run RC1's whole-look runner against the same
+   sample using a stock detector as a control. The question to answer is narrow: *is the
+   detector the weak link at all, or is Bedrock already good enough?*
+2. If — and only if — RC1 shows detection rate is the bottleneck, fine-tune DEIM Nano on
+   Fashionpedia mapped to `GARMENT_TAXONOMY`, export to ONNX, and score it on the **same**
+   RC1 and RC2 cohorts so the numbers are comparable.
+3. Report accuracy, p50/p95 latency, bundle size, and cost per 1,000 scans against the
+   Bedrock baseline. Record the Fashionpedia CC BY 4.0 attribution in
+   `docs/dataset-provenance.md`.
+4. Keep Bedrock as the configured fallback. A self-hosted model that fails must degrade to
+   the existing path, not to a dead end.
+
+**Do not** train on the second-hand evaluation corpus or on DeepFashion2. The first would
+contaminate the held-out benchmark; the second is a licence violation.
+
+**Done when** a table compares self-hosted against Bedrock on accuracy, latency and cost
+over identical cohorts — and the decision is made from that table rather than from the
+appeal of running one's own model.
+
+---
+
 ## Sequencing
 
 ```
@@ -273,6 +355,8 @@ RC2 ──┴── RC5 ─────────┘
 
 RC6 depends on RC1's confidence data.
 RC7 is independent and can start immediately.
+RC8 depends on RC1's whole-look numbers: it asks whether to replace the detector,
+which cannot be answered before the current detector has been measured.
 ```
 
 **Start with RC1 and RC7.** RC1 unblocks the rest; RC7 is independent and stops the next
@@ -285,6 +369,9 @@ failure being anecdotal.
 - Fine-tuning or training a model on the evaluation corpus. `docs/evaluation.md` is explicit
   that this corpus is a held-out benchmark; training on it would contaminate the measurement
   and make the competition claim false.
+- **Fine-tuning on DeepFashion2.** It is licensed for non-commercial research only, and
+  Racked publishes a pricing page. Fashionpedia (CC BY 4.0) is the commercially usable
+  alternative. See RC8.
 - Any change to the registry verification boundary.
 - Body-aware virtual try-on, or any claim resembling it.
 - Replacing the deterministic outfit ranking with a model-chosen selection.
