@@ -388,7 +388,19 @@ trained on everything, so a flat lay is not out of distribution for it.
 
 ---
 
-## RC9 — Replace the hand-written isolation pass with a promptable segmenter · **INDEPENDENT**
+## RC9 — Replace the hand-written isolation pass with a promptable segmenter · **PARTLY DONE**
+
+> **Progress, 2026-09-03.** The seam is built and the deterministic pass was improved while
+> building it. `lib/garment-segmenter.ts` registers backends and `lib/look-scan-resilience.ts`
+> now calls through it, so MobileSAM can be registered without touching the intake route.
+> The backdrop is modelled as clustered colours rather than one median, taking the benchmark
+> from **85% to 86% mean IoU** overall and **68% to 72%** on the hard scenes, with the
+> garment-off-the-frame scene recovering from outright failure to 99%. MobileSAM itself is
+> **not** wired in: its weights ship as a PyTorch checkpoint and converting them needs a
+> toolchain this repository should not acquire mid-competition. The export recipe and the
+> backend contract are in [`docs/segmentation-backends.md`](segmentation-backends.md).
+> **Remaining:** export the weights, add a fourth benchmark column, register the backend
+> only if it beats 86% / 12-14.
 
 **Goal.** Decide whether [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) crops
 garments better than the deterministic silhouette pass, on the benchmark that already
@@ -409,9 +421,11 @@ sidesteps every filter at once:
 
 **And it is immediately measurable.** `scripts/crop-benchmark.ts` already scores crop
 quality by intersection-over-union against known garment rectangles across 14 seeded scenes.
-The current silhouette pass scores **85% mean IoU, 12/14 usable**, with recorded failures on
-patterned backdrops and near-identical garment/backdrop pairs. RC9 has a baseline to beat on
-day one, which is exactly what RC1 has to go and create for recognition.
+The silhouette pass now scores **86% mean IoU, 12/14 usable**, its two remaining failures
+being a strongly patterned backdrop and a garment whose colour nearly matches the surface
+beneath it. Both fail for one reason — colour similarity is the only signal available, and
+shape is what a learned segmenter adds. RC9 had a baseline to beat on day one, which is
+exactly what RC1 still has to go and create for recognition.
 
 **Do.**
 
