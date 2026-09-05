@@ -12,11 +12,18 @@ test("photo intake exposes separate camera and library controls",()=>{
   assert.match(picker,/className="photo-source-action library"[\s\S]*?<input type="file" accept=\{accept\} onChange=\{choose\}/);
 });
 
+// Rewritten when the two intake modes were merged. The guarantee it protects is unchanged
+// — intake stays simple, and exact brand tracking stays explicit — but that is now one flow
+// with an opt-in per piece rather than a choice made before photographing anything.
 test("the default intake is simple while exact brand tracking remains explicit",()=>{
   const dashboard=read("components/consumer-dashboard.tsx");
-  assert.match(dashboard,/Add from one photo/);
-  assert.match(dashboard,/Link a brand product/);
-  assert.match(dashboard,/AI recognition or a typed brand name alone can never create that verified link/);
+  const intake=read("components/garment-intake.tsx");
+  assert.match(dashboard,/One photo\. Racked separates the pieces/);
+  assert.doesNotMatch(dashboard,/Add from one photo|Link a brand product/,"the upfront mode choice is gone");
+  // Brand linking is offered, never assumed, and never the default path.
+  assert.match(intake,/Is this a brand product\?/);
+  assert.match(intake,/Optional/);
+  assert.match(intake,/Barcode number, or brand \+ style code/);
   assert.doesNotMatch(dashboard,/Verify one item/);
 });
 

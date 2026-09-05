@@ -448,3 +448,87 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 .photo-garment>img{mix-blend-mode:normal}
 
 .look-piece-manual{margin:0 0 8px;padding:8px 10px;border-left:3px solid var(--coral);background:#fff6f3;font-size:.72rem;line-height:1.5}
+
+/* Unified garment intake.
+   One way in, with brand linking as a per-piece upgrade rather than a mode chosen before
+   the person has photographed anything. */
+.intake{display:flex;flex-direction:column;gap:16px}
+
+.intake-drop{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"mark copy" "action action";
+  align-items:center;gap:14px 16px;padding:20px;border:2px dashed var(--line);background:var(--white);transition:.18s ease}
+.intake-drop:hover{border-color:var(--coral)}
+.intake-drop.has-file{border-style:solid;border-color:var(--ink)}
+.intake-drop-mark{grid-area:mark;width:56px;height:56px;display:grid;place-items:center;background:var(--acid);
+  color:var(--ink);font:400 1.9rem/1 Georgia,serif}
+.intake-preview{grid-area:mark;width:56px;height:56px;object-fit:cover;border:1px solid var(--line);background:#fff}
+.intake-drop-copy{grid-area:copy;display:flex;flex-direction:column;gap:3px;min-width:0}
+.intake-drop-copy strong{font-size:.95rem}
+.intake-drop-copy small{color:var(--muted);font-size:.76rem;line-height:1.45}
+.intake-drop .photo-source-picker,.intake-drop>button{grid-area:action}
+
+.intake-results{display:flex;flex-direction:column;gap:14px}
+.intake-results-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.intake-results-head h3{margin:7px 0 0;font:400 1.3rem Georgia,serif}
+
+.intake-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+
+.intake-card{display:flex;flex-direction:column;border:1px solid var(--line);background:var(--white);
+  opacity:.55;transition:.18s ease}
+.intake-card.selected{opacity:1}
+/* The left rule is the status: a brand-linked piece reads differently at a glance from an
+   ordinary one, which is the distinction the whole flow exists to make. */
+.intake-card.selected.plain{border-left:3px solid var(--line)}
+.intake-card.selected.verified{border-left:3px solid var(--acid)}
+.intake-card.selected.manual{border-left:3px solid var(--coral)}
+
+.intake-card-head{display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.intake-select{display:flex;align-items:center;cursor:pointer}
+.intake-select input{width:17px;height:17px;accent-color:var(--coral);cursor:pointer}
+.intake-status{margin-left:auto;font-size:.58rem;font-weight:900;letter-spacing:.09em;padding:3px 7px;border:1px solid var(--line)}
+.intake-status.verified{background:var(--acid);border-color:var(--acid);color:var(--ink)}
+.intake-status.manual{background:#fff6f3;border-color:var(--coral);color:var(--coral-dark)}
+.intake-status.plain{color:var(--muted)}
+
+.intake-cutout{display:grid;place-items:center;height:150px;padding:8px;background:
+  linear-gradient(45deg,#f4f2ec 25%,transparent 25%,transparent 75%,#f4f2ec 75%) 0 0/14px 14px,
+  linear-gradient(45deg,#f4f2ec 25%,transparent 25%,transparent 75%,#f4f2ec 75%) 7px 7px/14px 14px,#fff}
+.intake-cutout img{max-width:100%;max-height:100%;object-fit:contain}
+
+.intake-manual{margin:0;padding:9px 12px;background:#fff6f3;border-top:1px solid var(--line);
+  font-size:.72rem;line-height:1.5;color:var(--ink)}
+
+.intake-fields{display:flex;flex-direction:column;gap:9px;padding:12px}
+.intake-field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.intake-fields label{display:flex;flex-direction:column;gap:4px;font-size:.62rem;font-weight:850;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--muted);min-width:0}
+.intake-fields input,.intake-fields select{width:100%;border:1px solid var(--line);background:#fff;
+  padding:8px 9px;font:inherit;font-size:.82rem;text-transform:none;letter-spacing:0;color:var(--ink)}
+.intake-fields input:focus,.intake-fields select:focus{outline:2px solid var(--coral);outline-offset:-2px}
+.intake-fields input:disabled,.intake-fields select:disabled{background:var(--cream);cursor:not-allowed}
+
+.intake-link{margin-top:auto;border-top:1px solid var(--line);padding:10px 12px}
+.intake-link-toggle{width:100%;display:flex;align-items:center;gap:6px;border:0;background:transparent;
+  padding:2px 0;font:inherit;font-size:.74rem;font-weight:700;color:var(--ink);cursor:pointer;text-align:left}
+.intake-link-toggle span{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted)}
+.intake-link-toggle:hover:not(:disabled){color:var(--coral-dark)}
+.intake-link-toggle:disabled{opacity:.45;cursor:not-allowed}
+.intake-link-body{display:flex;flex-direction:column;gap:8px;margin-top:9px}
+.intake-link-body label{display:flex;flex-direction:column;gap:4px;font-size:.62rem;font-weight:850;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.intake-link-body input{border:1px solid var(--line);background:#fff;padding:8px 9px;font:inherit;
+  font-size:.82rem;text-transform:none;letter-spacing:0;color:var(--ink)}
+.intake-link-miss{margin:0;display:flex;flex-direction:column;gap:5px;padding:9px 10px;
+  background:var(--cream);border-left:2px solid var(--coral);font-size:.7rem;line-height:1.5}
+.intake-link-miss strong{font-size:.72rem}
+.intake-link-miss span{color:var(--muted)}
+.intake-link-verified{display:flex;flex-direction:column;gap:4px}
+.intake-link-verified strong{font-size:.78rem}
+.intake-link-verified small{color:var(--muted);font-size:.68rem;line-height:1.5}
+
+@media(max-width:620px){
+  .intake-grid{grid-template-columns:1fr}
+  .intake-drop{grid-template-columns:auto 1fr}
+  .intake-cutout{height:170px}
+}
+

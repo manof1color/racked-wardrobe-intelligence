@@ -90,15 +90,24 @@ export function matchBrandProduct(parts:UploadDescriptor[], labelText:string, re
   const label=parts.find((part)=>part.view==="label");
   const normalizedText=normalizeIdentity(labelText);
   for (const product of registry) {
-    const registeredLabel=product.views.label;
-    if (label?.sha256 && registeredLabel.sha256 && label.sha256===registeredLabel.sha256) return {product,method:"label-image-hash"};
+    // Every registered view is read defensively. A registry record missing a view used to
+    // throw here, which would have taken down analysis for everyone over one malformed
+    // product. More importantly, each comparison must require both sides to be present:
+    // comparing two absent values is equal, and an `every` over absent evidence would
+    // otherwise report a catalog match and grant verified identity for nothing at all.
+    const registeredLabel=product.views?.label;
+    if (label?.sha256 && registeredLabel?.sha256 && label.sha256===registeredLabel.sha256) return {product,method:"label-image-hash"};
     const hashSetMatches=views.every((view)=>{
-      const candidate=parts.find((part)=>part.view===view);
-      const registered=product.views[view];
-      return Boolean(candidate?.sha256 && registered.sha256 && candidate.sha256===registered.sha256);
+      const candidate=parts.find((part)=>part.view===view)?.sha256;
+      const registered=product.views?.[view]?.sha256;
+      return Boolean(candidate && registered && candidate===registered);
     });
     if (hashSetMatches) return {product,method:"catalog-image-set"};
-    const fileSetMatches=views.every((view)=>parts.find((part)=>part.view===view)?.fileName.toLowerCase()===product.views[view].fileName.toLowerCase());
+    const fileSetMatches=views.every((view)=>{
+      const candidate=parts.find((part)=>part.view===view)?.fileName;
+      const registered=product.views?.[view]?.fileName;
+      return Boolean(candidate && registered && candidate.toLowerCase()===registered.toLowerCase());
+    });
     if (fileSetMatches) return {product,method:"catalog-image-set"};
     if (product.gtin && normalizedText.includes(normalizeIdentity(product.gtin))) return {product,method:"gtin"};
     const skuMatch=normalizedText.includes(normalizeIdentity(product.sku));
