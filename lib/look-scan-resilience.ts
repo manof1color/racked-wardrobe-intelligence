@@ -1,7 +1,8 @@
 import sharp from "sharp";
 import { removeGarmentBackground, type AiBackgroundRemoval } from "./ai-background-removal.ts";
 import { prepareDetectedGarmentCutout, type GarmentCutout } from "./garment-cutout.ts";
-import { isolateGarment, type GarmentIsolation } from "./garment-isolation.ts";
+import { type GarmentIsolation } from "./garment-isolation.ts";
+import { activeSegmenter } from "./garment-segmenter.ts";
 import { WHOLE_FRAME } from "./detection-bounds.ts";
 import { detectGarmentsInLook, type DetectedLookGarment } from "./look-garment-detection.ts";
 
@@ -49,7 +50,7 @@ export async function prepareSimpleLookDisplay(input:Buffer):Promise<GarmentCuto
 export async function prepareResilientLookDisplay(input:Buffer,dependencies:DisplayDependencies={}):Promise<DisplayResult> {
   const methods=[
     ...(dependencies.skipAi?[]:[dependencies.removeBackground??removeGarmentBackground]),
-    dependencies.isolate??isolateGarment,
+    dependencies.isolate??((bytes:Buffer)=>activeSegmenter().segment(bytes)),
     dependencies.edgeFallback??prepareDetectedGarmentCutout,
   ] as Array<(bytes:Buffer)=>Promise<DisplayResult|null>>;
   for(const method of methods) {

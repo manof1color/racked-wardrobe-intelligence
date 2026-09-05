@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { backdropIsUsable, matchesBackdrop, modelBackdrop } from "./backdrop-model.ts";
 
 // Judge note: this is a deterministic image pipeline, not an AI claim. It decides which
 // pixels are backdrop and which belong to the garment being photographed. It never
@@ -43,8 +44,6 @@ const ANALYSIS_LONG_EDGE = 512;
 export const DISPLAY_MAX_WIDTH = 700;
 export const DISPLAY_MAX_HEIGHT = 900;
 
-/** Backdrop spread above this means the border is too busy to model as one surface. */
-const MAX_BACKGROUND_SPREAD = 58;
 /** A backdrop pass outside this band is not a believable silhouette. */
 const MIN_REMOVED_RATIO = 0.04;
 const MAX_REMOVED_RATIO = 0.97;
@@ -56,17 +55,6 @@ const RIVAL_DOMINANCE = 0.72;
 /** Padding around the silhouette so a crop never shaves a sleeve edge. */
 const BOUNDS_PADDING_RATIO = 0.002;
 
-function colorDistance(data: Buffer, index: number, color: [number, number, number]) {
-  const offset = index * 4;
-  return Math.hypot(data[offset] - color[0], data[offset + 1] - color[1], data[offset + 2] - color[2]);
-}
-
-function median(values: number[]) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[sorted.length >> 1] ?? 0;
-}
-
 function borderIndexes(width: number, height: number) {
   const indexes: number[] = [];
   for (let x = 0; x < width; x++) indexes.push(x, (height - 1) * width + x);
@@ -77,21 +65,18 @@ function borderIndexes(width: number, height: number) {
 /** Flood the backdrop inward from the frame edge, using the proven seeding and tolerance. */
 function floodBackdrop(data: Buffer, width: number, height: number) {
   const edge = borderIndexes(width, height);
-  const backdrop: [number, number, number] = [
-    median(edge.map((index) => data[index * 4])),
-    median(edge.map((index) => data[index * 4 + 1])),
-    median(edge.map((index) => data[index * 4 + 2])),
-  ];
-  const spread = median(edge.map((index) => colorDistance(data, index, backdrop)));
-  if (spread > MAX_BACKGROUND_SPREAD) return null;
+  // The backdrop is modelled as a small set of colours rather than one median. A single
+  // median cannot describe a striped rug or floorboards: it lands between the colours and
+  // matches neither, which is why those scenes were the benchmark's recorded failures.
+  const model = modelBackdrop(data, width, height);
+  if (!backdropIsUsable(model)) return null;
 
-  const tolerance = Math.max(30, Math.min(74, Math.round(34 + spread * 1.35)));
   const total = width * height;
   const isBackdrop = new Uint8Array(total);
   const queue = new Int32Array(total);
   let head = 0, tail = 0;
   for (const index of edge) {
-    if (isBackdrop[index] || colorDistance(data, index, backdrop) > tolerance) continue;
+    if (isBackdrop[index] || !matchesBackdrop(data, index, model)) continue;
     isBackdrop[index] = 1;
     queue[tail++] = index;
   }
@@ -103,7 +88,7 @@ function floodBackdrop(data: Buffer, width: number, height: number) {
       const next = neighbours[position];
       if (next < 0 || next >= total || isBackdrop[next]) continue;
       if ((position === 2 && x === 0) || (position === 3 && x === width - 1)) continue;
-      if (colorDistance(data, next, backdrop) > tolerance) continue;
+      if (!matchesBackdrop(data, next, model)) continue;
       isBackdrop[next] = 1;
       queue[tail++] = next;
     }

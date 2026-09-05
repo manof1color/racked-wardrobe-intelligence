@@ -21,6 +21,7 @@
 | **The headline numbers** | [Competition Proof Point](#competition-proof-point) | 76 wears / 25 owners / 88% engagement per hero SKU, clearly labeled synthetic |
 | **A rubric to score** | [Rubric Alignment](#rubric-alignment) | Each weighted category mapped to what is actually built |
 | **To judge the AI** | [Why the AI Is Substantive](#why-the-ai-is-substantive) | Six concrete AI capabilities and the boundaries around each |
+| **A measured result** | [Garment Isolation](#measured-garment-isolation) | 86% mean IoU on a committed, reproducible crop benchmark |
 | **To judge the engineering** | [Architecture](#architecture-overview) · [Key Files](#key-files) · [CI](#ci--github-actions) | Trust boundaries, the module map, and the green gate |
 | **To judge the ethics** | [Privacy Boundaries](#security-and-privacy-boundaries) · [Ethical Stance](#ethical-stance-and-claims) | `k ≥ 25`, consent, and an explicit list of what is *not* claimed |
 | **To see how it was built** | [PROGRESS.md](PROGRESS.md) | Real merged-PR history, phase by phase |
@@ -245,6 +246,8 @@ lib/similar-products.ts        Same-category suggestions using the same scoring 
 lib/commerce.ts                Public-HTTPS validation and controlled destination states
 lib/brand-looks.ts             Brand-owned authorization for Brand Looks
 lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
+lib/backdrop-model.ts          Clustered backdrop colours; perimeter-run surface test
+lib/garment-segmenter.ts       Registration seam for a learned segmenter (MobileSAM-ready)
 lib/ai-background-removal.ts   Optional asynchronous-ready segmentation helper; not an intake gate
 lib/garment-evaluation-runner.ts  Production-result → privacy-safe benchmark contract
 lib/garment-cutout.ts          Conservative edge-connected transparency for detected pieces
@@ -265,6 +268,52 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 </details>
 
 ---
+## Measured Garment Isolation
+
+Cutting a garment out of a photograph is deterministic in Racked — no weights, no network,
+no per-piece provider call. `scripts/crop-benchmark.ts` scores it by intersection-over-union
+against known garment rectangles across 14 seeded scenes, and is reproducible on any machine:
+
+```bash
+node --experimental-strip-types scripts/crop-benchmark.ts
+```
+
+| Approach | Mean IoU | Usable (IoU ≥ 0.7) |
+| --- | ---: | ---: |
+| `trim` — sharp's border trim | 61% | 7/14 |
+| `flood` — earlier single-colour cutout | 78% | 10/14 |
+| **`isolate` — the shipped pass** | **86%** | **12/14** |
+
+The backdrop is modelled as a small set of clustered colours rather than one median, which
+is what lets a striped rug or floorboards be recognised as a surface at all. The garment is
+then the largest connected region left standing, so a pillow beside it or the neighbours on
+a crowded rail cannot widen the crop. When the result is not believable the pass declines
+and the caller falls back — a confident wrong crop is worse than an honest one.
+
+Two of fourteen scenes still fail, both because colour similarity is the only signal
+available: a strongly patterned backdrop, and a garment whose colour nearly matches the
+surface under it. Shape is the missing signal.
+
+**Open-source segmenters were evaluated for exactly that gap.** `lib/garment-segmenter.ts`
+is a registration seam so a learned backend can replace the deterministic pass without
+touching the intake route. [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) is the
+strongest candidate — Apache 2.0, class-agnostic, ~9.66M parameters, ONNX-exportable, and
+box-promptable, which suits a pipeline that already produces a box. It is deliberately
+**not** wired in yet: its weights ship as a PyTorch checkpoint, and shipping a model into
+the deployed bundle before measuring a win would be the wrong order. Contract, export
+recipe, and the three discriminators that failed before one worked are in
+[docs/segmentation-backends.md](docs/segmentation-backends.md).
+
+Clothing *detectors* were evaluated and rejected on three counts — most are Ultralytics
+YOLO (AGPL-3.0), the large fashion datasets are non-commercial, and every one of them is
+trained on **people wearing clothes** while Racked photographs flat lays. That analysis is
+recorded in [the recognition work order](docs/work-order-recognition.md).
+
+These are synthetic backdrops chosen to mimic real conditions: a reproducible regression
+signal, **not** a measured accuracy claim about real photographs.
+
+---
+
 ## Security and Privacy Boundaries
 
 - Passwords are salted with a random value and hashed with scrypt.
@@ -303,7 +352,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **289 passing tests** (verified 2026-09-03), covering provider-exception/manual-review recovery, one-call synchronous recognition, the dedicated Pro-to-Lite model policy, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **297 passing tests** (verified 2026-09-03), covering provider-exception/manual-review recovery, one-call synchronous recognition, the dedicated Pro-to-Lite model policy, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -314,7 +363,7 @@ The suite currently has **289 passing tests** (verified 2026-09-03), covering pr
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **289 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **297 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, individually isolated garment cutouts on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -389,6 +438,7 @@ Everything above is self-contained; these go deeper.
 - [PROGRESS.md](PROGRESS.md) — real merged-PR history of how this was built
 - [User workflow](docs/user-workflow.md) — the Consumer and Brand journeys end to end
 - [Recognition work order](docs/work-order-recognition.md) — open tasks for measuring and improving garment recognition
+- [Segmentation backends](docs/segmentation-backends.md) — how cropping works, what it scores, and how to add a learned segmenter
 - [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist
 - [Demo checklist and fallbacks](docs/demo-checklist.md) — pre-flight, accounts, and what to do when something fails live
 - [Presentation script](docs/demo-script.md) — the eight-minute run
