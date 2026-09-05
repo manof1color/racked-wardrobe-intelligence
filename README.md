@@ -138,14 +138,16 @@ The result is a defensible two-sided loop:
 
 ### Consumer
 
-**Add from one photo** is the default way in. A single outfit, flat-lay, closet, or shoe-rack photo becomes up to 16 separate wardrobe units:
+**One photo is the only way in.** Intake previously opened on a choice between "add from one photo" and "link a brand product" — which asked a person to know, before photographing anything, whether the garment was an enrolled brand product. Choosing wrong was permanent, because only the three-photo path ever consulted the registry. Now a single outfit, flat-lay, closet, or shoe-rack photo becomes up to 16 separate wardrobe units, and brand linking is an optional per-piece upgrade:
 
 - **Take photo** opens the rear camera; **Choose image** opens the library — two explicit actions rather than one ambiguous picker.
 - JPEG, PNG, WebP, HEIC, HEIF, and AVIF up to 25 MB are accepted, then normalized in the browser to a compressed JPEG before private upload.
 - Bedrock Nova Pro scans the full image top-to-bottom and left-to-right, inventories it by row/shelf, performs a second missed-region coverage check, and detects each distinct visible garment, footwear set, bag, or accessory. A matching left/right shoe set is one wearable pair—not two wardrobe entries—and a deterministic shared-pair guard combines the sides if the provider returns separate boxes. Adjacent different pairs remain separate. If the Pro inference profile is immediately unavailable because of model configuration or permission, Racked retries once with the configured Nova Lite model; timeouts never trigger a second wait. The server cuts one independent private image per wardrobe unit, then runs the deterministic silhouette and conservative edge passes before retaining the ordinary bounded crop when neither is safe. Recognition remains the only remote vision stage in this synchronous path. A recognition outage or malformed response likewise produces one zero-confidence editable manual-review item instead of rejecting the photograph or inventing attributes.
 - **Nothing is saved until the person confirms it.** Every candidate is selectable and editable, and detection alone never writes to the wardrobe. Overlapping or hidden pieces may need a second photo.
 
-**Link a brand product** keeps the front/back/label evidence flow for exact registry-backed tracking. AI-read or typed brand text alone never verifies identity.
+**Linking a brand product** is now offered on each detected piece rather than chosen upfront. Add the code from the care label and Racked checks it against the enrolled registry; a match fills the brand and SKU from the registry itself. Every card states which it is — **brand product**, an ordinary **your garment**, or one that **needs your label** because AI could not classify it.
+
+The verification boundary is unchanged and regression-tested at the new entry point: a match requires a GTIN, or a brand alias together with that brand's SKU. **A brand name alone verifies nothing**, typed or AI-read, and a piece that matches nothing is saved as an ordinary garment rather than blocked. Linking a product is also separate from sharing data with that brand — that remains an explicit Settings preference.
 
 Signed-in navigation behaves like a mobile app: persistent bottom tabs are the single primary menu, the header control is a session-only account menu, and desktop keeps top navigation. Visiting `/` or `/login` with a valid session returns to the right workspace, and only a *successful* sign-out ends a session — a failed request leaves it active rather than pretending it worked.
 
@@ -197,6 +199,7 @@ Reset delivery uses Amazon SES. **Code completion does not guarantee public emai
 | `/consumer` · `/settings` | Consumer | Today / Looks / Closet / Outfits workspace, own-account settings |
 | `/brand` | Brand | Aggregate dashboard, product enrollment, Brand Looks, Brand Hanger |
 | `POST /api/garments/detect` · `/classify` · `/analyze` | Consumer | Multi-piece detection, photo-plan hypothesis, full multi-view analysis |
+| `POST /api/garments/verify` | Consumer | Checks one garment's label text against the brand registry. Writes nothing; a brand name alone never matches |
 | `GET/POST /api/consumer/wardrobe` · `GET/POST/PATCH/DELETE /api/consumer/outfits` · `GET/PATCH /api/consumer/consent` | Consumer | Always scoped to the signed-in account; outfit PATCH removes pieces and regenerates the private board |
 | `POST /api/wears` | Consumer | Confirmed wear events plus saved-outfit wear totals |
 | `POST /api/agents/consumer` · `/agents/brand` | Role-bound | Hanger conversations; fresh authoritative context per message |
@@ -258,6 +261,7 @@ lib/hanger-conversation.ts     Hanger prompts, history bounds, brand output priv
 lib/privacy.ts                 k ≥ 25 gate + product-enumeration budget
 lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community endpoints
 components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
+components/garment-intake.tsx      Unified intake: one photo, per-piece brand linking
 components/look-scan-uploader.tsx  Select/edit/save UI for one-photo multi-piece intake
 components/demo-purchase-panel.tsx $0 fictional bag and checkout simulation
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
@@ -352,7 +356,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **297 passing tests** (verified 2026-09-03), covering provider-exception/manual-review recovery, one-call synchronous recognition, the dedicated Pro-to-Lite model policy, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **306 passing tests** (verified 2026-09-03), covering provider-exception/manual-review recovery, one-call synchronous recognition, the dedicated Pro-to-Lite model policy, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -363,7 +367,7 @@ The suite currently has **297 passing tests** (verified 2026-09-03), covering pr
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **297 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **306 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, individually isolated garment cutouts on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |

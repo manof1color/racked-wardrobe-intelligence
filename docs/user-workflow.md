@@ -30,7 +30,13 @@ Four tabs: **Home · Closet · Looks · Outfits**, plus Community.
 
 ### 3. Add clothing — the `+` control
 
-Two intake modes. The first is the default and the fast path.
+**One way in.** Intake used to open on a choice between "add from one photo" and "link a
+brand product", which asked you to know — before photographing anything — whether the
+garment was an enrolled brand product. Most people cannot answer that, and choosing wrong
+was permanent: only the three-photo flow ever consulted the registry, so a genuine brand
+product photographed the quick way could never be linked.
+
+Now every garment arrives the same way, and brand linking is a per-piece upgrade.
 
 **A. Add from one photo** — *fast, separates every visible piece*
 
