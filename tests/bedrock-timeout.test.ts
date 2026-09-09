@@ -5,6 +5,7 @@ import sharp from "sharp";
 import {
   BEDROCK_CHAT_TIMEOUT_MS,
   BEDROCK_IMAGE_TIMEOUT_MS,
+  BEDROCK_LOOK_TIMEOUT_MS,
   BEDROCK_VISION_TIMEOUT_MS,
   bedrockRequestOptions,
 } from "../lib/bedrock-timeout.ts";
@@ -19,10 +20,18 @@ test("a Bedrock request option carries an abort signal that fires on its own dea
 });
 
 test("every Bedrock timeout is bounded well inside a normal request budget",()=>{
-  for(const timeout of [BEDROCK_CHAT_TIMEOUT_MS,BEDROCK_VISION_TIMEOUT_MS,BEDROCK_IMAGE_TIMEOUT_MS]){
+  for(const timeout of [BEDROCK_CHAT_TIMEOUT_MS,BEDROCK_VISION_TIMEOUT_MS,BEDROCK_LOOK_TIMEOUT_MS,BEDROCK_IMAGE_TIMEOUT_MS]){
     assert.ok(timeout>=5_000,"a timeout short enough to cut off healthy calls would cause false fallbacks");
     assert.ok(timeout<=25_000,"a timeout longer than this outlives the hosting request budget it exists to protect");
   }
+});
+
+test("whole-look recognition leaves time for private crop storage",()=>{
+  assert.ok(BEDROCK_LOOK_TIMEOUT_MS<BEDROCK_VISION_TIMEOUT_MS);
+  assert.ok(BEDROCK_LOOK_TIMEOUT_MS<=18_000);
+  const source=readFileSync(new URL("../lib/look-garment-detection.ts",import.meta.url),"utf8");
+  assert.match(source,/bedrockRequestOptions\(BEDROCK_LOOK_TIMEOUT_MS\)/);
+  assert.doesNotMatch(source,/bedrockRequestOptions\(BEDROCK_VISION_TIMEOUT_MS\)/);
 });
 
 test("background removal hands its abort signal to the provider call",async()=>{

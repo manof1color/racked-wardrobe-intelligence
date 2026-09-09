@@ -28,6 +28,31 @@ interface DetectionDependencies {
 }
 
 /**
+ * Transparent display images are only accepted when they retain a meaningful amount
+ * of clearly visible subject. This catches the particularly confusing failure where a
+ * light garment on a light background survives as a few faint, almost transparent
+ * pixels. The ordinary bounded crop is always safer than displaying an erased item.
+ */
+export async function hasPlausibleVisibleSubject(result:DisplayResult):Promise<boolean> {
+  if(!result.backgroundRemoved)return true;
+  const raw=await sharp(result.buffer).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  const pixels=raw.info.width*raw.info.height;
+  if(pixels===0)return false;
+  let visible=0;
+  let solid=0;
+  const channels=raw.info.channels;
+  const alphaChannel=channels-1;
+  for(let index=alphaChannel;index<raw.data.length;index+=channels) {
+    const alpha=raw.data[index];
+    if(alpha>=32)visible++;
+    if(alpha>=192)solid++;
+  }
+  const visibleRatio=visible/pixels;
+  const solidRatio=solid/pixels;
+  return visibleRatio>=0.06&&solidRatio>=0.025&&solid/Math.max(1,visible)>=0.45;
+}
+
+/**
  * Last-resort display preparation. The bytes have already been decoded and bounded by
  * the server, so retaining the ordinary photo is safer than rejecting a real garment
  * merely because an optional isolation pass was uncertain or unavailable.
@@ -56,7 +81,8 @@ export async function prepareResilientLookDisplay(input:Buffer,dependencies:Disp
   for(const method of methods) {
     try {
       const result=await method(input);
-      if(result)return result;
+      if(result&&await hasPlausibleVisibleSubject(result))return result;
+      if(result?.backgroundRemoved)console.warn("Rejected an over-erased garment display; trying a safer crop",{method:result.method});
     } catch(error) {
       console.error("Optional garment display preparation failed",{name:error instanceof Error?error.name:"UnknownError"});
     }

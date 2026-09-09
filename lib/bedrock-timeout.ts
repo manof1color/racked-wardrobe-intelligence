@@ -9,6 +9,12 @@
 export const BEDROCK_CHAT_TIMEOUT_MS = 20_000;
 /** Multi-view garment vision. Larger payloads, more tokens. */
 export const BEDROCK_VISION_TIMEOUT_MS = 25_000;
+/**
+ * A whole-look scan still has to crop and privately store every detected piece after
+ * recognition returns. Give that synchronous work its own part of the hosting budget
+ * instead of letting recognition consume the entire request window.
+ */
+export const BEDROCK_LOOK_TIMEOUT_MS = 18_000;
 /** Image segmentation. Heaviest call, and it has a deterministic fallback behind it. */
 export const BEDROCK_IMAGE_TIMEOUT_MS = 20_000;
 
