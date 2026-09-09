@@ -91,3 +91,20 @@ test("brand sharing is still described as separate from linking a product", () =
   assert.match(intake, /only if you turn on brand data sharing in Settings/);
   assert.match(verifyRoute, /only if you separately enable brand data sharing/);
 });
+
+// A transparency checkerboard behind an opaque photograph claims a cut-out that is not
+// there. Since hard photographs now correctly fall back to an opaque crop, that mis-signal
+// became the common case rather than a rare one.
+test("a tile only claims transparency when the background was actually removed", () => {
+  assert.match(intake, /piece\.analysis\.processedImage\.backgroundRemoved \? "cutout" : "photo"/);
+  const css = read("app/globals.css");
+  assert.ok(css.includes(".intake-cutout.photo{background:var(--cream);height:210px}"), "an opaque tile needs a plain ground, not a checkerboard");
+  assert.ok(css.includes(".intake-cutout.photo img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover}"),
+    "an opaque photograph should fill its tile rather than sit letterboxed inside it");
+});
+
+test("intake names the one thing that decides whether a cut-out is possible", () => {
+  // The hint listed what may be photographed but never that a plain surface is what lets
+  // the background be separated at all.
+  assert.match(intake, /A plain surface — a bed, a floor, a wall — gives the cleanest cut-outs/);
+});

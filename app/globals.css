@@ -532,3 +532,12 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
   .intake-cutout{height:170px}
 }
 
+/* A transparency checkerboard behind an opaque photograph claims a cut-out that is not
+   there, and letterboxes it into the bargain. When background removal succeeded the
+   checkerboard is honest and the garment is shown whole; when it did not, the tile reads
+   as a photograph — filled, on a plain ground — which is what it is. */
+/* A photograph is given more height than a cut-out, so filling the tile trims mostly the
+   detection padding rather than the garment itself. */
+.intake-cutout.photo{background:var(--cream);height:210px}
+.intake-cutout.photo img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover}
+@media(max-width:620px){.intake-cutout.photo{height:240px}}
