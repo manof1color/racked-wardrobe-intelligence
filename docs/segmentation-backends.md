@@ -91,6 +91,26 @@ photograph — but it rejected a legitimately thin garment with a wide transpare
 When both guards reject every pass, the person gets the ordinary bounded photograph. A
 recognisable garment with its background still attached beats a shredded cutout.
 
+### When a cut-out is not possible, the tile says so
+
+Background removal is not the product; a legible wardrobe is. Two cheap decisions carry
+most of the value the algorithm was reaching for:
+
+- **A tile only claims transparency when the background was actually removed.** A
+  checkerboard behind an opaque photograph asserts a cut-out that is not there, and
+  letterboxes the photograph as well. A cut-out is shown whole on a checkerboard; a
+  photograph fills its tile on a plain ground and reads as a photograph.
+- **Intake names the one condition that decides the outcome.** The hint listed what may be
+  photographed — a garment, a flat lay, a rail — but never that a plain surface is what
+  makes the background separable at all. A bed, a floor or a wall moves a photograph out of
+  the cluttered-scene case, where every colour-based pass fails, into the case measured at
+  86% mean IoU.
+
+Guiding the photograph is cheaper and more reliable than solving the general case, and the
+general case is what needs a shape-aware segmenter. Transparency genuinely matters in one
+place — the saved flat-lay board composites garments onto a white canvas — and there a
+consistent tile still reads as deliberate.
+
 ### Where it still fails
 
 Two of fourteen scenes, both for the same underlying reason — colour similarity is the only

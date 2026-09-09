@@ -161,7 +161,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
         : <span className="intake-drop-mark" aria-hidden="true">＋</span>}
       <div className="intake-drop-copy">
         <strong>{file ? (busy ? "Reading your photo…" : "Photo added") : "Add a photo of your clothing"}</strong>
-        <small>{file ? file.name : "One garment, a flat lay, a whole outfit, or a full rail — Racked separates the pieces."}</small>
+        <small>{file ? file.name : "One garment, a flat lay, a whole outfit, or a full rail — Racked separates the pieces. A plain surface — a bed, a floor, a wall — gives the cleanest cut-outs."}</small>
       </div>
       <PhotoSourcePicker label={file ? "Use a different photo" : "Add a photo"} onFile={chooseFile} />
     </div>
@@ -195,7 +195,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
             <span className={`intake-status ${status.tone}`}>{status.text}</span>
           </header>
 
-          {piece.analysis.processedImage && <div className="intake-cutout">
+          {piece.analysis.processedImage && <div className={`intake-cutout ${piece.analysis.processedImage.backgroundRemoved ? "cutout" : "photo"}`}>
             <img src={piece.analysis.processedImage.url} alt={piece.overrides.name || `Detected piece ${index + 1}`} />
           </div>}
 
