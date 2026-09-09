@@ -64,6 +64,33 @@ the interleaving test despite plainly being backdrop. Colours within `COLOUR_CON
 of an accepted surface are absorbed, which admits a ramp (bands differ by tens) while still
 excluding a garment (hundreds).
 
+### Two guards on the outcome, not the model
+
+A pass that reports success is not trusted; its output is measured before it reaches
+anyone. Both thresholds come from measurement, and the first attempt at one of them was
+wrong in an instructive way.
+
+**The garment must fill a detection crop.** A crop is drawn around one garment, so a pass
+that leaves a small fragment has eaten the subject. `DETECTION_CROP_SUBJECT_FLOOR` is 28%
+of the frame, applied only when the caller signals that these bytes are already a crop.
+
+**One connected region must account for what survives**, because a garment is one object.
+`MIN_SUBJECT_DOMINANCE` is 95% of opaque pixels.
+
+Dominance replaced a first attempt that used the *share* of the crop left solid. That
+looked well-founded — every working case measured 70–82% solid against 37% for the failing
+photograph — but it rejected a legitimately thin garment with a wide transparent margin at
+34%, because share cannot tell an unusual silhouette from debris. Dominance separates them:
+
+| Case | solid share | dominance |
+| --- | ---: | ---: |
+| Working passes on a detection crop | 70–82% | **99.4–100%** |
+| Thin garment, wide margin | 34% | **100%** |
+| The reported photograph | 37% | **73.8%** across 206 fragments |
+
+When both guards reject every pass, the person gets the ordinary bounded photograph. A
+recognisable garment with its background still attached beats a shredded cutout.
+
 ### Where it still fails
 
 Two of fourteen scenes, both for the same underlying reason — colour similarity is the only

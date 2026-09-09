@@ -1,4 +1,4 @@
-import { isolateGarment, type GarmentIsolation } from "./garment-isolation.ts";
+import { DETECTION_CROP_SUBJECT_FLOOR, isolateGarment, type GarmentIsolation } from "./garment-isolation.ts";
 
 /**
  * The seam between "how a garment is cut out of a photo" and everything that consumes the
@@ -52,9 +52,11 @@ export interface GarmentSegmenter {
 export const deterministicSegmenter: GarmentSegmenter = {
   name: "silhouette",
   isAvailable: () => true,
-  // The box hint is unused here: the deterministic pass already receives a crop made from
-  // that box by the intake route, so re-applying it would tighten twice.
-  segment: (input) => isolateGarment(input),
+  // The box is not re-applied — the intake route has already cropped to it, so cropping
+  // again would tighten twice. Its presence is the signal that matters: it means these
+  // bytes are one garment's crop, so the garment must fill most of the frame and a small
+  // surviving fragment is the backdrop pass having eaten the subject.
+  segment: (input, box) => isolateGarment(input, box ? { minSubjectRatio: DETECTION_CROP_SUBJECT_FLOOR } : {}),
 };
 
 const registry: GarmentSegmenter[] = [deterministicSegmenter];

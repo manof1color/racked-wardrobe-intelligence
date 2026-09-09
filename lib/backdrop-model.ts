@@ -44,9 +44,10 @@ const MIN_SUPPORT = 0.06;
  * A colour this close to an accepted backdrop colour is the same surface continuing. One
  * window lighting a wall produces a smooth ramp whose bands sit in contiguous arcs and so
  * fail the interleaving test despite plainly being backdrop; adjacent ramp bands differ by
- * tens, while a garment differs by hundreds.
+ * tens, while a garment differs by hundreds. Measured down from 90 after a red wall
+ * hanging 56 away from a dark cluster was absorbed as the same surface.
  */
-const COLOUR_CONTINUITY = 90;
+const COLOUR_CONTINUITY = 55;
 /**
  * Median within-cluster spread above which the border is a cluttered scene rather than a
  * photographed surface. Real surfaces measured well under this: a striped rug reads 0, a

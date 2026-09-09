@@ -49,6 +49,19 @@ const MIN_REMOVED_RATIO = 0.04;
 const MAX_REMOVED_RATIO = 0.97;
 /** The kept piece must occupy a plausible share of the frame. */
 const MIN_SUBJECT_RATIO = 0.02;
+/**
+ * The floor to use when the input is already a detection crop rather than a whole
+ * photograph. A crop is drawn around one garment, so that garment should fill most of it;
+ * if the backdrop pass leaves only a small fragment, it has eaten the subject rather than
+ * isolated it.
+ *
+ * This is the guard that was missing. A real photograph of a white sneaker held in a hand,
+ * in a dim red-lit room, produced a backdrop model of four mutually distant colours with a
+ * tolerance of 51. The flood removed 87.75% of the crop — the white leather included — and
+ * the largest surviving region was a 10% fragment of dark midsole, which reached the
+ * person as the garment. Declining and showing the honest bounded crop is far better.
+ */
+export const DETECTION_CROP_SUBJECT_FLOOR = 0.28;
 const MAX_SUBJECT_RATIO = 0.97;
 /** A rival region this close in size to the winner means the photo is genuinely ambiguous. */
 const RIVAL_DOMINANCE = 0.72;
@@ -146,7 +159,16 @@ function connectedSubjects(isBackdrop: Uint8Array, width: number, height: number
  * a busy backdrop, no dominant subject, or two subjects of comparable size — so every
  * caller keeps an honest fallback instead of showing a confidently wrong crop.
  */
-export async function isolateGarment(input: Buffer): Promise<GarmentIsolation | null> {
+export interface IsolationOptions {
+  /**
+   * Minimum share of the frame the kept subject must occupy. Defaults to the permissive
+   * whole-photograph floor; callers holding a detection crop should pass
+   * `DETECTION_CROP_SUBJECT_FLOOR`.
+   */
+  minSubjectRatio?: number;
+}
+
+export async function isolateGarment(input: Buffer, options: IsolationOptions = {}): Promise<GarmentIsolation | null> {
   const source = await sharp(input).rotate().toBuffer({ resolveWithObject: true });
   const sourceWidth = source.info.width;
   const sourceHeight = source.info.height;
@@ -171,7 +193,8 @@ export async function isolateGarment(input: Buffer): Promise<GarmentIsolation | 
   const subject = components[0];
   if (!subject) return null;
   const subjectPixelRatio = subject.size / (width * height);
-  if (subjectPixelRatio < MIN_SUBJECT_RATIO || subjectPixelRatio > MAX_SUBJECT_RATIO) return null;
+  const subjectFloor = options.minSubjectRatio ?? MIN_SUBJECT_RATIO;
+  if (subjectPixelRatio < subjectFloor || subjectPixelRatio > MAX_SUBJECT_RATIO) return null;
   // Two comparable regions mean there is no single obvious garment. Cropping to a coin
   // flip is worse than showing the photo as taken.
   const rival = components[1];
