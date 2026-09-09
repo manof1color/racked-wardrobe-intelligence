@@ -158,6 +158,62 @@ backend that is configured but unavailable logs and falls back rather than faili
 
 ---
 
+## Tools assessed and rejected
+
+Evaluated on request; recording the reasons so the same ground is not covered again.
+
+| Tool | Verdict |
+| --- | --- |
+| [custom-image-cropper](https://github.com/Sobhan-SRZA/custom-image-cropper) | MIT, vanilla JS, no dependencies — but a **manual drag-resize crop UI**, not automatic segmentation. The idea is sound and is now RC10; the repository itself is one star and twelve commits, and a drag-resize box is not worth a dependency. |
+| [Image-Editor](https://github.com/darshitjain87/Image-Editor) | **Unusable on three counts.** No `LICENSE` at all, so all rights reserved. Django and OpenCV, so server-side Python that Amplify cannot run. And its background removal is MediaPipe **Selfie Segmentation**, trained on people — a flat-lay shoe contains no person, and inferring one would breach Racked's own boundary. |
+| MediaPipe **Image** Segmenter | Its one general-purpose model, DeepLab-v3, segments background, person, cat, dog and potted plant. A sneaker classifies as background. |
+
+### Training a model was also considered and rejected for now
+
+Established earlier in `docs/work-order-recognition.md`: DeepFashion2 is non-commercial, Fashionpedia is CC BY 4.0 but photographs people rather than flat lays, no public flat-lay garment corpus exists, and fine-tuning needs a GPU and a PyTorch toolchain that cannot run on Amplify. Weeks of work, a licence trap either side, and a real chance that training on person-worn clothing makes flat-lay recognition worse. Not a competition-week undertaking.
+
+---
+
+## RC10 — Let the person adjust the crop · **RECOMMENDED NEXT**
+
+The simplest thing that cannot fail. A drag-and-resize box over the photograph, cropped in
+the browser, replacing the stored display image. No model, no weights, no dataset licence,
+no training, and no failure mode beyond the person changing their mind. It is what every
+resale app offers, and it turns the remaining hard cases from "the app got it wrong" into
+"I framed it myself in two seconds".
+
+One thing to get right: the garment save is HMAC-bound to the account, the stored image key
+and the analysis. A client-supplied crop must be re-stored and re-signed server-side rather
+than swapped in underneath the existing token.
+
+---
+
+## RC11 — MediaPipe Interactive Segmenter (MagicTouch)
+
+The strongest automatic option found, and better suited to Racked than MobileSAM for one
+reason: **it runs in the browser**.
+
+- **Class-agnostic** — segments whatever the person points at, explicitly including shoes
+  and garments, rather than a fixed category list.
+- Takes a **point or brush prompt**, so a single tap on the garment is the whole interface.
+- Ships for the web through `@mediapipe/tasks-vision` as WASM, so it never enters the
+  Amplify bundle, adds no server cost, and costs nothing per scan.
+- Code is Apache 2.0.
+
+That last point is what makes it more practical than MobileSAM here: RC9 stalled on
+exporting PyTorch weights to ONNX and on putting a 40 MB model into the deployed bundle.
+Running client-side sidesteps both.
+
+**Check before committing:** the model card licence for MagicTouch is separate from the
+Apache 2.0 code licence and was not stated on the task page. Confirm it permits commercial
+use before shipping, exactly as Fashionpedia and DeepFashion2 were checked.
+
+**Sequencing.** RC10 first — it is smaller, cannot fail, and covers every photograph. RC11
+after, because a tap that produces a clean cut-out is a nicer experience than dragging a
+box, but only once the reliable path exists underneath it.
+
+---
+
 ## MobileSAM specifically
 
 [MobileSAM](https://github.com/ChaoningZhang/MobileSAM) is the strongest candidate, and the

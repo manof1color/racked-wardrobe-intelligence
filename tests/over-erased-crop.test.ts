@@ -120,3 +120,25 @@ test("an over-erased pass falls through to the honest bounded photo", async () =
   assert.equal(result.backgroundRemoved, false);
   assert.equal(await solidShare(result.buffer), 1, "the fallback is fully opaque");
 });
+
+// Completing the pattern from the intake tile: the closet is where these images live
+// permanently, and a photograph letterboxed on white there reads as a failed cut-out
+// rather than as a photograph.
+test("the closet distinguishes a cut-out tile from a photograph tile", async () => {
+  const { readFileSync } = await import("node:fs");
+  const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  const dashboard = read("components/consumer-dashboard.tsx");
+  const css = read("app/globals.css");
+  const types = read("lib/types.ts");
+  const store = read("lib/server/production-store.ts");
+
+  assert.match(types, /backgroundRemoved\?: boolean;/, "the wardrobe item must record whether its image is a cut-out");
+  assert.match(store, /backgroundRemoved:analysis\.processedImage\.backgroundRemoved\?\?false/, "the flag must be persisted on save");
+  assert.match(dashboard, /item\.backgroundRemoved===false\?"photo-garment opaque-photo":"photo-garment"/);
+  assert.ok(css.includes(".photo-garment.opaque-photo>img{inset:0;width:100%;height:100%;object-fit:cover}"),
+    "a photograph should fill its tile rather than sit letterboxed");
+  // Garments saved before the flag existed must keep their current appearance, so the
+  // check is strictly against false rather than falsy.
+  assert.doesNotMatch(dashboard, /!item\.backgroundRemoved\?"photo-garment opaque-photo"/,
+    "an absent flag must not be treated as an opaque photograph");
+});

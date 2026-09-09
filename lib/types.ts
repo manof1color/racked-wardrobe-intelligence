@@ -12,6 +12,12 @@ export interface WardrobeItem {
   imageUrl?: string;
   imageKey?: string;
   evidenceImageKey?: string | null;
+  /**
+   * Whether the stored display image actually has a transparent background. Absent on
+   * garments saved before this was recorded, and treated as a cut-out in that case so
+   * their appearance does not change.
+   */
+  backgroundRemoved?: boolean;
   brand?: string | null;
   sku?: string | null;
   /** Present only when registry evidence verified this exact enrolled product. */
