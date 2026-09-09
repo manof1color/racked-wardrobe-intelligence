@@ -57,6 +57,7 @@ export async function readJsonResponse<T>(response:Response,fallback:string):Pro
   const type=response.headers.get("content-type")??"";
   if(!type.toLowerCase().includes("application/json")){
     if(response.status===413)throw new Error("The photos exceeded the hosting upload limit. Racked now prepares smaller copies automatically; choose the photos again and retry.");
+    if(response.status===504)throw new Error("The image scan took longer than the host allowed. Your wardrobe was not changed. Retry once; if recognition is still slow, Racked will return an editable item instead of losing your photo.");
     throw new Error(`The image service returned an unexpected ${response.status||"network"} response. Please retry; your wardrobe was not changed.`);
   }
   try{return JSON.parse(text) as T;}catch{throw new Error(fallback);}

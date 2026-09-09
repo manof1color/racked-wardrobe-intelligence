@@ -39,6 +39,38 @@ test("synchronous look intake never multiplies recognition into per-piece provid
   assert.doesNotMatch(route,/skipAi:recognition\.providerFailed/);
 });
 
+test("an almost transparent garment is rejected in favor of a clearly visible fallback",async()=>{
+  const input=await ordinaryPhonePhoto();
+  const erased=await sharp({create:{width:500,height:500,channels:4,background:{r:0,g:0,b:0,alpha:0}}})
+    .composite([{input:await sharp({create:{width:300,height:100,channels:4,background:{r:245,g:245,b:245,alpha:0.1}}}).png().toBuffer(),left:100,top:200}])
+    .png().toBuffer();
+  let saferMethodCalled=false;
+  const result=await prepareResilientLookDisplay(input,{
+    skipAi:true,
+    isolate:async()=>({buffer:erased,width:500,height:500,backgroundRemoved:true,removedPixelRatio:0.88,method:"silhouette",bounds:{left:0,top:0,width:500,height:500},subjectPixelRatio:0.12,retainedComponentPixelRatio:0.12,hasSimilarNeighbour:false,discardedNeighbours:false}),
+    edgeFallback:async()=>{saferMethodCalled=true;return {buffer:input,width:900,height:1200,backgroundRemoved:false,removedPixelRatio:0,method:"none"};},
+  });
+  assert.equal(saferMethodCalled,true,"the over-erased result must not end the fallback chain");
+  assert.equal(result.backgroundRemoved,false);
+  assert.equal(result.method,"none");
+});
+
+test("a healthy solid garment cutout remains eligible for transparent display",async()=>{
+  const input=await ordinaryPhonePhoto();
+  const healthy=await sharp({create:{width:500,height:500,channels:4,background:{r:0,g:0,b:0,alpha:0}}})
+    .composite([{input:await sharp({create:{width:260,height:330,channels:4,background:{r:40,g:45,b:50,alpha:1}}}).png().toBuffer(),left:120,top:85}])
+    .png().toBuffer();
+  let fallbackCalled=false;
+  const result=await prepareResilientLookDisplay(input,{
+    skipAi:true,
+    isolate:async()=>({buffer:healthy,width:500,height:500,backgroundRemoved:true,removedPixelRatio:0.65,method:"silhouette",bounds:{left:0,top:0,width:500,height:500},subjectPixelRatio:0.35,retainedComponentPixelRatio:0.35,hasSimilarNeighbour:false,discardedNeighbours:false}),
+    edgeFallback:async()=>{fallbackCalled=true;return {buffer:input,width:900,height:1200,backgroundRemoved:false,removedPixelRatio:0,method:"none"};},
+  });
+  assert.equal(fallbackCalled,false);
+  assert.equal(result.backgroundRemoved,true);
+  assert.equal(result.method,"silhouette");
+});
+
 test("a recognition-provider exception becomes an honest editable wardrobe candidate",async()=>{
   const result=await detectLookOrManualReview({base64:"ignored",contentType:"image/jpeg"},{detect:async()=>{throw new Error("malformed provider response");}});
   assert.equal(result.providerFailed,true);

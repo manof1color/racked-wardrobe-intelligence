@@ -47,7 +47,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the deterministic cutout, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
-- [x] 306 automated tests and lint pass locally (re-verified 2026-09-03); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
+- [x] 310 automated tests and lint pass (re-verified 2026-09-08); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 
 ## 3. AI integration / innovation — 20%
 
@@ -92,7 +92,7 @@ This is the judge’s index for the CUA rubric.
 - [x] The Hanger drawer behaves as the dialog it declares: Escape dismisses it, opening moves focus into it, closing returns focus to the launcher, and the page behind it cannot scroll.
 - [x] Hanger is laid out as a fixed-height column — header, conversation, pinned composer — so a reply’s outfit preview and its Save/Record actions are always reachable instead of being clipped by a viewport-fraction cap. Scoring detail folds into one disclosure, suggested prompts appear only while the conversation is empty, an animated indicator shows a reply in flight, and the keyboard contract is stated in the composer.
 - [x] Camera-friendly capture and a visible cropped-display preview before saving.
-- [x] Whole-look scanning covers up to 16 wardrobe units, groups matching left/right footwear as one persisted pair, keeps adjacent different pairs separate, and creates independently tracked item images. Measured local silhouette isolation and a conservative edge pass produce cropped output without multiplying provider waits; an honest bounded photo remains the tested fallback.
+- [x] Whole-look scanning covers up to 16 wardrobe units, groups matching left/right footwear as one persisted pair, keeps adjacent different pairs separate, and creates independently tracked item images. Measured local silhouette isolation and a conservative edge pass produce cropped output without multiplying provider waits; a visible-subject guard rejects nearly erased transparent results, and an honest bounded photo remains the tested fallback. A dedicated shorter recognition deadline reserves synchronous request time for private crop storage.
 - [x] Community inspirations become private, bounded, account-owned clothing signals for Consumer Hanger; duplicate taps cannot inflate counts, brands receive no liker identity, and current instructions override historical inspiration.
 - [x] Authenticated logo/tabs preserve the role workspace; Community keeps the role-specific mobile bottom bar and only explicit Sign out ends the session.
 - [x] Compact mobile header menu is session-only, links to own-account Settings, retains Sign out, closes on outside tap/Escape, and contains no `/login` or public-home escape route.

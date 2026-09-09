@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isPotentialPhoneImage } from "../lib/upload-client.ts";
+import { isPotentialPhoneImage, readJsonResponse } from "../lib/upload-client.ts";
 
 test("mobile upload accepts common iPhone and web camera formats",()=>{
   for(const type of ["image/jpeg","image/png","image/webp","image/heic","image/heif","image/avif"]){
@@ -17,4 +17,12 @@ test("mobile upload rejects non-images, empty files, and oversized originals",()
   assert.equal(isPotentialPhoneImage({name:"notes.txt",size:100,type:"text/plain"}),false);
   assert.equal(isPotentialPhoneImage({name:"photo.jpg",size:0,type:"image/jpeg"}),false);
   assert.equal(isPotentialPhoneImage({name:"photo.jpg",size:25_000_001,type:"image/jpeg"}),false);
+});
+
+test("an outer hosting timeout explains that the valid photo was not saved",async()=>{
+  const response=new Response("Gateway Timeout",{status:504,headers:{"content-type":"text/html"}});
+  await assert.rejects(
+    readJsonResponse(response,"unreadable"),
+    (error:unknown)=>error instanceof Error&&/took longer than the host allowed/i.test(error.message)&&/wardrobe was not changed/i.test(error.message),
+  );
 });
