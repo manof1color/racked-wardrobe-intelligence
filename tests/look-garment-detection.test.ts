@@ -19,6 +19,7 @@ test("a photographed left/right shoe set is one wardrobe pair",()=>{
   assert.equal(results.length,1);
   assert.equal(results[0].analysis.garment.wearableUnit,"pair");
   assert.equal(results[0].analysis.garment.category,"shoe");
+  assert.equal(results[0].analysis.garment.name,"Tan Work Boots");
 });
 
 test("separate model boxes sharing a footwear pair id are merged without making doubles",()=>{
@@ -41,6 +42,9 @@ test("the provider prompt requires full-image coverage and pair-aware footwear c
   assert.match(prompt,/complete matching pairs plus the number of genuinely unmatched single shoes/i);
   assert.match(prompt,/Never reuse one pairId for a neighboring pair/i);
   assert.match(prompt,/coverage check of every row, shelf, image edge/i);
+  assert.match(prompt,/estimate the narrowest subtype supported by visible construction/i);
+  assert.match(prompt,/closed lacing quarters/i);
+  assert.match(prompt,/cannot establish|not a brand or exact product/i);
   assert.match(prompt,new RegExp(`at most ${MAX_LOOK_GARMENTS} wardrobe units`));
 });
 

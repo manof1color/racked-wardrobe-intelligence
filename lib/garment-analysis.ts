@@ -3,7 +3,8 @@ import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDesc
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
 import { parseModelJson } from "./bedrock-json.ts";
 import { BEDROCK_VISION_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
-import { cleanHypothesis, garmentTaxonomyPrompt, normalizeGarmentClassification, type GarmentHypothesis } from "./garment-taxonomy.ts";
+import { autoGarmentDisplayName, cleanHypothesis, garmentTaxonomyPrompt, normalizeGarmentClassification, type GarmentHypothesis } from "./garment-taxonomy.ts";
+import { shoeKnowledgePrompt } from "./shoe-knowledge.ts";
 
 const allowedTypes = new Set(["image/jpeg","image/png","image/webp"]);
 const requiredViews: GarmentView[] = ["front","back","label"];
@@ -167,8 +168,9 @@ function parseVisionResult(value:unknown, suppliedViews:Set<GarmentView>):Vision
     .filter((item):item is GarmentAnalysis["evidence"][number]=>Boolean(item&&suppliedViews.has(item.view)&&Array.isArray(item.findings)))
     .map((item)=>({view:item.view,findings:item.findings.filter((finding)=>typeof finding==="string").slice(0,8).map((finding)=>cleanText(finding,"Visible detail",140))}));
   if (!evidence.length) for(const view of suppliedViews)evidence.push({view,findings:["View supplied; review the AI attributes before saving."]});
-  const name=cleanText(String(garment.name??""),"Unconfirmed garment",100);
-  const classification=normalizeGarmentClassification(String(garment.category??""),String(garment.subtype??name));
+  const rawName=cleanText(String(garment.name??""),"Unconfirmed garment",100);
+  const classification=normalizeGarmentClassification(String(garment.category??""),String(garment.subtype??rawName));
+  const name=autoGarmentDisplayName({name:rawName,...classification,color:String(garment.color??"")});
   const alternatives=(Array.isArray(garment.alternatives)?garment.alternatives as unknown[]:[])
     .filter((entry):entry is Record<string,unknown>=>Boolean(entry&&typeof entry==="object"))
     .slice(0,3)
@@ -209,7 +211,7 @@ export async function classifyGarmentImage(image:InMemoryGarmentImage,options:{p
       system:[{text:"Classify garment photos only. Never infer a person, body, gender, age, ethnicity, income, or ownership. Never name a brand."}],
       messages:[{role:"user",content:[
         {image:{format:image.contentType.split("/")[1] as "jpeg"|"png"|"webp",source:{bytes:Buffer.from(image.base64,"base64")}}},
-        {text:`Classify the item using this controlled taxonomy: ${garmentTaxonomyPrompt()}. Return only one JSON object: {"category":string,"subtype":string,"confidence":integer 0-95,"reasoning":string under 200 characters describing only visible evidence,"alternatives":array of at most 3 {"category":string,"subtype":string,"confidence":integer 0-95,"reason":string}}. Do not force certainty; include a plausible alternative when the view is ambiguous.`},
+        {text:`Classify the item using this controlled taxonomy: ${garmentTaxonomyPrompt()}. For shoes, estimate only from generic visible construction using this reference: ${shoeKnowledgePrompt()}. Never infer brand or exact product identity from appearance. Return only one JSON object: {"category":string,"subtype":string,"confidence":integer 0-95,"reasoning":string under 200 characters describing only visible evidence,"alternatives":array of at most 3 {"category":string,"subtype":string,"confidence":integer 0-95,"reason":string}}. Do not force certainty; include a plausible alternative when the view is ambiguous.`},
       ]}] as ConverseCommandInput["messages"],
       inferenceConfig:{maxTokens:500,temperature:0},
     };
@@ -238,7 +240,7 @@ export async function analyzeGarmentImages(
   const hypothesisContext=options.initialHypothesis
     ? `The first-photo hypothesis was ${options.initialHypothesis.category}/${options.initialHypothesis.subtype} at ${options.initialHypothesis.confidence}% confidence because: ${options.initialHypothesis.reasoning || "visible front-view evidence"}. Confirm it or revise it when the other views contradict it.`
     : "There is no first-photo hypothesis. Classify from all supplied views.";
-  const analysisInstruction=`Analyze the supplied garment views. ${hypothesisContext} Use this controlled taxonomy: ${garmentTaxonomyPrompt()}. Return only one JSON object matching this shape: confidence integer 0-95; visibleLabelText string; brandText string containing the brand name exactly as visibly printed on a label or logo, or an empty string when none is readable; garment with name, category, subtype, color, pattern, style string array, construction string array, material, and alternatives (at most 3 objects with category, subtype, confidence, reason); evidence array with view and findings. Use only visible evidence, use unknown values when uncertain, and do not force a subtype when an other-* value is more honest.`;
+  const analysisInstruction=`Analyze the supplied garment views. ${hypothesisContext} Use this controlled taxonomy: ${garmentTaxonomyPrompt()}. For shoes, estimate the narrowest generic subtype supported by these visible construction cues: ${shoeKnowledgePrompt()}. Shoe cues cannot establish brand or exact product identity. Return only one JSON object matching this shape: confidence integer 0-95; visibleLabelText string; brandText string containing the brand name exactly as visibly printed on a label or logo, or an empty string when none is readable; garment with name, category, subtype, color, pattern, style string array, construction string array, material, and alternatives (at most 3 objects with category, subtype, confidence, reason); evidence array with view and findings. Write the garment name as a concise, grammatical display label. Use only visible evidence, use unknown values when uncertain, and do not force a subtype when an other-* value is more honest.`;
   if(provider==="bedrock"){
     try {
       const client=new BedrockRuntimeClient({region:process.env.AWS_REGION??process.env.AWS_DEFAULT_REGION??"us-east-2"});

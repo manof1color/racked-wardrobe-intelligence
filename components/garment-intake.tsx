@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import type { GarmentAnalysis } from "@/lib/platform-types";
 import type { DetectedLookGarment } from "@/lib/look-garment-detection";
-import { GARMENT_TAXONOMY, normalizeGarmentCategory, subtypeForCategory } from "@/lib/garment-taxonomy";
+import { GARMENT_TAXONOMY, garmentSubtypeLabel, normalizeGarmentCategory, subtypeForCategory } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import type { GarmentOverrides } from "./three-view-uploader";
@@ -211,7 +211,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
               </select></label>
               <label>Type<select value={piece.overrides.subtype} disabled={!piece.selected}
                 onChange={(event) => update(piece.id, (current) => ({ ...current, overrides: { ...current.overrides, subtype: event.target.value } }))}>
-                {GARMENT_TAXONOMY[piece.overrides.category].map((subtype) => <option value={subtype} key={subtype}>{subtype}</option>)}
+                {GARMENT_TAXONOMY[piece.overrides.category].map((subtype) => <option value={subtype} key={subtype}>{garmentSubtypeLabel(subtype, piece.analysis.garment.wearableUnit)}</option>)}
               </select></label>
             </div>
           </div>

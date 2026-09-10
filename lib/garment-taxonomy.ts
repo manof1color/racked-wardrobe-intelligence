@@ -1,8 +1,10 @@
+import { SHOE_KNOWLEDGE, shoeKnowledgeForSubtype } from "./shoe-knowledge.ts";
+
 export const GARMENT_TAXONOMY = {
   top: ["t-shirt", "polo", "dress-shirt", "casual-shirt", "blouse", "hoodie", "sweatshirt", "sweater", "cardigan", "tank-top", "other-top"],
   bottom: ["jeans", "chinos", "dress-pants", "casual-pants", "shorts", "sweatpants", "leggings", "skirt", "other-bottom"],
   outerwear: ["blazer", "suit-jacket", "bomber-jacket", "denim-jacket", "leather-jacket", "puffer-jacket", "overcoat", "rain-jacket", "vest", "other-outerwear"],
-  shoe: ["sneakers", "running-shoes", "dress-shoes", "loafers", "boots", "sandals", "heels", "other-shoes"],
+  shoe: ["sneakers", "low-top-sneakers", "high-top-sneakers", "running-shoes", "basketball-shoes", "skate-shoes", "slip-on-sneakers", "dress-shoes", "oxfords", "derbies", "loafers", "boots", "ankle-boots", "chelsea-boots", "work-boots", "hiking-boots", "sandals", "slides", "heels", "flats", "mules", "clogs", "other-shoes"],
   dress: ["casual-dress", "formal-dress", "maxi-dress", "midi-dress", "mini-dress", "shirt-dress", "wrap-dress", "jumpsuit", "romper", "other-dress"],
   bag: ["tote", "backpack", "crossbody", "shoulder-bag", "handbag", "clutch", "duffel", "briefcase", "other-bag"],
   jewelry: ["ring", "necklace", "bracelet", "earrings", "watch", "brooch", "anklet", "other-jewelry"],
@@ -49,11 +51,54 @@ const subtypeAliases: Partial<Record<GarmentSubtype, string[]>> = {
   "leather-jacket": ["leather jacket"],
   "puffer-jacket": ["puffer jacket", "puffer"],
   "rain-jacket": ["rain jacket", "raincoat"],
-  "running-shoes": ["running shoes", "running shoe", "trainers"],
-  "dress-shoes": ["dress shoes", "dress shoe", "oxford", "derby"],
+  ...Object.fromEntries(SHOE_KNOWLEDGE.map((entry)=>[entry.subtype,[...entry.aliases]])),
   "shoulder-bag": ["shoulder bag"],
   "pocket-square": ["pocket square"],
 };
+
+function displayWords(value:string) {
+  return value.replace(/[_]+/g," ").replace(/\s+/g," ").trim();
+}
+
+function titleCase(value:string) {
+  return value.toLowerCase().replace(/(^|[\s-])([a-z])/g,(_,boundary:string,letter:string)=>`${boundary}${letter.toUpperCase()}`);
+}
+
+export function garmentSubtypeLabel(subtype:GarmentSubtype,wearableUnit:"single"|"pair"="pair") {
+  const shoe=SHOE_KNOWLEDGE.find((entry)=>entry.subtype===subtype);
+  if(shoe)return wearableUnit==="single"?shoe.singularLabel:shoe.label;
+  return titleCase(displayWords(subtype.replace(/-/g," ")));
+}
+
+function usefulColor(value:string|undefined) {
+  const cleaned=displayWords(value??"");
+  return /^(|unknown|unconfirmed|n\/a|none)$/i.test(cleaned)?"":cleaned;
+}
+
+/**
+ * Normalizes provider-authored names only. Manual names never pass through this helper.
+ * Footwear labels respect whether the photo shows one unmatched shoe or one wearable pair.
+ */
+export function autoGarmentDisplayName(input:{name?:string;category:GarmentCategory;subtype:GarmentSubtype;color?:string;wearableUnit?:"single"|"pair"}) {
+  const raw=displayWords(input.name??"").replace(/^(?:an?\s+|one\s+|pair\s+of\s+)/i,"").trim();
+  const color=usefulColor(input.color);
+  if(input.category==="shoe") {
+    const entry=shoeKnowledgeForSubtype(input.subtype);
+    const noun=garmentSubtypeLabel(input.subtype,input.wearableUnit==="single"?"single":"pair");
+    const normalized=raw.toLowerCase().replace(/-/g," ");
+    const aliases=[entry.label,entry.singularLabel,...entry.aliases,input.subtype].map(value=>value.toLowerCase().replace(/-/g," "));
+    const colorPrefix=color.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    const withoutColor=color?normalized.replace(new RegExp(`^${colorPrefix}\\s+`),""):normalized;
+    if(!raw||/^(unknown|unconfirmed|footwear|shoe|shoes)$/i.test(raw)||aliases.includes(normalized)||aliases.includes(withoutColor)) {
+      return titleCase([color,noun].filter(Boolean).join(" "));
+    }
+  }
+  const subtypeLabel=displayWords(input.subtype.replace(/-/g," "));
+  if(!raw||/^(unknown|unconfirmed|garment|clothing|apparel|piece)$/i.test(raw)||raw.toLowerCase().replace(/-/g," ")===subtypeLabel) {
+    return titleCase([color,subtypeLabel].filter(Boolean).join(" "))||"Unrecognized Piece";
+  }
+  return titleCase(raw);
+}
 
 function normalizedWords(value: string) {
   return value.trim().toLowerCase().replace(/[_/]+/g, "-").replace(/\s+/g, " ");

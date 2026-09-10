@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import type { GarmentAnalysis } from "@/lib/platform-types";
 import type { DetectedLookGarment } from "@/lib/look-garment-detection";
-import { GARMENT_TAXONOMY, normalizeGarmentCategory, subtypeForCategory } from "@/lib/garment-taxonomy";
+import { GARMENT_TAXONOMY, garmentSubtypeLabel, normalizeGarmentCategory, subtypeForCategory } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import type { GarmentOverrides } from "./three-view-uploader";
@@ -102,7 +102,7 @@ export function LookScanUploader({onConfirmed}:{onConfirmed:(pieces:LookScanSele
         <div className="look-piece-fields">
           <label>Wardrobe name<input value={item.overrides.name} maxLength={100} disabled={!item.selected} onChange={event=>updateDetection(item.id,current=>({...current,overrides:{...current.overrides,name:event.target.value}}))}/></label>
           <label>Category<select value={item.overrides.category} disabled={!item.selected} onChange={event=>changeCategory(item,event.target.value)}>{PLANNED_CATEGORIES.map(category=><option value={category} key={category}>{category}</option>)}</select></label>
-          <label>Specific type<select value={item.overrides.subtype} disabled={!item.selected} onChange={event=>updateDetection(item.id,current=>({...current,overrides:{...current.overrides,subtype:event.target.value}}))}>{GARMENT_TAXONOMY[item.overrides.category].map(subtype=><option value={subtype} key={subtype}>{subtype}</option>)}</select></label>
+          <label>Specific type<select value={item.overrides.subtype} disabled={!item.selected} onChange={event=>updateDetection(item.id,current=>({...current,overrides:{...current.overrides,subtype:event.target.value}}))}>{GARMENT_TAXONOMY[item.overrides.category].map(subtype=><option value={subtype} key={subtype}>{garmentSubtypeLabel(subtype,item.analysis.garment.wearableUnit)}</option>)}</select></label>
           <label>Brand <small>optional, unverified</small><input value={item.overrides.brand} maxLength={100} disabled={!item.selected} placeholder="Add or correct the label" onChange={event=>updateDetection(item.id,current=>({...current,overrides:{...current.overrides,brand:event.target.value}}))}/></label>
         </div>
         <p>{item.analysis.garment.wearableUnit==="pair"?"footwear pair · ":""}{item.analysis.garment.color} · {item.analysis.garment.pattern} · {item.analysis.garment.material}</p>
