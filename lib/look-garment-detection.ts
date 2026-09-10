@@ -1,6 +1,7 @@
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
 import { parseModelJson } from "./bedrock-json.ts";
-import { garmentTaxonomyPrompt, normalizeGarmentClassification } from "./garment-taxonomy.ts";
+import { autoGarmentDisplayName, garmentTaxonomyPrompt, normalizeGarmentClassification } from "./garment-taxonomy.ts";
+import { shoeKnowledgePrompt } from "./shoe-knowledge.ts";
 import type { GarmentAnalysis } from "./platform-types.ts";
 import { BEDROCK_LOOK_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
 import { boundsOrWholeFrame, type NormalizedBounds as Bounds } from "./detection-bounds.ts";
@@ -108,12 +109,13 @@ export function parseLookGarmentDetections(value:unknown,image?:{width:number;he
     const named=cleanText(candidate.name,"",100)||classification.subtype;
     if(classification.category==="unknown"&&!named)continue;
     const pairId=classification.category==="shoe"?cleanText(candidate.pairId,"",64)||null:null;
+    const wearableUnit=classification.category==="shoe"&&String(candidate.wearableUnit??"").toLowerCase()==="pair"?"pair":"single";
     cleaned.push({
       bounds,
       exactBounds:exact,
-      name:cleanText(candidate.name,classification.subtype,100),
+      name:autoGarmentDisplayName({name:cleanText(candidate.name,classification.subtype,100),...classification,color:cleanText(candidate.color,"unknown",60),wearableUnit}),
       ...classification,
-      wearableUnit:classification.category==="shoe"&&String(candidate.wearableUnit??"").toLowerCase()==="pair"?"pair":"single",
+      wearableUnit,
       pairId,
       color:cleanText(candidate.color,"unknown",60),
       pattern:cleanText(candidate.pattern,"unknown",60),
@@ -192,7 +194,7 @@ export function buildLookDetectionPrompt() {
 
 FOOTWEAR PAIR RULE: a matching left and right shoe together are ONE wardrobe unit, not two garments. Return one footwear object with wearableUnit "pair" and one tight bounds rectangle enclosing both shoes. Never return separate detections for the two shoes in a pair. Do not combine adjacent shoes with different designs, colors, construction, sole shape, lacing, or visible branding. Use a unique stable pairId such as "row-2-pair-3" for every complete pair. If you must emit the two sides separately because of overlap, give both exactly the same nonempty pairId so the server can combine them. Never reuse one pairId for a neighboring pair. If only one unmatched shoe is visibly present, use wearableUnit "single" and an empty pairId.
 
-After the first pass, perform a second coverage check of every row, shelf, image edge, and partially hidden region, adding any missed wearable units. On a shoe rack, the final count is the number of complete matching pairs plus the number of genuinely unmatched single shoes — never the raw number of visible shoe objects. Do not emit the same physical item or pair twice. Use this controlled taxonomy: ${garmentTaxonomyPrompt()}. SINGLE GARMENT: a photo containing exactly one garment is normal and expected. Return that one garment. Never return an empty array because there is only one item, because the item is folded, creased, or laid flat, or because you cannot read a brand.
+After the first pass, perform a second coverage check of every row, shelf, image edge, and partially hidden region, adding any missed wearable units. On a shoe rack, the final count is the number of complete matching pairs plus the number of genuinely unmatched single shoes — never the raw number of visible shoe objects. Do not emit the same physical item or pair twice. Use this controlled taxonomy: ${garmentTaxonomyPrompt()}. For footwear, estimate the narrowest subtype supported by visible construction, not a brand or exact product. Use these generic reference cues: ${shoeKnowledgePrompt()}. When cues overlap or are hidden, choose other-shoes or a broader shoe subtype instead of inventing certainty. SINGLE GARMENT: a photo containing exactly one garment is normal and expected. Return that one garment. Never return an empty array because there is only one item, because the item is folded, creased, or laid flat, or because you cannot read a brand.
 
 Return only JSON with {"garments":[...]}. Each garment must contain: name, category, subtype, wearableUnit (single or pair), pairId (shared only by two sides of one footwear pair, otherwise empty), color, pattern, material, style (array), confidence (integer 0-95), visibleBrandText (only text genuinely visible, otherwise empty), visibleEvidence (array), and bounds. Give bounds as {"x":,"y":,"width":,"height":} where every value is a fraction of the full image between 0 and 1 — for example a garment filling the middle half of the photo is {"x":0.25,"y":0.25,"width":0.5,"height":0.5}. Bounds must tightly contain the complete garment or complete footwear pair. If you are unsure of the exact rectangle, still return the garment with your best estimate; a garment with an imprecise box is far more useful than a missing garment. Return at most ${MAX_LOOK_GARMENTS} wardrobe units, and return an empty array only when the image genuinely contains no wearable item at all.`;
 }
