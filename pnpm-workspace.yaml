@@ -7,3 +7,5 @@ overrides:
   nanoid: 3.3.18
   postcss: 8.5.25
   sharp: 0.35.4
+  # Security: patched floor for GHSA-2883-xcg3-v3hh in lint tooling -> js-yaml.
+  js-yaml: 4.3.2
