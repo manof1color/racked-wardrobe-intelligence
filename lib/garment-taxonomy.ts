@@ -152,6 +152,72 @@ export function cleanHypothesis(value: unknown): GarmentHypothesis | null {
   };
 }
 
+/** Every phrase that names a subtype: its canonical id, its display labels, and its aliases. */
+function subtypePhrases(subtype: GarmentSubtype) {
+  const phrases = [
+    subtype.replace(/-/g, " "),
+    garmentSubtypeLabel(subtype, "pair"),
+    garmentSubtypeLabel(subtype, "single"),
+    ...(subtypeAliases[subtype] ?? []),
+  ];
+  return [...new Set(phrases.map((phrase) => normalizedWords(phrase).replace(/-/g, " ")))].filter(Boolean);
+}
+
+function isFallbackSubtype(subtype: string) {
+  return subtype.startsWith("other-");
+}
+
+export interface TypedGarmentType {
+  category: GarmentCategory;
+  subtype: GarmentSubtype;
+  /** The person's own words, kept only when no controlled subtype fits them. */
+  customType: string | null;
+}
+
+/**
+ * Resolves what a person typed into the Type field.
+ *
+ * AI recognition fills Type from a controlled list, but it will not always know: a
+ * garment the model could not classify, or one Racked has no subtype for. The person must
+ * then be able to type what it is. Their words map onto the controlled taxonomy where they
+ * fit, because outfit ranking and Community filters depend on it; where they do not fit,
+ * the subtype falls back to the category's "other" entry and their words are kept verbatim
+ * rather than silently discarded.
+ *
+ * A phrase is matched exactly first, then by the longest known phrase contained in it as
+ * whole words — so "white high top sneakers" resolves to high-top sneakers, not to plain
+ * sneakers. When the category is still unknown, the typed words may settle it.
+ */
+export function resolveTypedGarmentType(category: GarmentCategory, typed: string): TypedGarmentType | null {
+  const text = normalizedWords(typed).replace(/-/g, " ").slice(0, 60).trim();
+  if (!text) return null;
+
+  const resolvedCategory = category === "unknown" ? normalizeGarmentCategory(text) : category;
+  const candidates = GARMENT_TAXONOMY[resolvedCategory] as readonly GarmentSubtype[];
+
+  for (const subtype of candidates) {
+    if (subtypePhrases(subtype).includes(text)) return { category: resolvedCategory, subtype, customType: null };
+  }
+
+  let best: { subtype: GarmentSubtype; length: number } | null = null;
+  for (const subtype of candidates) {
+    if (isFallbackSubtype(subtype)) continue;
+    for (const phrase of subtypePhrases(subtype)) {
+      const pattern = new RegExp(`(^| )${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( |$)`);
+      if (pattern.test(text) && (!best || phrase.length > best.length)) best = { subtype, length: phrase.length };
+    }
+  }
+  if (best) return { category: resolvedCategory, subtype: best.subtype, customType: null };
+
+  const fallback = candidates.find(isFallbackSubtype) ?? candidates[candidates.length - 1];
+  return { category: resolvedCategory, subtype: fallback, customType: titleCase(typed.trim().replace(/\s+/g, " ").slice(0, 60)) };
+}
+
+/** Suggestions for the Type field: display labels for every subtype in a category. */
+export function garmentTypeSuggestions(category: GarmentCategory, wearableUnit: "single" | "pair" = "pair") {
+  return (GARMENT_TAXONOMY[category] as readonly GarmentSubtype[]).map((subtype) => ({ subtype, label: garmentSubtypeLabel(subtype, wearableUnit) }));
+}
+
 export function garmentTaxonomyPrompt() {
   return Object.entries(GARMENT_TAXONOMY)
     .map(([category, subtypes]) => `${category}: ${subtypes.join(", ")}`)

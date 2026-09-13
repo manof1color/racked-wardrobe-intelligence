@@ -102,7 +102,9 @@ test("detection failure offers an editable piece instead of blaming the photo", 
   assert.match(resilience, /provider:"manual-review"/);
   assert.match(resilience, /confidence:0/, "a stand-in must never claim confidence");
   assert.match(resilience, /category:"unknown"/, "no attribute may be invented for an unclassified piece");
-  const uploader = readFileSync(new URL("../components/look-scan-uploader.tsx", import.meta.url), "utf8");
+  // Retargeted from look-scan-uploader.tsx, which no page renders: asserting against it proved
+  // nothing about what a person actually sees.
+  const uploader = readFileSync(new URL("../components/garment-intake.tsx", import.meta.url), "utf8");
   assert.match(uploader, /NEEDS YOUR LABEL/);
   assert.match(uploader, /AI could not classify this photo/);
 });

@@ -45,11 +45,17 @@ Now every garment arrives the same way, and brand linking is a per-piece upgrade
 3. `POST /api/garments/detect` sends it to Amazon Bedrock, which returns up to 16 wardrobe
    units. Matching left and right shoes are returned as **one pair**, not two garments.
 4. Each detection is cropped to its own piece, background removed, and stored privately.
-5. You get an editable card per piece: **name, category, specific type, brand**. Nothing is
+5. You get an editable card per piece: **name, category, type, brand**. Nothing is
    saved until you tick the confirmation box.
-6. If AI cannot classify a piece it arrives labelled **"needs your label"** with zero
-   confidence and no invented attributes — you set the category yourself rather than
-   hitting a dead end.
+6. **Type** is filled in when AI recognises the piece. When it isn't sure, the field is
+   highlighted and a short note appears *under* it — the photo stays fully visible. Type
+   what the piece is or pick a suggestion:
+   - words Racked knows snap to a controlled type (`white high top sneakers` → High-Top Sneakers);
+   - words it doesn't know are kept as you wrote them, beside the category's *Other* type
+     (`Jordan 3 Retro`), and shown in your Closet.
+7. If AI cannot classify a piece at all it arrives labelled **"needs your label"** with zero
+   confidence and no invented attributes — you choose the category and type yourself rather
+   than hitting a dead end. A piece can't be saved while its category is still unknown.
 
 **B. Link a brand product** — *front + back + label, exact tracking*
 

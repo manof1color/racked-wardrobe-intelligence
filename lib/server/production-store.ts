@@ -168,7 +168,7 @@ export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
   return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem&{GSI1PK?:string};const classification=normalizeGarmentClassification(item.category,item.subtype??item.name);const registryProductId=item.registryProductId??(item.GSI1PK?.startsWith("PRODUCT#")?item.GSI1PK.slice(8):null);return {...item,GSI1PK:undefined,...classification,registryProductId,pattern:item.pattern??"unknown",material:item.material??"unknown",lastWornDays:wornDaysAgo((item as {lastWornAt?:unknown}).lastWornAt,item.lastWornDays),imageUrl:await privateImageUrl(item.imageKey)};}));
 }
 
-export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string}) {
+export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null}) {
   if (!analysis.processedImage?.key) throw new Error("The processed garment image is missing.");
   if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new Error("The garment confirmation expired or did not belong to this account.");
   const evidenceImageKey=analysis.processedImage.evidenceKey??null;
@@ -180,7 +180,11 @@ export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,ov
   const placeholderSku=/^(unverified|unconfirmed)$/i.test(sku);
   const identityStatus=analysis.label.matched?"verified":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
   const classification=normalizeGarmentClassification(overrides?.category??analysis.garment.category,overrides?.subtype??analysis.garment.subtype);
-  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId:analysis.label.matched?analysis.label.registryProductId:null,identityStatus,createdAt:new Date().toISOString()};
+  // A typed type is kept only beside a fallback subtype: when a controlled subtype fits, the
+  // controlled value is the record, and a stray custom label would contradict it.
+  const typedType=typeof overrides?.customType==="string"?overrides.customType.replace(/[\u0000-\u001f\u007f]/g,"").replace(/\s+/g," ").trim().slice(0,60):"";
+  const customType=typedType&&classification.subtype.startsWith("other-")?typedType:null;
+  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId:analysis.label.matched?analysis.label.registryProductId:null,identityStatus,createdAt:new Date().toISOString()};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:analysis.label.registryProductId?`PRODUCT#${analysis.label.registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
 }

@@ -8,7 +8,7 @@ import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import { PhotoSourcePicker } from "./photo-source-picker";
 
 const allViews:GarmentView[]=["front","back","label"];
-export interface GarmentOverrides {name:string;brand:string;sku:string;category:GarmentCategory;subtype:string}
+export interface GarmentOverrides {name:string;brand:string;sku:string;category:GarmentCategory;subtype:string;customType?:string|null}
 
 export function ThreeViewUploader({onConfirmed}:{onConfirmed:(analysis:GarmentAnalysis,overrides:GarmentOverrides)=>Promise<void>}) {
   const [files,setFiles]=useState<Partial<Record<GarmentView,File>>>({});

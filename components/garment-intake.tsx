@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import type { GarmentAnalysis } from "@/lib/platform-types";
 import type { DetectedLookGarment } from "@/lib/look-garment-detection";
-import { GARMENT_TAXONOMY, garmentSubtypeLabel, normalizeGarmentCategory, subtypeForCategory } from "@/lib/garment-taxonomy";
+import { garmentSubtypeLabel, garmentTypeSuggestions, normalizeGarmentCategory, resolveTypedGarmentType, subtypeForCategory } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import type { GarmentOverrides } from "./three-view-uploader";
@@ -37,6 +37,20 @@ interface Piece extends DetectedLookGarment {
   labelText: string;
   link: LinkState;
   expanded: boolean;
+  /** What the Type field shows: the recognised type's label, or the person's own words. */
+  typeText: string;
+}
+
+/**
+ * Whether recognition left the type for the person to supply. A fallback subtype with no
+ * typed words, an unknown category, a manual-review stand-in, or low confidence all mean
+ * the Type field should ask rather than present a guess as an answer.
+ */
+function typeNeedsInput(piece: Piece) {
+  if (piece.analysis.provider === "manual-review") return true;
+  if (piece.overrides.category === "unknown") return true;
+  if (piece.overrides.subtype.startsWith("other-") && !piece.overrides.customType) return true;
+  return piece.analysis.confidence < 50;
 }
 
 export interface GarmentIntakeSelection {
@@ -89,12 +103,18 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
         expanded: false,
         labelText: "",
         link: { status: "none" },
+        // A fallback subtype is an absence of recognition, so the field starts empty and
+        // asks, rather than prefilling "Other Shoes" as though that were an answer.
+        typeText: detection.analysis.garment.subtype.startsWith("other-")
+          ? ""
+          : garmentSubtypeLabel(detection.analysis.garment.subtype, detection.analysis.garment.wearableUnit),
         overrides: {
           name: detection.analysis.garment.name,
           brand: /^brand not verified$/i.test(detection.analysis.label.brand) ? "" : detection.analysis.label.brand,
           sku: "",
           category: detection.analysis.garment.category,
           subtype: detection.analysis.garment.subtype,
+          customType: null,
         },
       })));
     } catch (reason) {
@@ -108,7 +128,26 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
 
   function changeCategory(piece: Piece, value: string) {
     const category = normalizeGarmentCategory(value);
-    update(piece.id, (current) => ({ ...current, overrides: { ...current.overrides, category, subtype: subtypeForCategory(category, current.overrides.subtype) } }));
+    update(piece.id, (current) => {
+      // Whatever was typed is re-read against the new category rather than thrown away.
+      const typed = resolveTypedGarmentType(category, current.typeText);
+      return {
+        ...current,
+        overrides: typed
+          ? { ...current.overrides, category, subtype: typed.subtype, customType: typed.customType }
+          : { ...current.overrides, category, subtype: subtypeForCategory(category, current.overrides.subtype), customType: null },
+      };
+    });
+  }
+
+  function changeType(piece: Piece, value: string) {
+    update(piece.id, (current) => {
+      const typed = resolveTypedGarmentType(current.overrides.category, value);
+      if (!typed) {
+        return { ...current, typeText: value, overrides: { ...current.overrides, subtype: subtypeForCategory(current.overrides.category, ""), customType: null } };
+      }
+      return { ...current, typeText: value, overrides: { ...current.overrides, category: typed.category, subtype: typed.subtype, customType: typed.customType } };
+    });
   }
 
   async function checkLabel(piece: Piece) {
@@ -142,12 +181,13 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
     const selected = pieces.filter((piece) => piece.selected);
     if (!selected.length) { setError("Select at least one piece."); return; }
     if (selected.some((piece) => !piece.overrides.name.trim())) { setError("Give every selected piece a name."); return; }
+    if (selected.some((piece) => piece.overrides.category === "unknown")) { setError("Choose a category for every selected piece so it can be used in outfits."); return; }
     if (!confirmed) { setError("Confirm the pieces before saving."); return; }
     setBusy(true); setError("");
     try {
       await onConfirmed(selected.map((piece) => ({
         analysis: piece.analysis,
-        overrides: { ...piece.overrides, name: piece.overrides.name.trim(), brand: piece.overrides.brand.trim(), sku: piece.overrides.sku.trim() },
+        overrides: { ...piece.overrides, name: piece.overrides.name.trim(), brand: piece.overrides.brand.trim(), sku: piece.overrides.sku.trim(), customType: piece.overrides.customType ?? null },
       })));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The pieces could not be saved.");
@@ -199,9 +239,6 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
             <img src={piece.analysis.processedImage.url} alt={piece.overrides.name || `Detected piece ${index + 1}`} />
           </div>}
 
-          {piece.analysis.provider === "manual-review" &&
-            <p className="intake-manual">AI could not classify this photo. Set the name and category yourself, or rescan with the piece laid flat and fully in frame.</p>}
-
           <div className="intake-fields">
             <label>Name<input value={piece.overrides.name} maxLength={100} disabled={!piece.selected}
               onChange={(event) => update(piece.id, (current) => ({ ...current, overrides: { ...current.overrides, name: event.target.value } }))} /></label>
@@ -209,11 +246,31 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
               <label>Category<select value={piece.overrides.category} disabled={!piece.selected} onChange={(event) => changeCategory(piece, event.target.value)}>
                 {PLANNED_CATEGORIES.map((category) => <option value={category} key={category}>{category}</option>)}
               </select></label>
-              <label>Type<select value={piece.overrides.subtype} disabled={!piece.selected}
-                onChange={(event) => update(piece.id, (current) => ({ ...current, overrides: { ...current.overrides, subtype: event.target.value } }))}>
-                {GARMENT_TAXONOMY[piece.overrides.category].map((subtype) => <option value={subtype} key={subtype}>{garmentSubtypeLabel(subtype, piece.analysis.garment.wearableUnit)}</option>)}
-              </select></label>
+              {/* A typeable field rather than a fixed list: recognition fills it when it can,
+                  and when it cannot the person types what the piece is. Known words map onto
+                  the controlled taxonomy; anything else is kept in their own words. */}
+              <label>Type<input value={piece.typeText} maxLength={60} disabled={!piece.selected}
+                list={`intake-types-${piece.id}`}
+                className={typeNeedsInput(piece) ? "needs-type" : undefined}
+                aria-describedby={typeNeedsInput(piece) ? `intake-type-hint-${piece.id}` : undefined}
+                placeholder="Type what this is"
+                onChange={(event) => changeType(piece, event.target.value)} />
+                <datalist id={`intake-types-${piece.id}`}>
+                  {garmentTypeSuggestions(piece.overrides.category, piece.analysis.garment.wearableUnit ?? "pair")
+                    .filter((option) => !option.subtype.startsWith("other-"))
+                    .map((option) => <option value={option.label} key={option.subtype} />)}
+                </datalist>
+              </label>
             </div>
+            {/* The hint sits under the field it refers to. It never overlays the photograph:
+                the point of the prompt is that the person can see the garment while deciding
+                what to call it. */}
+            {typeNeedsInput(piece) && <p className="intake-type-hint" id={`intake-type-hint-${piece.id}`}>
+              {piece.analysis.provider === "manual-review"
+                ? "AI could not classify this photo. Choose a category and type what this piece is."
+                : "AI wasn\u2019t sure what this is. Type it in, or pick a suggestion."}
+            </p>}
+            {piece.overrides.customType && <p className="intake-type-kept">Saved as &ldquo;{piece.overrides.customType}&rdquo; in your own words.</p>}
           </div>
 
           {/* Brand linking as an upgrade, not a mode. Collapsed until asked for, because
