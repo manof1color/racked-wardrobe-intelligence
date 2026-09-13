@@ -18,6 +18,12 @@ export interface WardrobeItem {
    * their appearance does not change.
    */
   backgroundRemoved?: boolean;
+  /**
+   * The person's own words for what this garment is, kept only when no controlled subtype
+   * fits them. `subtype` still holds the category's "other" entry, so outfit ranking and
+   * Community filters keep working.
+   */
+  customType?: string | null;
   brand?: string | null;
   sku?: string | null;
   /** Present only when registry evidence verified this exact enrolled product. */
