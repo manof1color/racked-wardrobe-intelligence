@@ -52,6 +52,16 @@ test("every signed-in screen keeps its bottom controls on the visible edge", () 
     "the tab bar must not ride up over a form while someone is typing");
 });
 
+// REGRESSION: object-fit:contain alone was not enough. The intake tile's grid row was sized
+// by its content, so the image's height:100% resolved to nothing and a tall photograph
+// (measured 729px in a 300px tile) still showed only its middle band.
+test("REGRESSION: the intake tile gives its image a definite track so contain can contain", () => {
+  const css = read("app/globals.css");
+  assert.ok(css.includes(".intake-cutout{grid-template:minmax(0,1fr)/minmax(0,1fr);overflow:hidden}"));
+  assert.ok(css.indexOf(".intake-cutout{grid-template:") < css.indexOf(".intake-cutout.photo{background:var(--cream)"),
+    "the track rule must precede the photo tile rule it supports");
+});
+
 test("a detection crop keeps a margin wide enough for a box that clips the garment", () => {
   const route = read("app/api/garments/detect/route.ts");
   assert.match(route, /const CROP_MARGIN=0\.08;/);

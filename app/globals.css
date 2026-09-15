@@ -531,6 +531,10 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 /* REGRESSION: photographs used to fill their tile (object-fit:cover). A tall piece — a
    dress, a pendant on a chain — then showed only its middle band, so a correctly
    recognised garment looked mis-cropped. Every preview now shows the whole piece. */
+/* REGRESSION: the tile is a grid whose row was sized by its content, so height:100% on the
+   image resolved to nothing and a tall photograph grew past its tile and was shown as its
+   middle band. A definite single track lets contain actually contain. */
+.intake-cutout{grid-template:minmax(0,1fr)/minmax(0,1fr);overflow:hidden}
 .intake-cutout.photo{background:var(--cream);height:240px;padding:10px}
 .intake-cutout.photo img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
 @media(max-width:620px){.intake-cutout.photo{height:300px}}
