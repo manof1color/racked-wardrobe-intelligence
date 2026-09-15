@@ -44,7 +44,7 @@ Now every garment arrives the same way, and brand linking is a per-piece upgrade
 2. The photo is resized in the browser before upload; the original never leaves the device.
 3. `POST /api/garments/detect` sends it to Amazon Bedrock, which returns up to 16 wardrobe
    units. Matching left and right shoes are returned as **one pair**, not two garments.
-4. Each detection is cropped to its own piece, background removed, and stored privately.
+4. Each detection is cropped to its own piece — the box plus a margin, zoomed to the garment, photo left intact — and stored privately.
 5. You get an editable card per piece — the whole piece is always visible — with **name, category, type, brand**. Nothing is
    saved until you tick the confirmation box.
 6. **Type** is filled in when AI recognises the piece. When it isn't sure, the field is

@@ -32,7 +32,7 @@ node --experimental-strip-types scripts/crop-benchmark.ts
 | --- | ---: | ---: |
 | `trim` — sharp's border trim | 61% | 7/14 |
 | `flood` — the earlier single-colour cutout | 78% | 10/14 |
-| **`isolate` — the shipped pass** | **86%** | **12/14** |
+| **`isolate` — best local pass (not used in live intake)** | **86%** | **12/14** |
 
 These are synthetic backdrops chosen to mimic real conditions. They are a reproducible
 regression signal, **not** a measured accuracy claim about real photographs.
