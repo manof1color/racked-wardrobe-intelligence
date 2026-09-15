@@ -135,8 +135,11 @@ test("the closet distinguishes a cut-out tile from a photograph tile", async () 
   assert.match(types, /backgroundRemoved\?: boolean;/, "the wardrobe item must record whether its image is a cut-out");
   assert.match(store, /backgroundRemoved:analysis\.processedImage\.backgroundRemoved\?\?false/, "the flag must be persisted on save");
   assert.match(dashboard, /item\.backgroundRemoved===false\?"photo-garment opaque-photo":"photo-garment"/);
-  assert.ok(css.includes(".photo-garment.opaque-photo>img{inset:0;width:100%;height:100%;object-fit:cover}"),
-    "a photograph should fill its tile rather than sit letterboxed");
+  assert.ok(css.includes(".photo-garment.opaque-photo{background:var(--cream)}"), "a photograph sits on a plain ground, not white");
+  // REGRESSION: filling the tile (object-fit:cover) cut tall garments down to their middle.
+  assert.ok(css.includes(".garment-visual.photo-garment>img{inset:10px 10px 48px;width:calc(100% - 20px);height:calc(100% - 58px);object-fit:contain}"),
+    "the whole garment must be visible, clear of the category label and wear button");
+  assert.doesNotMatch(css, /\.photo-garment[^{]*>img\{[^}]*object-fit:cover/, "no closet photo may be cropped to fill its tile");
   // Garments saved before the flag existed must keep their current appearance, so the
   // check is strictly against false rather than falsy.
   assert.doesNotMatch(dashboard, /!item\.backgroundRemoved\?"photo-garment opaque-photo"/,

@@ -3,8 +3,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Role } from "@/lib/types";
 import { workspaceHome } from "@/lib/workspace-navigation";
+import { useViewportDock } from "./use-viewport-dock";
 
 export function AppShell({ role, children }: { role:Role; children:ReactNode }) {
+  useViewportDock();
   const [menuOpen,setMenuOpen]=useState(false);
   const [signingOut,setSigningOut]=useState(false);
   const menuRef=useRef<HTMLDivElement>(null);
