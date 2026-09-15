@@ -11,9 +11,14 @@ export const runtime="nodejs";
 
 const allowedTypes=new Set(["image/jpeg","image/png","image/webp"]);
 
+// Detection boxes are often drawn tight, and a box that clips a sleeve, a hem, or a chain
+// crops the garment itself. An 8% margin on each side keeps the whole piece; previews show
+// the crop contained, so the extra ground is visible as ground rather than trimmed away.
+const CROP_MARGIN=0.08;
+
 function pixelCrop(bounds:NormalizedBounds,imageWidth:number,imageHeight:number) {
-  const horizontalPadding=bounds.width*imageWidth*0.04;
-  const verticalPadding=bounds.height*imageHeight*0.04;
+  const horizontalPadding=bounds.width*imageWidth*CROP_MARGIN;
+  const verticalPadding=bounds.height*imageHeight*CROP_MARGIN;
   const left=Math.max(0,Math.floor((bounds.x*imageWidth)-horizontalPadding));
   const top=Math.max(0,Math.floor((bounds.y*imageHeight)-verticalPadding));
   const right=Math.min(imageWidth,Math.ceil(((bounds.x+bounds.width)*imageWidth)+horizontalPadding));

@@ -95,12 +95,15 @@ test("brand sharing is still described as separate from linking a product", () =
 // A transparency checkerboard behind an opaque photograph claims a cut-out that is not
 // there. Since hard photographs now correctly fall back to an opaque crop, that mis-signal
 // became the common case rather than a rare one.
-test("a tile only claims transparency when the background was actually removed", () => {
+// REGRESSION: the opaque tile used to fill with object-fit:cover, which showed only the
+// middle band of a tall piece — a recognised dress arrived looking mis-cropped.
+test("a tile only claims transparency when the background was removed, and shows the whole piece", () => {
   assert.match(intake, /piece\.analysis\.processedImage\.backgroundRemoved \? "cutout" : "photo"/);
   const css = read("app/globals.css");
-  assert.ok(css.includes(".intake-cutout.photo{background:var(--cream);height:210px}"), "an opaque tile needs a plain ground, not a checkerboard");
-  assert.ok(css.includes(".intake-cutout.photo img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover}"),
-    "an opaque photograph should fill its tile rather than sit letterboxed inside it");
+  assert.ok(css.includes(".intake-cutout.photo{background:var(--cream);height:240px;padding:10px}"), "an opaque tile needs a plain ground, not a checkerboard");
+  assert.ok(css.includes(".intake-cutout.photo img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}"),
+    "the whole garment must be visible in the preview, not a cropped middle band");
+  assert.doesNotMatch(css, /\.intake-cutout[^{]*\{[^}]*object-fit:cover/, "no intake preview may crop the garment to fill its tile");
 });
 
 test("intake names the one thing that decides whether a cut-out is possible", () => {

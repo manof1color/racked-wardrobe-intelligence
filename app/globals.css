@@ -526,20 +526,31 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 }
 
 /* A transparency checkerboard behind an opaque photograph claims a cut-out that is not
-   there, and letterboxes it into the bargain. When background removal succeeded the
-   checkerboard is honest and the garment is shown whole; when it did not, the tile reads
-   as a photograph — filled, on a plain ground — which is what it is. */
-/* A photograph is given more height than a cut-out, so filling the tile trims mostly the
-   detection padding rather than the garment itself. */
-.intake-cutout.photo{background:var(--cream);height:210px}
-.intake-cutout.photo img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover}
-@media(max-width:620px){.intake-cutout.photo{height:240px}}
+   there. When background removal succeeded the checkerboard is honest; when it did not,
+   the tile reads as a photograph on a plain ground — which is what it is. */
+/* REGRESSION: photographs used to fill their tile (object-fit:cover). A tall piece — a
+   dress, a pendant on a chain — then showed only its middle band, so a correctly
+   recognised garment looked mis-cropped. Every preview now shows the whole piece. */
+/* REGRESSION: the tile is a grid whose row was sized by its content, so height:100% on the
+   image resolved to nothing and a tall photograph grew past its tile and was shown as its
+   middle band. A definite single track lets contain actually contain. */
+.intake-cutout{grid-template:minmax(0,1fr)/minmax(0,1fr);overflow:hidden}
+.intake-cutout.photo{background:var(--cream);height:240px;padding:10px}
+.intake-cutout.photo img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+@media(max-width:620px){.intake-cutout.photo{height:300px}}
 
-/* A garment whose background could not be removed is a photograph, so it fills its tile
-   rather than sitting letterboxed on white pretending to be a cut-out. Garments saved
-   before the flag existed keep the contained treatment. */
+/* Closet photographs sit on a plain ground above the category label and the wear button,
+   so neither covers any part of the garment. Cut-outs and garments saved before the flag
+   existed get the same whole-piece frame. */
 .photo-garment.opaque-photo{background:var(--cream)}
-.photo-garment.opaque-photo>img{inset:0;width:100%;height:100%;object-fit:cover}
+.garment-visual.photo-garment{height:250px}
+.garment-visual.photo-garment>img{inset:10px 10px 48px;width:calc(100% - 20px);height:calc(100% - 58px);object-fit:contain}
+@media(max-width:480px){.garment-visual.photo-garment{height:340px}}
+
+/* Fixed bottom controls follow the visible bottom edge and step aside while the on-screen
+   keyboard is up; lib/viewport-dock.ts explains the iPhone viewport drift this corrects. */
+.mobile-tab-bar,.hanger-launcher{translate:0 var(--dock-shift,0px);transition:opacity .16s ease,visibility .16s}
+html[data-keyboard="open"] .mobile-tab-bar,html[data-keyboard="open"] .hanger-launcher{opacity:0;visibility:hidden;pointer-events:none}
 
 /* The Type hint sits under the field it refers to and never over the photograph. */
 .intake-fields input.needs-type{border-color:var(--coral);background:#fff6f3}
