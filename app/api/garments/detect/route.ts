@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
 import { type NormalizedBounds } from "@/lib/look-garment-detection";
-import { detectLookOrManualReview, prepareResilientLookDisplay } from "@/lib/look-scan-resilience";
+import { detectLookOrManualReview, prepareSimpleLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
@@ -62,15 +62,15 @@ export async function POST(request:Request) {
     for(let offset=0;offset<detections.length;offset+=4)await Promise.all(detections.slice(offset,offset+4).map(async detection=>{
         const crop=pixelCrop(detection.bounds,prepared.info.width,prepared.info.height);
         const cropBytes=await sharp(prepared.data).extract(crop).png().toBuffer();
-        // Recognition is the only remote vision call allowed on the synchronous intake
-        // path. Calling the background-removal model once per detected piece made a
-        // crowded rack multiply one mobile request into as many as sixteen additional
-        // Bedrock calls. A correct detection could therefore time out while it was only
-        // being cosmetically cleaned up. The measured deterministic silhouette pass is
-        // tried first here, followed by the conservative edge pass and finally the
-        // ordinary bounded crop. The optional AI segmentation helper remains available
-        // for a future asynchronous enhancement, but can never block wardrobe intake.
-        const display=await prepareResilientLookDisplay(cropBytes,{skipAi:true});
+        // Every piece is shown as its bounded crop: the recognised box plus a margin,
+        // zoomed to the garment, with the photograph left intact. Background removal was
+        // taken off this path after it shredded correctly recognised pieces on real phone
+        // photos — a white sneaker against a pale wall, white trousers held in a hand —
+        // where colour is the only signal and the garment matches its surroundings. The
+        // isolation passes remain in lib/ for measurement, but a crop that keeps the whole
+        // garment is always more useful than a cut-out that may erase it. Recognition is
+        // still the only remote vision call on this synchronous path.
+        const display=await prepareSimpleLookDisplay(cropBytes);
         const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
         detection.analysis.processedImage={
           key,

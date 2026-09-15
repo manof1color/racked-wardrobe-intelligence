@@ -22,7 +22,7 @@
 | **A rubric to score** | [Rubric Alignment](#rubric-alignment) | Each weighted category mapped to what is actually built |
 | **To judge the AI** | [Why the AI Is Substantive](#why-the-ai-is-substantive) | Six concrete AI capabilities and the boundaries around each |
 | **To see how a scan works** | [Adding a piece from one photo](#adding-a-piece-from-one-photo) | Five steps, what happens when AI isn't sure, and an honest note on training |
-| **A measured result** | [Garment Isolation](#measured-garment-isolation) | 86% mean IoU on a committed, reproducible crop benchmark |
+| **A measured result** | [Garment Isolation](#measured-garment-isolation) | 86% mean IoU on a reproducible crop benchmark — and why live intake still uses the plain crop |
 | **To judge the engineering** | [Architecture](#architecture-overview) · [Key Files](#key-files) · [CI](#ci--github-actions) | Trust boundaries, the module map, and the green gate |
 | **To judge the ethics** | [Privacy Boundaries](#security-and-privacy-boundaries) · [Ethical Stance](#ethical-stance-and-claims) | `k ≥ 25`, consent, and an explicit list of what is *not* claimed |
 | **To see how it was built** | [PROGRESS.md](PROGRESS.md) | Real merged-PR history, phase by phase |
@@ -98,7 +98,7 @@ The result is a defensible two-sided loop:
 
 ## Why the AI Is Substantive
 
-- **Multi-piece garment vision:** Amazon Bedrock instance-detects each visible wardrobe piece in a general photo, returns bounded coordinates and controlled attributes, and lets the server create a separate private item image for every selected detection. The synchronous mobile path then uses measured local silhouette isolation, conservative edge removal, or the ordinary bounded crop—never another remote call per piece—so visual cleanup cannot turn one crowded-rack scan into sixteen additional provider waits. A visible-subject guard rejects nearly erased transparent results and automatically keeps a clear crop instead. It never infers personal traits or grants verified product identity.
+- **Multi-piece garment vision:** Amazon Bedrock instance-detects each visible wardrobe piece in a general photo, returns bounded coordinates and controlled attributes, and lets the server create a separate private item image for every selected detection. Each piece is shown as its bounded crop — the recognised box plus a margin, with the photograph intact — and no further remote call is made per piece, so one crowded-rack scan cannot turn into sixteen additional provider waits. Background removal was taken off this path after it erased correctly recognised white garments on real phone photos. It never infers personal traits or grants verified product identity.
 - **Garment vision:** Bedrock analyzes front, back, and label evidence into a controlled category, subtype, color, pattern, material, style, confidence, alternatives, and visible evidence. Additional views may revise the first-photo hypothesis.
 - **Consumer Hanger:** a multi-turn agent reloads only the signed-in consumer's wardrobe, wear history, saved outfits, and private clothing signals from Community Looks that person intentionally saved as inspiration, then returns grounded styling guidance and validated save/wear actions. Current instructions always outrank historical inspiration. Explicitly requested owned garments are locked before scoring—even when recently worn or previously suggested—and the remaining pieces are selected around them. One canonical server selection drives the written list, private photo cards, action IDs, saved title, and flat-lay order; generated prose that names a different owned garment is rejected.
 - **Brand Hanger:** a separate agent receives only that brand's enrolled product plus privacy-released aggregate wear and public-community metrics; suppressed cohorts remain suppressed in the prompt.
@@ -131,7 +131,7 @@ The result is a defensible two-sided loop:
                     names, emails, photos, raw wardrobes, or owner IDs)
 ```
 
-**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock from `us-east-2`. Whole-look instance detection uses the US Nova Pro geographic profile; routine garment analysis and both Hanger agents remain on Nova Lite. The synchronous scan uses local foreground isolation, so it does not fan out into a remote segmentation request for every detected piece. The deployed Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions. The committed template also describes narrowly scoped SES sending for password recovery, but that separate permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
+**Infrastructure:** AWS Amplify Hosting (SSR) · DynamoDB single-table, on-demand · private encrypted S3 with public access blocked · Amazon Bedrock from `us-east-2`. Whole-look instance detection uses the US Nova Pro geographic profile; routine garment analysis and both Hanger agents remain on Nova Lite. The synchronous scan stores a bounded crop per piece and makes no per-piece segmentation request. The deployed Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions. The committed template also describes narrowly scoped SES sending for password recovery, but that separate permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
 
 ---
 
@@ -175,7 +175,7 @@ Mapping onto controlled types matters because outfit ranking and Community filte
 - Auto-filled names become grammatical labels — **White Sneakers** for a pair, **White Sneaker** for one unmatched shoe — and anything the person edits stays exactly as written.
 - If the Pro profile is rejected immediately for configuration or permission, Racked retries once on Nova Lite. A timeout never triggers a second wait.
 - Whole-look recognition has a shorter deadline than general vision, so cropping and private storage keep part of Amplify's request budget.
-- The server cuts one private image per piece, tries the deterministic silhouette and conservative edge passes, and keeps the ordinary bounded crop when neither is safe or a transparent result shows too little garment. Recognition is the only remote vision call in this path.
+- The server cuts one private image per piece: the recognised box plus an 8% margin, zoomed to the garment with the photograph intact. Background removal is deliberately **off** in live intake — on real phone photos it erased white trousers and a white sneaker against pale surroundings, and a crop that keeps the whole garment beats a cut-out that may lose it. Recognition is the only remote vision call in this path.
 - A recognition outage or malformed response becomes one zero-confidence, editable **needs your label** card rather than a rejected photo or invented attributes. Overlapping or hidden pieces may need a second photo.
 - Intake used to open on a choice between "one photo" and "link a brand product", which asked people to know in advance whether a garment was enrolled — and choosing wrong was permanent. One flow with per-piece linking removed that trap.
 
@@ -200,7 +200,7 @@ The full enrollment-to-discovery path:
 9. In Community, **Recreate with my wardrobe** compares a public outfit only against the signed-in consumer's wardrobe. The result leads with how much of the look they can already build, splits pieces into *use yours* and *you're missing* in plain language, and lets them open any matched piece to see which owned garment was chosen and why. **Shop the Look** then opens an in-app inspection sheet where only an exact registry-verified product with an authorized destination is openable — similar, AI-estimated, unverified, and unavailable pieces are labeled as such rather than sold, with affiliate disclosure where relevant. The rate-limited Similar Products API separately ranks only enrolled, available, same-category registry products with inspectable reasons; a suggestion never becomes an exact-match claim or exposes a consumer wardrobe.
 10. The consumer may separately opt in to anonymous brand aggregates and may publish one explicitly selected saved outfit to Community. Every public garment gets a new public ID; private wardrobe IDs and S3 keys never enter the feed.
 
-Saved Looks also generate a private, static flat-lay board from the existing transparent garment cutouts on a clean white canvas. Category-aware placement keeps layers toward the top, bottoms lower, footwear at the base, and accessories toward the corners. Original evidence photos remain unchanged and private.
+Saved Looks also generate a private, static flat-lay board from each garment's saved image on a clean white canvas. Category-aware placement keeps layers toward the top, bottoms lower, footwear at the base, and accessories toward the corners. Original evidence photos remain unchanged and private.
 
 ### Brand
 
@@ -262,7 +262,7 @@ app/api/account/               Own-account settings + current-password authoriza
 app/api/auth/password-reset/   Enumeration-safe request + single-use reset confirmation
 app/api/garments/classify/     Adaptive first-photo category + subtype hypothesis (photo plan)
 app/api/garments/analyze/      Bedrock vision + registry identity + evidence/display image storage
-app/api/garments/detect/       One-photo multi-piece detection + private per-garment cutouts
+app/api/garments/detect/       One-photo multi-piece detection + a private bounded crop per piece
 app/api/consumer/…             Wardrobe, outfits, consent — always scoped to the signed-in account
 app/api/wears/                 Confirmed wear events + saved-outfit wear totals
 app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
@@ -288,7 +288,7 @@ lib/backdrop-model.ts          Clustered backdrop colours; perimeter-run surface
 lib/garment-segmenter.ts       Registration seam for a learned segmenter (MobileSAM-ready)
 lib/ai-background-removal.ts   Optional asynchronous-ready segmentation helper; not an intake gate
 lib/garment-evaluation-runner.ts  Production-result → privacy-safe benchmark contract
-lib/garment-cutout.ts          Conservative edge-connected transparency for detected pieces
+lib/garment-cutout.ts          Edge-connected transparency (research; not used by live intake)
 lib/outfit-board.ts            Deterministic category-aware flat-lay placement
 lib/account-security.ts        Password policy and reset-token lifetime/hash rules
 lib/photo-plan.ts              Category → photo-plan agent logic (identity-free by construction)
@@ -320,7 +320,9 @@ node --experimental-strip-types scripts/crop-benchmark.ts
 | --- | ---: | ---: |
 | `trim` — sharp's border trim | 61% | 7/14 |
 | `flood` — earlier single-colour cutout | 78% | 10/14 |
-| **`isolate` — the shipped pass** | **86%** | **12/14** |
+| **`isolate` — best local pass** | **86%** | **12/14** |
+
+> **Not used in live intake.** Synthetic backdrops are not a phone camera. On real photos these passes erased correctly recognised white garments — trousers held in a hand, a sneaker against a pale wall — so intake shows the bounded crop instead. The passes stay in the repository, measured, as the baseline a learned segmenter must beat.
 
 The backdrop is modelled as a small set of clustered colours rather than one median, which
 is what lets a striped rug or floorboards be recognised as a surface at all. The garment is
@@ -390,7 +392,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **347 passing tests** (verified 2026-09-14), covering unified per-piece brand linking, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **350 passing tests** (verified 2026-09-14), covering unified per-piece brand linking, bounded-crop-only intake, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -401,8 +403,8 @@ The suite currently has **347 passing tests** (verified 2026-09-14), covering un
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **347 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
-| UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, individually isolated garment cutouts on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
+| Code, docs & GitHub | 15% | Typed modules, **350 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, whole-piece garment crops on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
 

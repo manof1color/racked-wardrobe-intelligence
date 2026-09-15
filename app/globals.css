@@ -552,6 +552,10 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 .mobile-tab-bar,.hanger-launcher{translate:0 var(--dock-shift,0px);transition:opacity .16s ease,visibility .16s}
 html[data-keyboard="open"] .mobile-tab-bar,html[data-keyboard="open"] .hanger-launcher{opacity:0;visibility:hidden;pointer-events:none}
 
+/* An open sheet owns the screen: the tab bar and Hanger button would otherwise show through
+   beneath its lower edge. */
+body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-launcher{visibility:hidden}
+
 /* The Type hint sits under the field it refers to and never over the photograph. */
 .intake-fields input.needs-type{border-color:var(--coral);background:#fff6f3}
 .intake-type-hint{margin:0;padding:8px 10px;border-left:3px solid var(--coral);background:#fff6f3;font-size:.72rem;line-height:1.5;color:var(--ink)}

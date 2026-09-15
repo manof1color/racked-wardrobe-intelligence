@@ -34,9 +34,10 @@ test("synchronous look intake never multiplies recognition into per-piece provid
   });
   assert.equal(aiCalls,0);
   assert.ok(["edge-fallback","none"].includes(result.method));
+  // The live route now goes further and calls no removal pass at all; see bounded-crop-intake.test.ts.
   const route=readFileSync(new URL("../app/api/garments/detect/route.ts",import.meta.url),"utf8");
-  assert.match(route,/prepareResilientLookDisplay\(cropBytes,\{skipAi:true\}\)/);
-  assert.doesNotMatch(route,/skipAi:recognition\.providerFailed/);
+  assert.match(route,/prepareSimpleLookDisplay\(cropBytes\)/);
+  assert.doesNotMatch(route,/removeGarmentBackground|skipAi:recognition\.providerFailed/);
 });
 
 test("an almost transparent garment is rejected in favor of a clearly visible fallback",async()=>{
@@ -95,7 +96,7 @@ test("an empty recognition result also stays editable without inventing attribut
 test("the upload route no longer blames every provider or storage failure on the photo",()=>{
   const route=readFileSync(new URL("../app/api/garments/detect/route.ts",import.meta.url),"utf8");
   assert.match(route,/detectLookOrManualReview/);
-  assert.match(route,/prepareResilientLookDisplay/);
+  assert.match(route,/prepareSimpleLookDisplay/);
   assert.doesNotMatch(route,/Try a clearer image with less overlap/);
   assert.match(route,/could not store the private wardrobe image/);
   assert.match(route,/Your photo was not rejected/);
