@@ -57,17 +57,21 @@ Now every garment arrives the same way, and brand linking is a per-piece upgrade
    confidence and no invented attributes — you choose the category and type yourself rather
    than hitting a dead end. A piece can't be saved while its category is still unknown.
 
-**B. Link a brand product** — *front + back + label, exact tracking*
+**B. Link a brand product** — *a label code on any piece*
 
-Three photographs. `POST /api/garments/analyze` reads visible label evidence and checks it
-against the brand registry. **Only a GTIN match, or a brand-plus-SKU match, creates a
-verified product link.** AI-read text and typed brand names are suggestions marked
-unverified, permanently — that boundary cannot be crossed by any amount of confidence.
+Open **Is this a brand product?** on a piece and enter the barcode number, or the brand with its
+style code. `POST /api/garments/verify` checks it against the brand registry and writes nothing.
+**Only a GTIN match, or a brand-plus-SKU match, creates a verified product link.** AI-read text
+and typed brand names are suggestions marked unverified, permanently — that boundary cannot be
+crossed by any amount of confidence.
 
 ### 4. Closet
 
 Every saved garment with its wear count and how long since it was last worn. Wear age is
 derived from the stored timestamp on every read, so it never goes stale.
+
+Any piece can be deleted from its card, with a second tap to confirm. Saved outfits lose it (an
+outfit left empty is deleted), your Community posts stop showing it, and its photos are removed.
 
 ### 5. Looks — build an outfit
 
@@ -127,6 +131,10 @@ demonstration event the fictional brand sees arrive live.
 
 Brand data sharing on/off, account details, sign out. Turning sharing off removes you from
 future brand aggregates.
+
+**Delete account** is its own card: enter your current password and type DELETE. Your wardrobe
+and photos, saved outfits, wear history, Community posts, saved inspiration, and consent
+settings are removed, and you are signed out. Brand accounts cannot yet be deleted here.
 
 ---
 

@@ -23,25 +23,22 @@ storefronts with the $0 purchase simulation.
 
 ## 2. Cut list — code nothing reaches
 
-| Item | Lines | Evidence | Action |
-| --- | ---: | --- | --- |
-| `components/three-view-uploader.tsx` | 58 | Only surviving reference is a *type* import in `garment-intake.tsx` | Move `GarmentOverrides` to `lib/types.ts`, delete the component |
-| `app/api/garments/analyze/` | — | Only caller is that component | Delete route |
-| `app/api/garments/classify/` | — | Only caller is that component | Delete route |
-| `lib/photo-plan.ts` + test | — | Only used by the classify route | Delete |
-| `lib/agents.ts` | 84 | Imported only by tests, never by the product | Delete with its tests |
-| `lib/brand-wear-insight.ts` | 55 | Imported only by tests | Delete with its tests |
-| Unused exports in `lib/garment-analysis.ts` | — | `DEFAULT_VISION_MODEL`, `DEFAULT_BEDROCK_VISION_MODEL`, `validateFrontFirstUpload`, `analyzeFrontFirstSet`, `analyzeThreeViewSet` have no callers | Delete |
+> **Corrected 2026-09-16 after re-verification.** The first version of this list was checked only
+> against `app/`, `components/`, and `lib/`. Checking `scripts/` and `tests/` as well showed three
+> items are still in use, so they stay. The cut shipped in PROGRESS Phase 37.
 
-**Keep:** `validateThreeViewUpload` and `MAX_UPLOAD_BYTES` (brand enrollment and the scan
-route use them), `lib/garment-evaluation-runner.ts` (the evaluation script uses it), and the
-isolation/benchmark research already documented as not used in live intake.
+| Item | Evidence | Action |
+| --- | --- | --- |
+| `components/three-view-uploader.tsx` | Only a *type* import survived, in `garment-intake.tsx` | Removed; `GarmentOverrides` moved to `lib/types.ts` |
+| `app/api/garments/classify/` and `/analyze/` | That component was their only caller | Removed |
+| `garmentAnalyze`, `garmentClassify` rate limits | Used only by those routes | Removed |
+| CSS for the three-photo flow | Classes only that component used | Removed |
+| `lib/photo-plan.ts` | `garment-intake.tsx` uses `PLANNED_CATEGORIES` | **Kept** |
+| `analyzeGarmentImages` and the three-view analyzer | The evaluation script and the brand-identity tests use them | **Kept** |
+| `lib/agents.ts`, `lib/brand-wear-insight.ts` | Not used by the product, but they carry the tests proving brand aggregates stay suppressed below 25 owners | **Kept** until those guarantees are tested on the live path |
 
-**No consumer feature is lost.** The three-photo path died when intake was unified; brand
-label checking runs through `/api/garments/verify`, which stays.
-
-**Expect the test count to fall** when the tests for deleted modules go with them. Say so in
-the README rather than quietly restating a smaller number.
+**No consumer feature was lost.** The three-photo path stopped being reachable when intake was
+unified; brand label checking runs through `/api/garments/verify`, which stays.
 
 ## 3. Simplify what remains
 

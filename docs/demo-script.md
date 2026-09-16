@@ -15,10 +15,10 @@ Scroll to the flywheel to show how consumer value and brand value come from the 
 ## 1:00–3:00 — Consumer: the wardrobe and the AI
 
 1. Sign in with the demo Consumer account and show the wardrobe.
-2. Add a garment. Photograph the front, then tap **Get an AI photo plan**.
-3. Read the agent's reasoning aloud. Point out that it asks a shoe for its **sole and tongue label**, not a generic back view — the agent adapts what evidence it collects to what it just classified.
-4. Change the category in the dropdown to show the plan rebuild. *The person stays in control.*
-5. Complete the photos and analyze. Show the controlled category/subtype, the confidence, the alternatives, the auto-cropped display image beside the preserved evidence photo, and the prefilled brand label.
+2. Tap **+**, then **Take photo** or **Choose image**, and add a photo with two or three pieces. A flat lay on a plain surface works best.
+3. Show one card per piece. Point out the controlled category and **Type**: when AI is unsure, the Type field asks, and anything typed is kept in the person's own words.
+4. Open **Is this a brand product?** on one piece and enter a label code to show the registry check.
+5. Confirm and save. Show the pieces in Closet, and that any piece can be deleted there.
 6. Stress the boundary: *"A brand name read from a photo, typed by hand, or matched from a name list only fills in an editable field. Only registry SKU or GTIN evidence makes a product verified — even if a brand account already exists under that name."*
 
 ## 3:00–4:00 — Outfits and wear
@@ -57,6 +57,6 @@ Say **observed**, not **caused**. Racked does not claim recognition accuracy, sa
 
 ## Failure handling
 
-- **Bedrock unavailable:** the photo plan falls back to the standard back-plus-label set and analysis opens explicit manual review. Show it — the graceful degradation is a feature, not an excuse.
+- **Bedrock unavailable:** the scan returns one editable **needs your label** card instead of failing. Show it — the graceful degradation is a feature, not an excuse.
 - **Cohort below 25:** show the suppression state and explain it is a successful privacy control.
 - **No shopping destination configured:** Shop the Look will not appear. Skip it and describe the state distinction from the Products section of the brand page instead.

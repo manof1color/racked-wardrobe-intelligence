@@ -7,7 +7,7 @@ import type { DetectedLookGarment } from "@/lib/look-garment-detection";
 import { garmentSubtypeLabel, garmentTypeSuggestions, normalizeGarmentCategory, resolveTypedGarmentType, subtypeForCategory } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
-import type { GarmentOverrides } from "./three-view-uploader";
+import type { GarmentOverrides } from "@/lib/types";
 import { PhotoSourcePicker } from "./photo-source-picker";
 
 /**

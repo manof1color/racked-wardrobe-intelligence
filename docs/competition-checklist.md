@@ -51,12 +51,12 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the bounded crop, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA with an always-actionable Add Racked control: native install prompts where supported and explicit iPhone/iPad, Android fallback, and desktop instructions otherwise.
-- [x] 365 automated tests and lint pass (re-verified 2026-09-16); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
+- [x] 368 automated tests and lint pass (re-verified 2026-09-16); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 
 ## 3. AI integration / innovation — 20%
 
 - [x] Amazon Bedrock uses Nova Lite for routine garment analysis/Hanger and reserves the US Nova Pro geographic profile for the harder whole-look instance-detection task; an immediate model-selection error may fall back once, while a timeout never doubles the mobile wait.
-- [x] Garment Recognition V2: controlled category/subtype taxonomy, uncertainty alternatives, first-photo hypothesis carried into confirm-or-revise multi-view reasoning, manual correction, and honest fallback; verification evidence is unchanged.
+- [x] Garment Recognition V2: controlled category/subtype taxonomy, uncertainty alternatives, first-photo hypothesis carried into confirm-or-revise multi-view reasoning, manual correction, and honest fallback; verification evidence is unchanged. The multi-view path is now the evaluation benchmark rather than a live intake step.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
 - [x] Consumer Hanger Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
