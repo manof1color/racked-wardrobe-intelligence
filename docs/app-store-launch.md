@@ -28,6 +28,8 @@ Fix these before either submission — they are in the streamline plan for the s
 5. **No demo commerce inside the app build.** Fictional storefronts and a $0 checkout read as
    placeholder content.
 
+**Status 2026-09-16:** blockers 1–3 are done for consumer accounts (PROGRESS Phase 36). Brand account deletion is in the ChatGPT work order; the mobile app itself is consumer-only.
+
 ## Track A — Google Play (start this first)
 
 The long pole is a testing rule, not the build.

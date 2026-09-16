@@ -67,6 +67,8 @@ the README rather than quietly restating a smaller number.
 | No data export | Not required, but expected of a privacy-first product | — |
 | Small-jewellery recognition | A bracelet spanning both wrists fell back to the whole photo | Open recognition case |
 
+**Status 2026-09-16:** garment deletion, consumer account deletion, and a pilot terms page are done (PROGRESS Phase 36). Brand account deletion and data export are in the [ChatGPT work order](work-orders/chatgpt-launch-follow-ups.md).
+
 Outfit deletion and per-piece removal already exist, so the missing wardrobe delete is an
 inconsistency as much as a policy gap.
 

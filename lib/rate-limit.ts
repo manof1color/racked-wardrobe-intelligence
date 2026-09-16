@@ -23,6 +23,8 @@ export const RATE_LIMIT_RULES = {
   passwordResetRequest: { limit: 5, windowMs: 60 * 60 * 1000 },
   passwordResetConsume: { limit: 10, windowMs: 60 * 60 * 1000 },
   accountSettings: { limit: 10, windowMs: 15 * 60 * 1000 },
+  accountDeletion: { limit: 5, windowMs: 15 * 60 * 1000 },
+  garmentDelete: { limit: 30, windowMs: 10 * 60 * 1000 },
   garmentAnalyze: { limit: 12, windowMs: 10 * 60 * 1000 },
   garmentClassify: { limit: 20, windowMs: 10 * 60 * 1000 },
 

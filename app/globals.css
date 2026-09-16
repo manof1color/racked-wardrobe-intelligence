@@ -560,3 +560,15 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .intake-fields input.needs-type{border-color:var(--coral);background:#fff6f3}
 .intake-type-hint{margin:0;padding:8px 10px;border-left:3px solid var(--coral);background:#fff6f3;font-size:.72rem;line-height:1.5;color:var(--ink)}
 .intake-type-kept{margin:0;font-size:.68rem;color:var(--muted)}
+/* Deleting a wardrobe piece: a quiet control that asks once before it acts. */
+.garment-delete{display:grid;gap:6px;padding:0 13px 13px}
+.garment-delete>button{justify-self:start;min-height:36px;border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 12px;font-size:.7rem;font-weight:850;letter-spacing:.04em;cursor:pointer}
+.garment-delete>button:hover{border-color:#5d1712;color:#5d1712}
+.garment-delete>button.confirm-delete{background:#5d1712;border-color:#5d1712;color:#fff}
+
+/* Account deletion sits in its own card, so it can never be mistaken for saving settings. */
+.settings-danger{border-top:4px solid #5d1712}
+.settings-danger h2{font:400 2.2rem Georgia,serif;margin:14px 0}
+.settings-danger>p{color:var(--muted);line-height:1.6}
+.settings-delete-list{margin:6px 0 14px;padding-left:1.1rem;line-height:1.7}
+.button-danger{background:#5d1712;color:#fff;border:1px solid #5d1712}

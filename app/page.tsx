@@ -47,7 +47,7 @@ export default async function Home() {
         <article><span>03</span><h3>Discover only what is missing</h3><p>When someone publishes an outfit, its verified pieces become discoverable. Shopping is the last step, and only an exact brand-authorized product is ever linked.</p></article>
       </section>
       <Flywheel />
-      <footer className="landing-footer"><Link className="wordmark inverse" href="/">RACKED<span>.</span></Link><p>CUA AI Vibe Coding Competition · Fall 2026 pilot</p><Link href="/privacy">Privacy & ethics</Link></footer>
+      <footer className="landing-footer"><Link className="wordmark inverse" href="/">RACKED<span>.</span></Link><p>CUA AI Vibe Coding Competition · Fall 2026 pilot</p><Link href="/privacy">Privacy & ethics</Link><Link href="/terms">Terms</Link></footer>
     </main>
   );
 }
