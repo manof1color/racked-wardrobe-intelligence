@@ -4,7 +4,7 @@ import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } fr
 import { promisify } from "node:util";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost, DataClassification } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
@@ -20,6 +20,7 @@ import { wornDaysAgo } from "@/lib/wear-recency";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
 import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, passwordResetIsUsable, passwordResetTokenHash } from "@/lib/account-security";
+import { accountDeletionInventory, communityPostChangeForDeletedImage, outfitChangesForGarmentDeletion, ownedObjectKey, sharedEvidenceKeyToDelete } from "@/lib/deletion-plan";
 import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
 import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
 import sharp from "sharp";
@@ -279,6 +280,141 @@ export async function incrementOutfitWears(ownerId:string,outfitId:string) {
   if(!outfit)throw new Error("Saved outfit not found for this account.");
   const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`},UpdateExpression:"SET wears = if_not_exists(wears, :zero) + :one",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"ALL_NEW"}));
   return Number(result.Attributes?.wears??0);
+}
+
+// ─── Deletion ────────────────────────────────────────────────────────────────
+// Garment and account deletion are both ordered so nothing is ever left pointing at something
+// already gone: dependants first, photographs next, the owning record last. An interrupted
+// deletion is therefore finished by retrying it, because the record that starts the work still
+// exists. Every storage key passes ownedObjectKey, so neither can reach outside the signed-in
+// account's own prefix.
+
+export class AccountDeletionUnavailableError extends Error {}
+
+async function queryEveryPage(input:{KeyConditionExpression:string;ExpressionAttributeValues:Record<string,unknown>;FilterExpression?:string}) {
+  const items:Record<string,unknown>[]=[];
+  let startKey:Record<string,unknown>|undefined;
+  do {
+    const page=await db.send(new QueryCommand({TableName:requireTable(),...input,...(startKey?{ExclusiveStartKey:startKey}:{})}));
+    items.push(...((page.Items??[]) as Record<string,unknown>[]));
+    startKey=page.LastEvaluatedKey as Record<string,unknown>|undefined;
+  } while(startKey);
+  return items;
+}
+
+async function inBatches<T>(values:T[],size:number,run:(value:T)=>Promise<unknown>) {
+  for(let index=0;index<values.length;index+=size)await Promise.all(values.slice(index,index+size).map(run));
+}
+
+async function ownCommunityPosts(ownerId:string) {
+  return await queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"ownerId = :owner",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":owner":ownerId}}) as unknown as StoredPost[];
+}
+
+async function deleteOwnWearEvents(ownerId:string,productKey:string,garmentId?:string) {
+  if(!productKey.startsWith("PRODUCT#"))return 0;
+  const events=await queryEveryPage({
+    KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",
+    FilterExpression:garmentId?"ownerPK = :owner AND garmentId = :garment":"ownerPK = :owner",
+    ExpressionAttributeValues:{":pk":productKey,":sk":"WEAR#",":owner":`USER#${ownerId}`,...(garmentId?{":garment":garmentId}:{})},
+  });
+  await inBatches(events,10,event=>db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:String(event.PK),SK:String(event.SK)}})));
+  return events.length;
+}
+
+async function deleteOwnedObjects(ownerId:string,keys:Array<string|null|undefined>) {
+  const owned=[...new Set(keys.map(key=>ownedObjectKey(key,ownerId)).filter((key):key is string=>Boolean(key)))];
+  await inBatches(owned,8,key=>s3.send(new DeleteObjectCommand({Bucket:requireBucket(),Key:key})));
+  return owned.length;
+}
+
+/**
+ * Removes objects under the account's prefix that no record points at — chiefly scan photos the
+ * person never saved. Listing needs s3:ListBucket on that prefix. Without it the sweep is skipped
+ * and logged rather than failing the deletion; any other error stops the deletion.
+ */
+async function sweepOwnedPrefix(ownerId:string) {
+  let removed=0;
+  let token:string|undefined;
+  try {
+    do {
+      const page=await s3.send(new ListObjectsV2Command({Bucket:requireBucket(),Prefix:`wardrobe/${ownerId}/`,...(token?{ContinuationToken:token}:{})}));
+      removed+=await deleteOwnedObjects(ownerId,(page.Contents??[]).map(object=>object.Key));
+      token=page.IsTruncated?page.NextContinuationToken:undefined;
+    } while(token);
+    return {complete:true,removed};
+  } catch(error) {
+    const name=error instanceof Error?error.name:"UnknownError";
+    if(name!=="AccessDenied"&&name!=="AccessDeniedException")throw error;
+    console.warn("Account deletion storage sweep skipped: s3:ListBucket is not granted on the account prefix",{removed});
+    return {complete:false,removed};
+  }
+}
+
+export async function deleteWardrobeItem(ownerId:string,garmentId:string) {
+  const found=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`GARMENT#${garmentId}`}}));
+  const item=found.Item as (WardrobeItem&{GSI1PK?:string})|undefined;
+  if(!item)return null;
+
+  // 1. Saved outfits lose the piece; an outfit left with nothing in it is deleted.
+  const outfitChanges=outfitChangesForGarmentDeletion(garmentId,await listOutfits(ownerId));
+  for(const change of outfitChanges) {
+    if(change.action==="delete")await deleteOutfit(ownerId,change.outfitId);
+    else await updateOutfitItems(ownerId,change.outfitId,change.itemIds);
+  }
+
+  // 2. The person's own Community posts stop showing this photograph.
+  const imageKey=ownedObjectKey(item.imageKey,ownerId);
+  let postsUpdated=0,postsRemoved=0;
+  if(imageKey) {
+    for(const post of await ownCommunityPosts(ownerId)) {
+      const change=communityPostChangeForDeletedImage(post,ownerId,imageKey);
+      const key={PK:String(post.PK),SK:String(post.SK)};
+      if(change.action==="delete"){await db.send(new DeleteCommand({TableName:requireTable(),Key:key}));postsRemoved++;}
+      else if(change.action==="update"){await db.send(new UpdateCommand({TableName:requireTable(),Key:key,UpdateExpression:"SET publishedGarments = :garments",ExpressionAttributeValues:{":garments":change.publishedGarments},ConditionExpression:"attribute_exists(PK)"}));postsUpdated++;}
+    }
+  }
+
+  // 3. Wear events this piece added to a brand's anonymous totals.
+  if(item.GSI1PK?.startsWith("PRODUCT#"))await deleteOwnWearEvents(ownerId,item.GSI1PK,garmentId);
+
+  // 4. Photographs. One scan's evidence photo is shared by every piece cut from it, so it goes
+  //    only with the last of them.
+  const wardrobe=await queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"GARMENT#"}}) as unknown as WardrobeItem[];
+  await deleteOwnedObjects(ownerId,[imageKey,sharedEvidenceKeyToDelete(item,wardrobe,ownerId)]);
+
+  // 5. The record, last.
+  await db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`GARMENT#${garmentId}`}}));
+  return {
+    outfitsUpdated:outfitChanges.filter(change=>change.action==="update").length,
+    outfitsRemoved:outfitChanges.filter(change=>change.action==="delete").length,
+    postsUpdated,
+    postsRemoved,
+  };
+}
+
+export async function deleteOwnConsumerAccount(ownerId:string,currentPassword:string) {
+  const account=await getAccount(ownerId);
+  if(!account||!await verifyAccountPassword(account,currentPassword))return null;
+  if(account.role!=="consumer")throw new AccountDeletionUnavailableError("Brand accounts can't be deleted from Settings yet: enrolled products are linked to other people's wardrobes and have to be unlinked safely first.");
+  const inventory=accountDeletionInventory(ownerId,await queryEveryPage({KeyConditionExpression:"PK = :pk",ExpressionAttributeValues:{":pk":`USER#${ownerId}`}}));
+
+  // 1. Public posts.
+  const posts=await ownCommunityPosts(ownerId);
+  await inBatches(posts,10,post=>db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:String(post.PK),SK:String(post.SK)}})));
+
+  // 2. Wear events this account left inside brands' product partitions.
+  for(const productKey of inventory.productKeys)await deleteOwnWearEvents(ownerId,productKey);
+
+  // 3. Every photograph a record points at, then anything left under the account's prefix.
+  const referencedPhotos=await deleteOwnedObjects(ownerId,inventory.objectKeys);
+  const sweep=await sweepOwnedPrefix(ownerId);
+
+  // 4. Records, profile last: until it goes the account still exists, so a retry finishes.
+  const profile=inventory.recordKeys.filter(key=>key.SK==="PROFILE");
+  await inBatches(inventory.recordKeys.filter(key=>key.SK!=="PROFILE"),10,key=>db.send(new DeleteCommand({TableName:requireTable(),Key:key})));
+  for(const key of profile)await db.send(new DeleteCommand({TableName:requireTable(),Key:key}));
+
+  return {deleted:true as const,postsRemoved:posts.length,photosRemoved:referencedPhotos+sweep.removed,storageSweepComplete:sweep.complete};
 }
 
 export async function listOwnedBrandProducts(ownerId:string):Promise<BrandProductRegistration[]> {

@@ -227,14 +227,14 @@ Reset delivery uses Amazon SES. **Code completion does not guarantee public emai
 
 | Route | Access | What it does |
 | --- | --- | --- |
-| `/` · `/community` · `/brands/[slug]` · `/pricing` · `/privacy` | Public | Landing, outfit discovery feed, public brand pages, planned pricing |
+| `/` · `/community` · `/brands/[slug]` · `/pricing` · `/privacy` · `/terms` | Public | Landing, outfit discovery feed, public brand pages, planned pricing, pilot terms |
 | `/demo-store/[brandSlug]/[sku]` | Public | Fictional demo storefront — `DEMO` products only, never a real brand |
 | `/login` · `/forgot-password` · `/reset-password` | Public | Authentication and single-use recovery |
 | `/consumer` · `/settings` | Consumer | Today / Looks / Closet / Outfits workspace, own-account settings |
 | `/brand` | Brand | Aggregate dashboard, product enrollment, Brand Looks, Brand Hanger |
 | `POST /api/garments/detect` · `/classify` · `/analyze` | Consumer | Multi-piece detection, photo-plan hypothesis, full multi-view analysis |
 | `POST /api/garments/verify` | Consumer | Checks one garment's label text against the brand registry. Writes nothing; a brand name alone never matches |
-| `GET/POST /api/consumer/wardrobe` · `GET/POST/PATCH/DELETE /api/consumer/outfits` · `GET/PATCH /api/consumer/consent` | Consumer | Always scoped to the signed-in account; outfit PATCH removes pieces and regenerates the private board |
+| `GET/POST/DELETE /api/consumer/wardrobe` · `GET/POST/PATCH/DELETE /api/consumer/outfits` · `GET/PATCH /api/consumer/consent` | Consumer | Always scoped to the signed-in account; outfit PATCH removes pieces and regenerates the private board; wardrobe DELETE keeps outfits and the owner's Community posts consistent |
 | `POST /api/wears` | Consumer | Confirmed wear events plus saved-outfit wear totals |
 | `POST /api/agents/consumer` · `/agents/brand` | Role-bound | Hanger conversations; fresh authoritative context per message |
 | `POST /api/brand/metrics` · `/community-metrics` | Brand | Consent-filtered `k ≥ 25` aggregates and public-activity metrics |
@@ -244,7 +244,7 @@ Reset delivery uses Amazon SES. **Code completion does not guarantee public emai
 | `POST /api/community/[postId]/recreate` | Consumer | Recreate This Look against only the signed-in wardrobe |
 | `GET /api/community/images/[postId]/[garmentId]` | Public | Post-scoped image proxy; never exposes a private S3 key |
 | `GET /api/products/similar` · `/[productId]/outbound` | Public | Registry-only suggestions; server-validated outbound redirect |
-| `POST /api/account` · `/auth/password-reset/*` | Signed in / Public | Own-account updates requiring the current password; enumeration-safe recovery |
+| `GET/PATCH/DELETE /api/account` · `/auth/password-reset/*` | Signed in / Public | Own-account updates and consumer account deletion, both requiring the current password; enumeration-safe recovery |
 
 Full access levels and abuse controls: [docs/backend-api.md](docs/backend-api.md).
 
@@ -258,7 +258,7 @@ Full access levels and abuse controls: [docs/backend-api.md](docs/backend-api.md
 
 ```text
 app/api/auth/…                 Register/login/logout: scrypt hashes, signed sessions, rate limits
-app/api/account/               Own-account settings + current-password authorization
+app/api/account/               Own-account settings + consumer account deletion (password + typed DELETE)
 app/api/auth/password-reset/   Enumeration-safe request + single-use reset confirmation
 app/api/garments/classify/     Adaptive first-photo category + subtype hypothesis (photo plan)
 app/api/garments/analyze/      Bedrock vision + registry identity + evidence/display image storage
@@ -271,6 +271,7 @@ app/api/community/images/      Public post-scoped image proxy; never exposes pri
 app/api/community/[postId]/    Signed-in Recreate This Look comparison
 app/api/products/similar/      Rate-limited registry-only product suggestions
 lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
+lib/deletion-plan.ts           Owner-scoped deletion planning: outfits, posts, shared photos, profile last
 lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
 lib/look-garment-detection.ts  Bounded instance detection, coordinates, deduplication, trust boundary
 lib/garment-taxonomy.ts        Controlled categories/subtypes, bounded uncertainty, typed-type resolver
@@ -359,6 +360,7 @@ signal, **not** a measured accuracy claim about real photographs.
 - Passwords are salted with a random value and hashed with scrypt.
 - Sessions are signed, expiring, secure, HTTP-only cookies.
 - Account updates are scoped only to the signed-in subject and require the current password. Password changes increment a server-side session version; reset tokens are hashed, single-use, and valid for 30 minutes.
+- **Deletion is owner-scoped and retry-safe.** Deleting a garment updates saved outfits (an emptied one is deleted), removes its photo from the owner's own Community posts, deletes the wear events it added to brand totals, and deletes its photos — the scan's evidence photo only with the last piece cut from it. Deleting a consumer account requires the current password and the typed word DELETE; it removes posts, wear events, every referenced photo, and every record with the profile last, then clears the session. Storage outside the account's own prefix is never touched. Brand accounts cannot yet be deleted from Settings.
 - Garment saves require a server-signed confirmation token tied to the account and both private image keys.
 - S3 public access is blocked; URLs expire after one hour.
 - Consumer photos and raw wardrobe records are never returned to brands. Community publishes only a selected saved outfit, replaces wardrobe IDs with public garment IDs, and serves its presentation through a post-scoped image proxy. The public allowlist cannot serialize owner IDs, saved-outfit IDs, private S3 keys, or database keys.
@@ -392,7 +394,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **350 passing tests** (verified 2026-09-14), covering unified per-piece brand linking, bounded-crop-only intake, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **365 passing tests** (verified 2026-09-16), covering unified per-piece brand linking, owner-scoped garment and account deletion, bounded-crop-only intake, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, browser-specific Home Screen installation guidance, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -403,7 +405,7 @@ The suite currently has **350 passing tests** (verified 2026-09-14), covering un
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **350 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **365 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, whole-piece garment crops on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -480,6 +482,7 @@ Everything above is self-contained; these go deeper.
 - [Streamline plan](docs/streamline-plan.md) — measured cut list, surface simplification, and the gaps that block a store submission
 - [App Store and Google Play launch](docs/app-store-launch.md) — two tracks, policy blockers, and realistic timelines
 - [TikTok campaign](docs/tiktok-campaign.md) — positioning, content pillars, creators, and the eight-week plan
+- [Launch work orders](docs/work-orders/claude-launch-blockers.md) — blockers executed by Claude, and [follow-ups for ChatGPT](docs/work-orders/chatgpt-launch-follow-ups.md) with the rules its code is reviewed against
 - [Recognition work order](docs/work-order-recognition.md) — open tasks for measuring and improving garment recognition
 - [Segmentation backends](docs/segmentation-backends.md) — how cropping works, what it scores, and how to add a learned segmenter
 - [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist

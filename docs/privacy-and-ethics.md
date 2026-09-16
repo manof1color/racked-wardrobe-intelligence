@@ -38,7 +38,9 @@ Password recovery does not reveal account existence. Reset secrets are never sto
 
 ## Retention and deletion
 
-Production account deletion must remove the exact account partition, owned S3 objects, public posts, and brand product records, then recompute affected product aggregates. Security logs must exclude tokens, passwords, signed URLs, and image bytes.
+A Consumer can delete their account from Settings with their current password and the typed word DELETE. Racked removes their Community posts, the wear events they recorded under brand products, every private photo their records reference, and every record under the account — the profile last, so an interrupted deletion is completed by retrying. Where the deployment grants `s3:ListBucket` on `wardrobe/<account>/`, a sweep also removes scan photos that were never saved; without that permission those photos remain and the gap is logged. Brand aggregates are computed from live records on every request, so a deleted account's wears simply stop counting. Identity-free Community counts, such as likes and recreate requests, are not reduced. Brand account deletion is not yet available from Settings, because consumer wardrobes link to enrolled products and must be unlinked first. Security logs must exclude tokens, passwords, signed URLs, and image bytes.
+
+A Consumer can also delete a single garment. Unlike deleting an outfit, this does retract the photo from their own Community posts: the photo itself is being deleted, and a post must never display an image that no longer exists. A post left with no garments is removed.
 
 A Consumer may also delete an individual saved outfit. That owner-scoped action removes the private outfit record and best-effort deletes its generated board image. It deliberately retains historical wear events so past usage totals are not falsified, and it does not silently retract a Community snapshot the Consumer separately chose to publish.
 

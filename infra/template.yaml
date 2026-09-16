@@ -152,6 +152,14 @@ Resources:
                 Resource: !Sub "${UploadBucket.Arn}/*"
               - Effect: Allow
                 Action:
+                  - s3:ListBucket
+                Resource: !GetAtt UploadBucket.Arn
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      - "wardrobe/*"
+              - Effect: Allow
+                Action:
                   - bedrock:InvokeModel
                 Resource:
                   - "arn:aws:bedrock:*::foundation-model/amazon.nova-*"
