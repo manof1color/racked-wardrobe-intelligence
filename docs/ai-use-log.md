@@ -29,15 +29,11 @@ Racked has selected the corrected CC BY 4.0 [Clothing Dataset for Second-Hand Fa
 
 ## Image preparation
 
-The AI supplies garment understanding. Before the AWS request, the browser creates an approximately 1.2 MB, maximum-1800-pixel JPEG analysis copy of each selected photo; the original stays on the device. A deterministic server image pipeline then rotates EXIF orientation, preserves the unmodified evidence photo, and encodes a separately auto-cropped display PNG that falls back to original framing when the crop is not confident. This prevents combined full-resolution phone photos from triggering an Amplify 413/non-JSON response while keeping label detail suitable for analysis.
+The AI supplies garment understanding. Before the AWS request, the browser creates an approximately 1.2 MB, maximum-1800-pixel JPEG analysis copy of each selected photo; the original stays on the device. A deterministic server image pipeline then rotates EXIF orientation, preserves the unmodified evidence photo, and stores one bounded crop per detected piece. This prevents combined full-resolution phone photos from triggering an Amplify 413/non-JSON response while keeping label detail suitable for analysis.
 
-## Adaptive photo-plan classification
+## Adaptive photo-plan classification (retired from live intake)
 
-When the Consumer adds the first photo, an optional Bedrock step returns a controlled category/subtype hypothesis, 0–95 confidence, visible-evidence rationale, and bounded alternatives. `lib/garment-taxonomy.ts` normalizes it before `lib/photo-plan.ts` requests category-specific evidence. Final multi-view analysis receives the initial hypothesis and must confirm or revise it when the added views disagree. The Consumer can correct name, broad category, subtype, brand, and SKU. Provider failure returns `unknown`/`other-garment` with no invented pattern, material, or alternatives.
-
-Hard boundary: the plan module has no access to brand, SKU, registry, or verification data, and the classification result can never mark a product verified. Brand verification still requires registry GTIN or brand-plus-SKU evidence at analysis time, regardless of which plan was used or how many photos were taken — enforced by a regression test in `tests/photo-plan.test.ts`.
-
-**Rubric evidence (AI integration/innovation):** the enrollment agent adapts its own evidence-gathering to the classified garment category with user-visible reasoning and a user override, while keeping identity verification strictly registry-based — see `lib/photo-plan.ts`, `app/api/garments/classify/route.ts`, and `tests/photo-plan.test.ts`.
+Until intake became one photo, an optional Bedrock step classified the first photo and `lib/photo-plan.ts` requested category-specific evidence, such as a shoe's sole. Unified intake made that step unreachable, and its routes were removed in Phase 37. The planning logic and its regression tests remain, including the proof that brand verification requires the same registry evidence regardless of any plan, and `PLANNED_CATEGORIES` still supplies the intake category list. Live category and subtype now come from whole-look detection, confirmed or corrected by the person.
 
 ## Recreate This Look decision engine
 

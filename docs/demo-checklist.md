@@ -63,7 +63,7 @@ All fictional demo products carry a Racked demo-storefront URL, fictional USD pr
 
 | If this happens | Do this |
 | --- | --- |
-| Bedrock unavailable | Show the fallback: the photo plan reverts to the standard back-plus-label set and analysis opens explicit manual review. Narrate it as designed degradation. |
+| Bedrock unavailable | Show the fallback: the scan returns one editable **needs your label** card with no invented attributes. Narrate it as designed degradation. |
 | Live upload fails | Switch to a garment already in the wardrobe and continue from the confirmation step. |
 | Weak network | Open the public pages (landing, community, brand profile, pricing) which are server-rendered, and defer the upload segment. |
 | Demo account unavailable | Use the public Community and brand pages, which need no sign-in, and describe the signed-in flow from the script. |

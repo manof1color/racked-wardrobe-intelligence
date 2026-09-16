@@ -8,7 +8,7 @@ Opened 2026-09-16. Source: [streamline plan](../streamline-plan.md) and
 | C1 — Delete a garment | Done, Phase 36 |
 | C2 — Delete a consumer account | Done, Phase 36 — the storage sweep needs the IAM stack update |
 | C3 — Terms of service | Done, Phase 36 |
-| C4 — Remove code nothing reaches | Re-verified; next PR |
+| C4 — Remove code nothing reaches | Done, Phase 37 — narrowed after re-verification |
 
 ## Boundaries that apply to every item
 

@@ -61,17 +61,16 @@ The default Consumer Add mode is a one-photo instance-detection path. The US Nov
 
 Authenticated pages share role-aware navigation. The wordmark resolves to `/consumer` or `/brand`, Community retains the matching mobile bottom bar, and those bottom tabs are the single primary mobile navigation. The compact header control is session-only and retains Sign out without duplicating workspace destinations. Desktop keeps the top Workspace/Community navigation. Valid sessions that reach `/` or `/login` are redirected back to their workspace. Navigation never clears the secure session cookie; only a successful `POST /api/auth/logout` does. If that request fails, the interface stops its signing-out state and keeps the session active.
 
-Both one-photo intake and each front/back/label slot expose separate camera and photo-library inputs. The optional **Link a brand product** mode preserves the stronger evidence path below because exact brand/SKU tracking requires registry evidence:
+One-photo intake exposes separate camera and photo-library inputs. Brand linking is a per-piece upgrade, not a separate mode:
 
-1. Validate JPG/PNG/WebP and size before processing.
-2. Optionally classify the first photo. Bedrock returns a bounded descriptive hypothesis: broad category, controlled subtype, confidence, visible-evidence rationale, and up to three alternatives. `lib/garment-taxonomy.ts` constrains every result before the identity-free photo-plan module selects the next shots. Nothing is stored.
-3. Require front, back, and label views, then send only those views to Amazon Bedrock with instructions that prohibit person or demographic inference.
-4. Parse the structured visible-attribute result, including any brand name visibly printed on a label or logo.
-5. Pass the first-photo hypothesis into final multi-view reasoning so Bedrock confirms or revises it against the additional views; normalize subtype, pattern, material, alternatives, and visible evidence before use.
-6. Prefill recognized major-brand names and AI-read brand text only as editable, explicitly unverified suggestions; verify identity only against a brand-enrolled GTIN or brand-and-SKU record.
-7. Use Sharp to rotate, preserve the unmodified evidence photo, and encode a separately auto-cropped display PNG. A crop keeping under five percent of the frame, a trim failure, or a trim that changes nothing all fall back to the original framing with a recorded reason surfaced to the Consumer.
-8. Store both variants privately and return one-hour signed links plus a server confirmation token bound to the account and both keys.
-9. Require human confirmation and allow bounded name, category, subtype, brand, and SKU corrections before creating the wardrobe record. Corrections never create a registry product link. Older records without V2 attributes are normalized safely when read.
+1. Validate JPG/PNG/WebP and size, and normalize to a compressed JPEG in the browser.
+2. `POST /api/garments/detect` sends the photo to Amazon Bedrock for bounded whole-look instance detection with a controlled category and subtype, under instructions that prohibit person or demographic inference.
+3. Store the source photo privately as evidence and cut one bounded crop per detected piece with an 8% margin. No background removal runs in live intake.
+4. Return editable candidates with one-hour signed links and a server confirmation token bound to the account and image keys.
+5. Prefill AI-read brand text only as an editable, explicitly unverified suggestion. A label code checked through `POST /api/garments/verify` links a product only on a brand-enrolled GTIN or brand-and-SKU match.
+6. Require human confirmation and allow bounded name, category, type, brand, and SKU corrections before creating the wardrobe record. Corrections never create a registry product link. Older records without V2 attributes are normalized safely when read.
+
+The three-view analyzer (`analyzeGarmentImages`: front, back, and label with a first-photo hypothesis) is retained as the independent evaluation benchmark path and remains covered by its identity-boundary tests. It is no longer a live intake route.
 
 In production, provider failure at classification, whole-look recognition, or multi-view analysis degrades to a documented deterministic path: the standard back-plus-label photo set or an explicitly zero-confidence unverified manual-review result. Whole-look display preparation treats silhouette isolation and edge removal as independent enhancements; an exception or implausibly faint transparent result advances to the next method, and the bounded original crop remains usable if neither local isolation is safe. The optional AI background-removal helper is retained for future asynchronous processing but is not called by synchronous intake. The Consumer can save their own reviewed labels, but Racked creates no invented AI attributes or verified product link.
 

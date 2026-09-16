@@ -71,3 +71,6 @@ export interface MatchResult {
   productId: string; score: number; confidence: "high" | "medium" | "low";
   components: ScoreComponent[]; reasons: string[]; fallback: boolean;
 }
+
+/** A person's corrections to one detected piece before it is saved. */
+export interface GarmentOverrides {name:string;brand:string;sku:string;category:GarmentCategory;subtype:string;customType?:string|null}
