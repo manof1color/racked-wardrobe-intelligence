@@ -23,14 +23,15 @@ const COMMERCE_OUTPUTS = [
 ];
 
 export function Flywheel() {
-  return <section className="flywheel" aria-labelledby="flywheel-title">
-    <div className="flywheel-intro">
-      <div className="eyebrow">HOW THE SYSTEM COMPOUNDS</div>
+  return <section className="lp-flow lp-reveal" aria-labelledby="flywheel-title">
+    <div className="lp-flow-intro">
+      <p className="eyebrow">How the system compounds</p>
       <h2 id="flywheel-title">One wardrobe. Two kinds of value.</h2>
       <p>Every step below is something a person chooses to do. The intelligence is a by-product of real use, which is why brands can learn from it without ever seeing a closet.</p>
     </div>
 
-    <ol className="flywheel-consumer">
+    {/* A real sequence, so it is numbered. */}
+    <ol className="lp-flow-steps">
       {CONSUMER_STEPS.map((entry) => <li key={entry.step}>
         <span aria-hidden="true">{entry.step}</span>
         <strong>{entry.label}</strong>
@@ -38,24 +39,24 @@ export function Flywheel() {
       </li>)}
     </ol>
 
-    <div className="flywheel-core" role="presentation">
+    <div className="lp-flow-core" role="presentation">
       <strong>Racked intelligence</strong>
       <small>Consent-filtered · aggregated · never individual</small>
     </div>
 
-    <div className="flywheel-outputs">
-      <article className="flywheel-branch brands">
+    <div className="lp-flow-outputs">
+      <article className="lp-flow-branch lp-flow-brands">
         <h3>For brands</h3>
         <ul>{BRAND_OUTPUTS.map((entry) => <li key={entry.label}><strong>{entry.label}</strong><small>{entry.detail}</small></li>)}</ul>
         <p>Released only above the 25-owner threshold, and only for products the brand enrolled.</p>
       </article>
-      <article className="flywheel-branch commerce">
+      <article className="lp-flow-branch lp-flow-discovery">
         <h3>For discovery</h3>
         <ul>{COMMERCE_OUTPUTS.map((entry) => <li key={entry.label}><strong>{entry.label}</strong><small>{entry.detail}</small></li>)}</ul>
         <p>Shopping is the last step, never the first, and only for exact verified products.</p>
       </article>
     </div>
 
-    <p className="flywheel-outcome">Better product decisions · better matching · wardrobes people actually use</p>
+    <p className="lp-flow-outcome">Better product decisions · better matching · wardrobes people actually use</p>
   </section>;
 }
