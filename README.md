@@ -477,6 +477,9 @@ Everything above is self-contained; these go deeper.
 
 - [PROGRESS.md](PROGRESS.md) — real merged-PR history of how this was built
 - [User workflow](docs/user-workflow.md) — the Consumer and Brand journeys end to end
+- [Streamline plan](docs/streamline-plan.md) — measured cut list, surface simplification, and the gaps that block a store submission
+- [App Store and Google Play launch](docs/app-store-launch.md) — two tracks, policy blockers, and realistic timelines
+- [TikTok campaign](docs/tiktok-campaign.md) — positioning, content pillars, creators, and the eight-week plan
 - [Recognition work order](docs/work-order-recognition.md) — open tasks for measuring and improving garment recognition
 - [Segmentation backends](docs/segmentation-backends.md) — how cropping works, what it scores, and how to add a learned segmenter
 - [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist
