@@ -120,6 +120,45 @@ the TikTok "closet audit" content pillar, so it earns its place twice.
 
 ---
 
+## X6 — Session and auth: behavioural tests for the paths that protect everything else
+
+**Why:** a reviewer asked whether the scoring engine was tested as rigorously as the auth layer.
+Measuring it showed the opposite of the worry: the decision engines sit at 94–100% branch coverage,
+while `lib/session.ts` sits at **76%** with two tests, and `lib/auth.ts` has no test file of its own.
+Session handling is what protects every privacy boundary in the product, so it should be the
+best-tested module in the repo, not the weakest.
+
+**Spec** — new `tests/session-guards.test.ts` (plus additions to `tests/session.test.ts` if it reads
+better there). Behavioural tests only; do not change the session or auth implementation unless a
+test exposes a real defect, and if it does, fix it in the same PR and say so in the PR body.
+
+Cover, at minimum:
+- a valid token round-trips and yields the same subject, role, and expiry
+- a token with a tampered payload is rejected
+- a token with a tampered or truncated signature is rejected
+- a token signed with a different secret is rejected
+- an expired token is rejected, including exactly at the expiry boundary
+- a malformed token (wrong segment count, empty string, non-base64) is rejected rather than throwing
+- an unknown or missing role is rejected
+- `sessionVersion` mismatch is rejected, and a session issued before a password change stops working
+  (this is how "other sessions are invalidated" is enforced — see `updateOwnAccount`)
+- `getSession` returns null when the account no longer exists (the deletion path depends on this)
+- `requireRole` sends a signed-in Consumer away from Brand routes and vice versa
+
+**How to test `getSession` without AWS:** it calls `getAccount`. Either inject the lookup, or test
+the decision logic it applies (role match, session version, missing account) as a pure helper
+extracted from it. If you extract a helper, it must be the same code the route path uses — no
+parallel copy.
+
+**Done when:** `lib/session.ts` branch coverage is at least 95%, measured with
+`node --experimental-strip-types --test --experimental-test-coverage tests/*.test.ts`, and the PR
+body quotes the before and after numbers for that file.
+
+**Out of scope:** password hashing changes, new auth features, rate-limit changes, anything that
+alters how sessions are issued or validated in production.
+
+---
+
 ## Review
 
 Claude reviews each PR before merge against: the spec above; tests that genuinely fail when the
