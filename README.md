@@ -105,6 +105,35 @@ The result is a defensible two-sided loop:
 - **Server-side outfit ranking:** explicit natural-language inclusion requests resolve only to unambiguous, account-owned garments and act as hard constraints. The server then scores the remaining pieces on occasion, weather, requested style, underuse, and time since last worn—never allowing low-wear scoring or the model to override a named piece. Selection is deterministic, exclusions are respected, and unknown or ambiguous descriptions cannot invent an item.
 - **Explainable decisions:** Recreate This Look and Similar Products use inspectable weighted attributes rather than an opaque score. Similarity can suggest a substitute, but only authorized registry GTIN or brand-plus-SKU evidence can verify exact identity.
 
+
+### Which engine runs where
+
+A reviewer asked whether the scoring engine is tested as rigorously as the auth layer, and named
+`lib/matching.ts`. That module is *not* on a live request path, so this table says plainly which
+code answers a real request.
+
+| Decision a person sees | Engine | Runs in |
+| --- | --- | --- |
+| Which pieces Hanger puts in an outfit | `lib/outfit-ranking.ts` | `POST /api/agents/consumer` |
+| "Recreate with my wardrobe" coverage and per-piece evidence | `lib/recreate-look.ts` | `POST /api/community/[postId]/recreate` |
+| Similar product suggestions | `lib/similar-products.ts` | `GET /api/products/similar` |
+| Which garments a photo contains | `lib/look-garment-detection.ts` | `POST /api/garments/detect` |
+| Whether a brand may see an aggregate at all | `lib/privacy.ts`, `lib/metrics.ts` | `GET /api/brand/metrics` |
+
+`lib/matching.ts`, `lib/segments.ts`, `lib/retention.ts`, `lib/agents.ts` and
+`lib/brand-wear-insight.ts` are a **reference implementation of the analytics layer**. No route
+imports them. They are kept because the privacy tests drive the `k >= 25` suppression boundary
+through them, and they are not counted as shipped product behaviour.
+
+### Coverage, measured
+
+`node --test --experimental-test-coverage` over the whole suite: **96% of lines, 85% of branches,
+95% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%,
+`similar-products.ts` 97%, `matching.ts` 98%, `outfit-ranking.ts` 94%, `recreate-look.ts`
+99%. Coverage shows what the tests execute, not that the scoring is *right*; the
+per-band, tie-break, and uncertainty numbers in `tests/recreate-look-scoring.test.ts` are the part
+that argues for correctness.
+
 ---
 
 ## Architecture Overview
@@ -275,6 +304,7 @@ lib/look-garment-detection.ts  Bounded instance detection, coordinates, deduplic
 lib/garment-taxonomy.ts        Controlled categories/subtypes, bounded uncertainty, typed-type resolver
 lib/shoe-knowledge.ts          Generic footwear aliases/cues for AI grounding and name grammar
 lib/outfit-ranking.ts          Deterministic, conversation-aware outfit scoring with evidence
+lib/matching.ts                Product-fit reference scorer (analytics reference; no route imports it)
 lib/evaluation-dataset.ts      External-dataset normalization, deterministic sampling, scoring
 lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
 lib/look-discovery.ts          Inferred look styles, category filters, public-field search
@@ -392,7 +422,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **380 passing tests** (verified 2026-09-16), covering unified per-piece brand linking, the landing page's no-overlap, readability, and motion guarantees, owner-scoped garment and account deletion, bounded-crop-only intake, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, one-tap installation wherever the browser allows it, iOS 26 and in-app-browser Home Screen paths, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **390 passing tests** (verified 2026-09-17), covering unified per-piece brand linking, the landing page's no-overlap, readability, and motion guarantees, owner-scoped garment and account deletion, bounded-crop-only intake, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, one-tap installation wherever the browser allows it, iOS 26 and in-app-browser Home Screen paths, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -403,7 +433,7 @@ The suite currently has **380 passing tests** (verified 2026-09-16), covering un
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **380 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **390 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Refreshed landing page with progressive, reduced-motion-safe transitions, mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, whole-piece garment crops on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |

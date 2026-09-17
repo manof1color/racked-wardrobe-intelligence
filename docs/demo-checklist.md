@@ -59,6 +59,26 @@ All fictional demo products carry a Racked demo-storefront URL, fictional USD pr
 - [ ] Confirm the completion screen states no card, payment, order, shipping, contact, or account data was collected
 - [ ] Use the visible **Return to Racked** button to return to Community
 
+## Before you present: the two moments that can cost you
+
+The live scan is the riskiest thing in the eight minutes, and the privacy segment is the most
+valuable. Prepare both.
+
+- [ ] **Record a 30-second backup clip** of a successful scan: photo chosen, cards returned, one
+      label-code check, save. Keep it open in a second tab, muted and ready. A screenshot of the
+      result card is a usable second fallback.
+- [ ] **Warm the real path 20–30 minutes before**: run one real scan end to end so Bedrock access,
+      the deployed model policy, and the network are all proven on the day.
+- [ ] **Keep one pre-scanned piece in the wardrobe**, so the Closet and Outfits segments never
+      depend on a live call.
+- [ ] **Save a manual-review card** (or its clip) so the deterministic fallback can be shown
+      deliberately rather than only when something breaks.
+- [ ] **Use a throwaway Consumer account for the deletion demo.** Never delete the judge account,
+      and never demonstrate deletion on an account you still need.
+- [ ] **Have the below-threshold product open** in a Brand tab for the suppression view.
+- [ ] Confirm the demo Consumer account still has: a published Community look, a saved outfit, and
+      at least one registry-verified piece for the Recreate segment.
+
 ## Fallback plan
 
 | If this happens | Do this |
