@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { PwaInstall } from "@/components/pwa-install";
+import { INSTALL_PROMPT_CAPTURE } from "@/lib/pwa-install";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,7 +36,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body>{children}<PwaInstall /></body>
+      <body>
+        {/* Keeps the browser's install prompt even when it fires before React hydrates. */}
+        <Script id="capture-install-prompt" strategy="beforeInteractive">{INSTALL_PROMPT_CAPTURE}</Script>
+        {children}<PwaInstall />
+      </body>
     </html>
   );
 }

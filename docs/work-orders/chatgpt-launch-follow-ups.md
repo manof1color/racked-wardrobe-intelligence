@@ -83,6 +83,43 @@ Looks-to-builder redirect.
 
 ---
 
+## X5 — Closet audit: search, sort, and "not worn lately"
+
+**Why:** a closet is only useful if people can find a piece and see what they ignore. Today the
+Closet filters by category and nothing else. This is also the exact screen a creator records for
+the TikTok "closet audit" content pillar, so it earns its place twice.
+
+**Spec** — Closet view in `components/consumer-dashboard.tsx`, above the garment grid:
+
+- **Search** box. Case-insensitive; matches name, `customType`, the subtype's display label, colour,
+  and brand text. It combines with the existing category filter.
+- **Sort**: Recently added (default), Most worn, Least worn, Longest since worn.
+  - Recently added orders by `createdAt`, newest first; items without `createdAt` follow the dated
+    ones in the order the server returned them.
+  - Ties keep the server order, so the grid never reshuffles between renders.
+- **Not worn in 60+ days** toggle. A piece counts as not worn when `wearCount` is 0 or
+  `lastWornDays` is at least 60; `NEVER_WORN_DAYS` (999) in `lib/wear-recency.ts` means never worn.
+- **Audit line**, for example "12 of 41 pieces haven't been worn in 60 days". Always computed across
+  the whole wardrobe, never just the filtered view.
+- When nothing matches: a plain empty state with a **Clear filters** button.
+- All logic lives in a new pure module, `lib/closet-view.ts` (`filterWardrobe`, `sortWardrobe`,
+  `closetAudit`). The dashboard only holds state and calls it.
+- No API, database, or type changes. It works entirely on the wardrobe the Closet already loads.
+- Accessible and readable: a labelled search input, sort as a labelled `<select>`, the toggle as a
+  real checkbox or a button with `aria-pressed`, nothing under 0.72rem, and it works at 390px wide.
+
+**Tests** — `tests/closet-view.test.ts`:
+- search matches each field and combines with the category filter
+- every sort order, including ties and items without `createdAt`
+- never-worn pieces count as not worn in 60+ days
+- the audit count ignores active search and filters
+- the dashboard actually calls the helpers and renders **Clear filters** (a source check on the
+  rendered component, not a dead one)
+
+**Out of scope:** Hanger, brand-side views, new data fields, server changes.
+
+---
+
 ## Review
 
 Claude reviews each PR before merge against: the spec above; tests that genuinely fail when the
