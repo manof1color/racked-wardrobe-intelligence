@@ -85,7 +85,7 @@ const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|negl
 // return the same deterministic selection.
 const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|adjust(?: it| the outfit| this look)?|redo(?: it| the outfit| this look)?|remake(?: it| the outfit| this look)?|revise(?: it| the outfit| this look)?|try again|start over|use (?:my )?other pieces|change (?:it|the outfit|this look)|switch (?:it|the outfit|this look)|swap (?:it|the outfit|this look|the pieces)|refresh (?:it|the outfit|this look)/;
 const OUTFIT_CREATION_KEYWORDS = /(?:build|create|make|style|suggest|give|show)(?:\s+[a-z0-9'-]+){0,8}\s+(?:outfit|look|rotation)|what (?:can|should) i wear/;
-const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
+export const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
 const REQUIRED_PIECE_CUE = /\b(?:use|using|wear|wearing|include|including|incorporate|pair|pairing|style|styling|with|from|around|centered|starting|start|featuring|feature|add|keep|want|need|must have)\b/;
 const REQUIRED_PIECE_NEGATION = /\b(?:without|except|other than|instead of|rather than|avoid|exclude|excluding|skip|leave out|do not use|don t use|dont use|do not wear|don t wear|dont wear|do not include|don t include|dont include|no|not)\b[^,.!?;]{0,40}$/;
 const ITEM_ALIAS_STOPWORDS = new Set([

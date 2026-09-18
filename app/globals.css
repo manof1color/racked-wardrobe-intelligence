@@ -705,3 +705,7 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .pwa-glyphs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0 0;padding:12px;background:var(--ink);color:#fff;font-size:.82rem;font-weight:800}
 .pwa-glyphs span{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#2a2c27}
 .pwa-glyphs i{font-style:normal;color:var(--acid)}
+
+/* What Hanger remembers, said out loud, with the control to forget it beside it. */
+.hanger-memory-note{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;border-top:1px solid var(--line);background:#f3f0e8;font-size:.72rem;color:var(--muted)}
+.hanger-memory-note button{border:0;background:transparent;color:var(--coral-dark);font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:4px}

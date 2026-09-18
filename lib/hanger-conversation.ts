@@ -132,9 +132,19 @@ export function buildConsumerHangerPrompt(input: {
   suggested: WardrobeItem[];
   required?: WardrobeItem[];
   inspiration?:ConsumerInspirationContext;
+  remembered?:string;
+  earlierConversation?:string|null;
 }) {
-  return `Fresh private wardrobe context for this turn: ${JSON.stringify(consumerContext(input.wardrobe, input.outfits, input.suggested, input.required,input.inspiration))}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
+  const context={
+    ...consumerContext(input.wardrobe, input.outfits, input.suggested, input.required,input.inspiration),
+    // Standing instructions from earlier messages, and an honest note when older turns fell
+    // outside the context budget, so nothing is invented about what was said before.
+    ...(input.remembered?{rememberedPreferences:input.remembered}:{}),
+    ...(input.earlierConversation?{earlierConversation:input.earlierConversation}:{}),
+  };
+  return `Fresh private wardrobe context for this turn: ${JSON.stringify(context)}\nCustomer message: ${JSON.stringify(cleanText(input.message))}`;
 }
+
 
 function releasedBrandContext(product: BrandProductRegistration, metrics: BrandMetrics, communityMetrics?:BrandCommunityMetrics) {
   return {
@@ -219,8 +229,10 @@ export async function generateConsumerHangerReply(input: {
   suggested: WardrobeItem[];
   required?: WardrobeItem[];
   inspiration?:ConsumerInspirationContext;
+  remembered?:string;
+  earlierConversation?:string|null;
 }) {
-  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that it was kept for that reason and never claim it was chosen because it was underused. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only as optional inspiration when the current message does not state a conflicting preference, and say when it influenced the outfit. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather access or external social-network access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
+  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that it was kept for that reason and never claim it was chosen because it was underused. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only as optional inspiration when the current message does not state a conflicting preference, and say when it influenced the outfit. rememberedPreferences are standing instructions this person gave in earlier messages: follow them unless the current message overrides one, and say plainly when a remembered preference shaped the outfit. earlierConversation means older messages are no longer quoted; rely on what is supplied and never invent what was said before. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather access or external social-network access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
   const groundedSelection = groundedSelectionText(input.suggested);
   if (generated && consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested)) {
