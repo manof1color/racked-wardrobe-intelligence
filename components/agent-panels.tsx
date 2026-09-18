@@ -8,6 +8,8 @@ import type { SavedOutfit } from "@/lib/types";
 type AgentAction = AgentReply["actions"][number];
 type ChatEntry = AgentChatTurn & { id: string; reply?: AgentReply };
 
+const CONSUMER_INTRO = "I’m Hanger. Ask me to create outfits from your saved wardrobe, find underused pieces, plan a rotation, or identify a wardrobe gap.";
+
 const consumerPrompts = [
   "Build an outfit for dinner from what I own.",
   "What have I not worn lately?",
@@ -107,32 +109,58 @@ function Composer({ value, setValue, send, busy, prompts, label, showPrompts, st
 }
 
 export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRecorded?: (counts: Record<string, number>) => void; onOutfitSaved?: (outfit: SavedOutfit) => void }) {
-  const [entries, setEntries] = useState<ChatEntry[]>([{ id: "consumer-intro", role: "assistant", content: "I’m Hanger. Ask me to create outfits from your saved wardrobe, find underused pieces, plan a rotation, or identify a wardrobe gap." }]);
+  const [entries, setEntries] = useState<ChatEntry[]>([{ id: "consumer-intro", role: "assistant", content: CONSUMER_INTRO }]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [remembered, setRemembered] = useState("");
+
+  // The conversation belongs to the account, not this tab, so reopening Hanger continues it.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/agents/consumer")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const turns = Array.isArray(data.turns) ? (data.turns as AgentChatTurn[]) : [];
+        if (turns.length) setEntries((current) => [...current, ...turns.map((turn) => ({ ...turn, id: id() }))]);
+        setRemembered(typeof data.remembered === "string" ? data.remembered : "");
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   async function send(provided?: string) {
     const message = (provided ?? draft).trim();
     if (!message || busy) return;
-    const history = entries.slice(-8).map(({ role, content }) => ({ role, content }));
-    const previousSuggestionItemIds = [...new Set([...entries].reverse()
-      .flatMap((entry) => entry.reply?.actions ?? [])
-      .filter((action) => action.type === "save-outfit")
-      .flatMap((action) => action.payload.itemIds?.split(",").filter(Boolean) ?? []))];
     setEntries((current) => [...current, { id: id(), role: "user", content: message }]);
     setDraft(""); setBusy(true); setError(""); setStatus("");
     try {
-      const response = await fetch("/api/agents/consumer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, history, previousSuggestionItemIds }) });
+      const response = await fetch("/api/agents/consumer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Hanger could not respond.");
       const reply = data.reply as AgentReply;
       setEntries((current) => [...current, { id: id(), role: "assistant", content: reply.message, reply }]);
+      if (typeof data.remembered === "string") setRemembered(data.remembered);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Hanger could not respond.");
     } finally { setBusy(false); }
+  }
+
+  // Forgetting is the person's to do, and it removes the stored record rather than hiding it.
+  async function forget() {
+    setError(""); setStatus("");
+    try {
+      const response = await fetch("/api/agents/consumer", { method: "DELETE" });
+      if (!response.ok) throw new Error("The conversation could not be cleared.");
+      setEntries([{ id: "consumer-intro", role: "assistant", content: CONSUMER_INTRO }]);
+      setRemembered("");
+      setStatus("Hanger forgot this conversation.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The conversation could not be cleared.");
+    }
   }
 
   async function handleAction(action: AgentAction, reply: AgentReply) {
@@ -162,10 +190,15 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
     } finally { setWorking(null); }
   }
 
+  const hasConversation = entries.some((entry) => entry.role === "user");
   return <section className="agent-panel consumer-agent">
     <Conversation entries={entries} busy={busy} onAction={handleAction} working={working} />
+    {(remembered || hasConversation) && <div className="hanger-memory-note">
+      <span>{remembered ? `Hanger remembers: ${remembered}` : "Hanger remembers this conversation."}</span>
+      <button type="button" onClick={forget}>Clear</button>
+    </div>}
     <Composer value={draft} setValue={setDraft} send={send} busy={busy} prompts={consumerPrompts} label="consumer"
-      showPrompts={!entries.some((entry) => entry.role === "user")} status={status} error={error} />
+      showPrompts={!hasConversation} status={status} error={error} />
   </section>;
 }
 

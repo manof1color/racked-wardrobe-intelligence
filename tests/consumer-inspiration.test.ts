@@ -64,6 +64,6 @@ test("production wiring scopes inspiration to the session and passes only profil
   assert.match(store,/SK:`INSPIRATION#\$\{postId\}`/);
   assert.match(store,/ConditionExpression:"attribute_not_exists\(PK\) AND attribute_not_exists\(SK\)"/);
   assert.match(store,/DeleteCommand\(\{TableName:requireTable\(\),Key:inspirationKey\}\)/,"a failed counter update must roll back the private marker");
-  assert.match(hangerRoute,/inspirationStyleHints:inspiration\.styleHints/);
+  assert.match(hangerRoute,/inspirationStyleHints:\s*inspiration\.styleHints/);
   assert.doesNotMatch(hangerRoute,/inspiration\.postIds/,"post ids are not needed by the model or ranking engine");
 });

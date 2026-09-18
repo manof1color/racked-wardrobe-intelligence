@@ -90,6 +90,12 @@ deliberately **keeps** its historical wear events, so past usage totals are neve
 
 The floating **Ask Hanger** control, on every screen.
 
+Hanger remembers. The conversation is stored under your account, so closing the drawer, refreshing,
+or picking up your phone later continues it. Preferences you state — *"I never wear heels"* — are
+kept and applied to later outfits, and only words the wardrobe and taxonomy already use can be
+stored, so a sentence about anything personal leaves nothing behind. **Clear** in the panel forgets
+the conversation and the preferences together.
+
 Hanger is grounded in your actual wardrobe. It reads fresh account context on every
 message, then a deterministic server-side ranking scores each garment on five signals —
 occasion, weather, style, underuse, recency. **The model never picks the items.** It writes
