@@ -21,6 +21,8 @@ export interface BrandMetrics {
   lastWearAt?: string | null;
   wearDistribution?: Array<{label:string;owners:number;percentage:number}>;
   weeklyTrend?: Array<{label:string;wears:number;weekStart:string}>;
+  /** How many more distinct products this brand account can open before the enumeration budget refuses. */
+  budget?: { used:number; limit:number; remaining:number; resetsInSeconds:number };
 }
 
 function roundOne(value:number){return Math.round(value*10)/10;}
