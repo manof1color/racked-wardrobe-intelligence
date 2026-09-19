@@ -72,6 +72,7 @@ test("calculateBrandMetrics suppresses per-product metrics for a below-threshold
   assert.equal(metrics.opportunity, null);
   assert.equal(metrics.gapPrevalence, null);
   assert.equal(metrics.duplicateRisk, null);
+  assert.equal(metrics.segmentSize, 0, "a count below the threshold is a small cell too");
 });
 
 test("calculateBrandMetrics releases per-product metrics for an above-threshold cohort", () => {

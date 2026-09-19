@@ -10,7 +10,9 @@ const parts:UploadDescriptor[]=[
 ];
 
 test("front, back, and label descriptors satisfy upload policy",()=>{assert.equal(validateThreeViewUpload(parts),true);assert.ok(parts.every((part)=>part.size<MAX_UPLOAD_BYTES));});
-test("three-view analysis links the label SKU to its brand page",()=>{const result=analyzeThreeViewSet(parts);assert.equal(result.evidence.length,3);assert.equal(result.label.sku,"NA-OW-1042");assert.equal(result.label.brandSlug,"northstar-atelier");assert.equal(result.label.matched,true);assert.equal(result.label.matchMethod,"catalog-image-set");assert.equal(result.confidence,98);});
+test("three-view analysis links a label's brand and style code to its brand page",()=>{const result=analyzeThreeViewSet(parts,{labelText:"NORTHSTAR ATELIER NA-OW-1042"});assert.equal(result.evidence.length,3);assert.equal(result.label.sku,"NA-OW-1042");assert.equal(result.label.brandSlug,"northstar-atelier");assert.equal(result.label.matched,true);assert.equal(result.label.matchMethod,"brand-sku");assert.equal(result.confidence,96);});
+// REGRESSION: the demo's catalog file names once verified the product on their own.
+test("REGRESSION: the brand's own file names are not label evidence",()=>{const result=analyzeThreeViewSet(parts);assert.equal(result.label.matched,false);assert.equal(result.label.registryProductId,null);});
 test("missing, duplicate, invalid-type, and oversized views fail closed",()=>{assert.throws(()=>validateThreeViewUpload(parts.slice(0,2)),UploadValidationError);assert.throws(()=>validateThreeViewUpload([...parts,parts[0]]),UploadValidationError);assert.throws(()=>validateThreeViewUpload(parts.map((part,index)=>index===0?{...part,contentType:"text/plain"}:part)),UploadValidationError);assert.throws(()=>validateThreeViewUpload(parts.map((part,index)=>index===1?{...part,size:MAX_UPLOAD_BYTES+1}:part)),UploadValidationError);});
 test("consumer enrollment requires front, back, and label evidence",()=>{assert.throws(()=>validateThreeViewUpload([parts[0]]),/back image is required/i);});
 

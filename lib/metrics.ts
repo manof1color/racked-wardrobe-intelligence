@@ -72,7 +72,8 @@ export function calculateBrandMetrics(product: Product, liveProfile?: LiveProfil
   // result is returned before any per-profile score is aggregated — the null fields are not
   // filtered out of a computed object afterward, they are never computed at all.
   if (!canExposeAggregate(cohort.size)) {
-    return { opportunity:null, gapPrevalence:null, duplicateRisk:null, segmentSize:cohort.size, suppressed:true, minimumCohortSize:MINIMUM_COHORT_SIZE };
+    // The cohort size is withheld too: a count below the threshold is itself a small cell.
+    return { opportunity:null, gapPrevalence:null, duplicateRisk:null, segmentSize:0, suppressed:true, minimumCohortSize:MINIMUM_COHORT_SIZE };
   }
   const results = cohort.profiles.map((profile) => scoreProduct(product, profile.wardrobe));
   const opportunity = Math.round(results.reduce((sum, result) => sum + result.score, 0) / Math.max(results.length, 1));
