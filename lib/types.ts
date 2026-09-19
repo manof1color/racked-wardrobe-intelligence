@@ -73,4 +73,4 @@ export interface MatchResult {
 }
 
 /** A person's corrections to one detected piece before it is saved. */
-export interface GarmentOverrides {name:string;brand:string;sku:string;category:GarmentCategory;subtype:string;customType?:string|null}
+export interface GarmentOverrides {name:string;brand:string;sku:string;category:GarmentCategory;subtype:string;customType?:string|null;/** Label evidence the server re-checks against the registry before it saves a verified link. */labelText?:string|null}

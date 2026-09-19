@@ -12,6 +12,7 @@ import { normalizeGarmentClassification } from "@/lib/garment-taxonomy";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
+import { isReservedBrandName, matchBrandProduct, slugifyBrand } from "@/lib/product-registry";
 import { buildWearUsageAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
@@ -68,7 +69,9 @@ function requireAccountSecuritySecret(){const secret=process.env.SESSION_SECRET;
 interface PasswordResetRecord { accountId:string; tokenHash:string; issuedAt:number; expiresAt:number; usedAt?:number; PK:string; SK:string; }
 
 function normalizeEmail(email:string) { return email.trim().toLowerCase(); }
-function slugify(value:string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60); }
+// One slug rule for a brand everywhere. Accounts, products, and Brand Looks used different rules,
+// so an accented brand name ("Café Noir") produced two slugs that never met.
+function slugify(value:string) { return slugifyBrand(value); }
 function confirmationPayload(ownerId:string,key:string,analysis:GarmentAnalysis){return JSON.stringify({ownerId,key,evidenceKey:analysis.processedImage?.evidenceKey??null,garment:analysis.garment,label:analysis.label});}
 export function signGarmentConfirmation(ownerId:string,key:string,analysis:GarmentAnalysis){const secret=process.env.SESSION_SECRET;if(!secret)throw new ProductionConfigurationError("Session security is not configured.");return createHmac("sha256",secret).update(confirmationPayload(ownerId,key,analysis)).digest("base64url");}
 function verifyGarmentConfirmation(ownerId:string,analysis:GarmentAnalysis){const supplied=analysis.processedImage?.confirmationToken;if(!supplied)return false;const expected=signGarmentConfirmation(ownerId,analysis.processedImage!.key,analysis);const a=Buffer.from(supplied,"base64url");const b=Buffer.from(expected,"base64url");return a.length===b.length&&timingSafeEqual(a,b);}
@@ -89,8 +92,49 @@ export async function createAccount(input:{email:string;password:string;role:Rol
   const passwordSalt=randomBytes(18).toString("base64url");
   const passwordHash=await passwordDigest(input.password,passwordSalt);
   const account:AccountRecord={id,email,role:input.role,displayName:input.displayName.trim(),brandName:input.role==="brand"?(input.brandName?.trim()||input.displayName.trim()):null,brandSlug:input.role==="brand"?slugify(input.brandName?.trim()||input.displayName):null,passwordHash,passwordSalt,createdAt:new Date().toISOString(),dataClassification:"REGULAR"};
-  await db.send(new PutCommand({TableName:requireTable(),Item:{...account,PK:`USER#${id}`,SK:"PROFILE",GSI1PK:`EMAIL#${email}`,GSI1SK:"ACCOUNT"},ConditionExpression:"attribute_not_exists(PK)"}));
+  if(account.role==="brand")await reserveBrandName(account.brandName??"",id);
+  try {
+    await db.send(new PutCommand({TableName:requireTable(),Item:{...account,PK:`USER#${id}`,SK:"PROFILE",GSI1PK:`EMAIL#${email}`,GSI1SK:"ACCOUNT"},ConditionExpression:"attribute_not_exists(PK)"}));
+  } catch(error) {
+    // An account that was never created must not keep the name it reserved.
+    if(account.role==="brand"&&account.brandSlug)await db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:`BRANDNAME#${account.brandSlug}`,SK:"CLAIM"},ConditionExpression:"accountId = :id",ExpressionAttributeValues:{":id":id}})).catch(()=>undefined);
+    throw error;
+  }
   return account;
+}
+
+/**
+ * A brand name belongs to one account. Without this, a second account registering the same name
+ * shared its public page and could enroll the same style codes, so wear linked by that brand's
+ * owners could reach the wrong account. Well-known names are reserved outright: signing up is not
+ * evidence of representing Nike. Two conditional writes rather than a transaction, because the
+ * compute role is granted item-level actions only; a failed account write releases the name.
+ */
+async function reserveBrandName(brandName:string,accountId:string) {
+  const brandSlug=slugify(brandName);
+  if(!brandSlug)throw new AccountConflictError("Enter a brand name that contains at least one letter or number.");
+  if(isReservedBrandName(brandName))throw new AccountConflictError("That brand name is reserved for the brand that owns it. Contact Racked to confirm you represent it.");
+  // Accounts created before names were reserved still hold theirs through their enrolled products.
+  const legacy=await db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk AND begins_with(GSI1SK, :slug)",ExpressionAttributeValues:{":pk":"BRAND_PRODUCTS",":slug":`${brandSlug}#`},Limit:1}));
+  if(legacy.Items?.length)throw new AccountConflictError("A brand account with that name already exists.");
+  try {
+    await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`BRANDNAME#${brandSlug}`,SK:"CLAIM",GSI1PK:"BRAND_NAMES",GSI1SK:brandSlug,accountId,brandName,createdAt:new Date().toISOString()},ConditionExpression:"attribute_not_exists(PK)"}));
+  } catch(error) {
+    if(error instanceof Error&&error.name==="ConditionalCheckFailedException")throw new AccountConflictError("A brand account with that name already exists.");
+    throw error;
+  }
+}
+
+/** Names held by other brand accounts, which this account's product aliases may not claim. */
+export async function otherBrandNames(ownerId:string,known?:BrandProductRegistration[]) {
+  const [claims,registry]=await Promise.all([
+    queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_NAMES"}}).catch(()=>[] as Record<string,unknown>[]),
+    known?Promise.resolve(known):listRegistryProducts(),
+  ]);
+  const names=new Set<string>();
+  for(const claim of claims)if(claim.accountId!==ownerId&&typeof claim.brandName==="string")names.add(claim.brandName);
+  for(const product of registry)if(product.ownerSubject!==ownerId)names.add(product.brand);
+  return [...names];
 }
 
 export async function authenticateAccount(email:string,password:string) {
@@ -170,24 +214,30 @@ export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
   return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem&{GSI1PK?:string};const classification=normalizeGarmentClassification(item.category,item.subtype??item.name);const registryProductId=item.registryProductId??(item.GSI1PK?.startsWith("PRODUCT#")?item.GSI1PK.slice(8):null);return {...item,GSI1PK:undefined,...classification,registryProductId,pattern:item.pattern??"unknown",material:item.material??"unknown",lastWornDays:wornDaysAgo((item as {lastWornAt?:unknown}).lastWornAt,item.lastWornDays),imageUrl:await privateImageUrl(item.imageKey)};}));
 }
 
-export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null}) {
+export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null;labelText?:string|null}) {
   if (!analysis.processedImage?.key) throw new Error("The processed garment image is missing.");
   if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new Error("The garment confirmation expired or did not belong to this account.");
   const evidenceImageKey=analysis.processedImage.evidenceKey??null;
   if(evidenceImageKey&&!evidenceImageKey.startsWith(`wardrobe/${ownerId}/`))throw new Error("The evidence photo did not belong to this account.");
   const name=(overrides?.name??analysis.garment.name).trim().slice(0,100)||"Unverified garment";
-  const brand=(overrides?.brand??analysis.label.brand).trim().slice(0,100);
-  const sku=(overrides?.sku??analysis.label.sku).trim().toUpperCase().slice(0,64);
+  // A label the person checked is checked again here, against the registry as it stands now. The
+  // browser saying a label matched is not evidence; the label text is. Before this, a successful
+  // check showed "linked" in the browser and the piece was saved with no link at all.
+  const labelEvidence=typeof overrides?.labelText==="string"?overrides.labelText.slice(0,1000):"";
+  const registryMatch=!analysis.label.matched&&labelEvidence.trim()?matchBrandProduct([],labelEvidence,await listRegistryProducts()):null;
+  const brand=(registryMatch?registryMatch.product.brand:(overrides?.brand??analysis.label.brand)).trim().slice(0,100);
+  const sku=(registryMatch?registryMatch.product.sku:(overrides?.sku??analysis.label.sku)).trim().toUpperCase().slice(0,64);
   const placeholderBrand=/^(brand not verified|unmatched label)$/i.test(brand);
   const placeholderSku=/^(unverified|unconfirmed)$/i.test(sku);
-  const identityStatus=analysis.label.matched?"verified":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
+  const registryProductId=registryMatch?registryMatch.product.id:analysis.label.matched?analysis.label.registryProductId:null;
+  const identityStatus=registryProductId?"verified":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
   const classification=normalizeGarmentClassification(overrides?.category??analysis.garment.category,overrides?.subtype??analysis.garment.subtype);
   // A typed type is kept only beside a fallback subtype: when a controlled subtype fits, the
   // controlled value is the record, and a stray custom label would contradict it.
   const typedType=typeof overrides?.customType==="string"?overrides.customType.replace(/[\u0000-\u001f\u007f]/g,"").replace(/\s+/g," ").trim().slice(0,60):"";
   const customType=typedType&&classification.subtype.startsWith("other-")?typedType:null;
-  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId:analysis.label.matched?analysis.label.registryProductId:null,identityStatus,createdAt:new Date().toISOString()};
-  await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:analysis.label.registryProductId?`PRODUCT#${analysis.label.registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
+  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId,identityStatus,createdAt:new Date().toISOString()};
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:registryProductId?`PRODUCT#${registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
 }
 
@@ -292,7 +342,9 @@ export async function incrementOutfitWears(ownerId:string,outfitId:string) {
 
 export class AccountDeletionUnavailableError extends Error {}
 
-async function queryEveryPage(input:{KeyConditionExpression:string;ExpressionAttributeValues:Record<string,unknown>;FilterExpression?:string}) {
+// Every page, not the first. A single Query stops at 1 MB, and a registry or a product's owner
+// list that outgrew it used to be cut off without any error.
+async function queryEveryPage(input:{IndexName?:string;KeyConditionExpression:string;ExpressionAttributeValues:Record<string,unknown>;FilterExpression?:string}) {
   const items:Record<string,unknown>[]=[];
   let startKey:Record<string,unknown>|undefined;
   do {
@@ -419,13 +471,12 @@ export async function deleteOwnConsumerAccount(ownerId:string,currentPassword:st
 }
 
 export async function listOwnedBrandProducts(ownerId:string):Promise<BrandProductRegistration[]> {
-  const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"PRODUCT#"}}));
-  return Promise.all((result.Items??[]).map(async raw=>{const product=raw as unknown as BrandProductRegistration;const demoFront=isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined;return {...product,imageUrls:{front:demoFront??await privateImageUrl(product.views.front.storageKey),back:await privateImageUrl(product.views.back.storageKey),label:await privateImageUrl(product.views.label.storageKey)}};}));
+  const items=await queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"PRODUCT#"}});
+  return Promise.all(items.map(async raw=>{const product=raw as unknown as BrandProductRegistration;const demoFront=isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined;return {...product,imageUrls:{front:demoFront??await privateImageUrl(product.views?.front?.storageKey),back:await privateImageUrl(product.views?.back?.storageKey),label:await privateImageUrl(product.views?.label?.storageKey)}};}));
 }
 
 export async function listRegistryProducts():Promise<BrandProductRegistration[]> {
-  const result=await db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_PRODUCTS"}}));
-  return (result.Items??[]) as unknown as BrandProductRegistration[];
+  return (await queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_PRODUCTS"}})) as unknown as BrandProductRegistration[];
 }
 export async function getRegistryProductById(productId:string){return (await listRegistryProducts()).find(product=>product.id===productId)??null;}
 
@@ -618,11 +669,10 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owned=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));
   if(!owned.Item)throw new Error("Product not found for this brand account.");
   await enforceAggregateEnumerationBudget(ownerId,productId);
-  const [result,eventResult]=await Promise.all([
-    db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}})),
-    db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"},ScanIndexForward:false})),
+  const [items,wearEvents]=await Promise.all([
+    queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}}),
+    queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"}}),
   ]);
-  const items=result.Items??[];
   const ownerKeys=[...new Set(items.map(item=>String(item.PK)))];
   const accountResults=await Promise.all(Array.from({length:Math.ceil(ownerKeys.length/100)},(_,index)=>ownerKeys.slice(index*100,(index+1)*100)).filter(chunk=>chunk.length).map(chunk=>db.send(new BatchGetCommand({RequestItems:{[requireTable()]:{Keys:chunk.map(PK=>({PK,SK:"PROFILE"}))}}}))));
   const optedInOwners=new Set(accountResults.flatMap(response=>response.Responses?.[requireTable()]??[]).filter(account=>account.brandDataSharing===true).map(account=>String(account.PK)));
@@ -630,10 +680,12 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owners=new Set(eligibleItems.map(item=>String(item.PK)));
   const segmentSize=owners.size;
   const minimumCohortSize=25;
-  if(segmentSize<minimumCohortSize)return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears:null,repeatWearRate:null,activeOwners:null,engagementRate:null,averageWearsPerOwner:null,medianWearsPerOwner:null,zeroWearOwners:null,highFrequencyOwners:null,lastWearAt:null,wearDistribution:[],weeklyTrend:[],segmentSize,suppressed:true,minimumCohortSize};
+  // Below the threshold the count itself is withheld: "3 owners" is a small cell too, and watching
+  // it tick from 3 to 4 can tell a brand when one known customer linked a piece.
+  if(segmentSize<minimumCohortSize)return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears:null,repeatWearRate:null,activeOwners:null,engagementRate:null,averageWearsPerOwner:null,medianWearsPerOwner:null,zeroWearOwners:null,highFrequencyOwners:null,lastWearAt:null,wearDistribution:[],weeklyTrend:[],segmentSize:0,suppressed:true,minimumCohortSize};
   const countsByOwner=new Map<string,number>();
   for(const item of eligibleItems){const key=String(item.PK);countsByOwner.set(key,(countsByOwner.get(key)??0)+Number(item.wearCount??0));}
-  const eligibleEventDates=(eventResult.Items??[]).filter(event=>optedInOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
+  const eligibleEventDates=wearEvents.filter(event=>optedInOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
   const analytics=buildWearUsageAnalytics([...owners].map(owner=>countsByOwner.get(owner)??0),eligibleEventDates);
   return {opportunity:null,gapPrevalence:null,duplicateRisk:null,...analytics,segmentSize,suppressed:false,minimumCohortSize};
 }
