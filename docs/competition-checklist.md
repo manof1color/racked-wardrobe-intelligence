@@ -53,9 +53,11 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the bounded crop, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA. Where the browser allows it (Chrome and Edge on Android and desktop), Add Racked opens the real one-tap install dialog, and the install event is kept even when it fires before the page hydrates. iPhone has no install API, so it gets accurate iOS 26 steps with the Share icon shown; apps' built-in browsers (TikTok, Instagram) get an Open in Safari or Chrome handoff, since they cannot add to a Home Screen at all.
-- [x] 399 automated tests and lint pass (re-verified 2026-09-17); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
+- [x] 411 automated tests and lint pass (re-verified 2026-09-18); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 
 - [x] Measured coverage, not asserted rigour: 96% of lines and 95% of functions across the suite, with the decision engines at 94–100% branch coverage. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
+
+- [x] Hanger is a continuing conversation, not a stateless prompt: turns, the preferences learned from them, and the pieces already suggested are stored on the account, resumable across devices, and clearable by the person. The context window is budgeted explicitly — newest turns that fit a character budget, with older ones counted and declared to the model rather than invented — and a remembered preference can only be a term the taxonomy and that wardrobe already use.
 
 ## 3. AI integration / innovation — 20%
 

@@ -21,6 +21,7 @@ import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/li
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
 import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, passwordResetIsUsable, passwordResetTokenHash } from "@/lib/account-security";
 import { accountDeletionInventory, communityPostChangeForDeletedImage, outfitChangesForGarmentDeletion, ownedObjectKey, sharedEvidenceKeyToDelete } from "@/lib/deletion-plan";
+import { readHangerConversation, type HangerConversationState } from "@/lib/hanger-memory";
 import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
 import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
 import sharp from "sharp";
@@ -635,4 +636,22 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
   const eligibleEventDates=(eventResult.Items??[]).filter(event=>optedInOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
   const analytics=buildWearUsageAnalytics([...owners].map(owner=>countsByOwner.get(owner)??0),eligibleEventDates);
   return {opportunity:null,gapPrevalence:null,duplicateRisk:null,...analytics,segmentSize,suppressed:false,minimumCohortSize};
+}
+
+// ─── Hanger conversation memory ───────────────────────────────────────────────
+// One record per account holds the stylist conversation: the recent turns, the preferences learned
+// from them, and the pieces already suggested. It sits in the account's own partition, so account
+// deletion takes it along with everything else, and a person can clear it on its own.
+export async function loadHangerConversation(ownerId:string) {
+  const found=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"HANGER_CHAT"}}));
+  return readHangerConversation(found.Item?.state);
+}
+
+export async function saveHangerConversation(ownerId:string,state:HangerConversationState) {
+  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`USER#${ownerId}`,SK:"HANGER_CHAT",state,updatedAt:state.updatedAt}}));
+  return state;
+}
+
+export async function clearHangerConversation(ownerId:string) {
+  await db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"HANGER_CHAT"}}));
 }

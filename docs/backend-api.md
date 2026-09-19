@@ -34,7 +34,7 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, accep
 | `POST /api/wears` | Consumer | Atomically increments owned-item totals and writes a timestamped product wear event when the garment is registry-linked |
 | — | — | Wardrobe reads derive each garment age from its stored wear timestamp, so a recorded wear does not revert to a stale value on reload and seeded fixtures do not drift with time |
 | `GET/PATCH /api/consumer/consent` | Consumer | Reads or changes that account’s brand-aggregate opt-in |
-| `POST /api/agents/consumer` | Consumer | Accepts a free-form message plus at most eight bounded chat turns, reloads that account’s current garments/wears/outfits, and returns a grounded answer with validated save/wear actions plus a consumer-only visual projection of the exact selected owned pieces |
+| `GET/POST/DELETE /api/agents/consumer` | Consumer | `GET` returns the stored conversation and what Hanger remembers; `DELETE` clears both. `POST` accepts a free-form message and reads the conversation from the account rather than the browser, reloads that account’s current garments/wears/outfits, and returns a grounded answer with validated save/wear actions plus a consumer-only visual projection of the exact selected owned pieces |
 | `GET /api/brand/products` | Brand | Lists only products enrolled by that brand account |
 | `POST /api/brand/products` | Brand | Encrypts authorized three-view images and registers brand-bound SKU identity |
 | `POST /api/brand/metrics` | Brand | Confirms product ownership, filters owners and wear events by consent, applies `k ≥ 25`, then returns total/average/median usage, engagement, repeat wear, frequency distribution, and an eight-week trend |
