@@ -2,6 +2,7 @@ import type { Role } from "./types";
 import { timingSafeEqual } from "node:crypto";
 
 export interface SessionPayload { subject: string; role: Role; expiresAt: number; sessionVersion?: number; }
+export interface SessionAccount { role: Role; sessionVersion?: number; }
 const encoder = new TextEncoder();
 
 function base64url(input: Uint8Array | string) {
@@ -22,7 +23,9 @@ export async function createSessionToken(payload: SessionPayload, secret: string
 
 export async function verifySessionToken(token: string, secret: string, now = Date.now()): Promise<SessionPayload | null> {
   try {
-    const [body, supplied] = token.split(".");
+    const segments = token.split(".");
+    if (segments.length !== 2) return null;
+    const [body, supplied] = segments;
     if (!body || !supplied) return null;
     const suppliedBytes=Buffer.from(supplied,"base64url");
     const expectedBytes=Buffer.from(await signature(body,secret),"base64url");
@@ -31,4 +34,26 @@ export async function verifySessionToken(token: string, secret: string, now = Da
     if (!payload.subject || !["consumer","brand"].includes(payload.role) || payload.expiresAt <= now || (payload.sessionVersion!==undefined&&(!Number.isInteger(payload.sessionVersion)||payload.sessionVersion<0))) return null;
     return payload;
   } catch { return null; }
+}
+
+export function sessionForAccount(session: SessionPayload, account: SessionAccount | null): SessionPayload | null {
+  if (!account || account.role !== session.role || (session.sessionVersion ?? 0) !== (account.sessionVersion ?? 0)) return null;
+  return session;
+}
+
+export async function resolveAuthenticatedSession(input: {
+  token?: string;
+  secret?: string;
+  now?: number;
+  getAccount: (subject: string) => Promise<SessionAccount | null>;
+}): Promise<SessionPayload | null> {
+  if (!input.token || !input.secret) return null;
+  const session = await verifySessionToken(input.token, input.secret, input.now);
+  if (!session) return null;
+  return sessionForAccount(session, await input.getAccount(session.subject));
+}
+
+export function redirectForRequiredRole(sessionRole: Role, requiredRole: Role): string | null {
+  if (sessionRole === requiredRole) return null;
+  return sessionRole === "consumer" ? "/consumer" : "/brand";
 }
