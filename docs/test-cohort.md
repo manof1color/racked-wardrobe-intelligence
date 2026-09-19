@@ -1,5 +1,7 @@
 # Clearly Labeled Competition Demo Cohort
 
+> The four accounts a judge signs into are documented separately in [judge-accounts.md](judge-accounts.md). This page describes the wider synthetic cohort they sit inside.
+
 > Judge note: every record described here is synthetic, carries `testCohort: true` and `dataClassification: DEMO`, and is never represented as a real customer, pilot, or commercial result.
 
 The deterministic seed creates three fictional Brand accounts: **Racked Test Atelier** (apparel), **Synthetic Stride Lab** (footwear), and **Lumen Test Objects** (jewelry). Each owns 10 original synthetic products and two Brand Looks. Twenty-five opted-in synthetic Consumer accounts each receive one verified hero product per fictional brand, a saved outfit, deterministic 0–8 wear histories, and—on the first 10 accounts—a published Consumer Look with clearly fictional public activity.

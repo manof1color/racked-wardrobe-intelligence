@@ -15,6 +15,9 @@
     "eval:score": "node --experimental-strip-types scripts/score-garment-evaluation.mjs",
     "eval:audit-labels": "node --experimental-strip-types scripts/audit-second-hand-label-coverage.mjs",
     "verify:demo-match": "node --experimental-strip-types scripts/verify-test-cohort-match.mjs",
+    "seed:judge:dry": "node scripts/seed-judge-accounts.mjs --dry-run",
+    "seed:judge": "node scripts/seed-judge-accounts.mjs",
+    "verify:judge": "node scripts/verify-judge-accounts.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "audit:prod": "pnpm audit --prod --audit-level high"
