@@ -51,7 +51,7 @@ export default async function BrandProfile({params}:{params:Promise<{slug:string
       <div>
         <div className="eyebrow">BRAND-VERIFIED PRODUCT PAGE</div>
         <h1>{first.brand}</h1>
-        <p>Products here were enrolled by this brand with authorized product and label evidence. Below them are the outfits the brand styled itself, and the outfits real people published wearing its verified products.</p>
+        <p>Products here were enrolled, with their style codes, by the one Racked brand account that holds this name. Below them are the outfits the brand styled itself, and the outfits real people published wearing its verified products.</p>
         <div className="brand-profile-tags">
           <span>{products.length} enrolled SKU{products.length===1?"":"s"}</span>
           <span>{summary.brandLookCount} Brand Look{summary.brandLookCount===1?"":"s"}</span>

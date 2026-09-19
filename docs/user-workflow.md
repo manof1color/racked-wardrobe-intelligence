@@ -63,7 +63,14 @@ Open **Is this a brand product?** on a piece and enter the barcode number, or th
 style code. `POST /api/garments/verify` checks it against the brand registry and writes nothing.
 **Only a GTIN match, or a brand-plus-SKU match, creates a verified product link.** AI-read text
 and typed brand names are suggestions marked unverified, permanently — that boundary cannot be
-crossed by any amount of confidence.
+crossed by any amount of confidence. When you save, the server checks the label again and stores the link
+itself, so a matched piece arrives in your Closet as a brand product.
+
+**No label?** The same section shows up to three enrolled products that look like the piece, and a
+search box for the brand you bought from. **This is mine** links the product as *your pick*: the
+Closet shows its details and, where the brand lists a price, its cost per wear ("$30.00 a wear, from
+the brand's listed price"). A pick is yours alone — it is never verified, never makes a Community
+piece shoppable, and never reaches a brand. Add the label code any time to verify it.
 
 ### 4. Closet
 
@@ -148,12 +155,16 @@ settings are removed, and you are signed out. Brand accounts cannot yet be delet
 
 ### 1. Create a Brand account — `/login`
 
-Brand name required. A Brand account can only ever reach products enrolled under its own
+Brand name required, and it is yours alone: a second account cannot register the same name, and
+well-known brand names are reserved. A Brand account can only ever reach products enrolled under its own
 authenticated account.
 
 ### 2. Enroll a product — `/brand`
 
-Three authoritative views plus **SKU/MPN, GTIN, aliases, and label text**. This enrollment
+**One product photo** plus **SKU/MPN**, with an optional GTIN and aliases. **Fill in from photo**
+reads the photo and proposes the name, category, type, colour, pattern, and material, which you check
+before enrolling; those details are how a customer's scan recognises your product without its care
+label. Back and label photos are optional. This enrollment
 is the *only* thing that can create verified product identity anywhere in Racked. A
 consumer photographing your garment cannot produce it; neither can the AI.
 
@@ -170,7 +181,7 @@ wear it more than once? What does it get worn with?*
 
 **Everything above is suppressed before it is calculated when fewer than 25 distinct
 opted-in owners qualify.** Below the threshold you are told so plainly — you do not get
-zeroes dressed up as data. The zero-wear readout explicitly states that you cannot
+zeroes dressed up as data, and the owner count itself reads "fewer than 25" rather than an exact small number. The zero-wear readout explicitly states that you cannot
 identify or contact those owners.
 
 Brand-facing copy is tested to never claim sales, revenue, conversion, purchase intent, or

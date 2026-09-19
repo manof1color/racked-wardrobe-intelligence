@@ -6,16 +6,16 @@ import type { GarmentView, UploadDescriptor } from "../lib/platform-types.ts";
 
 const parts:UploadDescriptor[]=( ["front","back","label"] as GarmentView[]).map((view)=>({view,fileName:`real-shirt-${view}.jpg`,contentType:"image/jpeg",size:1200,sha256:`hash-${view}`}));
 
-test("brand registration matches an exact enrolled label hash",()=>{
+// REGRESSION: an identical image file, or a matching file name, used to verify a product. Neither
+// is evidence that a person owns a garment; only a GTIN or a brand with its style code is.
+test("REGRESSION: an identical image file or file name never verifies a product",()=>{
   const product=createBrandProductRegistration({ownerSubject:"brand@example.test",name:"Archive Shirt",brand:"Example Brand",aliases:["Example"],sku:"EX-100",gtin:"00123456789012",category:"top",labelText:"EXAMPLE BRAND EX-100",parts});
-  const match=matchBrandProduct([{...parts[2],fileName:"phone-photo.jpg"}],"",[product]);
-  assert.equal(match?.product.sku,"EX-100");
-  assert.equal(match?.method,"label-image-hash");
+  assert.equal(matchBrandProduct([{...parts[2],fileName:"phone-photo.jpg"}],"",[product]),null,"a byte-identical label photo is not ownership");
+  assert.equal(matchBrandProduct(parts,"",[product]),null,"the brand's own file names are not ownership");
 });
 
 test("label identity requires a brand alias with the SKU",()=>{
   const product=createBrandProductRegistration({ownerSubject:"brand@example.test",name:"Archive Shirt",brand:"Example Brand",aliases:["Example"],sku:"EX-100",category:"top",labelText:"EXAMPLE BRAND EX-100",parts});
-  assert.equal(matchBrandProduct(parts,"EXAMPLE BRAND EX-100 100% COTTON",[product])?.method,"label-image-hash");
   const renamed=parts.map((part)=>({...part,fileName:`consumer-${part.view}.jpg`,sha256:undefined}));
   assert.equal(matchBrandProduct(renamed,"EXAMPLE BRAND EX-100 100% COTTON",[product])?.method,"brand-sku");
   assert.equal(matchBrandProduct(renamed,"UNRELATED BRAND EX-100",[product]),null);

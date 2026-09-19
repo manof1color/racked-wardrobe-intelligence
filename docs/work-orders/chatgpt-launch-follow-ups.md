@@ -44,6 +44,11 @@ and must start from a `main` that already contains garment and consumer account 
   `identityStatus` to `user-labeled`, keep the consumer's own brand text.
 - Consumer Community posts whose `publishedGarments[].verifiedProduct` points at a deleted product:
   remove `verifiedProduct`, set `resolutionState` to `GENERIC_UNVERIFIED`, keep `unverifiedBrandLabel`.
+- Consumer garments that *picked* a deleted product (`identityStatus: "owner-selected"`,
+  `selectedProductId` set) have no index entry, and deletion doesn't need to find them. The catalog no
+  longer lists the product, the saved brand text stays, and nothing breaks.
+- Release the brand name: delete the `BRANDNAME#<slug>` / `CLAIM` item (added in #126), conditioned on
+  `accountId` being this account, just before the profile, so the name can be registered again.
 - Retry-safe ordering: dependants first, the brand profile last.
 - Settings: replace the "not in Settings yet" note with the working form.
 
@@ -156,6 +161,53 @@ body quotes the before and after numbers for that file.
 
 **Out of scope:** password hashing changes, new auth features, rate-limit changes, anything that
 alters how sessions are issued or validated in production.
+
+---
+
+## X7 — Linking progress on Home, and "verify to make it shoppable"
+
+**Why:** brand wear analytics only appear once 25 opted-in owners have a verified link to a product,
+so every linked piece matters. Linking a piece no longer needs its care label: a scanned piece can be
+recognised as an enrolled product, or found by search, and saved as the owner's **pick**
+(`identityStatus: "owner-selected"`). Only a label code makes it **verified**. This work order adds
+the two smallest nudges from `docs/brand-linking-incentives.md`. Read that document first,
+especially "The rules any incentive has to follow".
+
+**Spec**
+
+1. **Linking progress on Home** (`components/consumer-dashboard.tsx`, Home view only):
+   - Show one line when the wardrobe has at least 3 pieces: "*N* of *M* pieces linked to a brand",
+     where linked means `identityStatus` is `"verified"` or `"owner-selected"`. Say how many of them
+     are verified when that number is above 0.
+   - Add a button that opens the Closet filtered to unlinked pieces. Put the predicate in a small
+     pure helper in `lib/`, with tests, not inline.
+   - A **Hide** control dismisses the line and remembers that with `localStorage`, wrapped in
+     try/catch. It is a per-device convenience and nothing is stored on the server.
+   - Don't show the line when every piece is linked, and don't show it when the wardrobe is empty.
+2. **"Verify to make it shoppable"** (the Community publish flow, wherever the outfit to publish is
+   chosen):
+   - When the chosen outfit contains a piece with `identityStatus === "owner-selected"`, show one line
+     under it: "Add the code from its care label to make *{piece name}* shoppable in your post." Link
+     it to that piece in the Closet. If the Closet has no per-piece view, explain where the code goes
+     instead: *Is this a brand product?* when adding a piece.
+   - Publishing must still work exactly as before. The line is information, not a gate.
+
+**Never** (in addition to the list at the top of this file)
+- Never make anything depend on brand data sharing being on, or mention sharing in either nudge.
+  Linking and sharing are separate on purpose.
+- Never describe a pick as verified, or count picks as verified anywhere.
+- Never add streaks, points, badges, leaderboards, notifications, or anything that converts to money.
+- Never change `addWardrobeItem`, the catalog routes, `lib/catalog-match.ts`, or verification.
+
+**Done when**
+- Both nudges render only in the conditions above, and the helper has tests for the empty, all-linked,
+  mixed, and picks-only cases.
+- A test asserts that neither nudge's copy mentions sharing, and that the publish flow isn't blocked.
+- Lint, typecheck, tests, build, and `audit:prod` pass. README "Linking a brand product" and
+  `docs/user-workflow.md` gain one sentence each.
+
+**Out of scope:** owner perks, care guides, resale cards (items 3–5 in the incentives doc), and any
+change to what brands can see.
 
 ---
 

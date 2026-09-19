@@ -130,7 +130,7 @@ export function analyzeThreeViewSet(parts: UploadDescriptor[], options?:{registr
     const product=match.product;
     const northstarDemo=product.sku==="NA-OW-1042";
     return {
-      provider:"deterministic-demo", fallback:true, confidence:match.method==="label-image-hash"||match.method==="catalog-image-set"?98:96, dataSufficiency:"complete",
+      provider:"deterministic-demo", fallback:true, confidence:96, dataSufficiency:"complete",
       garment:northstarDemo
         ? { name:product.name,category:"outerwear",subtype:"other-outerwear",color:"sienna",pattern:"solid",style:["minimal","casual","utility"],construction:["point collar","button front","two patch pockets","back yoke"],material:"100% cotton",alternatives:[] }
         : {name:product.name,...normalizeGarmentClassification(product.category,product.name),color:"unconfirmed",pattern:"unknown",style:[],construction:["front/back set validated"],material:"unconfirmed",alternatives:[]},
@@ -140,7 +140,7 @@ export function analyzeThreeViewSet(parts: UploadDescriptor[], options?:{registr
         { view:"back",findings:northstarDemo?["matching color and silhouette","back yoke seam","consistent construction"]:["back image validated","registered catalog view available"] },
         { view:"label",findings:[product.brand,product.sku,`Registry match: ${match.method}`] },
       ],
-      warnings:["The product identity matched a brand-enrolled registry record. Confirm all attributes before saving; exact hashes prove identical files, not ownership of a separately photographed garment."],
+      warnings:["The product identity matched a brand-enrolled registry record. Confirm all attributes before saving; the match rests on the barcode or the brand with its style code, never on the photos."],
     };
   }
   const majorSuggestion=suggestMajorBrand(labelText);
