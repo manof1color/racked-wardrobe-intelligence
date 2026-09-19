@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { CatalogCandidate, CatalogProductSummary } from "@/lib/catalog-match";
 import type { GarmentAnalysis } from "@/lib/platform-types";
 import type { DetectedLookGarment } from "@/lib/look-garment-detection";
 import { garmentSubtypeLabel, garmentTypeSuggestions, normalizeGarmentCategory, resolveTypedGarmentType, subtypeForCategory } from "@/lib/garment-taxonomy";
@@ -23,12 +24,18 @@ import { PhotoSourcePicker } from "./photo-source-picker";
  * The verification rule is untouched — a match still needs a barcode number, or a brand
  * together with that brand's style code, and the product must be enrolled by the brand.
  * Typing a brand name verifies nothing, here or anywhere else.
+ *
+ * A label is often cut out or unreadable, so a piece can also be linked without one: Racked
+ * suggests enrolled products that look like it, and the person can search the brand they
+ * bought from. Either way the link is saved as their own pick, shown to them alone, and never
+ * as verified — verification still takes the code from the label.
  */
 
 type LinkState =
   | { status: "none" }
   | { status: "checking" }
   | { status: "verified"; product: { registryProductId: string; name: string; brand: string; sku: string }; matchMethod: string }
+  | { status: "selected"; product: CatalogProductSummary }
   | { status: "unverified"; reason: string; boundary: string };
 
 interface Piece extends DetectedLookGarment {
@@ -39,6 +46,12 @@ interface Piece extends DetectedLookGarment {
   expanded: boolean;
   /** What the Type field shows: the recognised type's label, or the person's own words. */
   typeText: string;
+  /** Enrolled products that look like this piece; null until the brand section is first opened. */
+  candidates: CatalogCandidate[] | null;
+  candidatesState: "idle" | "loading" | "done" | "failed";
+  query: string;
+  results: CatalogProductSummary[];
+  searching: boolean;
 }
 
 /**
@@ -60,8 +73,17 @@ export interface GarmentIntakeSelection {
 
 function statusLabel(piece: Piece) {
   if (piece.link.status === "verified") return { text: "BRAND PRODUCT", tone: "verified" };
+  if (piece.link.status === "selected") return { text: "BRAND · YOUR PICK", tone: "picked" };
   if (piece.analysis.provider === "manual-review") return { text: "NEEDS YOUR LABEL", tone: "manual" };
   return { text: "YOUR GARMENT", tone: "plain" };
+}
+
+/** One enrolled product, as its brand page shows it: photo, name, brand, and why it was offered. */
+function CatalogOption({ product, detail }: { product: CatalogProductSummary; detail?: string }) {
+  return <div className="catalog-option">
+    {product.imageUrl ? <img src={product.imageUrl} alt="" /> : <span className="catalog-option-blank" aria-hidden="true" />}
+    <span><strong>{product.name}</strong><small>{product.brand}{detail ? ` · ${detail}` : ""}</small></span>
+  </div>;
 }
 
 export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIntakeSelection[]) => Promise<void> }) {
@@ -75,6 +97,8 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
 
   const selectedCount = useMemo(() => pieces.filter((piece) => piece.selected).length, [pieces]);
   const verifiedCount = useMemo(() => pieces.filter((piece) => piece.selected && piece.link.status === "verified").length, [pieces]);
+  const pickedCount = useMemo(() => pieces.filter((piece) => piece.selected && piece.link.status === "selected").length, [pieces]);
+  const searchTimers = useRef(new Map<string, number>());
 
   function chooseFile(next: File) {
     if (preview) URL.revokeObjectURL(preview);
@@ -103,6 +127,11 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
         expanded: false,
         labelText: "",
         link: { status: "none" },
+        candidates: null,
+        candidatesState: "idle",
+        query: "",
+        results: [],
+        searching: false,
         // A fallback subtype is an absence of recognition, so the field starts empty and
         // asks, rather than prefilling "Other Shoes" as though that were an answer.
         typeText: detection.analysis.garment.subtype.startsWith("other-")
@@ -150,6 +179,60 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
     });
   }
 
+  /** Asks the catalog which enrolled products look like this piece, once, when the section opens. */
+  async function loadCandidates(piece: Piece) {
+    update(piece.id, (current) => ({ ...current, candidatesState: "loading" }));
+    try {
+      const garment = piece.analysis.garment;
+      const response = await fetch("/api/catalog", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ category: piece.overrides.category, subtype: piece.overrides.subtype, color: garment.color, pattern: garment.pattern, material: garment.material, style: garment.style, brandText: piece.overrides.brand }),
+      });
+      const data = await readJsonResponse<{ error?: string; candidates?: CatalogCandidate[] }>(response, "The catalog returned an unreadable response.");
+      if (!response.ok) throw new Error(data.error ?? "The catalog could not be searched.");
+      update(piece.id, (current) => ({ ...current, candidates: data.candidates ?? [], candidatesState: "done" }));
+    } catch {
+      update(piece.id, (current) => ({ ...current, candidates: [], candidatesState: "failed" }));
+    }
+  }
+
+  function toggleBrandSection(piece: Piece) {
+    const opening = !piece.expanded;
+    update(piece.id, (current) => ({ ...current, expanded: !current.expanded }));
+    if (opening && piece.candidatesState === "idle" && piece.overrides.category !== "unknown") void loadCandidates(piece);
+  }
+
+  /** Searches as the person types, a moment after they pause, within this piece's category. */
+  function searchCatalog(piece: Piece, query: string) {
+    update(piece.id, (current) => ({ ...current, query }));
+    const timers = searchTimers.current;
+    window.clearTimeout(timers.get(piece.id));
+    if (query.trim().length < 2) { update(piece.id, (current) => ({ ...current, results: [], searching: false })); return; }
+    timers.set(piece.id, window.setTimeout(async () => {
+      update(piece.id, (current) => ({ ...current, searching: true }));
+      try {
+        const params = new URLSearchParams({ q: query.trim() });
+        if (piece.overrides.category !== "unknown") params.set("category", piece.overrides.category);
+        const response = await fetch(`/api/catalog?${params.toString()}`);
+        const data = await readJsonResponse<{ error?: string; results?: CatalogProductSummary[] }>(response, "The catalog returned an unreadable response.");
+        if (!response.ok) throw new Error(data.error ?? "The catalog could not be searched.");
+        // A slower, older search must not overwrite the results for what is typed now.
+        update(piece.id, (current) => current.query === query ? { ...current, results: data.results ?? [], searching: false } : current);
+      } catch {
+        update(piece.id, (current) => current.query === query ? { ...current, results: [], searching: false } : current);
+      }
+    }, 300));
+  }
+
+  function choose(piece: Piece, product: CatalogProductSummary) {
+    update(piece.id, (current) => ({
+      ...current,
+      link: { status: "selected", product },
+      overrides: { ...current.overrides, brand: product.brand, sku: product.sku },
+    }));
+  }
+
   async function checkLabel(piece: Piece) {
     if (!piece.labelText.trim()) return;
     update(piece.id, (current) => ({ ...current, link: { status: "checking" } }));
@@ -189,7 +272,8 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
         analysis: piece.analysis,
         // A matched label travels with the piece as evidence. The server checks it again and
         // stores the product link itself; a "verified" flag from the browser would prove nothing.
-        overrides: { ...piece.overrides, name: piece.overrides.name.trim(), brand: piece.overrides.brand.trim(), sku: piece.overrides.sku.trim(), customType: piece.overrides.customType ?? null, labelText: piece.link.status === "verified" ? piece.labelText : null },
+        // A catalog pick travels as the person's selection, which the server never promotes.
+        overrides: { ...piece.overrides, name: piece.overrides.name.trim(), brand: piece.overrides.brand.trim(), sku: piece.overrides.sku.trim(), customType: piece.overrides.customType ?? null, labelText: piece.link.status === "verified" ? piece.labelText : null, catalogProductId: piece.link.status === "selected" ? piece.link.product.registryProductId : null },
       })));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The pieces could not be saved.");
@@ -287,10 +371,38 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
               : <>
                   <button type="button" className="intake-link-toggle" disabled={!piece.selected}
                     aria-expanded={piece.expanded}
-                    onClick={() => update(piece.id, (current) => ({ ...current, expanded: !current.expanded }))}>
-                    {piece.expanded ? "▾" : "▸"} Is this a brand product? <span>Optional</span>
+                    onClick={() => toggleBrandSection(piece)}>
+                    {piece.expanded ? "▾" : "▸"} {piece.link.status === "selected" ? `${piece.link.product.brand} · ${piece.link.product.name}` : "Is this a brand product?"} <span>Optional</span>
                   </button>
                   {piece.expanded && <div className="intake-link-body">
+                    {piece.link.status === "selected"
+                      ? <div className="catalog-picked">
+                          <CatalogOption product={piece.link.product} />
+                          <p>Linked as your pick, visible only to you. Add the code from its care label below to verify it.</p>
+                          <button type="button" className="button button-light button-small" onClick={() => update(piece.id, (current) => ({ ...current, link: { status: "none" } }))}>Choose a different product</button>
+                        </div>
+                      : <>
+                          <p className="catalog-note">Linked pieces show their product details in your Closet, and their cost per wear where the brand lists a price.</p>
+                          {piece.candidatesState === "loading" && <p className="catalog-note" role="status">Looking through brand catalogs…</p>}
+                          {piece.candidates && piece.candidates.length > 0 && <div className="catalog-group">
+                            <h4>Looks like</h4>
+                            <ul className="catalog-options">{piece.candidates.map((candidate) => <li key={candidate.registryProductId}>
+                              <CatalogOption product={candidate} detail={candidate.reasons[0]} />
+                              <button type="button" className="button button-dark button-small" disabled={!piece.selected} onClick={() => choose(piece, candidate)}>This is mine</button>
+                            </li>)}</ul>
+                          </div>}
+                          {piece.candidatesState === "done" && piece.candidates?.length === 0 && <p className="catalog-note">No enrolled product looks like this one. Search for the brand below.</p>}
+                          <label>Search brands
+                            <input type="search" value={piece.query} maxLength={80} placeholder="Brand, product name, or style code" disabled={!piece.selected}
+                              onChange={(event) => searchCatalog(piece, event.target.value)} />
+                          </label>
+                          {piece.searching && <p className="catalog-note" role="status">Searching…</p>}
+                          {!piece.searching && piece.query.trim().length >= 2 && piece.results.length === 0 && <p className="catalog-note">No enrolled product matches &ldquo;{piece.query.trim()}&rdquo;{piece.overrides.category !== "unknown" ? ` in ${piece.overrides.category}` : ""}. The brand may not be on Racked yet.</p>}
+                          {piece.results.length > 0 && <ul className="catalog-options">{piece.results.map((result) => <li key={result.registryProductId}>
+                            <CatalogOption product={result} />
+                            <button type="button" className="button button-dark button-small" disabled={!piece.selected} onClick={() => choose(piece, result)}>This is mine</button>
+                          </li>)}</ul>}
+                        </>}
                     <label>Code from the care label
                       <input value={piece.labelText} maxLength={200} placeholder="Barcode number, or brand + style code"
                         disabled={!piece.selected}
@@ -318,7 +430,8 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
           <strong>These are pieces in my wardrobe.</strong>
           <small>
             {selectedCount} {selectedCount === 1 ? "piece" : "pieces"} will be added
-            {verifiedCount > 0 ? `, ${verifiedCount} linked to an enrolled brand product` : ""}. The source photo stays private.
+            {verifiedCount > 0 ? `, ${verifiedCount} verified as an enrolled brand product` : ""}
+            {pickedCount > 0 ? `, ${pickedCount} linked to a brand product you picked` : ""}. The source photo stays private.
           </small>
         </span>
       </label>

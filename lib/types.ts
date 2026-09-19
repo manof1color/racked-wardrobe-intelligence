@@ -28,7 +28,17 @@ export interface WardrobeItem {
   sku?: string | null;
   /** Present only when registry evidence verified this exact enrolled product. */
   registryProductId?: string | null;
-  identityStatus?: "verified" | "suggested" | "user-labeled" | "unverified";
+  /**
+   * "owner-selected" means the person chose this product from the brand catalog — by recognition
+   * or search — without label evidence. It shows the product's details to them and nothing more:
+   * it is never verified identity and never counts toward a brand's wear aggregates.
+   */
+  identityStatus?: "verified" | "owner-selected" | "suggested" | "user-labeled" | "unverified";
+  /** The catalog product the person chose, when identityStatus is "owner-selected". */
+  selectedProductId?: string | null;
+  /** The brand's listed price when the piece was linked — not what the person paid. */
+  listedPrice?: number | null;
+  listedCurrency?: string | null;
   createdAt?: string;
 }
 
@@ -73,4 +83,4 @@ export interface MatchResult {
 }
 
 /** A person's corrections to one detected piece before it is saved. */
-export interface GarmentOverrides {name:string;brand:string;sku:string;category:GarmentCategory;subtype:string;customType?:string|null;/** Label evidence the server re-checks against the registry before it saves a verified link. */labelText?:string|null}
+export interface GarmentOverrides {name:string;brand:string;sku:string;category:GarmentCategory;subtype:string;customType?:string|null;/** Label evidence the server re-checks against the registry before it saves a verified link. */labelText?:string|null;/** A catalog product the person chose; saved as their selection, never as verified. */catalogProductId?:string|null}

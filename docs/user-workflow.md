@@ -66,6 +66,12 @@ and typed brand names are suggestions marked unverified, permanently — that bo
 crossed by any amount of confidence. When you save, the server checks the label again and stores the link
 itself, so a matched piece arrives in your Closet as a brand product.
 
+**No label?** The same section shows up to three enrolled products that look like the piece, and a
+search box for the brand you bought from. **This is mine** links the product as *your pick*: the
+Closet shows its details and, where the brand lists a price, its cost per wear ("$30.00 a wear, from
+the brand's listed price"). A pick is yours alone — it is never verified, never makes a Community
+piece shoppable, and never reaches a brand. Add the label code any time to verify it.
+
 ### 4. Closet
 
 Every saved garment with its wear count and how long since it was last worn. Wear age is
@@ -155,7 +161,10 @@ authenticated account.
 
 ### 2. Enroll a product — `/brand`
 
-Three authoritative views plus **SKU/MPN, GTIN, aliases, and label text**. This enrollment
+**One product photo** plus **SKU/MPN**, with an optional GTIN and aliases. **Fill in from photo**
+reads the photo and proposes the name, category, type, colour, pattern, and material, which you check
+before enrolling; those details are how a customer's scan recognises your product without its care
+label. Back and label photos are optional. This enrollment
 is the *only* thing that can create verified product identity anywhere in Racked. A
 consumer photographing your garment cannot produce it; neither can the AI.
 
