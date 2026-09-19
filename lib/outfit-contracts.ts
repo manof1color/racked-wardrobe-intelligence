@@ -1,8 +1,10 @@
+import { slugifyBrand } from "./product-registry.ts";
 import type { OutfitPieceReference, WardrobeItem } from "./types.ts";
 
-function slugify(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
-}
+// The registry's slug rule, not a local copy. A separate rule dropped accented letters
+// ("Café Noir" became "caf-noir" here and "cafe-noir" in the registry), so a published look
+// with a verified accented-brand piece never appeared on that brand's page.
+const slugify = slugifyBrand;
 
 // Exactness is granted only by the registry link persisted at garment enrollment.
 // Suggested/user labels intentionally remain generic rather than being promoted to

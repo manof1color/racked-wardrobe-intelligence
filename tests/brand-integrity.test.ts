@@ -11,7 +11,9 @@ import {
   registryIdentityConflict,
   slugifyBrand,
 } from "../lib/product-registry.ts";
+import { wardrobeItemToOutfitPiece } from "../lib/outfit-contracts.ts";
 import type { BrandProductRegistration, GarmentView, UploadDescriptor } from "../lib/platform-types.ts";
+import type { WardrobeItem } from "../lib/types.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const parts: UploadDescriptor[] = (["front", "back", "label"] as GarmentView[]).map((view) => ({ view, fileName: `${view}.jpg`, contentType: "image/jpeg", size: 1200 }));
@@ -98,6 +100,16 @@ test("brand names produce one slug everywhere, accents included", () => {
   assert.equal(slugifyBrand("Café Noir"), "cafe-noir");
   const store = read("lib/server/production-store.ts");
   assert.match(store, /function slugify\(value:string\) \{ return slugifyBrand\(value\); \}/);
+});
+
+// REGRESSION: published looks slugged brand names with their own rule, which dropped accented
+// letters, so a look with a verified "Café Noir" piece never appeared on /brands/cafe-noir.
+test("REGRESSION: a published verified piece carries the registry's brand slug", () => {
+  const item = { id: "item-1", name: "Wool coat", category: "outerwear", subtype: "overcoat", color: "black", style: [], season: "all-season", wearCount: 0, lastWornDays: 999, source: "ai-confirmed", art: "photo", brand: "Café Noir", sku: "CN-1", registryProductId: "product-9", identityStatus: "verified" } as unknown as WardrobeItem;
+  const piece = wardrobeItemToOutfitPiece(item);
+  assert.equal(piece.resolution.state, "EXACT_VERIFIED_PRODUCT");
+  assert.equal(piece.resolution.brandSlug, slugifyBrand("Café Noir"));
+  assert.equal(piece.resolution.brandSlug, "cafe-noir");
 });
 
 test("a brand name is held by one account, reserved before the account exists", () => {
