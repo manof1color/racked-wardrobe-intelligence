@@ -159,7 +159,26 @@ Brand name required, and it is yours alone: a second account cannot register the
 well-known brand names are reserved. A Brand account can only ever reach products enrolled under its own
 authenticated account.
 
-### 2. Enroll a product — `/brand`
+### 2. Find your way around — Overview, Catalog, Brand Looks
+
+Three views, switched by the tabs at the top (and the bottom bar on a phone), rather than one long
+scroll.
+
+**Overview** is what you land on: how many products are live, what is unfinished in your own listings
+(a missing price, link, photo, or description), and your public page link to share. It deliberately
+shows **no wear data**. Whether a product has crossed the 25-owner threshold is itself derived from
+how many people own it, so showing that across a whole catalog at once would be the cross-product
+comparison the enumeration budget exists to prevent.
+
+**Catalog** is your products as cards — photo, name, style code, and a chip for each state (Live,
+Retired, No price, No link, Demo data) — with search and the enrollment form.
+
+**Brand Looks** is the Look builder on its own.
+
+Opening a product from the catalog is what shows its wear intelligence, and what spends one slice of
+the enumeration budget. Landing on the workspace costs nothing.
+
+### 3. Enroll a product — `/brand`
 
 **One product photo** plus **SKU/MPN**, with an optional GTIN and aliases. **Fill in from photo**
 reads the photo and proposes the name, category, type, colour, pattern, and material, which you check
@@ -168,7 +187,7 @@ label. Back and label photos are optional. This enrollment
 is the *only* thing that can create verified product identity anywhere in Racked. A
 consumer photographing your garment cannot produce it; neither can the AI.
 
-### 3. Keep the catalog current
+### 4. Keep the catalog current
 
 Any enrolled product can be corrected: name, category, type, colour, pattern, material, style, price,
 availability, product and affiliate links, and brand aliases. **What identifies the product cannot be
@@ -183,7 +202,7 @@ keeps their piece, and its recorded wear stays exactly as it is. Retired product
 The catalog is searchable by name, style code, or category, and retired products are hidden until you
 ask for them.
 
-### 4. Read the product — the dashboard
+### 5. Read the product — open it from the catalog
 
 Written as business questions, not metric names: *Are people actually wearing it? Do they
 wear it more than once? What does it get worn with?*
@@ -206,7 +225,7 @@ identify or contact those owners.
 Brand-facing copy is tested to never claim sales, revenue, conversion, purchase intent, or
 causation.
 
-### 5. Community Intelligence
+### 6. Community Intelligence
 
 A **separate** public-activity dataset: appearances in public looks, likes, recreate
 requests, outbound clicks, category pairings, and labelled demo purchase simulations
@@ -216,21 +235,21 @@ It never joins to, bypasses, or lowers the `k ≥ 25` threshold on private wear 
 resist enumeration, a brand may pull aggregates for at most six distinct products in any
 five-minute window.
 
-### 6. Brand Looks
+### 7. Brand Looks
 
 Compose a look from your own enrolled products, grouped by garment slot with a live
 preview. The server re-checks ownership independently of the browser. Published Brand Looks
 sit in Community and remain visually distinct from consumer-authored looks — a tested
 guarantee that neither provenance can be presented as the other.
 
-### 7. Hanger — brand strategy
+### 8. Hanger — brand strategy
 
 Product, retention, merchandising and campaign strategy, on **released aggregates only**.
 Below the privacy threshold Hanger receives no cohort or wear values at all and is limited
 to general strategy. Output that recommends individualised outreach inferred from anonymous
 wear groups is rejected server-side.
 
-### 8. Your public page — `/brands/[slug]`
+### 9. Your public page — `/brands/[slug]`
 
 Products, brand-authored Brand Looks, and consumer-authored Community Looks, kept in
 separate sections with provenance intact.

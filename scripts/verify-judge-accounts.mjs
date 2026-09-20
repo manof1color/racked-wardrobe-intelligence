@@ -65,7 +65,6 @@ check(products.some((product) => product.id === RETIRED && product.archived === 
 for (const product of products) {
   for (const view of Object.values(product.views ?? {})) {
     if (!view?.storageKey) continue;
-    // eslint-disable-next-line no-await-in-loop
     check(await objectExists(view.storageKey), `product photo is present: ${view.storageKey}`);
   }
 }

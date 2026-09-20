@@ -754,3 +754,65 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .product-editor-head small{display:block;font-size:.64rem;color:var(--muted);line-height:1.5;max-width:52ch}
 .product-editor-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .product-editor-note{margin:10px 0 0;font-size:.66rem;color:var(--muted);line-height:1.5}
+
+/* The brand workspace as three places: Overview, Catalog, Brand Looks, with a product opened from the catalog. */
+.workspace-tabs{display:flex;gap:6px;margin:0 0 18px;border-bottom:1px solid var(--line);overflow-x:auto}
+.workspace-tabs button{border:0;background:transparent;font:inherit;font-size:.74rem;font-weight:800;letter-spacing:.02em;color:var(--muted);padding:10px 12px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.workspace-tabs button:hover{color:var(--ink)}
+.workspace-tabs button.active{color:var(--ink);border-bottom-color:var(--ink)}
+.overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}
+.overview-card{border:1px solid var(--line);background:#fff;padding:14px}
+.overview-card small{display:block;font-size:.58rem;font-weight:900;letter-spacing:.09em;color:var(--muted)}
+.overview-card strong{display:block;font-size:1.8rem;line-height:1.1;margin:6px 0 4px}
+.overview-card p{margin:0;font-size:.66rem;color:var(--muted);line-height:1.5}
+.attention-list{border:1px solid var(--line);background:#fff;padding:14px;margin-bottom:18px}
+.attention-list h2{margin:0 0 10px;font-size:.95rem}
+.attention-list ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.attention-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #ece8df;padding-top:8px}
+.attention-list li:first-child{border-top:0;padding-top:0}
+.attention-list strong{display:block;font-size:.78rem}
+.attention-list small{display:block;font-size:.64rem;color:var(--muted);line-height:1.5}
+
+/* A catalog reads as products, not as rows of text. */
+.catalog-view{margin-top:6px}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:12px}
+.product-card{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);background:#fff;padding:0;text-align:left;font:inherit;cursor:pointer;overflow:hidden}
+.product-card:hover{border-color:var(--ink)}
+.product-card.retired{opacity:.72}
+.product-card>img,.product-card-blank{width:100%;height:150px;object-fit:cover;background:#f3f0e8;display:flex;align-items:center;justify-content:center;font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.product-card-copy{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;min-width:0}
+.product-card-copy strong{font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.product-card-copy small{font-size:.64rem;color:var(--muted)}
+.chip-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.chip{font-style:normal;font-size:.55rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase;padding:3px 6px;border:1px solid var(--line);color:var(--muted)}
+.chip-live{background:var(--acid);border-color:var(--acid);color:var(--ink)}
+.chip-retired{background:#f3f0e8;color:var(--ink)}
+.chip-todo{background:#fff6f3;border-color:var(--coral);color:var(--coral-dark)}
+.chip-demo{background:#fff;color:var(--muted)}
+
+/* One product, opened on purpose: the number that matters, then the rest. */
+.product-view-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.back-link{border:0;background:transparent;font:inherit;font-size:.72rem;font-weight:800;color:var(--muted);cursor:pointer;padding:6px 0}
+.back-link:hover{color:var(--ink)}
+.wear-hero{border:1px solid var(--line);background:#fff;padding:18px;margin:14px 0}
+.wear-hero .card-label{font-size:.58rem;font-weight:900;letter-spacing:.09em;color:var(--muted)}
+.wear-hero strong{display:block;font-size:3rem;line-height:1;margin:6px 0 8px}
+.wear-hero p{margin:0 0 6px;font-size:.95rem;font-weight:700}
+.wear-hero small{display:block;font-size:.68rem;color:var(--muted);line-height:1.6;max-width:70ch}
+.metric-row-secondary{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.metric-row-secondary article strong{font-size:1.35rem}
+.wear-chart-card figcaption{margin-top:8px;font-size:.62rem;color:var(--muted);line-height:1.5}
+.metric-skeleton{border:1px solid var(--line);background:#fff;padding:18px;margin:14px 0;display:flex;flex-direction:column;gap:10px}
+.metric-skeleton strong{font-size:.78rem;color:var(--muted)}
+.metric-skeleton span{display:block;height:14px;background:linear-gradient(90deg,#f3f0e8,#ece8df,#f3f0e8);background-size:200% 100%;animation:metric-shimmer 1.4s ease-in-out infinite}
+.metric-skeleton span:nth-child(2){width:60%}
+.metric-skeleton span:nth-child(3){width:85%}
+.metric-skeleton span:nth-child(4){width:40%}
+@keyframes metric-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){.metric-skeleton span{animation:none}}
+@media (max-width:600px){
+  .wear-hero strong{font-size:2.2rem}
+  .product-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .product-card>img,.product-card-blank{height:120px}
+  .attention-list li{flex-wrap:wrap}
+}
