@@ -168,7 +168,22 @@ label. Back and label photos are optional. This enrollment
 is the *only* thing that can create verified product identity anywhere in Racked. A
 consumer photographing your garment cannot produce it; neither can the AI.
 
-### 3. Read the product — the dashboard
+### 3. Keep the catalog current
+
+Any enrolled product can be corrected: name, category, type, colour, pattern, material, style, price,
+availability, product and affiliate links, and brand aliases. **What identifies the product cannot be
+edited** — the brand, its style code, and its barcode are what a consumer's label is matched against,
+so changing them would move existing links to a different product. A record that is genuinely wrong
+is retired and enrolled again.
+
+**Retire** takes two taps and is the honest ending for a discontinued product: it stops answering
+label checks, searches, and suggestions, and leaves your public page. Everyone who already owns it
+keeps their piece, and its recorded wear stays exactly as it is. Retired products can be restored.
+
+The catalog is searchable by name, style code, or category, and retired products are hidden until you
+ask for them.
+
+### 4. Read the product — the dashboard
 
 Written as business questions, not metric names: *Are people actually wearing it? Do they
 wear it more than once? What does it get worn with?*
@@ -179,6 +194,10 @@ wear it more than once? What does it get worn with?*
 - High-frequency owners, and the zero-wear opportunity
 - Aggregate CSV export
 
+The dashboard also says how many more distinct products you can open in the next few minutes, and
+why that limit exists: comparing many products in quick succession is how a near-threshold group
+could otherwise be reconstructed.
+
 **Everything above is suppressed before it is calculated when fewer than 25 distinct
 opted-in owners qualify.** Below the threshold you are told so plainly — you do not get
 zeroes dressed up as data, and the owner count itself reads "fewer than 25" rather than an exact small number. The zero-wear readout explicitly states that you cannot
@@ -187,7 +206,7 @@ identify or contact those owners.
 Brand-facing copy is tested to never claim sales, revenue, conversion, purchase intent, or
 causation.
 
-### 4. Community Intelligence
+### 5. Community Intelligence
 
 A **separate** public-activity dataset: appearances in public looks, likes, recreate
 requests, outbound clicks, category pairings, and labelled demo purchase simulations
@@ -197,21 +216,21 @@ It never joins to, bypasses, or lowers the `k ≥ 25` threshold on private wear 
 resist enumeration, a brand may pull aggregates for at most six distinct products in any
 five-minute window.
 
-### 5. Brand Looks
+### 6. Brand Looks
 
 Compose a look from your own enrolled products, grouped by garment slot with a live
 preview. The server re-checks ownership independently of the browser. Published Brand Looks
 sit in Community and remain visually distinct from consumer-authored looks — a tested
 guarantee that neither provenance can be presented as the other.
 
-### 6. Hanger — brand strategy
+### 7. Hanger — brand strategy
 
 Product, retention, merchandising and campaign strategy, on **released aggregates only**.
 Below the privacy threshold Hanger receives no cohort or wear values at all and is limited
 to general strategy. Output that recommends individualised outreach inferred from anonymous
 wear groups is rejected server-side.
 
-### 7. Your public page — `/brands/[slug]`
+### 8. Your public page — `/brands/[slug]`
 
 Products, brand-authored Brand Looks, and consumer-authored Community Looks, kept in
 separate sections with provenance intact.

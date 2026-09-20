@@ -12,10 +12,10 @@ import { normalizeGarmentClassification } from "@/lib/garment-taxonomy";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
-import { isReservedBrandName, matchBrandProduct, slugifyBrand } from "@/lib/product-registry";
+import { brandProductUpdate, isReservedBrandName, matchBrandProduct, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
 import { buildWearUsageAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
-import { exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
+import { enumerationBudgetState, exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
 import { findByPaginatedQuery } from "@/lib/community-lookup";
 import { wornDaysAgo } from "@/lib/wear-recency";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
@@ -489,7 +489,28 @@ export async function listRegistryProducts():Promise<BrandProductRegistration[]>
 export async function catalogImageUrl(product:BrandProductRegistration){return (isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined)??await privateImageUrl(product.views?.front?.storageKey);}
 export async function getRegistryProductById(productId:string){return (await listRegistryProducts()).find(product=>product.id===productId)??null;}
 
-export async function listPublicBrandProducts(brandSlug:string):Promise<BrandProductRegistration[]>{const products=await listRegistryProducts();return Promise.all(products.filter(product=>product.brandSlug===brandSlug).map(async product=>({...product,imageUrls:{front:(isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined)??await privateImageUrl(product.views.front.storageKey)}})));}
+export async function listPublicBrandProducts(brandSlug:string):Promise<BrandProductRegistration[]>{const products=await listRegistryProducts();return Promise.all(products.filter(product=>product.brandSlug===brandSlug&&!product.archived).map(async product=>({...product,imageUrls:{front:(isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined)??await privateImageUrl(product.views.front.storageKey)}})));}
+
+export async function getOwnedBrandProduct(ownerId:string,productId:string):Promise<BrandProductRegistration|null> {
+  const found=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));
+  return (found.Item as unknown as BrandProductRegistration|undefined) ?? null;
+}
+
+/**
+ * Corrects or retires an enrolled product. Ownership is the key itself, so one brand can never
+ * reach another's record, and identity fields are dropped by brandProductUpdate before they get
+ * here. A cleared field is removed rather than stored as null, so an emptied price stops existing.
+ */
+export async function updateBrandProduct(ownerId:string,productId:string,edit:BrandProductEdit,otherNames:string[]=[]) {
+  const existing=await getOwnedBrandProduct(ownerId,productId);
+  if(!existing)return null;
+  const patch=brandProductUpdate(existing,edit,otherNames);
+  if(!Object.keys(patch).length)return existing;
+  const merged={...existing,...patch} as Record<string,unknown>;
+  for(const [key,value] of Object.entries(patch))if(value===null)delete merged[key];
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...merged,PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${existing.brandSlug}#${existing.sku}`},ConditionExpression:"attribute_exists(PK) AND attribute_exists(SK)"}));
+  return merged as unknown as BrandProductRegistration;
+}
 
 export async function saveBrandProduct(ownerId:string,product:BrandProductRegistration) {
   await db.send(new PutCommand({TableName:requireTable(),Item:{...product,PK:`USER#${ownerId}`,SK:`PRODUCT#${product.id}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${product.brandSlug}#${product.sku}`},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}));
@@ -672,12 +693,13 @@ async function enforceAggregateEnumerationBudget(ownerId:string,productId:string
   const log:AggregateQueryEvent[]=(result.Items??[]).map(item=>({subject:ownerId,productId:String(item.productId??""),at:Number(item.queriedAt)||0}));
   if(exceedsEnumerationBudget(log,ownerId,productId,now))throw new EnumerationBudgetError("Aggregate release is limited to a few distinct products in a short window. Revisit a recently viewed product or try again in a few minutes.");
   await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`AGGQ#${ownerId}`,SK:`PRODUCT#${productId}`,productId,queriedAt:now}}));
+  return enumerationBudgetState([...log,{subject:ownerId,productId,at:now}],ownerId,now);
 }
 
 export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owned=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));
   if(!owned.Item)throw new Error("Product not found for this brand account.");
-  await enforceAggregateEnumerationBudget(ownerId,productId);
+  const budget=await enforceAggregateEnumerationBudget(ownerId,productId);
   const [items,wearEvents]=await Promise.all([
     queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}}),
     queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"}}),
@@ -691,12 +713,12 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
   const minimumCohortSize=25;
   // Below the threshold the count itself is withheld: "3 owners" is a small cell too, and watching
   // it tick from 3 to 4 can tell a brand when one known customer linked a piece.
-  if(segmentSize<minimumCohortSize)return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears:null,repeatWearRate:null,activeOwners:null,engagementRate:null,averageWearsPerOwner:null,medianWearsPerOwner:null,zeroWearOwners:null,highFrequencyOwners:null,lastWearAt:null,wearDistribution:[],weeklyTrend:[],segmentSize:0,suppressed:true,minimumCohortSize};
+  if(segmentSize<minimumCohortSize)return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears:null,repeatWearRate:null,activeOwners:null,engagementRate:null,averageWearsPerOwner:null,medianWearsPerOwner:null,zeroWearOwners:null,highFrequencyOwners:null,lastWearAt:null,wearDistribution:[],weeklyTrend:[],segmentSize:0,suppressed:true,minimumCohortSize,budget};
   const countsByOwner=new Map<string,number>();
   for(const item of eligibleItems){const key=String(item.PK);countsByOwner.set(key,(countsByOwner.get(key)??0)+Number(item.wearCount??0));}
   const eligibleEventDates=wearEvents.filter(event=>optedInOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
   const analytics=buildWearUsageAnalytics([...owners].map(owner=>countsByOwner.get(owner)??0),eligibleEventDates);
-  return {opportunity:null,gapPrevalence:null,duplicateRisk:null,...analytics,segmentSize,suppressed:false,minimumCohortSize};
+  return {opportunity:null,gapPrevalence:null,duplicateRisk:null,...analytics,segmentSize,suppressed:false,minimumCohortSize,budget};
 }
 
 // ─── Hanger conversation memory ───────────────────────────────────────────────

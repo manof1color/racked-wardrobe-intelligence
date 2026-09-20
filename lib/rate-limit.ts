@@ -40,6 +40,7 @@ export const RATE_LIMIT_RULES = {
   catalogSearch: { limit: 60, windowMs: 5 * 60 * 1000 },
   catalogMatch: { limit: 40, windowMs: 5 * 60 * 1000 },
   brandProductDescribe: { limit: 20, windowMs: 10 * 60 * 1000 },
+  brandProductEdit: { limit: 40, windowMs: 10 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 // Bound total tracked keys so hostile clients cannot grow instance memory by

@@ -78,7 +78,7 @@ export function createBrandProductRegistration(input:{
   const affiliateUrl=normalizeCommerceUrl(input.affiliateUrl);
   const price=input.price===""||input.price===undefined?undefined:Number(input.price);
   if(price!==undefined&&(!Number.isFinite(price)||price<0||price>1_000_000))throw new Error("Price must be between 0 and 1,000,000.");
-  const currency=(input.currency??"USD").trim().toUpperCase().slice(0,3);
+  const currency=(input.currency??"USD").trim().toUpperCase();
   if(price!==undefined&&!/^[A-Z]{3}$/.test(currency))throw new Error("Currency must use a three-letter code.");
   const availability=["available","unavailable","discontinued","unknown"].includes(input.availability??"")?input.availability as BrandProductRegistration["availability"]:"unknown";
   if (!name || !brand || !sku) throw new Error("Name, brand, and SKU are required.");
@@ -99,6 +99,76 @@ export function createBrandProductRegistration(input:{
     ...(input.affiliateProvider?.trim()?{affiliateProvider:input.affiliateProvider.trim().slice(0,80)}:{}),
     ...(input.affiliateTrackingId?.trim()?{affiliateTrackingId:input.affiliateTrackingId.trim().slice(0,120)}:{}),
   };
+}
+
+/**
+ * What a brand may change about an enrolled product, and what it may never change.
+ *
+ * Identity is fixed: the brand, its style code, and its barcode are what consumers' labels are
+ * matched against, so editing them would silently move every existing link to a different product.
+ * A product that is genuinely wrong is retired and enrolled again. Everything a catalog actually
+ * needs to keep current — price, availability, destination, what the piece looks like — is editable,
+ * because a brand that cannot correct a typo stops trusting the catalog.
+ */
+export interface BrandProductEdit {
+  name?:string; category?:string; subtype?:string; color?:string; pattern?:string; material?:string; style?:string[]|string;
+  labelText?:string; aliases?:string[]|string; productUrl?:string; affiliateUrl?:string; price?:string|number|null;
+  currency?:string; availability?:string; affiliateProvider?:string; affiliateTrackingId?:string; archived?:boolean;
+}
+
+export const IMMUTABLE_PRODUCT_FIELDS = ["id","ownerSubject","brand","brandSlug","sku","gtin","views","enrolledAt","source"] as const;
+
+/**
+ * Normalizes an edit into the fields that actually change. A value given as an empty string clears
+ * the field (returned as null); a field left out is left alone.
+ */
+export function brandProductUpdate(existing:BrandProductRegistration, input:BrandProductEdit, otherBrandNames:string[]=[]) {
+  const patch:Record<string,unknown>={};
+  const set=(key:string,value:unknown)=>{const current=(existing as unknown as Record<string,unknown>)[key];if(JSON.stringify(value??null)!==JSON.stringify(current??null))patch[key]=value;};
+  const attribute=(value:string)=>{const cleaned=value.trim().toLowerCase().replace(/\s+/g," ").slice(0,40);return cleaned&&cleaned!=="unknown"?cleaned:null;};
+
+  if(input.name!==undefined){const name=input.name.trim().slice(0,120);if(!name)throw new Error("A product needs a name.");set("name",name);}
+  if(input.category!==undefined||input.subtype!==undefined){
+    const classification=normalizeGarmentClassification((input.category??existing.category).trim().slice(0,60),(input.subtype??existing.subtype??"").trim().slice(0,60));
+    if(classification.category==="unknown")throw new Error("Choose the product's category.");
+    set("category",classification.category);
+    set("subtype",classification.subtype.startsWith("other-")?null:classification.subtype);
+  }
+  for(const key of ["color","pattern","material"] as const)if(input[key]!==undefined)set(key,attribute(String(input[key])));
+  if(input.style!==undefined){
+    const style=[...new Set((Array.isArray(input.style)?input.style:String(input.style).split(",")).map((entry)=>String(entry).trim().toLowerCase().slice(0,24)).filter(Boolean))].slice(0,6);
+    set("style",style.length?style:null);
+  }
+  if(input.labelText!==undefined)set("labelText",input.labelText.trim().slice(0,1000));
+  if(input.aliases!==undefined){
+    const aliases=[...new Set([existing.brand,...(Array.isArray(input.aliases)?input.aliases:String(input.aliases).split(",")).map((entry)=>String(entry).trim().slice(0,100)).filter(Boolean)])].slice(0,10);
+    const conflict=conflictingAlias(aliases.slice(1),existing.brand,otherBrandNames);
+    if(conflict)throw new Error(`The alias "${conflict}" names another brand. Aliases are for spellings of your own brand name.`);
+    set("aliases",aliases);
+  }
+  if(input.productUrl!==undefined)set("productUrl",normalizeCommerceUrl(input.productUrl)??null);
+  if(input.affiliateUrl!==undefined)set("affiliateUrl",normalizeCommerceUrl(input.affiliateUrl)??null);
+  if(input.price!==undefined){
+    if(input.price===null||input.price===""){set("price",null);set("currency",null);}
+    else{
+      const price=Number(input.price);
+      if(!Number.isFinite(price)||price<0||price>1_000_000)throw new Error("Price must be between 0 and 1,000,000.");
+      const currency=(input.currency??existing.currency??"USD").trim().toUpperCase();
+      if(!/^[A-Z]{3}$/.test(currency))throw new Error("Currency must use a three-letter code.");
+      set("price",price);set("currency",currency);
+    }
+  }
+  if(input.availability!==undefined){
+    if(!["available","unavailable","discontinued","unknown"].includes(input.availability))throw new Error("Choose a listed availability.");
+    set("availability",input.availability);
+  }
+  if(input.affiliateProvider!==undefined)set("affiliateProvider",input.affiliateProvider.trim().slice(0,80)||null);
+  if(input.affiliateTrackingId!==undefined)set("affiliateTrackingId",input.affiliateTrackingId.trim().slice(0,120)||null);
+  // Retiring is the honest alternative to deleting: existing owners keep their link and their wear
+  // history stays true, while the product stops answering labels, searches, and suggestions.
+  if(input.archived!==undefined)set("archived",input.archived===true?true:null);
+  for(const field of IMMUTABLE_PRODUCT_FIELDS)delete patch[field];
+  return patch;
 }
 
 export type RegistryMatch = { product:BrandProductRegistration; method:"brand-sku" | "gtin" };
