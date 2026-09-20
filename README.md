@@ -23,6 +23,7 @@
 | **To judge the AI** | [Why the AI Is Substantive](#why-the-ai-is-substantive) | Six concrete AI capabilities and the boundaries around each |
 | **To see how a scan works** | [Adding a piece from one photo](#adding-a-piece-from-one-photo) | Five steps, what happens when AI isn't sure, and an honest note on training |
 | **A measured result** | [Garment Isolation](#measured-garment-isolation) | 86% mean IoU on a reproducible crop benchmark — and why live intake still uses the plain crop |
+| **To judge a reviewer's questions** | [What a technical reviewer asked for](#what-a-technical-reviewer-asked-for) | Coverage measured per engine, the engine-to-route map, and what changed because of it |
 | **To judge the engineering** | [Architecture](#architecture-overview) · [Key Files](#key-files) · [CI](#ci--github-actions) | Trust boundaries, the module map, and the green gate |
 | **To judge the ethics** | [Privacy Boundaries](#security-and-privacy-boundaries) · [Ethical Stance](#ethical-stance-and-claims) | `k ≥ 25`, consent, and an explicit list of what is *not* claimed |
 | **To see how it was built** | [PROGRESS.md](PROGRESS.md) | Real merged-PR history, phase by phase |
@@ -44,6 +45,23 @@ The answer this system demonstrates: confirmed wear, repeat use, and styling pai
 
 ---
 
+## What a technical reviewer asked for
+
+A reviewer read this submission and asked three things. Each one changed the code, and each answer
+is a number or a file you can check rather than a claim.
+
+| What was asked | What was done | Where |
+| --- | --- | --- |
+| **"What is your actual test coverage on the matching engine itself, versus the auth and session layer?"** | Measured instead of asserted. The whole suite covers **96% of lines, 85% of branches, 95% of functions**. The scoring engines were already the better-covered half (94–100% branch); the real gaps were **`recreate-look.ts` at 61% branch**, which drives the judge path's *Recreate with my wardrobe*, and **`session.ts` at 76% branch**, which protects every privacy boundary in the product. Both were closed: **99%** and **97.56%**, with behavioural tests, and testing the session guard exposed a real defect — a token with a surplus third segment was accepted. | [Coverage, measured](#coverage-measured) · [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) · [`tests/session-guards.test.ts`](tests/session-guards.test.ts) |
+| **Which engine actually answers a request, and which modules are reference code?** | A table maps every decision a person sees to the module that makes it and the route it runs in. `lib/matching.ts` is imported by no route, and the README now says so instead of letting the name imply otherwise. | [Which engine runs where](#which-engine-runs-where) |
+| **Lead with privacy and control, not with the AI.** | The demo script was rebuilt so privacy and control is its own segment rather than a closing remark, and the consumer-facing boundaries are stated where the feature is described, not only in a policy page. | [`docs/demo-script.md`](docs/demo-script.md) · [Security and Privacy Boundaries](#security-and-privacy-boundaries) |
+
+Two habits came out of that review and now apply to everything here: **a number in this README is
+one that was measured**, and **a defect found while testing is fixed in the same change and named in
+the PR** rather than quietly patched.
+
+---
+
 ## Five-Minute Judge Path
 
 1. Open [Community](https://main.d2iv0khybuuaeh.amplifyapp.com/community) to see complete Consumer and Brand Looks with explicit product-resolution states.
@@ -57,13 +75,17 @@ The answer this system demonstrates: confirmed wear, repeat use, and styling pai
 
 | Account | Address | What it shows |
 | --- | --- | --- |
-| Judge Consumer | `judge.consumer@racked.local` | Ten varied wardrobe pieces, a realistic wear spread, two saved outfits, consent already on |
-| Judge Brand | `judge.brand@racked.local` | One product above the 25-owner threshold showing released metrics, one deliberately below it showing suppression |
+| Judge Consumer | `judge.consumer@racked.local` | A lived-in wardrobe: 12 pieces, two saved outfits, a realistic wear spread, one piece **verified** against a brand product and one linked by the owner's **own pick** (with cost per wear), a published Community look, and a saved inspiration |
+| Judge Brand | `judge.brand@racked.local` | One product above the 25-owner threshold showing released metrics, one deliberately below it showing suppression, one **retired** product, and a published Brand Look |
+| New Consumer | `judge.newconsumer@racked.local` | Empty on purpose: scan a real photo and see the honest first-run states |
+| New Brand | `judge.newbrand@racked.local` | No products: enroll one live from a single photo with **Fill in from photo** |
 | Synthetic cohort | 25 `DEMO` consumers, 3 fictional brands | Community feed, Recreate This Look, public-activity metrics |
 
 **Passwords are deliberately not in this repository.** All demonstration accounts authenticate against a runtime-only secret supplied when the seed is run, and credentials are handed to judges in the competition submission packet. This repository is public: a committed password would let anyone alter the demonstration data before it is reviewed. See [docs/test-cohort.md](docs/test-cohort.md).
 
 The public pages — landing, Community, brand profiles, fictional storefronts, and pricing — need no sign-in at all, so most of the judge path is reachable immediately.
+
+[**docs/judge-accounts.md**](docs/judge-accounts.md) has a three-minute tour of what to click in each account, how the accounts are seeded, and the read-only checker (`pnpm verify:judge`) that confirms a judge will actually see the demo: that the released product really clears `k ≥ 25` with opted-in owners, that the suppressed one is genuinely below it, and that no record points at a photo that was never uploaded. The same seed runs in dry-run mode in CI, checked against the app's own rules in `tests/judge-accounts.test.ts`.
 
 ---
 
@@ -132,7 +154,10 @@ through them, and they are not counted as shipped product behaviour.
 `node --test --experimental-test-coverage` over the whole suite: **96% of lines, 85% of branches,
 95% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%,
 `similar-products.ts` 97%, `matching.ts` 98%, `outfit-ranking.ts` 94%, `recreate-look.ts`
-99%. Coverage shows what the tests execute, not that the scoring is *right*; the
+99%. The two modules that were measurably weakest were fixed rather than explained: `recreate-look.ts`
+rose from **61% to 99%** branch coverage, and `session.ts` — the guard behind every ownership and
+privacy boundary — from **76% to 97.56%**, where the tests exposed and fixed a real token-parsing
+defect. Coverage shows what the tests execute, not that the scoring is *right*; the
 per-band, tie-break, and uncertainty numbers in `tests/recreate-look-scoring.test.ts` are the part
 that argues for correctness.
 
@@ -432,7 +457,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 
 `.github/workflows/codeql.yml` runs CodeQL security analysis on pushes, pull requests, and a weekly schedule. Merges happen only after both are green.
 
-The suite currently has **448 passing tests** (verified 2026-09-19), covering editable-but-not-identity brand products, retirement that leaves owners untouched, the enumeration budget stated in plain words, brand-catalog recognition and search, owner picks that never become verified identity, one-photo brand enrollment, cost per wear from a listed price, verified links that persist through save, whole-code GTIN and style-code matching, brand-name reservation and alias protection, one product per barcode, session-token tampering, malformed input, exact expiry, password-change invalidation, deleted-account invalidation, and role-route separation alongside unified per-piece brand linking, the landing page's no-overlap, readability, and motion guarantees, owner-scoped garment and account deletion, bounded-crop-only intake, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, one-tap installation wherever the browser allows it, iOS 26 and in-app-browser Home Screen paths, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
+The suite currently has **457 passing tests** (verified 2026-09-19), covering the judge demo data checked against the app's own rules in a dry run, editable-but-not-identity brand products, retirement that leaves owners untouched, the enumeration budget stated in plain words, brand-catalog recognition and search, owner picks that never become verified identity, one-photo brand enrollment, cost per wear from a listed price, verified links that persist through save, whole-code GTIN and style-code matching, brand-name reservation and alias protection, one product per barcode, session-token tampering, malformed input, exact expiry, password-change invalidation, deleted-account invalidation, and role-route separation alongside unified per-piece brand linking, the landing page's no-overlap, readability, and motion guarantees, owner-scoped garment and account deletion, bounded-crop-only intake, the typeable Type field and its no-overlay guarantee, whole-piece previews, the iPhone tab-bar viewport correction, provider-exception/manual-review recovery, one-call synchronous recognition, grammatical AI autofill, controlled footwear knowledge and aliases, the dedicated Pro-to-Lite model policy, whole-look request-budget reservation, over-erased-cutout rejection, stage-accurate timeout messaging, resumable evaluation output, request-budget-safe image-isolation fallbacks, transparent-output validation, one-tap installation wherever the browser allows it, iOS 26 and in-app-browser Home Screen paths, private inspiration signals and request-overrides, footwear-pair grouping and full-image scan instructions, privacy suppression and the enumeration budget, the registry-only verification boundary, deterministic Recreate and outfit-ranking scoring, explicit Hanger piece constraints, four-turn conversation memory, canonical name/image/save alignment, owner-scoped saved-outfit and piece management, commerce URL validation, demo purchase simulation boundaries, Community style discovery, Brand Look ownership, account recovery, and public-field sanitization.
 
 ---
 
@@ -443,7 +468,7 @@ The suite currently has **448 passing tests** (verified 2026-09-19), covering ed
 | Problem & relevance | 20% | Purchase data shows what sold, not what is worn. Each hero SKU demonstrates **76 wears / 25 owners / 88% engagement / 76% repeat use** (synthetic, labeled) — the post-purchase signal brands lack |
 | Functionality | 25% | Live AWS PWA, real registration/login/recovery, one-photo multi-piece intake, Saved Outfits with repeat wear, Community publishing, Recreate This Look, Brand Looks, controlled outbound destinations, and a `k ≥ 25` dashboard with charts and CSV export |
 | **AI integration & innovation** | **20%** | **Bedrock multi-view garment vision · distinct context-grounded Consumer and Brand Hanger agents · server-side deterministic outfit ranking the model cannot override · explainable Recreate/Similar scoring that never turns similarity into exact ownership** |
-| Code, docs & GitHub | 15% | Typed modules, **448 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
+| Code, docs & GitHub | 15% | Typed modules, **457 passing tests**, CI running audit + lint + typecheck + tests + build, CodeQL, and incremental reviewed PRs ([PROGRESS.md](PROGRESS.md)) |
 | UX & polish | 10% | Refreshed landing page with progressive, reduced-motion-safe transitions, mobile-first bottom tabs, account settings/recovery, explicit camera/library choice, whole-piece garment crops on clean white outfit boards, fictional catalog assets, $0 purchase simulation, honest first-time and suppressed states, installable PWA |
 | Business impact | 10% | Per hero SKU: **76 wears, 22 active owners, 19 repeat wearers**; for the apparel hero: **11 public outfit appearances, 37 inspirations, 15 Recreate requests** (all synthetic demonstration data), plus a proposed [pricing model](#business-model--pricing-proposed--not-currently-billed) |
 | Bonus | — | Explicit consent, private encrypted object storage, k-anonymity plus enumeration budget, rate limiting, accessibility-minded semantics, cross-disciplinary analytics |
@@ -531,7 +556,9 @@ Everything above is self-contained; these go deeper.
 - [AI use and limitations](docs/ai-use-log.md) — models, prompts, boundaries, failure policy
 - [Independent recognition evaluation](docs/evaluation.md) — 31,638-item source, license, protocol, claim rules
 - [Dataset provenance](docs/dataset-provenance.md) — production, synthetic, and external-data boundaries
-- [Clearly labeled test cohort](docs/test-cohort.md) — including judge accounts
+- [Judge accounts](docs/judge-accounts.md) — the four demo accounts, a three-minute tour, seeding, and the read-only checker
+- [Clearly labeled test cohort](docs/test-cohort.md) — the synthetic brands, products, and 25-owner cohort behind the threshold
+- [Brand linking incentives](docs/brand-linking-incentives.md) — why linking is rewarded and data sharing never is
 - [Fictional demo storefronts](docs/demo-storefronts.md) — safety rules and URL contract
 - [Small/medium Brand UX review](docs/brand-ux-review.md)
 - [Privacy and ethics](docs/privacy-and-ethics.md) — consent, `k ≥ 25`, brand identity boundary
