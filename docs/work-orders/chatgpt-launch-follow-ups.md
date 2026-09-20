@@ -211,6 +211,80 @@ change to what brands can see.
 
 ---
 
+## X8 — Production deploy verification and judge-account seeding
+
+**Why:** #124, #126, #127, #128, and #129 are merged to `main` and Amplify has deployed them (route
+checks below confirm it). What is *not* done is the part that needs production credentials: the four
+judge accounts do not exist on the live table yet, so a judge signing in today sees nothing. This
+work order is the credentialed half — it runs scripts that already exist and changes no application
+code.
+
+**Spec**
+
+1. **Record the deploy.** In the Amplify console, find the build for `main` at commit `671ab9a`
+   (the #129 merge). Record app id, branch, job id, status, and finish time. If a later merge to
+   `main` has not produced a build, start one and record that job id too.
+
+2. **Verify the deploy from outside**, and paste the raw output. Base URL:
+   `https://main.d2iv0khybuuaeh.amplifyapp.com`
+
+   | Request | Expected | Why it proves something |
+   | --- | --- | --- |
+   | `GET /api/catalog?q=test` | **401** | Route added in #127 exists and is guarded |
+   | `POST /api/brand/products/describe` | **401** | Route added in #127 exists and is guarded |
+   | `PATCH /api/brand/products/test-id` | **401** | Route added in #128 exists and is guarded |
+   | `GET /api/definitely-not-a-route-xyz` | **404** | The control. Without it, a 401 above proves nothing |
+   | `GET /brands/racked-test-atelier` | **200**, body contains `one Racked brand account that holds this name` | Public copy from #127 is serving |
+
+   Do **not** use the `webpack-*.js` chunk hash as a deploy marker. It is content-addressed and can
+   stay identical across builds; it produced a false "not deployed" reading during this work.
+
+3. **Dry-run the seed first.** `pnpm seed:judge:dry` writes nothing, needs no AWS and no password.
+   Paste the summary JSON. Expect 4 judge accounts, 3 products, 176 items, 21 objects.
+
+4. **Seed for real**, with the production table and bucket:
+
+   ```
+   ALLOW_RACKED_TEST_SEED=yes RACKED_TABLE_NAME=... RACKED_UPLOAD_BUCKET=... \
+   RACKED_TEST_PASSWORD=... pnpm seed:judge
+   ```
+
+   The password is runtime-only, at least 16 characters, and is the one handed to judges privately.
+
+5. **Verify what was written**, read-only: `RACKED_TABLE_NAME=... RACKED_UPLOAD_BUCKET=... pnpm verify:judge`.
+   Paste the full output. **Every line must read PASS.** A FAIL is repaired by re-running the seed
+   (it is idempotent), not by editing records by hand.
+
+6. **Spot-check in a browser**, signed in as each account:
+   - `judge.consumer@racked.local` — 12 pieces; one reads *Verified Judge Demo Atelier product*, one
+     reads *Judge Demo Atelier · your pick*; both show a cost-per-wear line; a published look appears
+     in Community.
+   - `judge.newconsumer@racked.local` — empty, and a real photo scan works end to end.
+   - `judge.brand@racked.local` — **JDA-001** releases metrics with a wear chart; **JDA-002** is
+     suppressed and says *fewer than 25 qualifying owners*; **JDA-003** is retired and is **absent**
+     from `/brands/judge-demo-atelier`.
+   - `judge.newbrand@racked.local` — no products; enrolling one from a single photo works, including
+     **Fill in from photo**.
+
+**Never** (in addition to the list at the top of this file)
+- Never write `RACKED_TEST_PASSWORD` into a file, a commit, a log, an issue, a PR, or this repository.
+- Never run the seed with `ALLOW_RACKED_TEST_SEED` unset, or with a password under 16 characters.
+- Never run `scripts/seed-test-cohort.mjs` for this task. The judge seed creates any missing opted-in
+  owners itself; running both is unnecessary and writes far more records.
+- Never touch a record that is not labelled `dataClassification: "DEMO"` / `testCohort: true`, and
+  never delete or hand-edit table rows to make a check pass.
+- Never change application code to make a deploy or a seed succeed. If a real code change is needed,
+  open a PR from a branch with the reason stated, and never commit to `main`.
+- Never disable, skip, or bypass CI checks.
+
+**Done when:** every verification request returns the expected status, `pnpm verify:judge` reports all
+checks passed, the four accounts behave as described, and a report is posted containing the Amplify
+job id, the verifier output, and anything that failed with its exact error.
+
+**Out of scope:** application code, the seed's contents, the presentation, and X7.
+
+---
+
 ## Review
 
 Claude reviews each PR before merge against: the spec above; tests that genuinely fail when the
