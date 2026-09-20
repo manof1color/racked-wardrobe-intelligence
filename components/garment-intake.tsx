@@ -187,7 +187,9 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
     try {
       await onConfirmed(selected.map((piece) => ({
         analysis: piece.analysis,
-        overrides: { ...piece.overrides, name: piece.overrides.name.trim(), brand: piece.overrides.brand.trim(), sku: piece.overrides.sku.trim(), customType: piece.overrides.customType ?? null },
+        // A matched label travels with the piece as evidence. The server checks it again and
+        // stores the product link itself; a "verified" flag from the browser would prove nothing.
+        overrides: { ...piece.overrides, name: piece.overrides.name.trim(), brand: piece.overrides.brand.trim(), sku: piece.overrides.sku.trim(), customType: piece.overrides.customType ?? null, labelText: piece.link.status === "verified" ? piece.labelText : null },
       })));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The pieces could not be saved.");
