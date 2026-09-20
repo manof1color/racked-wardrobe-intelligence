@@ -214,7 +214,7 @@ export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
   return Promise.all((result.Items??[]).map(async raw=>{const item=raw as unknown as WardrobeItem&{GSI1PK?:string};const classification=normalizeGarmentClassification(item.category,item.subtype??item.name);const registryProductId=item.registryProductId??(item.GSI1PK?.startsWith("PRODUCT#")?item.GSI1PK.slice(8):null);return {...item,GSI1PK:undefined,...classification,registryProductId,pattern:item.pattern??"unknown",material:item.material??"unknown",lastWornDays:wornDaysAgo((item as {lastWornAt?:unknown}).lastWornAt,item.lastWornDays),imageUrl:await privateImageUrl(item.imageKey)};}));
 }
 
-export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null;labelText?:string|null}) {
+export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null;labelText?:string|null;catalogProductId?:string|null}) {
   if (!analysis.processedImage?.key) throw new Error("The processed garment image is missing.");
   if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new Error("The garment confirmation expired or did not belong to this account.");
   const evidenceImageKey=analysis.processedImage.evidenceKey??null;
@@ -224,19 +224,26 @@ export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,ov
   // browser saying a label matched is not evidence; the label text is. Before this, a successful
   // check showed "linked" in the browser and the piece was saved with no link at all.
   const labelEvidence=typeof overrides?.labelText==="string"?overrides.labelText.slice(0,1000):"";
-  const registryMatch=!analysis.label.matched&&labelEvidence.trim()?matchBrandProduct([],labelEvidence,await listRegistryProducts()):null;
-  const brand=(registryMatch?registryMatch.product.brand:(overrides?.brand??analysis.label.brand)).trim().slice(0,100);
-  const sku=(registryMatch?registryMatch.product.sku:(overrides?.sku??analysis.label.sku)).trim().toUpperCase().slice(0,64);
+  const selectedId=typeof overrides?.catalogProductId==="string"?overrides.catalogProductId.trim().slice(0,128):"";
+  const registry=!analysis.label.matched&&(labelEvidence.trim()||selectedId)?await listRegistryProducts():[];
+  const registryMatch=!analysis.label.matched&&labelEvidence.trim()?matchBrandProduct([],labelEvidence,registry):null;
+  // A product chosen from the catalog, by recognition or search, is the person's own statement. It
+  // shows them the product and never becomes verified identity or joins the brand's wear index:
+  // that still takes the label. A label match, when there is one, always wins.
+  const selectedProduct=!registryMatch&&!analysis.label.matched&&selectedId?registry.find(product=>product.id===selectedId&&!product.archived)??null:null;
+  const catalogProduct=registryMatch?.product??selectedProduct;
+  const brand=(catalogProduct?catalogProduct.brand:(overrides?.brand??analysis.label.brand)).trim().slice(0,100);
+  const sku=(catalogProduct?catalogProduct.sku:(overrides?.sku??analysis.label.sku)).trim().toUpperCase().slice(0,64);
   const placeholderBrand=/^(brand not verified|unmatched label)$/i.test(brand);
   const placeholderSku=/^(unverified|unconfirmed)$/i.test(sku);
   const registryProductId=registryMatch?registryMatch.product.id:analysis.label.matched?analysis.label.registryProductId:null;
-  const identityStatus=registryProductId?"verified":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
+  const identityStatus=registryProductId?"verified":selectedProduct?"owner-selected":analysis.label.suggested&&brand===analysis.label.brand?"suggested":brand&&!placeholderBrand?"user-labeled":"unverified";
   const classification=normalizeGarmentClassification(overrides?.category??analysis.garment.category,overrides?.subtype??analysis.garment.subtype);
   // A typed type is kept only beside a fallback subtype: when a controlled subtype fits, the
   // controlled value is the record, and a stray custom label would contradict it.
   const typedType=typeof overrides?.customType==="string"?overrides.customType.replace(/[\u0000-\u001f\u007f]/g,"").replace(/\s+/g," ").trim().slice(0,60):"";
   const customType=typedType&&classification.subtype.startsWith("other-")?typedType:null;
-  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId,identityStatus,createdAt:new Date().toISOString()};
+  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId,identityStatus,selectedProductId:selectedProduct?.id??null,listedPrice:catalogProduct?.price??null,listedCurrency:catalogProduct?.price!==undefined?(catalogProduct.currency??"USD"):null,createdAt:new Date().toISOString()};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:registryProductId?`PRODUCT#${registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
 }
@@ -478,6 +485,8 @@ export async function listOwnedBrandProducts(ownerId:string):Promise<BrandProduc
 export async function listRegistryProducts():Promise<BrandProductRegistration[]> {
   return (await queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_PRODUCTS"}})) as unknown as BrandProductRegistration[];
 }
+/** A catalog product's photo, exactly as its public brand page already shows it. */
+export async function catalogImageUrl(product:BrandProductRegistration){return (isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined)??await privateImageUrl(product.views?.front?.storageKey);}
 export async function getRegistryProductById(productId:string){return (await listRegistryProducts()).find(product=>product.id===productId)??null;}
 
 export async function listPublicBrandProducts(brandSlug:string):Promise<BrandProductRegistration[]>{const products=await listRegistryProducts();return Promise.all(products.filter(product=>product.brandSlug===brandSlug).map(async product=>({...product,imageUrls:{front:(isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined)??await privateImageUrl(product.views.front.storageKey)}})));}

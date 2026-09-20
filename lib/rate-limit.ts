@@ -36,6 +36,10 @@ export const RATE_LIMIT_RULES = {
   demoPurchase: { limit: 20, windowMs: 5 * 60 * 1000 },
   recreateLook: { limit: 30, windowMs: 5 * 60 * 1000 },
   similarProducts: { limit: 30, windowMs: 5 * 60 * 1000 },
+  // Search runs as a person types, so it allows more than a one-shot lookup.
+  catalogSearch: { limit: 60, windowMs: 5 * 60 * 1000 },
+  catalogMatch: { limit: 40, windowMs: 5 * 60 * 1000 },
+  brandProductDescribe: { limit: 20, windowMs: 10 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 // Bound total tracked keys so hostile clients cannot grow instance memory by

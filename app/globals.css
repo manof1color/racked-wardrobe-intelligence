@@ -709,3 +709,31 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 /* What Hanger remembers, said out loud, with the control to forget it beside it. */
 .hanger-memory-note{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;border-top:1px solid var(--line);background:#f3f0e8;font-size:.72rem;color:var(--muted)}
 .hanger-memory-note button{border:0;background:transparent;color:var(--coral-dark);font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:4px}
+
+/* The brand catalog inside a scanned piece: products that look like it, and a search for the brand. */
+.intake-status.picked{background:#f3f0e8;border-color:var(--ink);color:var(--ink)}
+.catalog-group h4{margin:0 0 6px;font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.catalog-options{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.catalog-options li{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);background:#fff;padding:6px}
+.catalog-option{display:flex;align-items:center;gap:8px;min-width:0}
+.catalog-option img,.catalog-option-blank{width:44px;height:44px;flex:0 0 44px;object-fit:contain;background:#f3f0e8}
+.catalog-option span{display:flex;flex-direction:column;min-width:0}
+.catalog-option strong{font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.catalog-option small{font-size:.64rem;color:var(--muted);line-height:1.4}
+.catalog-note{margin:0;font-size:.68rem;color:var(--muted);line-height:1.5}
+.catalog-picked{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.catalog-picked p{margin:0;font-size:.68rem;color:var(--muted);line-height:1.5}
+@media (max-width:420px){.catalog-options li{flex-wrap:wrap}.catalog-options li .button{width:100%}}
+
+/* Brand enrollment starts from one product photo; back and label photos are optional. */
+.registry-photo{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.registry-photo-main{position:relative;flex:1 1 240px;border:1px dashed #918d83;background:#f3f0e8;padding:15px;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0}
+.registry-photo-main input{position:absolute;opacity:0;pointer-events:none}
+.registry-photo-main strong{text-transform:uppercase;font-size:.58rem}
+.registry-photo-main span{font-size:.62rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.registry-read-note{flex-basis:100%;margin:0;font-size:.68rem;color:var(--muted);line-height:1.5}
+.registry-form .registry-uploads{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* Linked pieces in the Closet: verified and picked read differently, and a listed price becomes cost per wear. */
+.source-line .brand-picked{color:var(--ink);font-weight:750}
+.cost-per-wear{margin:0 15px 10px;font-size:.6rem;color:var(--muted);line-height:1.4}

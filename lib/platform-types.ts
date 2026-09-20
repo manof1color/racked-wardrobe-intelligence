@@ -29,7 +29,8 @@ export interface BrandProductRegistration {
   style?: string[];
   material?: string;
   labelText: string;
-  views: Record<GarmentView, UploadDescriptor>;
+  /** A product photo is required; back and label photos are optional, because matching never reads them. */
+  views: { front: UploadDescriptor } & Partial<Record<Exclude<GarmentView, "front">, UploadDescriptor>>;
   enrolledAt: string;
   source: "brand-enrolled" | "seed";
   testCohort?: boolean;

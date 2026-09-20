@@ -1,5 +1,6 @@
 import type { BrandProductRegistration, GarmentView, UploadDescriptor } from "./platform-types.ts";
 import { normalizeCommerceUrl } from "./commerce.ts";
+import { normalizeGarmentClassification } from "./garment-taxonomy.ts";
 
 const views: GarmentView[] = ["front", "back", "label"];
 
@@ -53,7 +54,9 @@ export function suggestMajorBrand(labelText:string) {
 }
 
 export function createBrandProductRegistration(input:{
-  ownerSubject:string; name:string; brand:string; aliases:string[]; sku:string; gtin?:string; category:string; labelText:string;
+  ownerSubject:string; name:string; brand:string; aliases:string[]; sku:string; gtin?:string; category:string; labelText?:string;
+  /** What the product looks like, so a consumer's scan can recognise it without the label. */
+  subtype?:string; color?:string; pattern?:string; material?:string; style?:string[]|string;
   productUrl?:string; affiliateUrl?:string; price?:string|number; currency?:string; availability?:string; affiliateProvider?:string; affiliateTrackingId?:string;
   parts:UploadDescriptor[];
   /** Names held by other brand accounts, which this product's aliases may not claim. */
@@ -63,8 +66,14 @@ export function createBrandProductRegistration(input:{
   const brand=input.brand.trim().slice(0,100);
   const sku=input.sku.trim().toUpperCase().slice(0,64);
   const gtin=(input.gtin ?? "").replace(/\D/g,"").slice(0,14) || null;
-  const category=input.category.trim().toLowerCase().slice(0,60);
-  const labelText=input.labelText.trim().slice(0,1000);
+  const classification=normalizeGarmentClassification(input.category.trim().slice(0,60),(input.subtype??"").trim().slice(0,60));
+  const category=classification.category==="unknown"?"":classification.category;
+  const subtype=classification.subtype.startsWith("other-")?undefined:classification.subtype;
+  const labelText=(input.labelText??"").trim().slice(0,1000);
+  const attribute=(value?:string)=>{const cleaned=(value??"").trim().toLowerCase().replace(/\s+/g," ").slice(0,40);return cleaned&&cleaned!=="unknown"?cleaned:undefined;};
+  const styleList=(Array.isArray(input.style)?input.style:String(input.style??"").split(",")).map((entry)=>String(entry).trim().toLowerCase().slice(0,24)).filter(Boolean);
+  const style=[...new Set(styleList)].slice(0,6);
+  const appearance={...(subtype?{subtype}:{}),...(attribute(input.color)?{color:attribute(input.color)}:{}),...(attribute(input.pattern)?{pattern:attribute(input.pattern)}:{}),...(attribute(input.material)?{material:attribute(input.material)}:{}),...(style.length?{style}:{})};
   const productUrl=normalizeCommerceUrl(input.productUrl);
   const affiliateUrl=normalizeCommerceUrl(input.affiliateUrl);
   const price=input.price===""||input.price===undefined?undefined:Number(input.price);
@@ -72,17 +81,20 @@ export function createBrandProductRegistration(input:{
   const currency=(input.currency??"USD").trim().toUpperCase().slice(0,3);
   if(price!==undefined&&!/^[A-Z]{3}$/.test(currency))throw new Error("Currency must use a three-letter code.");
   const availability=["available","unavailable","discontinued","unknown"].includes(input.availability??"")?input.availability as BrandProductRegistration["availability"]:"unknown";
-  if (!name || !brand || !sku || !category || !labelText) throw new Error("Name, brand, SKU, category, and label text are required.");
+  if (!name || !brand || !sku) throw new Error("Name, brand, and SKU are required.");
+  if (!category) throw new Error("Choose the product's category.");
   if (gtin && ![8,12,13,14].includes(gtin.length)) throw new Error("GTIN must contain 8, 12, 13, or 14 digits.");
   if (gtin && !isValidGtin(gtin)) throw new Error("That GTIN's check digit does not match. Check the barcode number and try again.");
-  const byView=Object.fromEntries(views.map((view)=>[view,input.parts.find((part)=>part.view===view)])) as Record<GarmentView,UploadDescriptor|undefined>;
-  if (views.some((view)=>!byView[view])) throw new Error("Front, back, and label images are required.");
+  // One product photo is enough. Back and label photos are kept when a brand adds them, but no
+  // match has ever read them: identity comes from the SKU and GTIN typed here, not a label photo.
+  const byView=Object.fromEntries(views.map((view)=>[view,input.parts.find((part)=>part.view===view)]).filter(([,part])=>Boolean(part))) as Partial<Record<GarmentView,UploadDescriptor>>;
+  if (!byView.front) throw new Error("Add a product photo.");
   const aliases=[...new Set([brand,...input.aliases.map((item)=>item.trim().slice(0,100)).filter(Boolean)])].slice(0,10);
   const conflict=conflictingAlias(aliases.slice(1),brand,input.otherBrandNames);
   if (conflict) throw new Error(`The alias "${conflict}" names another brand. Aliases are for spellings of your own brand name.`);
   return {
-    id:`registry-${crypto.randomUUID()}`,ownerSubject:input.ownerSubject,name,brand,brandSlug:slugifyBrand(brand),aliases,sku,gtin,category,labelText,
-    views:byView as Record<GarmentView,UploadDescriptor>,enrolledAt:new Date().toISOString(),source:"brand-enrolled",
+    id:`registry-${crypto.randomUUID()}`,ownerSubject:input.ownerSubject,name,brand,brandSlug:slugifyBrand(brand),aliases,sku,gtin,category,labelText,...appearance,
+    views:byView as BrandProductRegistration["views"],enrolledAt:new Date().toISOString(),source:"brand-enrolled",
     ...(productUrl?{productUrl}:{}),...(affiliateUrl?{affiliateUrl}:{}),...(price!==undefined?{price,currency}:{}),availability,
     ...(input.affiliateProvider?.trim()?{affiliateProvider:input.affiliateProvider.trim().slice(0,80)}:{}),
     ...(input.affiliateTrackingId?.trim()?{affiliateTrackingId:input.affiliateTrackingId.trim().slice(0,120)}:{}),
