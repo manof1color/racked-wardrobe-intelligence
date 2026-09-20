@@ -164,7 +164,11 @@ authenticated account.
 Three views, switched by the tabs at the top (and the bottom bar on a phone), rather than one long
 scroll.
 
-**Overview** is what you land on: how many products are live, what is unfinished in your own listings
+**Overview** is what you land on. A new account gets a four-step checklist — enrol a product, give it
+a price, a link and a description, publish a Brand Look, share your page — that disappears when it
+is finished and can be hidden for good. Each step is answered by your own records, so progress
+survives a refresh or a different device without anything being stored. Below it: how many products
+are live, what is unfinished in your own listings
 (a missing price, link, photo, or description), and your public page link to share. It deliberately
 shows **no wear data**. Whether a product has crossed the 25-owner threshold is itself derived from
 how many people own it, so showing that across a whole catalog at once would be the cross-product

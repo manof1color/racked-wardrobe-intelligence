@@ -30,11 +30,16 @@ Reviewed 2026-08-20 against the current Brand enrollment, catalog, dashboard, Br
 - **The threshold banner moved** from the top of every visit to the suppressed state it explains.
 - **The enumeration budget is stated** — what is left, and why the limit exists — instead of
   surfacing only as a refusal.
+- **An onboarding checklist** of four steps, derived from the account's own records so it persists
+  across sessions and devices, hideable, and gone once finished.
+- **Hanger reads the situation.** A brand with products but none open is told to open one, rather
+  than to enrol a product it already has.
+- **No budget spent on a product enrolled moments ago.** It cannot have owners, so its aggregates are
+  not requested; the product says so instead.
 
 ## Known limitations
 
 - There is no optional CSV/bulk import for a growing catalog. This is acceptable for 2–20 SKUs but becomes repetitive beyond that range.
-- The dashboard does not yet provide an onboarding checklist that persists across sessions.
 - A catalog-wide comparison of private wear **will not** be built. Release status is derived from cohort size, so comparing products side by side is the differencing attack the enumeration budget prevents. The overview answers catalog questions instead.
 - Private wear metrics correctly remain unavailable below 25 eligible opted-in owners. Small brands still receive product enrollment, Brand Looks, public Community appearances, and public interaction counts, but the interface could group those early-stage tools more prominently.
 - Brand Hanger is product-specific; there is not yet a safe multi-product portfolio comparison.
