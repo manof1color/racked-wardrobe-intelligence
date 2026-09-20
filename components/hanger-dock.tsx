@@ -9,7 +9,7 @@ const ROLE_COPY = {
   brand: { launcher: "Wear patterns & strategy", subtitle: "Brand strategist", badge: "AGGREGATES ONLY" },
 } as const;
 
-export function HangerDock({ role, productId, onWearRecorded, onOutfitSaved }: { role: "consumer" | "brand"; productId?: string; onWearRecorded?: (counts: Record<string, number>) => void; onOutfitSaved?: (outfit: SavedOutfit) => void }) {
+export function HangerDock({ role, productId, brandHasProducts = false, onOpenCatalog, onWearRecorded, onOutfitSaved }: { role: "consumer" | "brand"; productId?: string; brandHasProducts?: boolean; onOpenCatalog?: () => void; onWearRecorded?: (counts: Record<string, number>) => void; onOutfitSaved?: (outfit: SavedOutfit) => void }) {
   const [open, setOpen] = useState(false);
   const launcher = useRef<HTMLButtonElement>(null);
   const drawer = useRef<HTMLElement>(null);
@@ -56,7 +56,11 @@ export function HangerDock({ role, productId, onWearRecorded, onOutfitSaved }: {
           ? <ConsumerAgentPanel onWearRecorded={onWearRecorded} onOutfitSaved={onOutfitSaved} />
           : productId
             ? <BrandAgentPanel productId={productId} />
-            : <div className="hanger-empty"><strong>Enroll a product first.</strong><p>Hanger needs a registered product before it can discuss privacy-safe wear information and strategy.</p></div>}
+            : brandHasProducts
+              // Having products but none open is a different situation from having none at all, and
+              // saying "enroll a product first" to a brand with a full catalog reads like a bug.
+              ? <div className="hanger-empty"><strong>Open a product first.</strong><p>Hanger discusses one product at a time, because releasing its aggregates spends a slice of your enumeration budget.</p>{onOpenCatalog&&<button type="button" className="button button-light button-small" onClick={()=>{onOpenCatalog();close();}}>Open your catalog</button>}</div>
+              : <div className="hanger-empty"><strong>Enroll a product first.</strong><p>Hanger needs a registered product before it can discuss privacy-safe wear information and strategy.</p></div>}
       </aside>
     </div>
   </>;

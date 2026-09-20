@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "./app-shell";
 import { BrandProductEnrollment } from "./brand-product-enrollment";
 import { BrandProductEditor } from "./brand-product-editor";
@@ -10,6 +10,7 @@ import { HangerDock } from "./hanger-dock";
 import { WorkspaceMobileNav, type BrandWorkspaceView } from "./workspace-mobile-nav";
 import { communityIsEmpty, communityReadouts, pairingSummary, wearHeadline, wearReadouts } from "@/lib/brand-insights";
 import { catalogAttention } from "@/lib/brand-catalog-health";
+import { brandOnboardingComplete, brandOnboardingProgress, brandOnboardingSteps } from "@/lib/brand-onboarding";
 import type { BrandCommunityMetrics, BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
 
@@ -63,12 +64,17 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   const [communityMetrics,setCommunityMetrics]=useState<BrandCommunityMetrics|null>(null);
   const [liveActivity,setLiveActivity]=useState(true);
   const [lastRefreshedAt,setLastRefreshedAt]=useState<Date|null>(null);
-  const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const [query,setQuery]=useState("");
   const [showRetired,setShowRetired]=useState(false);
   const [editing,setEditing]=useState(false);
   const [copied,setCopied]=useState(false);
+  const [publishedLookCount,setPublishedLookCount]=useState(0);
+  const [sharedLink,setSharedLink]=useState(false);
+  const [checklistHidden,setChecklistHidden]=useState(false);
+  // A product enrolled in this session cannot have owners yet, so its aggregates are not worth a
+  // slice of the enumeration budget. Its id is remembered only for this visit.
+  const [justEnrolled,setJustEnrolled]=useState<string[]>([]);
 
   const live=products.filter(item=>!item.archived);
   const retiredCount=products.length-live.length;
@@ -77,33 +83,54 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   const brandSlug=products[0]?.brandSlug??"";
   const attention=catalogAttention(products);
 
-  // A newly enrolled product is what the brand wants to look at, so it is opened on arrival.
+  // A newly enrolled product is what the brand wants to look at, so it is opened on arrival. The
+  // ids seen so far live in a ref rather than in the state updater, which React may run twice.
+  const knownProductIds=useRef<Set<string>>(new Set());
   const acceptProducts=useCallback((next:BrandProductRegistration[])=>{
-    setProducts(current=>{
-      const known=new Set(current.map(item=>item.id));
-      const arrived=next.find(item=>!known.has(item.id));
-      if(arrived&&current.length){setProductId(arrived.id);setView("product");setLoading(true);}
-      return next;
-    });
+    const arrived=next.find(item=>!knownProductIds.current.has(item.id));
+    const hadProducts=knownProductIds.current.size>0;
+    knownProductIds.current=new Set(next.map(item=>item.id));
+    setProducts(next);
+    if(arrived&&hadProducts){setProductId(arrived.id);setMetrics(null);setCommunityMetrics(null);setError("");setJustEnrolled(ids=>[...ids,arrived.id]);setView("product");}
   },[]);
 
-  function openProduct(id:string){setProductId(id);setMetrics(null);setCommunityMetrics(null);setError("");setEditing(false);setLoading(true);setView("product");}
+  // Two things the checklist needs that the catalog does not: how many Looks are published, and
+  // whether this device has copied the public link. Reading a Look count spends no privacy budget.
+  useEffect(()=>{
+    let current=true;
+    // Both reads land in the same asynchronous step: the stored flags are per-device conveniences,
+    // and reading them during render would disagree with the server's HTML.
+    const storedFlag=(key:string)=>{try{return window.localStorage.getItem(key)==="1";}catch{return false;}};
+    fetch("/api/brand/looks").then(response=>response.ok?response.json():{looks:[]}).catch(()=>({looks:[]}))
+      .then((data:{looks?:Array<{published?:boolean}>})=>{
+        if(!current)return;
+        setPublishedLookCount((data.looks??[]).filter(look=>look.published).length);
+        setSharedLink(storedFlag("racked.brand.sharedLink"));
+        setChecklistHidden(storedFlag("racked.brand.checklistHidden"));
+      });
+    return()=>{current=false;};
+  },[]);
+
+  function remember(key:string){try{window.localStorage.setItem(key,"1");}catch{/* nothing to remember on this device */}}
+
+  function openProduct(id:string){setProductId(id);setMetrics(null);setCommunityMetrics(null);setError("");setEditing(false);setView("product");}
   function productSaved(saved:BrandProductRegistration){setProducts(current=>current.map(item=>item.id===saved.id?{...item,...saved}:item));}
-  async function copyBrandLink(url:string){try{await navigator.clipboard.writeText(url);setCopied(true);window.setTimeout(()=>setCopied(false),2_500);}catch{setCopied(false);}}
+  async function copyBrandLink(url:string){try{await navigator.clipboard.writeText(url);setCopied(true);setSharedLink(true);remember("racked.brand.sharedLink");window.setTimeout(()=>setCopied(false),2_500);}catch{setCopied(false);}}
 
   // Opening a product is what spends a slice of the enumeration budget, so the request is tied to
   // the product view rather than to loading the workspace.
   useEffect(()=>{
-    if(view!=="product"||!productId)return;
+    // Nothing can have been linked to a product enrolled moments ago, so asking would spend a slice
+    // of the enumeration budget to be told so.
+    if(view!=="product"||!productId||justEnrolled.includes(productId))return;
     let current=true;
     Promise.all([
       fetch("/api/brand/metrics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({productId})}),
       fetch("/api/brand/community-metrics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({productId})}),
     ]).then(async ([wearResponse,communityResponse])=>{const wear=await wearResponse.json();const community=await communityResponse.json();if(!wearResponse.ok)throw new Error(wear.error??"Wear metrics could not be loaded.");if(!communityResponse.ok)throw new Error(community.error??"Community metrics could not be loaded.");if(current){setMetrics(wear.metrics);setCommunityMetrics(community.metrics);}})
-      .catch(reason=>{if(current)setError(reason instanceof Error?reason.message:"Wear metrics could not be loaded.");})
-      .finally(()=>{if(current)setLoading(false);});
+      .catch(reason=>{if(current)setError(reason instanceof Error?reason.message:"Wear metrics could not be loaded.");});
     return()=>{current=false;};
-  },[view,productId]);
+  },[view,productId,justEnrolled]);
 
   // Live public-activity refresh. Only the community measure polls: private wear
   // aggregates are consent-gated and enumeration-budgeted, so re-pulling them on a
@@ -142,6 +169,11 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   const maxTrend=Math.max(1,...(metrics?.weeklyTrend??[]).map(point=>point.wears));
   const maxDistribution=Math.max(1,...(metrics?.wearDistribution??[]).map(point=>point.owners));
   const tabs:Array<{id:BrandWorkspaceView;label:string}>=[{id:"overview",label:"Overview"},{id:"catalog",label:"Catalog"},{id:"looks",label:"Brand Looks"}];
+  // The skeleton shows while an opened product has neither an answer nor an error yet.
+  const calculating=view==="product"&&Boolean(productId)&&!justEnrolled.includes(productId)&&!metrics&&!error;
+  const steps=brandOnboardingSteps({products,publishedLookCount,sharedLink});
+  const progress=brandOnboardingProgress(steps);
+  const showChecklist=!checklistHidden&&!brandOnboardingComplete(steps);
 
   const productCard=(item:BrandProductRegistration)=><button type="button" key={item.id} className={`product-card ${item.archived?"retired":""}`} onClick={()=>openProduct(item.id)}>
     {item.imageUrls?.front?<img src={item.imageUrls.front} alt=""/>:<span className="product-card-blank" aria-hidden="true">{item.category}</span>}
@@ -163,6 +195,18 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
       {products.length===0
         ? <section className="empty-wardrobe"><div className="eyebrow">START WITH YOUR CATALOG</div><h2>Enroll your first real product.</h2><p>Add one product photo and its SKU. Racked fills in the rest from the photo, and customers can link the product by its label, by search, or when their scan recognises it.</p><button type="button" className="button button-accent" onClick={()=>setView("catalog")}>Go to your catalog</button></section>
         : <>
+          {showChecklist&&<section className="onboarding-card">
+            <div className="onboarding-head">
+              <div><div className="eyebrow">GETTING SET UP</div><h2>{progress.done} of {progress.total} done</h2></div>
+              <button type="button" className="back-link" onClick={()=>{setChecklistHidden(true);remember("racked.brand.checklistHidden");}}>Hide</button>
+            </div>
+            <ol className="onboarding-steps">{steps.map(step=><li key={step.id} className={step.done?"done":""}>
+              <span aria-hidden="true">{step.done?"✓":"○"}</span>
+              <span><strong>{step.label}</strong><small>{step.detail}</small></span>
+              {!step.done&&step.id!=="share"&&<button type="button" className="button button-light button-small" onClick={()=>setView(step.id==="look"?"looks":"catalog")}>{step.id==="look"?"Build a Look":"Open catalog"}</button>}
+            </li>)}</ol>
+          </section>}
+
           <div className="overview-grid">
             <article className="overview-card"><small>LIVE PRODUCTS</small><strong>{live.length}</strong><p>{retiredCount>0?`${retiredCount} retired, still owned by the people who linked them`:"Enrolled and answering label checks, search, and recognition"}</p></article>
             <article className="overview-card"><small>WEAR INTELLIGENCE</small><strong>25+</strong><p>Opens per product once 25 opted-in owners have linked it. Below that a product shows nothing — not even the count.</p></article>
@@ -207,7 +251,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
         <button type="button" className="button button-light button-small" aria-expanded={editing} onClick={()=>setEditing(value=>!value)}>{editing?"Close editing":"Edit or retire"}</button></div></div>
       {editing&&<BrandProductEditor product={product} onSaved={productSaved} onClose={()=>setEditing(false)}/>}
 
-      {loading?<div className="metric-skeleton" role="status" aria-live="polite"><strong>Calculating the privacy-safe wear cohort</strong><span/><span/><span/></div>:metrics?.suppressed?<div className="empty-match suppressed-match"><span>🔒</span><h3>{wearHeadline(metrics).statement}</h3><p>{wearHeadline(metrics).support}</p><p><b>Fewer than {metrics.minimumCohortSize} qualifying owners</b> are connected so far. Below the threshold Racked withholds even the count, because a small number can single people out. Suppression here is the control working, not a missing feature.</p></div>:metrics&&<>
+      {justEnrolled.includes(product.id)?<div className="empty-match"><h3>Nothing has been linked to this yet.</h3><p>You enrolled it a moment ago. Wear intelligence opens once 25 opted-in owners have linked it, and Racked will not spend one of your aggregate requests asking about a product that cannot have owners yet.</p></div>:calculating?<div className="metric-skeleton" role="status" aria-live="polite"><strong>Calculating the privacy-safe wear cohort</strong><span/><span/><span/></div>:metrics?.suppressed?<div className="empty-match suppressed-match"><span>🔒</span><h3>{wearHeadline(metrics).statement}</h3><p>{wearHeadline(metrics).support}</p><p><b>Fewer than {metrics.minimumCohortSize} qualifying owners</b> are connected so far. Below the threshold Racked withholds even the count, because a small number can single people out. Suppression here is the control working, not a missing feature.</p></div>:metrics&&<>
         <section className="wear-hero">
           <div><span className="card-label">CONFIRMED WEARS</span><strong>{metrics.actualWears}</strong><p>{wearHeadline(metrics).statement}</p><small>{wearHeadline(metrics).support}</small></div>
         </section>
@@ -229,5 +273,5 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
               <small>Counted from public Looks only.</small></div>}</>}
       </section>}
     </section>}
-  </main><HangerDock role="brand" productId={view==="product"?product?.id:undefined}/><WorkspaceMobileNav role="brand" active={view==="product"?"catalog":view} onBrandView={next=>{setView(next);setError("");}}/></AppShell>;
+  </main><HangerDock role="brand" productId={view==="product"?product?.id:undefined} brandHasProducts={products.length>0} onOpenCatalog={()=>setView("catalog")}/><WorkspaceMobileNav role="brand" active={view==="product"?"catalog":view} onBrandView={next=>{setView(next);setError("");}}/></AppShell>;
 }

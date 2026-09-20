@@ -59,10 +59,10 @@ test("REGRESSION: no private aggregate appears outside an opened product", () =>
 });
 
 test("opening a product is what spends the enumeration budget, not landing on the workspace", () => {
-  const effect = dashboard.slice(dashboard.indexOf("useEffect(()=>{\n    if(view!==\"product\""), dashboard.indexOf("// Live public-activity refresh"));
-  assert.match(effect, /if\(view!=="product"\|\|!productId\)return;/);
+  const effect = dashboard.slice(dashboard.indexOf("// Opening a product is what spends"), dashboard.indexOf("// Live public-activity refresh"));
+  assert.match(effect, /if\(view!=="product"\|\|!productId\|\|justEnrolled\.includes\(productId\)\)return;/);
   assert.match(effect, /api\/brand\/metrics/);
-  assert.match(dashboard, /\},\[view,productId\]\);/, "the request follows the opened product");
+  assert.match(effect, /\},\[view,productId,justEnrolled\]\);/, "the request follows the opened product");
 });
 
 // ─── Visual hierarchy ──────────────────────────────────────────────────────────
