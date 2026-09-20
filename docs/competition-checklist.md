@@ -56,7 +56,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the bounded crop, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA. Where the browser allows it (Chrome and Edge on Android and desktop), Add Racked opens the real one-tap install dialog, and the install event is kept even when it fires before the page hydrates. iPhone has no install API, so it gets accurate iOS 26 steps with the Share icon shown; apps' built-in browsers (TikTok, Instagram) get an Open in Safari or Chrome handoff, since they cannot add to a Home Screen at all.
-- [x] 457 automated tests and lint pass (re-verified 2026-09-19); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
+- [x] 460 automated tests and lint pass (re-verified 2026-09-19); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 
 - [x] Measured coverage, not asserted rigour: 96% of lines and 95% of functions across the suite, with the decision engines at 94–100% branch coverage. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
 
@@ -120,7 +120,8 @@ This is the judge’s index for the CUA rubric.
 - [x] Converts authorized SKU enrollment into a product traceability path.
 - [x] Publishes a proposed business model with an emerging-brand Starter tier for the pre-threshold period, on a labeled in-app `/pricing` page and in the [one-page summary](one-page-summary.md); nothing is billed.
 - [x] Provides Consumer and Brand agents with inspectable evidence.
-- [x] [Presentation script](demo-script.md) and [one-page summary](one-page-summary.md) reflect the production flow.
+- [x] [Presentation script](demo-script.md) is written for the format judges actually run — a 5:00 live demo on a hard timer plus 3:00 of Q&A, with the answers prepared — and the [one-page summary](one-page-summary.md) carries the required problem, solution, technical choices, and lessons-learned sections on one page. Both reflect the production flow.
+- [x] `LICENSE` at the repository root: source-available for reading and evaluation, all rights reserved, with no grant to reuse the work.
 
 ## Bonus evidence
 
