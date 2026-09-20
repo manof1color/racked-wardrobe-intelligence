@@ -75,6 +75,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   // A product enrolled in this session cannot have owners yet, so its aggregates are not worth a
   // slice of the enumeration budget. Its id is remembered only for this visit.
   const [justEnrolled,setJustEnrolled]=useState<string[]>([]);
+  const [catalogLoaded,setCatalogLoaded]=useState(false);
 
   const live=products.filter(item=>!item.archived);
   const retiredCount=products.length-live.length;
@@ -92,6 +93,22 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
     knownProductIds.current=new Set(next.map(item=>item.id));
     setProducts(next);
     if(arrived&&hadProducts){setProductId(arrived.id);setMetrics(null);setCommunityMetrics(null);setError("");setJustEnrolled(ids=>[...ids,arrived.id]);setView("product");}
+  },[]);
+
+  // The workspace owns the catalog. It used to be fetched by the enrollment panel, which only the
+  // Catalog view mounts — so Overview, the view a brand lands on, believed the catalog was empty
+  // until they happened to visit Catalog.
+  useEffect(()=>{
+    let current=true;
+    fetch("/api/brand/products").then(async response=>{
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error??"Catalog could not be loaded.");
+      if(!current)return;
+      knownProductIds.current=new Set((data.products??[]).map((item:BrandProductRegistration)=>item.id));
+      setProducts(data.products??[]);
+      setCatalogLoaded(true);
+    }).catch(reason=>{if(current){setError(reason instanceof Error?reason.message:"Catalog could not be loaded.");setCatalogLoaded(true);}});
+    return()=>{current=false;};
   },[]);
 
   // Two things the checklist needs that the catalog does not: how many Looks are published, and
@@ -192,9 +209,9 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
     {view==="overview"&&<>
       <section className="workspace-heading"><div><div className="eyebrow">PRIVATE BRAND WORKSPACE</div><h1>Understand how products<br/>are <em>actually worn.</em></h1><p>Verified wear events become privacy-safe product intelligence: frequency, engagement, repeat use, and change over time. Open a product in your catalog to see its numbers.</p></div></section>
 
-      {products.length===0
+      {catalogLoaded&&products.length===0
         ? <section className="empty-wardrobe"><div className="eyebrow">START WITH YOUR CATALOG</div><h2>Enroll your first real product.</h2><p>Add one product photo and its SKU. Racked fills in the rest from the photo, and customers can link the product by its label, by search, or when their scan recognises it.</p><button type="button" className="button button-accent" onClick={()=>setView("catalog")}>Go to your catalog</button></section>
-        : <>
+        : catalogLoaded?<>
           {showChecklist&&<section className="onboarding-card">
             <div className="onboarding-head">
               <div><div className="eyebrow">GETTING SET UP</div><h2>{progress.done} of {progress.total} done</h2></div>
@@ -222,11 +239,11 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
             <div><strong>Tell customers where to link</strong><p>Anyone can search your brand name when adding a piece, or use the code from its label. Your public page lists every live product.</p></div>
             <div className="brand-share-link"><code>/brands/{brandSlug}</code><button type="button" className="button button-light button-small" onClick={()=>void copyBrandLink(`${window.location.origin}/brands/${brandSlug}`)}>{copied?"Copied":"Copy link"}</button></div>
           </div>
-        </>}
+        </>:<div className="metric-skeleton" role="status" aria-live="polite"><strong>Loading your catalog</strong><span/><span/></div>}
     </>}
 
     {view==="catalog"&&<>
-      <BrandProductEnrollment onProducts={acceptProducts}/>
+      <BrandProductEnrollment products={products} onProducts={acceptProducts}/>
       <section className="catalog-view">
         <div className="panel-heading"><div><div className="eyebrow">YOUR CATALOG</div><h2>Open a product</h2></div><span>{live.length} live SKU{live.length===1?"":"s"}</span></div>
         <div className="catalog-filter">
@@ -234,7 +251,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
           <input id="brand-catalog-search" type="search" value={query} placeholder="Search by name, style code, or category" onChange={event=>setQuery(event.target.value)}/>
           {retiredCount>0&&<label className="catalog-retired-toggle"><input type="checkbox" checked={showRetired} onChange={event=>setShowRetired(event.target.checked)}/><span>Show {retiredCount} retired</span></label>}
         </div>
-        {products.length===0&&<p className="catalog-note">Nothing enrolled yet. Add your first product above — one photo and a style code is enough.</p>}
+        {catalogLoaded&&products.length===0&&<p className="catalog-note">Nothing enrolled yet. Add your first product above — one photo and a style code is enough.</p>}
         {products.length>0&&visible.length===0&&<p className="catalog-note">No product matches “{query.trim()}”.</p>}
         <div className="product-grid">{visible.map(productCard)}</div>
       </section>
