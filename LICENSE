@@ -1,0 +1,38 @@
+Racked — Proprietary Source-Available License
+
+Copyright (c) 2026 James Harris. All rights reserved.
+
+This repository is public so that it can be read, reviewed, and evaluated. It is not
+open-source software, and publishing it here grants no licence to use it.
+
+PERMITTED
+
+  1. Viewing, reading, and cloning this repository.
+  2. Running it locally for the sole purpose of evaluating or reviewing it, including
+     by competition judges, reviewers, faculty, and prospective collaborators.
+  3. Quoting short excerpts in reviews, coursework, or commentary, with attribution.
+
+NOT PERMITTED without prior written permission from the copyright holder
+
+  1. Using this software, or any part of it, in a product, service, or internal tool.
+  2. Copying, modifying, merging, publishing, distributing, sublicensing, or selling
+     copies of it.
+  3. Using it, in whole or in part, as training or fine-tuning data for a machine
+     learning model.
+  4. Removing or altering this notice.
+
+No trademark rights are granted. "Racked" and any associated names, logos, and brand
+elements remain the property of the copyright holder.
+
+Third-party dependencies are licensed by their own authors under their own terms; this
+notice applies only to the original work in this repository. Synthetic demonstration
+records in this repository describe fictional brands and people and are not real data.
+
+Permission beyond this notice may be requested from the copyright holder.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE
+FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR
+OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.

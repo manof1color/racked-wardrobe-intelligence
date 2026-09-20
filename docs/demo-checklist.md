@@ -61,7 +61,7 @@ All fictional demo products carry a Racked demo-storefront URL, fictional USD pr
 
 ## Before you present: the two moments that can cost you
 
-The live scan is the riskiest thing in the eight minutes, and the privacy segment is the most
+The live scan is the riskiest thing in the five minutes, and the privacy segment is the most
 valuable. Prepare both.
 
 - [ ] **Record a 30-second backup clip** of a successful scan: photo chosen, cards returned, one

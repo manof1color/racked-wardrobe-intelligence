@@ -1,122 +1,128 @@
-# Presentation script (8 minutes)
+# Presentation script (5 minutes, plus 3 minutes of Q&A)
 
 Live application: <https://main.d2iv0khybuuaeh.amplifyapp.com>
 
 Run the [demo checklist](demo-checklist.md) before presenting. Everything below uses the clearly
 labeled synthetic demo cohort; never describe it as real customer traction.
 
-**Two rules this script is built around.** Show the real model working at least once, deliberately,
-so nobody can call the AI decorative — then show the deterministic fallback and name it. And give
-privacy and control their own segment: consent, the 25-owner threshold, and deletion are the part
-most submissions will not have, and they are evidence, not housekeeping.
+## The format this is built for
 
-## 0:00–0:45 — The problem
+Ten minutes per presenter: **0:30** MC intro, **5:00 live demo on a hard timer** (yellow card at
+4:00, red at 5:00), **3:00 judges' Q&A**, 1:30 transition. The demo runs from the live URL on the
+podium laptop — there is no slide deck to hide behind, and there is no time to recover from a
+tangent. Judges fill in their scores *during the Q&A*, which is why the second half of this document
+matters as much as the first.
 
-Open the landing page. The headline states the thesis: **"Brands know what you bought. Not what you
-wear."**
+**Three rules this script is built around.**
 
-Say: *"A sale is where most brands stop seeing. They don't know whether a product became a staple,
-sat unworn, or only works with one other thing the customer owns. Racked measures what happens after
-checkout — and gives brands that picture without ever showing them a person's closet."*
+1. **Open with something that cannot be staged.** Scan a garment you are wearing, live. It answers
+   "does this actually work" in the first minute, before anyone wonders.
+2. **Show one boundary, not five.** Verified versus your pick is the intellectual core. Everything
+   else is supporting evidence.
+3. **Never stand in silence.** If a network call is slow, keep talking and cut to the backup clip.
 
-## 0:45–2:30 — Consumer intake, with the model actually running
+---
 
-1. Sign in with the demo Consumer account and show the wardrobe.
-2. Tap **+**, then **Take photo** or **Choose image**, and add a photo with two or three pieces. A
-   flat lay on a plain surface works best.
-3. **Say it out loud while it runs:** *"This is a live call to Amazon Bedrock right now — Nova Pro
-   is finding each garment in one photo and returning bounded coordinates and controlled
-   attributes."* That sentence is the point of the segment.
-4. Show one card per piece: the controlled category and **Type**. When AI is unsure, the Type field
-   asks rather than guesses, and anything typed is kept in the person's own words.
-5. Open **Is this a brand product?** on one piece and enter a label code to show the registry check.
-6. Confirm and save. Show the pieces in Closet.
-7. **Then show the second path on purpose.** Open the recorded fallback clip (or the pre-saved
-   manual-review piece) and say: *"When the provider is unavailable or returns nothing usable, you
-   get one editable card with zero confidence and no invented attributes — never a dead end, and
-   never a guess dressed up as a result."*
-8. Boundary line: *"A brand name read from a photo, typed by hand, or matched from a name list only
-   fills in an editable field. Only registry SKU or GTIN evidence makes a product verified — even if
-   a brand account already exists under that name."*
+## 0:00–0:40 — The problem, in one breath
 
-> **If the live scan stalls past about ten seconds:** keep talking, cut to the backup clip, and say
-> *"that's the live path; here it is completing on a better connection."* Do not stand in silence
-> waiting for a network call.
+Open the landing page. Say:
 
-## 2:30–3:15 — Outfits and wear
+> *"Brands know what you bought. They have no idea what you actually wear. A sale is where most
+> brands stop seeing — they can't tell whether a product became a staple, sat unworn, or only works
+> with one other thing someone owns. Racked measures what happens after checkout, and gives brands
+> that picture without ever showing them a person's closet."*
 
-1. Open **Looks**, tap a combination, review the slide preview, and choose **Save & wear this look**.
-2. Open the **Outfits** tab and use **Wear this again** to record a repeat wear in one tap.
-3. Say: *"That confirmed wear is the raw material. It only ever reaches a brand as an aggregate, from
-   people who opted in, above a 25-owner threshold."*
+Do not explain the architecture yet. Do not list features.
 
-## 3:15–4:45 — Recreate This Look (the flagship)
+## 0:40–2:00 — Live scan (the thing that cannot be faked)
 
-1. Open **Community**. The feed leads with the outfit, **Brand Looks** and **Community Looks** are
-   visually distinct, and every seeded record carries a **Demo data** label.
-2. Pick a look and press **Recreate with my wardrobe**.
-3. Show the coverage headline, then the split: **Use yours** versus **You're missing**.
-4. Expand a matched piece with **Why?** to show which owned garment was chosen and the evidence.
-5. Core consumer message: *"Use what you own first. Buy only what you're missing."*
-6. Name the engine's honesty: an exact match requires the same registry product; substitutes are
-   compared only inside the same category; one owned piece can cover only one role. *"Those rules
-   are pinned to exact numbers in the test suite, including that an unverified label never becomes
-   ownership."*
-7. Open **Shop the Look**: exact-verified separated from similar, unverified, and unavailable —
-   *"only an exact, brand-authorized product is ever linkable."* Follow one fictional exact product
-   into its clearly labeled demo storefront, complete the $0.00 simulation, and use **Return to
-   Racked**. State plainly that no payment, order, address, contact, or account record was created.
+1. Sign in as the judge Consumer account, tap **+**, and photograph **a garment you are wearing** —
+   take off a jacket, put it on the table. A plain surface works best.
+2. Say it while it runs: *"That is a live call to Amazon Bedrock. Nova Pro is finding each garment
+   in the photo and returning bounded coordinates and controlled attributes right now."*
+3. When the cards appear, land on two details and move on:
+   - the whole piece is visible in its own crop, and
+   - when AI is unsure, the **Type** field *asks* instead of guessing, and keeps whatever is typed
+     in the person's own words.
+4. Save it. It is in the Closet.
 
-## 4:45–6:30 — Privacy and control (the differentiator)
+> **If the scan stalls past ten seconds:** keep talking, cut to the backup clip, and say *"that's the
+> live path — here it is completing on a better connection."*
 
-This is the segment to slow down in.
+## 2:00–3:00 — The boundary: verified versus your pick
 
-1. **Consent is a gate, not a checkbox.** Show sign-up: a Consumer account cannot be created without
-   image-processing consent, and the button stays disabled until it is ticked. Brand data sharing is
-   a *separate* preference in Settings, off until deliberately enabled.
-2. **The threshold, seen working.** In the Brand workspace, open the below-threshold product and
-   show the suppressed state. Say: *"Fewer than 25 opted-in owners means the brand sees nothing —
-   not zeroes, not a sample. Suppression is the control working."* Add that an enumeration budget
-   caps how many distinct products one brand can query, so aggregates can't be differenced apart.
-3. **What a brand never receives.** Names, emails, photographs, raw wardrobes, owner IDs. Public
-   posts get new public garment IDs; private wardrobe IDs and storage keys never enter the feed.
-4. **Deletion, performed live.** In the throwaway Consumer account: delete one garment from Closet —
-   it leaves saved outfits and any Community post that showed it. Then open Settings and show the
-   delete-account card: current password plus typing DELETE, with the list of what goes. Say:
-   *"Both Apple and Google require this, and the privacy page describes exactly what it removes."*
-5. Close the segment: *"Every insight in this product is a by-product of something a person chose to
-   do, and can undo."*
+This is the segment to slow down in. Open **Is this a brand product?** on the piece just saved.
 
-## 6:30–7:30 — Brand
+1. **Search the brand.** Type the brand name, pick the product, tap **This is mine**. It links, and
+   the Closet labels it *your pick*, with cost per wear from the brand's listed price.
+2. **Then add the code from the label** and check the registry. Now it reads *Verified*.
+3. Say the difference out loud:
 
-1. Open the public brand page: **Products**, **Brand Looks** (styled by the brand), **Community
-   Looks** (published by people), with the footnote that Community Looks are not brand-created.
-2. In the Brand workspace, select the hero product and read the plain-language answers: *Are people
-   actually wearing it? Do they wear it more than once? Is it becoming a staple? Who bought it but
-   never wore it?*
-3. Show **What it gets worn with** — pairing intelligence from public looks only.
+> *"Those look the same and they are not. The first is a claim — someone said this is their jacket.
+> The second is evidence: a barcode, or the brand together with its own style code, checked against
+> what that brand enrolled. Only the second one joins the brand's owner index, only the second one
+> makes a piece shoppable in a public look, and only the second one counts toward what a brand sees.
+> A photo, a file name, or a typed brand name has never been enough, and the tests fail if that ever
+> changes."*
 
-## 7:30–8:00 — Business model and close
+## 3:00–4:00 — Privacy, seen working
 
-Open `/pricing`. Say: *"Consumers stay free to solve cold-start. Brands carry the revenue, because
-post-purchase wear intelligence is what they cannot get anywhere else. The Starter tier exists
-because an emerging brand often can't reach the privacy threshold immediately — we price that
-waiting period honestly instead of faking data."*
+1. Switch to the Brand workspace. Open the **below-threshold product**: *"Fewer than 25 opted-in
+   owners means the brand sees nothing — not zeroes, not a sample. It doesn't even see the count,
+   because three owners is itself identifying."*
+2. Open the released product beside it: a real wear chart, repeat-wear rate, what it gets worn with.
+   *"Same code, same query — the only difference is that enough people opted in."*
+3. One line on what a brand never receives: names, emails, photographs, raw wardrobes, owner IDs.
 
-Close on the loop: consumer utility → confirmed wear → privacy-safe brand intelligence → optional
-verified commerce.
+## 4:00–4:40 — How it was built
+
+Open the repository on the podium laptop. This is 15% of the rubric and most presenters skip it.
+
+> *"457 tests, and CI runs lint, type check, tests, a production build, a dependency audit, and
+> CodeQL before anything merges. Forty-six phases of merged pull requests, each one naming the defect
+> it fixed. Writing the session tests turned up a real one: a signed token with an extra segment was
+> being accepted. Found it, fixed it in the same change, wrote it down."*
+
+Then the honest boundary: *"Every number on screen today is synthetic demonstration data, labelled
+in the interface. I don't claim recognition accuracy, sales lift, or purchase intent."*
+
+## 4:40–5:00 — Close
+
+> *"Consumers stay free, because the wardrobe has to earn its place on its own. Brands pay, because
+> post-purchase wear is what they cannot get anywhere else. Pricing is published and nothing is
+> billed today."*
+
+Close on the loop: **consumer utility → confirmed wear → privacy-safe brand intelligence.**
+
+---
+
+## Prepared answers for the 3-minute Q&A
+
+Judges score here. Answer in two sentences, then stop.
+
+| Likely question | Answer |
+| --- | --- |
+| **"How do you solve cold start? An empty closet is useless and a brand sees nothing until 25 owners."** | The consumer side has to be worth using alone — organizing a closet, building outfits, cost per wear — and it is. Brand intelligence switches on later, per product, and until it does the dashboard says so plainly instead of showing invented numbers. |
+| **"How much of this did you actually write?"** | I directed it and reviewed every change; the history is public, phase by phase. Open any file and I will walk you through it — the ranker, the session guard, or the registry match. |
+| **"What stops someone claiming they own a product they don't?"** | Nothing stops them *claiming* it — that is why a claim and evidence are stored as different things. A pick shows them their own product details; only a GTIN or brand-plus-style-code match against the registry ever reaches a brand. |
+| **"Is the AI doing real work, or writing text around a rule engine?"** | Both, deliberately. Bedrock does the vision — finding and describing garments in one photo — and a deterministic server-side ranker picks the outfit, so the model writes the explanation for a selection it cannot override. If the reply names a piece that isn't in the selection, it is rejected before it is shown. |
+| **"What is your accuracy?"** | I don't claim one. I ran a reproducible crop benchmark at 86% mean IoU, and recognition accuracy needs an independent labelled benchmark I have not run — so I don't report a number I cannot defend. |
+| **"What would you do differently?"** | I built background removal before I had evidence it worked on real phone photos, and it erased white garments against pale walls. The fix was to stop cutting pieces out and show an honest bounded crop. |
+| **"Who pays, and how much?"** | Brands. $25 per SKU to enrol, $149 a month once a product crosses the privacy threshold, $29 before it does — priced low deliberately, because a brand under the threshold gets benchmarks, not customer data. |
+| **"What breaks first at scale?"** | The per-instance rate limiter, which is a first layer and not a WAF, and the Bedrock cost curve on scan volume. Both are named in the README rather than left for someone to find. |
+
+## Failure handling
+
+| If this happens | Do this |
+| --- | --- |
+| The live scan is slow or fails | Cut to the backup clip, narrate it as the live path, continue. The fallback card is itself designed behaviour worth showing. |
+| Bedrock is unavailable entirely | Show the **needs your label** card: no invented attributes, nothing lost, never a dead end. |
+| A cohort is below 25 | That *is* the privacy demo. Show it and say so. |
+| The podium laptop cannot sign in | Use the judge credentials from the submission email; they are seeded and verified before demo day. |
+| You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
 ## Claims discipline
 
 Say **observed**, not **caused**. Racked does not claim recognition accuracy, sales lift, conversion,
 purchase intent, demographics, fit prediction, or production-scale validation. Every number on screen
 during this demo is synthetic demonstration data and is labeled as such in the interface.
-
-## Failure handling
-
-| If this happens | Do this |
-| --- | --- |
-| The live scan is slow or fails | Cut to the backup clip, narrate it as the live path, and continue. The fallback card is itself a designed behaviour worth showing. |
-| Bedrock is unavailable entirely | Show the **needs your label** card and present it as designed degradation: no invented attributes, nothing lost. |
-| A cohort is below 25 | Show the suppression state and explain it is a successful privacy control. |
-| No shopping destination is configured | Shop the Look will not appear. Skip it and describe the state distinction from the Products section instead. |
