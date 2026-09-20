@@ -263,7 +263,7 @@ async function seedConsumer(products) {
 }
 
 /** The judge consumer's own published look, so Community, the brand page, and public activity are not empty. */
-async function seedCommunity({ ids, imageKeys }, products) {
+async function seedCommunity({ imageKeys }, products) {
   const postId = "judge-consumer-post";
   const postCreated = at(5);
   const pieces = [

@@ -114,15 +114,15 @@ test("the catalog can be searched, and retired products are out of the way", () 
   assert.match(dashboard, /function matchesQuery/);
   assert.match(dashboard, /Search by name, style code, or category/);
   assert.match(dashboard, /Show \{retiredCount\} retired/);
-  assert.match(dashboard, /products\.filter\(item=>!item\.archived\)\.length\} live SKU/);
-  assert.match(dashboard, /const arrived=next\.find\(item=>!known\.has\(item\.id\)\);if\(arrived&&current\.length\)setProductId\(arrived\.id\)/, "a newly enrolled product is the one being looked at");
+  assert.match(dashboard, /\{live\.length\} live SKU/);
+  assert.match(dashboard, /if\(arrived&&current\.length\)\{setProductId\(arrived\.id\);setView\("product"\)/, "a newly enrolled product is the one being opened");
 });
 
 test("a brand is given its public page to share, and no claim about what sharing does", () => {
   const dashboard = read("components/brand-dashboard.tsx");
   const share = dashboard.slice(dashboard.indexOf("brand-share"), dashboard.indexOf("</div>", dashboard.indexOf("brand-share-link")));
   assert.match(share, /Tell customers where to link/);
-  assert.match(share, /\/brands\/\{product\.brandSlug\}/);
+  assert.match(share, /\/brands\/\{brandSlug\}/);
   assert.match(share, /Copy link/);
   for (const claim of ["sales", "revenue", "conversion", "purchase intent", "more customers", "grow"]) {
     assert.ok(!share.toLowerCase().includes(claim), `the share block must not claim ${claim}`);

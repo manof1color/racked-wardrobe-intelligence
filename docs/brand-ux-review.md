@@ -14,11 +14,28 @@ Reviewed 2026-08-20 against the current Brand enrollment, catalog, dashboard, Br
 - Replaced unexplained `k ≥ 25` dashboard shorthand with **25+ owners** and a nearby plain-language explanation of what is hidden and why.
 - Labeled enrollment as “one product at a time” and explicitly stated that no spreadsheet or catalog system is required.
 
+## Fixed since this review
+
+- **Edit and retire.** A product's name, look, price, availability, destinations, and aliases are
+  editable; identity (brand, style code, barcode, photos) is immutable, and retiring keeps existing
+  owners and their wear history while removing the product from matching, search, and the public page.
+- **Navigation.** The workspace is three views — Overview, Catalog, Brand Looks — instead of one
+  scroll that put the enrollment form and the Look builder above the daily job. The mobile tabs now
+  switch views rather than jumping to an anchor.
+- **The catalog reads as products.** Cards with the product photo, style code, and a chip per state,
+  with search and a retired filter.
+- **Visual hierarchy on a product.** One hero number (confirmed wears) with the supporting metrics
+  demoted, captions under both charts, and a skeleton while the cohort is calculated so the layout
+  does not jump.
+- **The threshold banner moved** from the top of every visit to the suppressed state it explains.
+- **The enumeration budget is stated** — what is left, and why the limit exists — instead of
+  surfacing only as a refusal.
+
 ## Known limitations
 
-- There is no edit/archive interface after enrollment. An owner must currently enroll carefully or ask an administrator to correct a record.
 - There is no optional CSV/bulk import for a growing catalog. This is acceptable for 2–20 SKUs but becomes repetitive beyond that range.
 - The dashboard does not yet provide an onboarding checklist that persists across sessions.
+- A catalog-wide comparison of private wear **will not** be built. Release status is derived from cohort size, so comparing products side by side is the differencing attack the enumeration budget prevents. The overview answers catalog questions instead.
 - Private wear metrics correctly remain unavailable below 25 eligible opted-in owners. Small brands still receive product enrollment, Brand Looks, public Community appearances, and public interaction counts, but the interface could group those early-stage tools more prominently.
 - Brand Hanger is product-specific; there is not yet a safe multi-product portfolio comparison.
 
