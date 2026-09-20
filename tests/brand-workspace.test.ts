@@ -40,7 +40,7 @@ test("the workspace is three places, with a product opened from the catalog", ()
   }
   assert.match(dashboard, /function openProduct\(id:string\)/);
   assert.match(dashboard, /className="back-link" onClick=\{\(\)=>setView\("catalog"\)\}/, "a product view can be left");
-  assert.match(dashboard, /<BrandProductEnrollment onProducts=\{acceptProducts\}\/>/);
+  assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\}\/>/);
   const catalogView = dashboard.slice(dashboard.indexOf('{view==="catalog"'), dashboard.indexOf('{view==="looks"'));
   assert.match(catalogView, /BrandProductEnrollment/, "enrollment belongs with the catalog");
   assert.doesNotMatch(catalogView, /metrics\.actualWears|wearReadouts/, "and never carries wear data");
@@ -110,4 +110,19 @@ test("the overview lists what is unfinished, from the brand's own records only",
   // Comments stripped: the prose explains why wear is absent, the code must simply never touch it.
   const health = read("lib/brand-catalog-health.ts").replace(/\/\*\*[\s\S]*?\*\//g, "");
   assert.doesNotMatch(health, /metrics|segmentSize|suppressed|wear/i, "built from listing facts, never from wear");
+});
+
+// REGRESSION: the catalog was fetched by the enrollment panel, which only the Catalog view mounts.
+// A brand landing on Overview — the default view — was told it had no products until it happened to
+// open Catalog, and the onboarding checklist agreed with that.
+test("REGRESSION: the workspace loads its own catalog, so Overview is right on arrival", () => {
+  assert.match(dashboard, /fetch\("\/api\/brand\/products"\)/, "the workspace fetches the catalog itself");
+  assert.match(dashboard, /setCatalogLoaded\(true\)/);
+  assert.match(dashboard, /\{catalogLoaded&&products\.length===0/, "an empty state waits until the catalog is known");
+
+  const enrollment = read("components/brand-product-enrollment.tsx");
+  assert.doesNotMatch(enrollment, /useEffect\(\(\)=>\{fetch\("\/api\/brand\/products"\)/, "the panel no longer owns the list");
+  assert.match(enrollment, /\{products,onProducts\}:\{products:BrandProductRegistration\[\];onProducts:/, "it receives the catalog");
+  assert.match(enrollment, /onProducts\(\[data\.product,\.\.\.products\]\)/, "and hands back the new one");
+  assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\}\/>/);
 });

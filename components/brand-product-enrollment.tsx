@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { BrandProductRegistration, GarmentView } from "@/lib/platform-types";
 import { GARMENT_TAXONOMY, garmentSubtypeLabel, type GarmentCategory, type GarmentSubtype } from "@/lib/garment-taxonomy";
 import type { ProductDescriptionSuggestion } from "@/lib/product-description";
@@ -16,7 +16,7 @@ const emptyForm={name:"",aliases:"",sku:"",gtin:"",category:"",subtype:"",color:
  * checks before enrolling. Those details are what let a consumer's scan recognise the product
  * without its care label. Identity itself still comes only from the SKU and GTIN typed here.
  */
-export function BrandProductEnrollment({onProducts}:{onProducts?:(products:BrandProductRegistration[])=>void}) {
+export function BrandProductEnrollment({products,onProducts}:{products:BrandProductRegistration[];onProducts:(products:BrandProductRegistration[])=>void}) {
   const [open,setOpen]=useState(false);
   const [busy,setBusy]=useState(false);
   const [reading,setReading]=useState(false);
@@ -24,12 +24,9 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
   const [status,setStatus]=useState("");
   const [readNote,setReadNote]=useState("");
   const [progress,setProgress]=useState("");
-  const [products,setProducts]=useState<BrandProductRegistration[]>([]);
   const [files,setFiles]=useState<Partial<Record<GarmentView,File>>>({});
   const [morePhotos,setMorePhotos]=useState(false);
   const [form,setForm]=useState(emptyForm);
-
-  useEffect(()=>{fetch("/api/brand/products").then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error);setProducts(data.products??[]);onProducts?.(data.products??[]);}).catch(reason=>setError(reason instanceof Error?reason.message:"Catalog could not be loaded."));},[onProducts]);
 
   const category=categories.includes(form.category as GarmentCategory)?form.category as GarmentCategory:null;
   const types:readonly string[]=category?GARMENT_TAXONOMY[category].filter((subtype:string)=>!subtype.startsWith("other-")):[];
@@ -74,7 +71,7 @@ export function BrandProductEnrollment({onProducts}:{onProducts?:(products:Brand
       const response=await fetch("/api/brand/products",{method:"POST",body});
       const data=await readJsonResponse<{error?:string;product:BrandProductRegistration}>(response,"The product service returned an unreadable response. Please retry.");
       if(!response.ok)throw new Error(data.error??"Registration failed.");
-      const next=[data.product,...products];setProducts(next);onProducts?.(next);
+      onProducts([data.product,...products]);
       setStatus(`${data.product.name} is now enrolled under SKU ${data.product.sku}.`);
       setForm(emptyForm);setFiles({});setReadNote("");setMorePhotos(false);setOpen(false);
     } catch(reason){setError(reason instanceof Error?reason.message:"Registration failed.");} finally{setBusy(false);setProgress("");}
