@@ -40,10 +40,14 @@ Now every garment arrives the same way, and brand linking is a per-piece upgrade
 
 **A. Add from one photo** — *fast, separates every visible piece*
 
-1. Take or choose one photo — an outfit, a flat lay, a whole rail.
+1. Take or choose **up to six photos at once** — an outfit, a flat lay, a whole rail, a shelf. The
+   camera takes one at a time; the library lets you pick several. Each photo is scanned on its own
+   and every piece lands in one review list, tagged with the photo it came from.
 2. The photo is resized in the browser before upload; the original never leaves the device.
-3. `POST /api/garments/detect` sends it to Amazon Bedrock, which returns up to 16 wardrobe
-   units. Matching left and right shoes are returned as **one pair**, not two garments.
+3. `POST /api/garments/detect` sends each photo to Amazon Bedrock, which returns up to 16 wardrobe
+   units per photo. Matching left and right shoes are returned as **one pair**, not two garments. A
+   photo that cannot be read does not cost the batch: the pieces already found stay, and the summary
+   names the photo that failed. The review list stops at 24 pieces and says so.
 4. Each detection is cropped to its own piece — the box plus a margin, zoomed to the garment, photo left intact — and stored privately.
 5. You get an editable card per piece — the whole piece is always visible — with **name, category, type, brand**. Nothing is
    saved until you tick the confirmation box.

@@ -8,8 +8,11 @@ test("photo intake exposes separate camera and library controls",()=>{
   const picker=read("components/photo-source-picker.tsx");
   assert.match(picker,/capture="environment"/);
   assert.match(picker,/>Take photo</);
-  assert.match(picker,/>Choose image</);
-  assert.match(picker,/className="photo-source-action library"[\s\S]*?<input type="file" accept=\{accept\} onChange=\{choose\}/);
+  assert.match(picker,/multiple\?"Choose images":"Choose image"/);
+  assert.match(picker,/className="photo-source-action library"[\s\S]*?<input type="file" accept=\{accept\} multiple=\{multiple\} onChange=\{choose\}/);
+  // A camera takes one picture at a time, so only the library door opens on several photos.
+  const camera=picker.slice(picker.indexOf("photo-source-action camera"),picker.indexOf("photo-source-action library"));
+  assert.doesNotMatch(camera,/multiple/);
 });
 
 // Rewritten when the two intake modes were merged. The guarantee it protects is unchanged

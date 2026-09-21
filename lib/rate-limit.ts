@@ -26,7 +26,9 @@ export const RATE_LIMIT_RULES = {
   accountDeletion: { limit: 5, windowMs: 15 * 60 * 1000 },
   garmentDelete: { limit: 30, windowMs: 10 * 60 * 1000 },
   garmentVerify: { limit: 20, windowMs: 10 * 60 * 1000 },
-  lookDetect: { limit: 12, windowMs: 10 * 60 * 1000 },
+  // One scan is one photo, and a batch is up to six of them, so this allows a few batches rather
+  // than a few photos. Each one is still a metered Bedrock call.
+  lookDetect: { limit: 24, windowMs: 10 * 60 * 1000 },
   consumerAgent: { limit: 20, windowMs: 5 * 60 * 1000 },
   brandAgent: { limit: 20, windowMs: 5 * 60 * 1000 },
   brandMetrics: { limit: 30, windowMs: 5 * 60 * 1000 },

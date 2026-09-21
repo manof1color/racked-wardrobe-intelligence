@@ -831,3 +831,10 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .onboarding-steps li.done strong{color:var(--muted);text-decoration:line-through}
 .onboarding-steps small{font-size:.66rem;color:var(--muted);line-height:1.5}
 @media (max-width:600px){.onboarding-steps li{flex-wrap:wrap}.onboarding-steps li .button{width:100%}}
+
+/* A batch of photos: several previews, a card that says which photo it came from, and a plain summary. */
+.intake-previews{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.intake-previews .intake-preview{width:72px;height:72px;object-fit:cover}
+.intake-batch-summary{margin:10px 0 0;font-size:.7rem;color:var(--muted);line-height:1.6}
+.intake-source{margin-left:auto;font-size:.55rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:3px 6px}
+.intake-card-head .intake-source+.intake-status{margin-left:6px}
