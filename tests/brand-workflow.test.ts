@@ -115,7 +115,8 @@ test("the catalog can be searched, and retired products are out of the way", () 
   assert.match(dashboard, /Search by name, style code, or category/);
   assert.match(dashboard, /Show \{retiredCount\} retired/);
   assert.match(dashboard, /\{live\.length\} live SKU/);
-  assert.match(dashboard, /if\(arrived&&hadProducts\)\{setProductId\(arrived\.id\)/, "a newly enrolled product is the one being opened");
+  assert.match(dashboard, /if\(arrivals\.length===1\)\{const arrived=arrivals\[0\];setProductId\(arrived\.id\)/, "one newly enrolled product is the one being opened");
+  assert.match(dashboard, /else setView\("catalog"\);/, "and a batch of them lands in the catalog");
 });
 
 test("a brand is given its public page to share, and no claim about what sharing does", () => {

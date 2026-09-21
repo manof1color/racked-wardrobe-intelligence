@@ -838,3 +838,14 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .intake-batch-summary{margin:10px 0 0;font-size:.7rem;color:var(--muted);line-height:1.6}
 .intake-source{margin-left:auto;font-size:.55rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);padding:3px 6px}
 .intake-card-head .intake-source+.intake-status{margin-left:6px}
+
+/* Enrolling several products at once: one draft card per photo, each finishable on its own. */
+.enroll-drafts{display:flex;flex-direction:column;gap:12px;margin:14px 0}
+.enroll-draft{border:1px solid var(--line);background:#fff;padding:14px}
+.enroll-draft.enrolled{border-color:#397240;opacity:.75}
+.enroll-draft.failed{border-color:var(--coral)}
+.enroll-draft>header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.enroll-draft>header strong{display:block;font-size:.85rem}
+.enroll-draft>header small{display:block;font-size:.62rem;color:var(--muted);word-break:break-all}
+.enroll-draft .registry-fields{margin:0}
+.enroll-draft .intake-link-toggle{margin-top:10px}

@@ -188,8 +188,12 @@ the enumeration budget. Landing on the workspace costs nothing.
 
 ### 3. Enroll a product — `/brand`
 
-**One product photo** plus **SKU/MPN**, with an optional GTIN and aliases. **Fill in from photo**
-reads the photo and proposes the name, category, type, colour, pattern, and material, which you check
+**One photo per product — up to six at once.** Each photo becomes a draft: Racked reads it and
+proposes the name, category, type, colour, pattern, and material, and you add the **style code**,
+which is the part only you know. Recognition never writes a SKU or a GTIN. Drafts are enrolled one
+after another; one the registry refuses (a duplicate style code, say) stays on screen with the
+reason while the rest go through, and two drafts sharing a style code are caught before the registry
+has to refuse them. Everything proposed is checked by you
 before enrolling; those details are how a customer's scan recognises your product without its care
 label. Back and label photos are optional. This enrollment
 is the *only* thing that can create verified product identity anywhere in Racked. A

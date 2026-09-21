@@ -27,6 +27,7 @@ This is the judge’s index for the CUA rubric.
 - [x] A new Brand account is met with a four-step checklist derived from its own records, so progress survives a new session or device, and it disappears when finished.
 - [x] The Brand workspace is three views — Overview, Catalog, Brand Looks — with wear intelligence opened per product; no private aggregate appears outside an opened product, because release status across a catalog would be cross-product differencing.
 - [x] Enrolled products stay correctable — name, look, price, availability, destinations, aliases — while brand, style code, barcode, and photos are immutable, and retiring a product stops new links without touching existing owners or their wear history.
+- [x] A brand can enrol up to six products in one pass — a draft per photo, recognition filling appearance only, the brand supplying every style code, and a refused draft keeping its reason while the rest go through.
 - [x] Brand enrollment from one product photo with SKU/MPN, optional GTIN (check digit validated) and aliases; **Fill in from photo** proposes name, category, type, colour, pattern, and material with Bedrock, stores nothing until enrollment, and back/label photos are optional. One brand name per account, well-known names reserved, one product per GTIN and per brand style code.
 - [x] Actual brand metrics derived from connected Consumer records.
 - [x] Timestamped product wear events power an eight-week chart, frequency distribution, median/average usage, engagement, and aggregate CSV export.
@@ -59,7 +60,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the bounded crop, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA. Where the browser allows it (Chrome and Edge on Android and desktop), Add Racked opens the real one-tap install dialog, and the install event is kept even when it fires before the page hydrates. iPhone has no install API, so it gets accurate iOS 26 steps with the Share icon shown; apps' built-in browsers (TikTok, Instagram) get an Open in Safari or Chrome handoff, since they cannot add to a Home Screen at all.
-- [x] 485 automated tests and lint pass (re-verified 2026-09-19); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
+- [x] 491 automated tests and lint pass (re-verified 2026-09-19); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 
 - [x] Measured coverage, not asserted rigour: 96% of lines and 95% of functions across the suite, with the decision engines at 94–100% branch coverage. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
 
