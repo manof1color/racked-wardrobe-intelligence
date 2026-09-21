@@ -74,15 +74,11 @@ test("the library door opens on several photos, and the scan limit allows a few 
   assert.ok(RATE_LIMIT_RULES.lookDetect.limit <= 40, "and it is still a bounded, metered call");
 });
 
-// CodeQL flagged the batch thumbnails: a value from a file input reaching an image source. The
-// blob URL is browser-made, but the barrier is cheap and the rule is right to ask for one.
-test("a preview can only ever be a browser-made blob URL", async () => {
-  const { blobPreviewUrl } = await import("../lib/preview-url.ts");
-  assert.equal(blobPreviewUrl("blob:https://racked.app/9f2c"), "blob:https://racked.app/9f2c");
-  assert.equal(blobPreviewUrl("javascript:alert(1)"), undefined);
-  assert.equal(blobPreviewUrl("data:text/html,<script>"), undefined);
-  assert.equal(blobPreviewUrl("https://example.test/x.png"), undefined);
-  assert.equal(blobPreviewUrl(undefined), undefined);
-  assert.match(intake, /const safe = blobPreviewUrl\(url\);/);
-  assert.match(intake, /safe \? <img key=\{url\} className="intake-preview" src=\{safe\}/);
+// CodeQL flagged the batch thumbnails on the way in: a value read from a file input reaching an
+// image source. Rather than dismiss the alert, the thumbnails went: the sink is gone, and the real
+// cropped pieces appear moments later.
+test("REGRESSION: no value from a file input ever reaches an image source", () => {
+  assert.doesNotMatch(intake, /createObjectURL/);
+  assert.doesNotMatch(intake, /intake-preview"/);
+  assert.match(intake, /No local thumbnail of the chosen file/);
 });

@@ -8,7 +8,6 @@ import type { DetectedLookGarment } from "@/lib/look-garment-detection";
 import { garmentSubtypeLabel, garmentTypeSuggestions, normalizeGarmentCategory, resolveTypedGarmentType, subtypeForCategory } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { batchSummary, MAX_SCAN_PHOTOS, planScanBatch, remainingPieceCapacity, scanProgressLabel } from "@/lib/look-scan-batch";
-import { blobPreviewUrl } from "@/lib/preview-url";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import type { GarmentOverrides } from "@/lib/types";
 import { PhotoSourcePicker } from "./photo-source-picker";
@@ -92,7 +91,6 @@ function CatalogOption({ product, detail }: { product: CatalogProductSummary; de
 
 export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIntakeSelection[]) => Promise<void> }) {
   const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
   const [summary, setSummary] = useState("");
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [busy, setBusy] = useState(false);
@@ -108,9 +106,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
   function chooseFiles(next: File[]) {
     // Several photos are how a wardrobe actually arrives: a rail, a shelf, a pile on the bed.
     const plan = planScanBatch(next);
-    for (const url of previews) URL.revokeObjectURL(url);
     setFiles(plan.accepted);
-    setPreviews(plan.accepted.map((entry) => URL.createObjectURL(entry)));
     setPieces([]);
     setConfirmed(false);
     setError("");
@@ -317,13 +313,9 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
 
   return <div className="intake">
     <div className={`intake-drop ${files.length ? "has-file" : ""}`}>
-      {previews.length
-        ? <div className="intake-previews">{previews.map((url, index) => {
-            // Only a browser-minted blob: URL is shown; anything else renders nothing at all.
-            const safe = blobPreviewUrl(url);
-            return safe ? <img key={url} className="intake-preview" src={safe} alt={previews.length === 1 ? "Your uploaded photo" : `Photo ${index + 1} of ${previews.length}`} /> : null;
-          })}</div>
-        : <span className="intake-drop-mark" aria-hidden="true">＋</span>}
+      {/* No local thumbnail of the chosen file: a value read from a file input has no business
+          reaching an image source, and the real cropped pieces appear moments later anyway. */}
+      <span className="intake-drop-mark" aria-hidden="true">{files.length ? files.length : "＋"}</span>
       <div className="intake-drop-copy">
         <strong>{files.length ? (busy ? "Reading your photos…" : `${files.length} photo${files.length === 1 ? "" : "s"} added`) : "Add photos of your clothing"}</strong>
         <small>{files.length
