@@ -81,7 +81,7 @@ test("REGRESSION: Hanger tells a brand with products to open one, not to enrol o
 // six enumeration slots to be told what is certain — a product created seconds ago has no owners.
 test("REGRESSION: a product enrolled moments ago costs no enumeration budget", () => {
   assert.match(dashboard, /if\(view!=="product"\|\|!productId\|\|justEnrolled\.includes\(productId\)\)return;/);
-  assert.match(dashboard, /setJustEnrolled\(ids=>\[\.\.\.ids,arrived\.id\]\)/);
+  assert.match(dashboard, /setJustEnrolled\(ids=>\[\.\.\.ids,\.\.\.arrivals\.map\(item=>item\.id\)\]\)/, "every product enrolled in this session, not just one");
   assert.match(dashboard, /Nothing has been linked to this yet\./);
   assert.match(dashboard, /will not spend one of your aggregate requests/);
 });

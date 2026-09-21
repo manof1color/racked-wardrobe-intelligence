@@ -123,6 +123,6 @@ test("REGRESSION: the workspace loads its own catalog, so Overview is right on a
   const enrollment = read("components/brand-product-enrollment.tsx");
   assert.doesNotMatch(enrollment, /useEffect\(\(\)=>\{fetch\("\/api\/brand\/products"\)/, "the panel no longer owns the list");
   assert.match(enrollment, /\{products,onProducts\}:\{products:BrandProductRegistration\[\];onProducts:/, "it receives the catalog");
-  assert.match(enrollment, /onProducts\(\[data\.product,\.\.\.products\]\)/, "and hands back the new one");
+  assert.match(enrollment, /onProducts\(\[\.\.\.enrolled,\.\.\.products\]\)/, "and hands back everything it enrolled");
   assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\}\/>/);
 });

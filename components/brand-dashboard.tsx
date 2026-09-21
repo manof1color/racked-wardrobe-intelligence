@@ -88,11 +88,16 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   // ids seen so far live in a ref rather than in the state updater, which React may run twice.
   const knownProductIds=useRef<Set<string>>(new Set());
   const acceptProducts=useCallback((next:BrandProductRegistration[])=>{
-    const arrived=next.find(item=>!knownProductIds.current.has(item.id));
+    const arrivals=next.filter(item=>!knownProductIds.current.has(item.id));
     const hadProducts=knownProductIds.current.size>0;
     knownProductIds.current=new Set(next.map(item=>item.id));
     setProducts(next);
-    if(arrived&&hadProducts){setProductId(arrived.id);setMetrics(null);setCommunityMetrics(null);setError("");setJustEnrolled(ids=>[...ids,arrived.id]);setView("product");}
+    if(!arrivals.length||!hadProducts)return;
+    setJustEnrolled(ids=>[...ids,...arrivals.map(item=>item.id)]);
+    // One new product is the one to look at. A batch of them is a catalog to look over, so the
+    // catalog is where a bulk enrolment lands.
+    if(arrivals.length===1){const arrived=arrivals[0];setProductId(arrived.id);setMetrics(null);setCommunityMetrics(null);setError("");setView("product");}
+    else setView("catalog");
   },[]);
 
   // The workspace owns the catalog. It used to be fetched by the enrollment panel, which only the
