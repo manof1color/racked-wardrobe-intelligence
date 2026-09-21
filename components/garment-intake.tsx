@@ -8,6 +8,7 @@ import type { DetectedLookGarment } from "@/lib/look-garment-detection";
 import { garmentSubtypeLabel, garmentTypeSuggestions, normalizeGarmentCategory, resolveTypedGarmentType, subtypeForCategory } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { batchSummary, MAX_SCAN_PHOTOS, planScanBatch, remainingPieceCapacity, scanProgressLabel } from "@/lib/look-scan-batch";
+import { blobPreviewUrl } from "@/lib/preview-url";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import type { GarmentOverrides } from "@/lib/types";
 import { PhotoSourcePicker } from "./photo-source-picker";
@@ -317,7 +318,11 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
   return <div className="intake">
     <div className={`intake-drop ${files.length ? "has-file" : ""}`}>
       {previews.length
-        ? <div className="intake-previews">{previews.map((url, index) => <img key={url} className="intake-preview" src={url} alt={previews.length === 1 ? "Your uploaded photo" : `Photo ${index + 1} of ${previews.length}`} />)}</div>
+        ? <div className="intake-previews">{previews.map((url, index) => {
+            // Only a browser-minted blob: URL is shown; anything else renders nothing at all.
+            const safe = blobPreviewUrl(url);
+            return safe ? <img key={url} className="intake-preview" src={safe} alt={previews.length === 1 ? "Your uploaded photo" : `Photo ${index + 1} of ${previews.length}`} /> : null;
+          })}</div>
         : <span className="intake-drop-mark" aria-hidden="true">＋</span>}
       <div className="intake-drop-copy">
         <strong>{files.length ? (busy ? "Reading your photos…" : `${files.length} photo${files.length === 1 ? "" : "s"} added`) : "Add photos of your clothing"}</strong>
