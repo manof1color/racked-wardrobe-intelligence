@@ -17,7 +17,7 @@ import {
 } from "./outfit-ranking.ts";
 import type { WardrobeItem } from "./types.ts";
 
-export type HangerTurnMode = "create" | "revise" | "explain" | "save-confirm" | "wear-confirm" | "advice";
+export type HangerTurnMode = "create" | "revise" | "explain" | "save-confirm" | "wear-confirm" | "advice" | "clarify";
 
 export interface HangerTurnPlan {
   mode: HangerTurnMode;
@@ -28,6 +28,7 @@ export interface HangerTurnPlan {
   maxPieces: number;
   rotatePriorSuggestions: boolean;
   contextUsed: boolean;
+  clarification?: string;
 }
 
 /** The customer may request a new look while explicitly declining Save or Record. */
@@ -128,12 +129,17 @@ export function planHangerTurn(input: {
   const changeEverything = CHANGE_EVERYTHING.test(input.message);
   const creationVerbAt = input.message.search(/\b(?:build|create|make|style|suggest|give|show)\b/i);
   const refersToActive = CURRENT_LOOK_REFERENCE.test(creationRequested && creationVerbAt >= 0 ? input.message.slice(creationVerbAt) : input.message);
+  const addingToFullOutfit = hasActive && activeItemIds.length >= MAX_OUTFIT_PIECES && ADD_TO_LOOK.test(input.message) && requested.some((item) => !activeItemIds.includes(item.id));
+  const specificOwnedPieceUnresolved = (creationRequested || ADD_TO_LOOK.test(input.message)) && requested.length === 0
+    && /\b(?:with|using|use|wear|include|including|add)\s+(?:my|the)\s+(?!(?:wardrobe|closet|outfit|look|plans)\b)[a-z]/i.test(input.message)
+    && !/\b(?:without|instead of|rather than)\s+(?:my|the)\b/i.test(input.message);
 
   let mode: HangerTurnMode;
   // Questions and explicit confirmations must not be interpreted as revisions just because
   // they refer to "this outfit". A new-look request only inherits the current look when
   // the customer actually refers to it ("make this outfit more formal").
-  if (WARDROBE_REVIEW.test(input.message)) mode = "advice";
+  if (addingToFullOutfit || specificOwnedPieceUnresolved) mode = "clarify";
+  else if (WARDROBE_REVIEW.test(input.message)) mode = "advice";
   else if (!creationRequested && NEGATED_ACTION.test(input.message) && !ADD_TO_LOOK.test(input.message)) mode = "advice";
   else if (!creationRequested && SAVE_ACTIVE.test(input.message)) mode = "save-confirm";
   else if (!creationRequested && WEAR_ACTIVE.test(input.message)) mode = "wear-confirm";
@@ -150,7 +156,7 @@ export function planHangerTurn(input: {
   if (mode === "revise") {
     for (const item of activeItems) {
       if (changed.has(clean(item.category))) excluded.add(item.id);
-      if (kept.has(clean(item.category))) required.add(item.id);
+      if (kept.has(clean(item.category)) && !excluded.has(item.id)) required.add(item.id);
     }
 
     const requestedCategories = new Set(requested.map((item) => clean(item.category)));
@@ -190,5 +196,7 @@ export function planHangerTurn(input: {
     maxPieces,
     rotatePriorSuggestions: mode === "create" ? hasActive : mode === "revise" && (currentIntent.alternativeRequested || changed.size > 0 || changeEverything),
     contextUsed: inheritIntent && hasActive,
+    ...(addingToFullOutfit ? { clarification: `This outfit already has four pieces. To add ${requested.map((item) => item.name).join(" and ")}, tell me which existing piece to replace. I have not changed or saved your current outfit.` }
+      : specificOwnedPieceUnresolved ? { clarification: "I couldn't find one clearly matching that requested piece in your saved wardrobe. Tell me its exact saved name, or add it to your Closet first. I have not made or saved an unrelated outfit." } : {}),
   };
 }

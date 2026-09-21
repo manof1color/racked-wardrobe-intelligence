@@ -130,8 +130,11 @@ function pieceInstructionBefore(request: string, index: number): "require" | "ex
   const clauses = sentence.split(/,|\b(?:but|while|and|or)\b/);
   for (let position = clauses.length - 1; position >= 0; position--) {
     const clause = clauses[position].trim();
+    // In "replace the shoes with Black Boots", the target follows "with" and is
+    // required even though the earlier "replace" is an exclusion cue for the old pair.
+    if (REPLACEMENT_TARGET_CUE.test(clause)) return "require";
     if (EXCLUDED_PIECE_CUE.test(clause)) return "exclude";
-    if (REQUIRED_PIECE_CUE.test(clause) || REPLACEMENT_TARGET_CUE.test(clause)) return "require";
+    if (REQUIRED_PIECE_CUE.test(clause)) return "require";
   }
   return null;
 }
@@ -198,6 +201,7 @@ export function explicitlyRequestedWardrobeItems(wardrobe: WardrobeItem[], messa
  */
 export function explicitlyExcludedWardrobeItems(wardrobe: WardrobeItem[], message: string) {
   const request = searchableRequest(message);
+  const requiredIds = new Set(explicitlyRequestedWardrobeItems(wardrobe, message).map((item) => item.id));
   const aliases = new Map<string, WardrobeItem[]>();
   for (const item of wardrobe) {
     const category = searchable(item.category).trim();
@@ -216,7 +220,9 @@ export function explicitlyExcludedWardrobeItems(wardrobe: WardrobeItem[], messag
   mentions.sort((a, b) => a.index - b.index || b.specificity - a.specificity || a.item.id.localeCompare(b.item.id));
   const seen = new Set<string>();
   return mentions.flatMap(({ item }) => {
-    if (seen.has(item.id)) return [];
+    // A named replacement is not part of the set being replaced, even if a generic
+    // source like "the shoes" initially matched every pair in the wardrobe.
+    if (seen.has(item.id) || requiredIds.has(item.id)) return [];
     seen.add(item.id);
     return [item];
   });

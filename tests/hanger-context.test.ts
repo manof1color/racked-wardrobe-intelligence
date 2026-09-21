@@ -167,3 +167,28 @@ test("a new outfit honors a refusal to save or record without dropping the new s
   assert.equal(allowedOutfitActions("create", "Don't save or record it; build another outfit"), "none");
   assert.equal(allowedOutfitActions("advice", "Do not save that outfit"), "none");
 });
+
+test("adding to a full look asks which existing piece to replace without dropping one",()=>{
+  const activeOutfit = { itemIds: ["top-grey", "bottom-wool", "shoe-derby", "coat-blazer"], intent: readOutfitIntent("Build a look") };
+  const plan = planHangerTurn({ wardrobe, activeOutfit, message: "Add my Blue Oxford to the outfit" });
+  assert.equal(plan.mode, "clarify");
+  assert.equal(allowedOutfitActions(plan.mode, "Add my Blue Oxford to the outfit"), "none");
+  assert.deepEqual(plan.activeItemIds, activeOutfit.itemIds, "the current selection remains intact");
+  assert.match(plan.clarification ?? "", /which existing piece to replace/);
+});
+
+test("an absent owned-sounding request is clarified, not returned as an unrelated saveable outfit",()=>{
+  const plan = planHangerTurn({ wardrobe, message: "Build an outfit with my purple fedora" });
+  assert.equal(plan.mode, "clarify");
+  assert.equal(allowedOutfitActions(plan.mode, "Build an outfit with my purple fedora"), "none");
+  assert.match(plan.clarification ?? "", /couldn't find one clearly matching/);
+});
+
+test("keep this hoodie instead of that shirt excludes the shirt while preserving the hoodie",()=>{
+  const activeOutfit = { itemIds: ["top-grey", "top-blue", "bottom-wool", "shoe-derby"], intent: readOutfitIntent("Build a look") };
+  const plan = planHangerTurn({ wardrobe, activeOutfit, message: "I want to keep my Grey Hoodie instead of Blue Oxford" });
+  assert.equal(plan.mode, "revise");
+  assert.ok(plan.requiredItemIds.includes("top-grey"));
+  assert.ok(plan.excludedItemIds.includes("top-blue"));
+  assert.ok(!plan.requiredItemIds.includes("top-blue"));
+});

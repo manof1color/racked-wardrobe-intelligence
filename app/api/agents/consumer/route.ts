@@ -118,6 +118,7 @@ export async function POST(request: Request) {
     activeBefore: activeOwnedItems,
     selectionReasons,
     styleSource: ranked?.intent.styleSource ?? plan.intent.styleSource,
+    clarification: plan.clarification,
   });
   const reply: AgentReply = {
     agent: "consumer-stylist",

@@ -321,7 +321,9 @@ export async function generateConsumerHangerReply(input: {
   activeBefore?: WardrobeItem[];
   selectionReasons?: Record<string, string[]>;
   styleSource?: "request" | "inspiration" | "none";
+  clarification?: string;
 }) {
+  if (input.turnMode === "clarify") return { message: input.clarification ?? "Please tell me which owned piece to use before I build another outfit.", usedModel: false };
   if (input.turnMode === "advice" && /\b(?:do not|don['’]?t|never)\s+save\b/i.test(input.message)) {
     return { message: "Understood—I will not save that outfit. Nothing was saved by this message. Your current wardrobe and saved outfits are unchanged.", usedModel: false };
   }

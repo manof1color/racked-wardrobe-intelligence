@@ -148,6 +148,36 @@ test("comma-separated positive and negative cues apply to the correct owned piec
   assert.deepEqual(explicitlyExcludedWardrobeItems(items, "Without White Tee or Blue Shirt").map((item) => item.id), ["white-tee", "blue-shirt"], "a cue-free alternative inherits the negative cue");
 });
 
+test("a named replacement survives a generic old-category exclusion", () => {
+  const items = [
+    garment({ id: "white-sneakers", name: "White Sneakers", category: "shoe", subtype: "sneakers" }),
+    garment({ id: "black-boots", name: "Black Boots", category: "shoe", subtype: "boots" }),
+    garment({ id: "blue-shirt", name: "Blue Shirt", category: "top", subtype: "dress shirt" }),
+    garment({ id: "black-jeans", name: "Black Jeans", category: "bottom", subtype: "jeans" }),
+  ];
+  for (const message of ["Replace the shoes with Black Boots", "Replace White Sneakers with Black Boots"]) {
+    assert.deepEqual(explicitlyRequestedWardrobeItems(items, message).map((item) => item.id), ["black-boots"], message);
+    assert.deepEqual(explicitlyExcludedWardrobeItems(items, message).map((item) => item.id), ["white-sneakers"], message);
+    const ids = rankOutfit(items, message).pieces.map((piece) => piece.item.id);
+    assert.ok(ids.includes("black-boots"), message);
+    assert.ok(!ids.includes("white-sneakers"), message);
+  }
+});
+
+test("keep this named garment instead of that one gives them opposite instructions", () => {
+  const items = [
+    garment({ id: "grey-hoodie", name: "Grey Hoodie", category: "top", subtype: "hoodie" }),
+    garment({ id: "blue-oxford", name: "Blue Oxford", category: "top", subtype: "dress shirt" }),
+    ...wardrobe.filter((item) => item.category !== "top"),
+  ];
+  const message = "I want to keep my Grey Hoodie instead of Blue Oxford";
+  assert.deepEqual(explicitlyRequestedWardrobeItems(items, message).map((item) => item.id), ["grey-hoodie"]);
+  assert.deepEqual(explicitlyExcludedWardrobeItems(items, message).map((item) => item.id), ["blue-oxford"]);
+  const ids = rankOutfit(items, message).pieces.map((piece) => piece.item.id);
+  assert.ok(ids.includes("grey-hoodie"));
+  assert.ok(!ids.includes("blue-oxford"));
+});
+
 test("negative subtype and category instructions exclude all matching owned pieces", () => {
   const items = [
     garment({ id: "jeans-blue", name: "Blue Jeans", category: "bottom", subtype: "jeans" }),
