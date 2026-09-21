@@ -127,7 +127,7 @@ test("first-turn negative instructions are hard exclusions, not outfit requireme
 test("comma-separated positive and negative cues apply to the correct owned piece", () => {
   const items = [
     garment({ id: "white-tee", name: "White Tee", category: "top", subtype: "t-shirt" }),
-    garment({ id: "blue-shirt", name: "Blue Shirt", category: "top", subtype: "dress shirt" }),
+    garment({ id: "blue-shirt", name: "Blue Shirt", category: "top", subtype: "dress-shirt" }),
     ...wardrobe.filter((item) => item.category !== "top"),
   ];
   const directions = [
@@ -152,7 +152,7 @@ test("a named replacement survives a generic old-category exclusion", () => {
   const items = [
     garment({ id: "white-sneakers", name: "White Sneakers", category: "shoe", subtype: "sneakers" }),
     garment({ id: "black-boots", name: "Black Boots", category: "shoe", subtype: "boots" }),
-    garment({ id: "blue-shirt", name: "Blue Shirt", category: "top", subtype: "dress shirt" }),
+    garment({ id: "blue-shirt", name: "Blue Shirt", category: "top", subtype: "dress-shirt" }),
     garment({ id: "black-jeans", name: "Black Jeans", category: "bottom", subtype: "jeans" }),
   ];
   for (const message of ["Replace the shoes with Black Boots", "Replace White Sneakers with Black Boots"]) {
@@ -167,7 +167,7 @@ test("a named replacement survives a generic old-category exclusion", () => {
 test("keep this named garment instead of that one gives them opposite instructions", () => {
   const items = [
     garment({ id: "grey-hoodie", name: "Grey Hoodie", category: "top", subtype: "hoodie" }),
-    garment({ id: "blue-oxford", name: "Blue Oxford", category: "top", subtype: "dress shirt" }),
+    garment({ id: "blue-oxford", name: "Blue Oxford", category: "top", subtype: "dress-shirt" }),
     ...wardrobe.filter((item) => item.category !== "top"),
   ];
   const message = "I want to keep my Grey Hoodie instead of Blue Oxford";
@@ -182,10 +182,10 @@ test("negative subtype and category instructions exclude all matching owned piec
   const items = [
     garment({ id: "jeans-blue", name: "Blue Jeans", category: "bottom", subtype: "jeans" }),
     garment({ id: "jeans-black", name: "Black Jeans", category: "bottom", subtype: "jeans" }),
-    garment({ id: "trouser", name: "Wool Trouser", category: "bottom", subtype: "dress pants" }),
+    garment({ id: "trouser", name: "Wool Trouser", category: "bottom", subtype: "dress-pants" }),
     garment({ id: "shoe-white", name: "White Sneaker", category: "shoe", subtype: "sneakers" }),
-    garment({ id: "shoe-black", name: "Black Derby", category: "shoe", subtype: "dress shoes" }),
-    garment({ id: "shirt", name: "Blue Shirt", category: "top", subtype: "dress shirt" }),
+    garment({ id: "shoe-black", name: "Black Derby", category: "shoe", subtype: "dress-shoes" }),
+    garment({ id: "shirt", name: "Blue Shirt", category: "top", subtype: "dress-shirt" }),
   ];
   assert.deepEqual(explicitlyExcludedWardrobeItems(items, "Build an outfit without jeans").map((item) => item.id).sort(), ["jeans-black", "jeans-blue"]);
   for (const message of ["Build an outfit without jeans", "Build an outfit without Jeans"]) {
