@@ -12,22 +12,32 @@
 
 ## Start Here
 
-**New to this repository?** Pick the row that matches how much time you have.
+Three ways in, depending on what you want to do.
 
-| If you have… | Go to | What you get |
-| --- | --- | --- |
-| **5 minutes** | [Five-Minute Judge Path](#five-minute-judge-path) | Four clicks through the live app, no sign-in needed for most of it |
-| **Credentials** | [Demo Access](#demo-access) | Judge Consumer and Judge Brand accounts, and why passwords are not in this repo |
-| **The headline numbers** | [Competition Proof Point](#competition-proof-point) | 76 wears / 25 owners / 88% engagement per hero SKU, clearly labeled synthetic |
-| **A rubric to score** | [Rubric Alignment](#rubric-alignment) | Each weighted category mapped to what is actually built |
-| **To judge the AI** | [Why the AI Is Substantive](#why-the-ai-is-substantive) | Six concrete AI capabilities and the boundaries around each |
-| **To see how a scan works** | [Adding a piece from one photo](#adding-a-piece-from-one-photo) | Five steps, what happens when AI isn't sure, and an honest note on training |
-| **A measured result** | [Garment Isolation](#measured-garment-isolation) | 86% mean IoU on a reproducible crop benchmark — and why live intake still uses the plain crop |
-| **To judge a reviewer's questions** | [What a technical reviewer asked for](#what-a-technical-reviewer-asked-for) | Coverage measured per engine, the engine-to-route map, and what changed because of it |
-| **To judge the engineering** | [Architecture](#architecture-overview) · [Key Files](#key-files) · [CI](#ci--github-actions) | Trust boundaries, the module map, and the green gate |
-| **To judge the ethics** | [Privacy Boundaries](#security-and-privacy-boundaries) · [Ethical Stance](#ethical-stance-and-claims) | `k ≥ 25`, consent, and an explicit list of what is *not* claimed |
-| **To see how it was built** | [PROGRESS.md](PROGRESS.md) | Real merged-PR history, phase by phase |
-| **To use the product** | [User workflow](docs/user-workflow.md) | The Consumer and Brand journeys, step by step |
+**See it working**
+
+| | |
+| --- | --- |
+| [Five-Minute Judge Path](#five-minute-judge-path) | Four clicks through the live app; most of it needs no sign-in |
+| [Demo Access](#demo-access) | The four demo accounts, and why no password is in this repository |
+| [How a scan works](#adding-a-piece-from-one-photo) | Photo to confirmed wardrobe pieces, including what happens when AI is unsure |
+
+**Score it**
+
+| | |
+| --- | --- |
+| [Rubric Alignment](#rubric-alignment) | Each weighted category mapped to what is actually built |
+| [Competition Proof Point](#competition-proof-point) | 76 wears / 25 owners / 88% engagement per hero SKU, clearly labelled synthetic |
+| [Why the AI Is Substantive](#why-the-ai-is-substantive) | Six AI capabilities, the engine behind each request, and measured test coverage |
+
+**Judge the engineering**
+
+| | |
+| --- | --- |
+| [Architecture](#architecture-overview) · [Key Files](#key-files) · [CI](#ci--github-actions) | Trust boundaries, the module map, and the gate every PR passes |
+| [Privacy Boundaries](#security-and-privacy-boundaries) · [Ethical Stance](#ethical-stance-and-claims) | `k ≥ 25`, consent, and an explicit list of what is *not* claimed |
+| [Garment Isolation](#measured-garment-isolation) | 86% mean IoU on a reproducible crop benchmark, and why live intake still uses the plain crop |
+| [PROGRESS.md](PROGRESS.md) · [User workflow](docs/user-workflow.md) | How it was built, phase by phase; and both journeys, step by step |
 
 ---
 
@@ -45,27 +55,10 @@ The answer this system demonstrates: confirmed wear, repeat use, and styling pai
 
 ---
 
-## What a technical reviewer asked for
-
-A reviewer read this submission and asked three things. Each one changed the code, and each answer
-is a number or a file you can check rather than a claim.
-
-| What was asked | What was done | Where |
-| --- | --- | --- |
-| **"What is your actual test coverage on the matching engine itself, versus the auth and session layer?"** | Measured instead of asserted. The whole suite covers **96% of lines, 85% of branches, 95% of functions**. The scoring engines were already the better-covered half (94–100% branch); the real gaps were **`recreate-look.ts` at 61% branch**, which drives the judge path's *Recreate with my wardrobe*, and **`session.ts` at 76% branch**, which protects every privacy boundary in the product. Both were closed: **99%** and **97.56%**, with behavioural tests, and testing the session guard exposed a real defect — a token with a surplus third segment was accepted. | [Coverage, measured](#coverage-measured) · [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) · [`tests/session-guards.test.ts`](tests/session-guards.test.ts) |
-| **Which engine actually answers a request, and which modules are reference code?** | A table maps every decision a person sees to the module that makes it and the route it runs in. `lib/matching.ts` is imported by no route, and the README now says so instead of letting the name imply otherwise. | [Which engine runs where](#which-engine-runs-where) |
-| **Lead with privacy and control, not with the AI.** | The demo script was rebuilt so privacy and control is its own segment rather than a closing remark, and the consumer-facing boundaries are stated where the feature is described, not only in a policy page. | [`docs/demo-script.md`](docs/demo-script.md) · [Security and Privacy Boundaries](#security-and-privacy-boundaries) |
-
-Two habits came out of that review and now apply to everything here: **a number in this README is
-one that was measured**, and **a defect found while testing is fixed in the same change and named in
-the PR** rather than quietly patched.
-
----
-
 ## Five-Minute Judge Path
 
 1. Open [Community](https://main.d2iv0khybuuaeh.amplifyapp.com/community) to see complete Consumer and Brand Looks with explicit product-resolution states.
-2. Use the synthetic Recreate Consumer from the [demo checklist](docs/demo-checklist.md) on **Synthetic Consumer Look 01**. The live deterministic result is **62% coverage**: one exact owned product, one strong owned substitute, and one genuinely missing category.
+2. Sign in as the synthetic Recreate Consumer (credentials supplied with the submission) and open **Synthetic Consumer Look 01**. The live deterministic result is **62% coverage**: one exact owned product, one strong owned substitute, and one genuinely missing category.
 3. Sign in with a privately supplied synthetic Brand account to inspect the 25-owner privacy threshold, eight-week wear chart, frequency distribution, CSV export, public-look activity, and Brand Hanger.
 4. Open a fictional demo product destination, add it to the **Demo Bag**, and complete the clearly labeled **$0.00 purchase simulation**. This proves the commerce journey without collecting payment, shipping, contact, or order data.
 
@@ -130,9 +123,8 @@ The result is a defensible two-sided loop:
 
 ### Which engine runs where
 
-A reviewer asked whether the scoring engine is tested as rigorously as the auth layer, and named
-`lib/matching.ts`. That module is *not* on a live request path, so this table says plainly which
-code answers a real request.
+Module names can imply more than they do, so this table says plainly which code answers a real
+request. `lib/matching.ts` is *not* on a live request path.
 
 | Decision a person sees | Engine | Runs in |
 | --- | --- | --- |
@@ -153,11 +145,8 @@ through them, and they are not counted as shipped product behaviour.
 
 `node --test --experimental-test-coverage` over the whole suite: **96% of lines, 85% of branches,
 95% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%,
-`similar-products.ts` 97%, `matching.ts` 98%, `outfit-ranking.ts` 94%, `recreate-look.ts`
-99%. The two modules that were measurably weakest were fixed rather than explained: `recreate-look.ts`
-rose from **61% to 99%** branch coverage, and `session.ts` — the guard behind every ownership and
-privacy boundary — from **76% to 97.56%**, where the tests exposed and fixed a real token-parsing
-defect. Coverage shows what the tests execute, not that the scoring is *right*; the
+`similar-products.ts` 97%, `matching.ts` 98%, `outfit-ranking.ts` 94%, `recreate-look.ts` 99%,
+and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. Coverage shows what the tests execute, not that the scoring is *right*; the
 per-band, tie-break, and uncertainty numbers in `tests/recreate-look-scoring.test.ts` are the part
 that argues for correctness.
 
@@ -549,8 +538,6 @@ Everything above is self-contained; these go deeper.
 - [Recognition work order](docs/work-order-recognition.md) — open tasks for measuring and improving garment recognition
 - [Segmentation backends](docs/segmentation-backends.md) — how cropping works, what it scores, and how to add a learned segmenter
 - [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist
-- [Demo checklist and fallbacks](docs/demo-checklist.md) — pre-flight, accounts, and what to do when something fails live
-- [Presentation script](docs/demo-script.md) — the five-minute live demo and prepared answers for the three-minute Q&A
 - [Architecture and trust boundaries](docs/architecture.md)
 - [Backend API](docs/backend-api.md) — every route, access level, and abuse control
 - [AI use and limitations](docs/ai-use-log.md) — models, prompts, boundaries, failure policy
