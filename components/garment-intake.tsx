@@ -7,6 +7,7 @@ import type { GarmentAnalysis } from "@/lib/platform-types";
 import type { DetectedLookGarment } from "@/lib/look-garment-detection";
 import { garmentSubtypeLabel, garmentTypeSuggestions, normalizeGarmentCategory, resolveTypedGarmentType, subtypeForCategory } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
+import { batchSummary, MAX_SCAN_PHOTOS, planScanBatch, remainingPieceCapacity, scanProgressLabel } from "@/lib/look-scan-batch";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import type { GarmentOverrides } from "@/lib/types";
 import { PhotoSourcePicker } from "./photo-source-picker";
@@ -46,6 +47,8 @@ interface Piece extends DetectedLookGarment {
   expanded: boolean;
   /** What the Type field shows: the recognised type's label, or the person's own words. */
   typeText: string;
+  /** Which photo of the batch this piece came out of, so a card can be traced back to it. */
+  sourcePhoto: number;
   /** Enrolled products that look like this piece; null until the brand section is first opened. */
   candidates: CatalogCandidate[] | null;
   candidatesState: "idle" | "loading" | "done" | "failed";
@@ -87,8 +90,8 @@ function CatalogOption({ product, detail }: { product: CatalogProductSummary; de
 }
 
 export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIntakeSelection[]) => Promise<void> }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [summary, setSummary] = useState("");
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
@@ -100,55 +103,83 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
   const pickedCount = useMemo(() => pieces.filter((piece) => piece.selected && piece.link.status === "selected").length, [pieces]);
   const searchTimers = useRef(new Map<string, number>());
 
-  function chooseFile(next: File) {
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(next);
-    setPreview(URL.createObjectURL(next));
+  function chooseFiles(next: File[]) {
+    // Several photos are how a wardrobe actually arrives: a rail, a shelf, a pile on the bed.
+    const plan = planScanBatch(next);
+    setFiles(plan.accepted);
     setPieces([]);
     setConfirmed(false);
     setError("");
-    void scan(next);
+    setSummary("");
+    void scan(plan.accepted, plan.skipped);
   }
 
-  async function scan(selected = file) {
-    if (!selected) return;
-    setBusy(true); setError(""); setPieces([]); setConfirmed(false);
+  /**
+   * One photo at a time, because that is how recognition works, but one review list at the end.
+   * A photo that fails does not take the batch with it: what was found is kept, and the summary
+   * says which photo could not be read.
+   */
+  async function scan(batch = files, skippedPhotos = 0) {
+    if (!batch.length) return;
+    setBusy(true); setError(""); setPieces([]); setConfirmed(false); setSummary("");
+    const found: Piece[] = [];
+    const failedPhotos: number[] = [];
+    let reachedPieceLimit = false;
     try {
-      const form = new FormData();
-      setProgress("Preparing your photo");
-      form.append("photo", await prepareImageForUpload(selected));
-      setProgress("Finding the pieces in this photo");
-      const response = await fetch("/api/garments/detect", { method: "POST", body: form });
-      const data = await readJsonResponse<{ error?: string; detections?: DetectedLookGarment[] }>(response, "The scanner returned an unreadable response.");
-      if (!response.ok || !data.detections) throw new Error(data.error ?? "The pieces could not be detected.");
-      setPieces(data.detections.map((detection) => ({
-        ...detection,
-        selected: true,
-        expanded: false,
-        labelText: "",
-        link: { status: "none" },
-        candidates: null,
-        candidatesState: "idle",
-        query: "",
-        results: [],
-        searching: false,
-        // A fallback subtype is an absence of recognition, so the field starts empty and
-        // asks, rather than prefilling "Other Shoes" as though that were an answer.
-        typeText: detection.analysis.garment.subtype.startsWith("other-")
-          ? ""
-          : garmentSubtypeLabel(detection.analysis.garment.subtype, detection.analysis.garment.wearableUnit),
-        overrides: {
-          name: detection.analysis.garment.name,
-          brand: /^brand not verified$/i.test(detection.analysis.label.brand) ? "" : detection.analysis.label.brand,
-          sku: "",
-          category: detection.analysis.garment.category,
-          subtype: detection.analysis.garment.subtype,
-          customType: null,
-        },
-      })));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The pieces could not be detected.");
+      for (const [index, entry] of batch.entries()) {
+        const photoNumber = index + 1;
+        if (remainingPieceCapacity(found.length) === 0) { reachedPieceLimit = true; break; }
+        try {
+          const form = new FormData();
+          setProgress(batch.length === 1 ? "Preparing your photo" : `Preparing photo ${photoNumber} of ${batch.length}`);
+          form.append("photo", await prepareImageForUpload(entry));
+          setProgress(scanProgressLabel({ photoNumber, photoCount: batch.length }));
+          const response = await fetch("/api/garments/detect", { method: "POST", body: form });
+          const data = await readJsonResponse<{ error?: string; detections?: DetectedLookGarment[] }>(response, "The scanner returned an unreadable response.");
+          if (!response.ok || !data.detections) throw new Error(data.error ?? "The pieces could not be detected.");
+          const room = remainingPieceCapacity(found.length);
+          if (data.detections.length > room) reachedPieceLimit = true;
+          found.push(...data.detections.slice(0, room).map((detection) => piece(detection, photoNumber)));
+          setPieces([...found]);
+        } catch (reason) {
+          // A batch stops only when the server says to stop; one unreadable photo does not.
+          const message = reason instanceof Error ? reason.message : "That photo could not be read.";
+          failedPhotos.push(photoNumber);
+          if (/too many|try again in a few minutes/i.test(message)) { setError(message); break; }
+        }
+      }
+      if (!found.length && failedPhotos.length) setError("None of those photos could be read. Try again, or pick different ones.");
+      setSummary(batchSummary({ photoCount: batch.length, pieceCount: found.length, failedPhotos, skippedPhotos, reachedPieceLimit }));
     } finally { setBusy(false); setProgress(""); }
+  }
+
+  function piece(detection: DetectedLookGarment, sourcePhoto: number): Piece {
+    return {
+      ...detection,
+      selected: true,
+      expanded: false,
+      labelText: "",
+      link: { status: "none" },
+      candidates: null,
+      candidatesState: "idle",
+      query: "",
+      results: [],
+      searching: false,
+      sourcePhoto,
+      // A fallback subtype is an absence of recognition, so the field starts empty and
+      // asks, rather than prefilling "Other Shoes" as though that were an answer.
+      typeText: detection.analysis.garment.subtype.startsWith("other-")
+        ? ""
+        : garmentSubtypeLabel(detection.analysis.garment.subtype, detection.analysis.garment.wearableUnit),
+      overrides: {
+        name: detection.analysis.garment.name,
+        brand: /^brand not verified$/i.test(detection.analysis.label.brand) ? "" : detection.analysis.label.brand,
+        sku: "",
+        category: detection.analysis.garment.category,
+        subtype: detection.analysis.garment.subtype,
+        customType: null,
+      },
+    };
   }
 
   function update(id: string, change: (piece: Piece) => Piece) {
@@ -281,15 +312,17 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
   }
 
   return <div className="intake">
-    <div className={`intake-drop ${file ? "has-file" : ""}`}>
-      {preview
-        ? <img className="intake-preview" src={preview} alt="Your uploaded photo" />
-        : <span className="intake-drop-mark" aria-hidden="true">＋</span>}
+    <div className={`intake-drop ${files.length ? "has-file" : ""}`}>
+      {/* No local thumbnail of the chosen file: a value read from a file input has no business
+          reaching an image source, and the real cropped pieces appear moments later anyway. */}
+      <span className="intake-drop-mark" aria-hidden="true">{files.length ? files.length : "＋"}</span>
       <div className="intake-drop-copy">
-        <strong>{file ? (busy ? "Reading your photo…" : "Photo added") : "Add a photo of your clothing"}</strong>
-        <small>{file ? file.name : "One garment, a flat lay, a whole outfit, or a full rail — Racked separates the pieces. A plain surface — a bed, a floor, a wall — gives the cleanest cut-outs."}</small>
+        <strong>{files.length ? (busy ? "Reading your photos…" : `${files.length} photo${files.length === 1 ? "" : "s"} added`) : "Add photos of your clothing"}</strong>
+        <small>{files.length
+          ? files.map((entry) => entry.name).join(", ")
+          : `One garment, a flat lay, a whole outfit, or a full rail — Racked separates the pieces. Pick up to ${MAX_SCAN_PHOTOS} photos at once. A plain surface — a bed, a floor, a wall — gives the cleanest cut-outs.`}</small>
       </div>
-      <PhotoSourcePicker label={file ? "Use a different photo" : "Add a photo"} onFile={chooseFile} />
+      <PhotoSourcePicker label={files.length ? "Use different photos" : "Add photos"} multiple onFiles={chooseFiles} />
     </div>
 
     {progress && <div className="upload-progress" role="status" aria-live="polite">
@@ -298,13 +331,15 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
     </div>}
     {error && <div className="form-error" role="alert">{error}</div>}
 
-    {pieces.length === 0 && file && !busy &&
-      <button type="button" className="button button-dark button-full" onClick={() => void scan()}>Scan this photo again</button>}
+    {summary && !busy && <p className="intake-batch-summary" role="status">{summary}</p>}
+
+    {pieces.length === 0 && files.length > 0 && !busy &&
+      <button type="button" className="button button-dark button-full" onClick={() => void scan()}>Scan {files.length === 1 ? "this photo" : "these photos"} again</button>}
 
     {pieces.length > 0 && <section className="intake-results" aria-live="polite">
       <div className="intake-results-head">
         <div>
-          <span className="fallback-pill">{pieces.length} {pieces.length === 1 ? "PIECE" : "PIECES"} FOUND</span>
+          <span className="fallback-pill">{pieces.length} {pieces.length === 1 ? "PIECE" : "PIECES"} FOUND{files.length > 1 ? ` IN ${files.length} PHOTOS` : ""}</span>
           <h3>Check each piece before it joins your closet.</h3>
         </div>
         <button type="button" className="button button-light button-small" disabled={busy} onClick={() => void scan()}>Rescan</button>
@@ -318,6 +353,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
               <input type="checkbox" checked={piece.selected} onChange={(event) => update(piece.id, (current) => ({ ...current, selected: event.target.checked }))} />
               <span className="sr-only">Include piece {index + 1}</span>
             </label>
+            {files.length > 1 && <span className="intake-source" title={`Found in photo ${piece.sourcePhoto}`}>Photo {piece.sourcePhoto}</span>}
             <span className={`intake-status ${status.tone}`}>{status.text}</span>
           </header>
 
