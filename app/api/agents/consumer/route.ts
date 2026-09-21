@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { GARMENT_TAXONOMY } from "@/lib/garment-taxonomy";
-import { generateConsumerHangerReply, hangerOutfitName, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
-import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberSuggestedItemIds } from "@/lib/hanger-memory";
-import { asksForOutfitSuggestion, rankOutfit, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
+import { consumerOutfitContract, generateConsumerHangerReply, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
+import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberSuggestedItemIds } from "@/lib/hanger-memory";
+import { allowedOutfitActions, planHangerTurn } from "@/lib/hanger-turn";
+import { rankOutfit, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { clearHangerConversation, getConsumerInspirationProfile, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -64,9 +65,13 @@ export async function POST(request: Request) {
   const subject = session!.subject;
   const limit = consumeRateLimit(`consumer-agent:${subject}`, RATE_LIMIT_RULES.consumerAgent);
   if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
-  const body = await request.json().catch(() => ({})) as { message?: string; occasion?: string; weather?: string };
-  const legacyMessage = `Build an outfit for ${body.occasion?.trim() || "my plans"}${body.weather?.trim() ? ` in ${body.weather.trim()}` : ""}.`;
-  const message = (body.message?.trim() || legacyMessage).slice(0, 1_000);
+  const parsedBody = await request.json().catch(() => ({})) as unknown;
+  const body = parsedBody && typeof parsedBody === "object" ? parsedBody as { message?: unknown; occasion?: unknown; weather?: unknown } : {};
+  const occasion = typeof body.occasion === "string" ? body.occasion.trim() : "my plans";
+  const weather = typeof body.weather === "string" ? body.weather.trim() : "";
+  const legacyMessage = `Build an outfit for ${occasion || "my plans"}${weather ? ` in ${weather}` : ""}.`;
+  const message = (typeof body.message === "string" ? body.message.trim() : legacyMessage).slice(0, 1_000);
+  if (!message) return NextResponse.json({ error: "Tell Hanger what you would like help with." }, { status: 400 });
 
   const [wardrobe, outfits, inspiration, stored] = await Promise.all([listWardrobe(subject), listOutfits(subject), getConsumerInspirationProfile(subject), loadHangerConversation(subject)]);
   // The conversation is the account's, not the browser's, and the context window is spent
@@ -76,22 +81,29 @@ export async function POST(request: Request) {
   const remembered = preferenceSummary(preferences);
   const previousSuggestionItemIds = ownedSuggestionItemIds(stored.suggestedItemIds, wardrobe);
   const mostRecentSavedItemIds = outfits[0]?.itemIds ?? [];
-  // Repeating an outfit-creation prompt inside the same conversation means
-  // "show me another" even when the person did not type the word "another".
-  // Advice questions remain deterministic and do not rotate implicitly.
-  const rotatePriorSuggestions = previousSuggestionItemIds.length > 0 && asksForOutfitSuggestion(message);
-  const ranked = rankOutfit(wardrobe, message, { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds, ...avoidedItemIds(preferences, wardrobe)], rotatePriorSuggestions, inspirationStyleHints: inspiration.styleHints });
-  const suggested = ranked.pieces.map((piece) => piece.item);
-  const required = ranked.requiredPieceIds.map((itemId) => wardrobe.find((item) => item.id === itemId)).filter((item): item is typeof wardrobe[number] => Boolean(item));
-  // One canonical selection feeds the visible cards and every action. Keeping
-  // this as a single object prevents names, photos, and saved IDs from drifting.
-  const selection = suggested.map((item) => ({
-    id: item.id,
-    name: item.name,
-    category: item.category,
-    ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
-  }));
-  const selectedItemIds = selection.map((item) => item.id).join(",");
+  const plan = planHangerTurn({ wardrobe, message, activeOutfit: stored.activeOutfit });
+  const activeOwnedItems = plan.activeItemIds.map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is WardrobeItem => Boolean(item));
+  const producesOutfit = plan.mode === "create" || plan.mode === "revise";
+  const ranked = producesOutfit ? rankOutfit(wardrobe, message, {
+    history,
+    intentOverride: plan.intent,
+    maxPieces: plan.maxPieces,
+    requiredItemIds: plan.requiredItemIds,
+    excludedItemIds: [...plan.excludedItemIds, ...avoidedItemIds(preferences, wardrobe)],
+    avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds],
+    rotatePriorSuggestions: plan.rotatePriorSuggestions,
+    inspirationStyleHints: inspiration.styleHints,
+  }) : null;
+  const suggested = ranked
+    ? ranked.pieces.map((piece) => piece.item)
+    : (plan.mode === "explain" || plan.mode === "save-confirm" || plan.mode === "wear-confirm") ? activeOwnedItems : [];
+  const required = (ranked?.requiredPieceIds ?? []).map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is WardrobeItem => Boolean(item));
+  const actionMode = allowedOutfitActions(plan.mode, message);
+  const contract = consumerOutfitContract(suggested, actionMode);
+  const selection = contract.selection ?? [];
+  const actions = contract.actions;
+  const explainedPieces = ranked?.pieces ?? (plan.mode === "explain" ? scoreOwnedPieces(suggested, plan.intent) : []);
+  const selectionReasons = Object.fromEntries(explainedPieces.map((piece) => [piece.item.id, piece.reasons]));
   const generated = await generateConsumerHangerReply({
     message,
     history,
@@ -102,38 +114,42 @@ export async function POST(request: Request) {
     inspiration,
     remembered,
     earlierConversation: earlierConversationNote(omittedTurnCount),
+    turnMode: plan.mode,
+    activeBefore: activeOwnedItems,
+    selectionReasons,
+    styleSource: ranked?.intent.styleSource ?? plan.intent.styleSource,
   });
-  const actions: AgentReply["actions"] = suggested.length ? [
-    { label: "Save this exact outfit", type: "save-outfit", payload: { itemIds: selectedItemIds, name: hangerOutfitName(suggested) } },
-    { label: "Record these exact pieces as worn", type: "record-outfit", payload: { itemIds: selectedItemIds } },
-  ] : [];
   const reply: AgentReply = {
     agent: "consumer-stylist",
     provider: generated.usedModel ? "amazon-bedrock" : "grounded-wardrobe",
     message: generated.message,
     confidence: suggested.length >= 3 ? "high" : suggested.length ? "medium" : "low",
-    toolsUsed: ["private wardrobe", "wear history", "saved outfits", ...(inspiration.lookCount ? ["saved Community inspiration"] : []), ...(remembered ? ["remembered preferences"] : []), "conversation memory"],
+    toolsUsed: ["private wardrobe", "wear history", "saved outfits", ...(ranked?.intent.styleSource === "inspiration" ? ["saved Community inspiration"] : []), ...(remembered ? ["remembered preferences"] : []), "conversation memory"],
     actions,
     selection,
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
       `${outfits.length} saved outfits checked this turn`,
+      `Conversation mode: ${plan.mode}`,
+      ...(plan.contextUsed ? ["Follow-up resolved against this account's current outfit"] : []),
       ...(history.length ? [`${history.length} earlier message${history.length === 1 ? "" : "s"} from this conversation were in context`] : []),
       ...(omittedTurnCount ? [`${omittedTurnCount} older message${omittedTurnCount === 1 ? "" : "s"} fell outside the context budget and were not quoted`] : []),
       ...(remembered ? [`Remembered preferences applied: ${remembered}`] : []),
-      ...(inspiration.lookCount ? [`${inspiration.lookCount} intentionally saved Community Look${inspiration.lookCount === 1 ? "" : "s"} supplied private style signals; current instructions remained authoritative`] : []),
-      ...ranked.pieces.map((piece) => `${piece.item.name}: ${piece.reasons[0] ?? "scored against this request"}`),
+      ...(ranked?.intent.styleSource === "inspiration" ? [`${inspiration.lookCount} intentionally saved Community Look${inspiration.lookCount === 1 ? "" : "s"} supplied private style signals; current instructions remained authoritative`] : []),
+      ...explainedPieces.map((piece) => `${piece.item.name}: ${piece.reasons[0] ?? "scored against this request"}`),
       ...(required.length ? [`${required.map((item) => item.name).join(", ")} locked because the customer explicitly requested ${required.length === 1 ? "it" : "them"}`] : []),
-      ...(ranked.setAside > 0 ? [`${ranked.setAside} piece${ranked.setAside === 1 ? "" : "s"} already suggested earlier in this conversation were set aside`] : []),
+      ...(ranked && ranked.setAside > 0 ? [`${ranked.setAside} piece${ranked.setAside === 1 ? "" : "s"} already suggested earlier in this conversation were set aside`] : []),
       "Only this signed-in account's wardrobe was available",
     ],
   };
 
   try {
-    await saveHangerConversation(subject, rememberSuggestedItemIds(
-      appendTurns({ ...stored, preferences }, [{ role: "user", content: message }, { role: "assistant", content: reply.message }]),
-      selection.map((item) => item.id),
-    ));
+    let nextState = appendTurns({ ...stored, preferences }, [{ role: "user", content: message }, { role: "assistant", content: reply.message }]);
+    if (ranked && selection.length) {
+      nextState = rememberSuggestedItemIds(nextState, selection.map((item) => item.id));
+      nextState = rememberActiveOutfit(nextState, selection.map((item) => item.id), ranked.intent);
+    }
+    await saveHangerConversation(subject, nextState);
   } catch (reason) {
     // A reply the person can already see is worth more than a perfectly stored transcript.
     console.error("Hanger conversation could not be saved", { name: reason instanceof Error ? reason.name : "UnknownError" });

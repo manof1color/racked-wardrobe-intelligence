@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { asksForOutfitSuggestion, explicitlyRequestedWardrobeItems, MAX_OUTFIT_PIECES, previouslySuggestedItemIds, rankOutfit, readOutfitIntent } from "../lib/outfit-ranking.ts";
+import { asksForOutfitSuggestion, explicitlyExcludedWardrobeItems, explicitlyRequestedWardrobeItems, MAX_OUTFIT_PIECES, previouslySuggestedItemIds, rankOutfit, readOutfitIntent, requestedOutfitPieceCount } from "../lib/outfit-ranking.ts";
 import { selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -103,6 +103,100 @@ test("negative and unknown garment requests never force the wrong wardrobe item"
   assert.deepEqual(result.requiredPieceIds, [], "Hanger cannot invent or force a piece the customer does not own");
 });
 
+test("negated and embedded words do not reverse weather or dress-code intent", () => {
+  assert.equal(readOutfitIntent("make it less formal").occasion, "casual");
+  assert.equal(readOutfitIntent("make it informal").occasion, "casual");
+  assert.equal(readOutfitIntent("warm outfit, not cold").weather, "warm");
+  assert.equal(readOutfitIntent("workout outfit").occasion, "active");
+  assert.deepEqual(readOutfitIntent("not minimal").styleHints, []);
+});
+
+test("first-turn negative instructions are hard exclusions, not outfit requirements", () => {
+  const withHeels = [
+    ...wardrobe,
+    garment({ id: "i-heels", name: "Black Heels", category: "shoe", subtype: "heels", style: ["elegant"], wearCount: 0, lastWornDays: 999 }),
+  ];
+  assert.deepEqual(explicitlyExcludedWardrobeItems(withHeels, "I never wear heels; build me an outfit").map((item) => item.id), ["i-heels"]);
+  assert.equal(rankOutfit(withHeels, "I never wear heels; build me an outfit").pieces.some((piece) => piece.item.id === "i-heels"), false);
+
+  const oxfordNotHoodie = rankOutfit(wardrobe, "Use my Blue Oxford, not my Grey Hoodie, in an outfit");
+  assert.ok(oxfordNotHoodie.pieces.some((piece) => piece.item.id === "b-oxford"), "the named inclusion must remain");
+  assert.equal(oxfordNotHoodie.pieces.some((piece) => piece.item.id === "c-hoodie"), false, "the named exclusion must stay out");
+});
+
+test("comma-separated positive and negative cues apply to the correct owned piece", () => {
+  const items = [
+    garment({ id: "white-tee", name: "White Tee", category: "top", subtype: "t-shirt" }),
+    garment({ id: "blue-shirt", name: "Blue Shirt", category: "top", subtype: "dress shirt" }),
+    ...wardrobe.filter((item) => item.category !== "top"),
+  ];
+  const directions = [
+    "Build an outfit without White Tee, use Blue Shirt",
+    "Build an outfit without White Tee and use Blue Shirt",
+    "Use Blue Shirt, not White Tee, for this outfit",
+  ];
+  for (const message of directions) {
+    assert.deepEqual(explicitlyRequestedWardrobeItems(items, message).map((item) => item.id), ["blue-shirt"], message);
+    assert.deepEqual(explicitlyExcludedWardrobeItems(items, message).map((item) => item.id), ["white-tee"], message);
+    const result = rankOutfit(items, message);
+    assert.ok(result.pieces.some((piece) => piece.item.id === "blue-shirt"), message);
+    assert.ok(!result.pieces.some((piece) => piece.item.id === "white-tee"), message);
+  }
+  assert.deepEqual(explicitlyRequestedWardrobeItems(items, "Use White Tee, Blue Shirt").map((item) => item.id), ["white-tee", "blue-shirt"], "a cue-free list member inherits the positive cue");
+  assert.deepEqual(explicitlyRequestedWardrobeItems(items, "Use White Tee and Blue Shirt").map((item) => item.id), ["white-tee", "blue-shirt"], "a cue-free conjunction inherits the positive cue");
+  assert.deepEqual(explicitlyExcludedWardrobeItems(items, "Without White Tee, Blue Shirt").map((item) => item.id), ["white-tee", "blue-shirt"], "a cue-free list member inherits the negative cue");
+  assert.deepEqual(explicitlyExcludedWardrobeItems(items, "Without White Tee or Blue Shirt").map((item) => item.id), ["white-tee", "blue-shirt"], "a cue-free alternative inherits the negative cue");
+});
+
+test("negative subtype and category instructions exclude all matching owned pieces", () => {
+  const items = [
+    garment({ id: "jeans-blue", name: "Blue Jeans", category: "bottom", subtype: "jeans" }),
+    garment({ id: "jeans-black", name: "Black Jeans", category: "bottom", subtype: "jeans" }),
+    garment({ id: "trouser", name: "Wool Trouser", category: "bottom", subtype: "dress pants" }),
+    garment({ id: "shoe-white", name: "White Sneaker", category: "shoe", subtype: "sneakers" }),
+    garment({ id: "shoe-black", name: "Black Derby", category: "shoe", subtype: "dress shoes" }),
+    garment({ id: "shirt", name: "Blue Shirt", category: "top", subtype: "dress shirt" }),
+  ];
+  assert.deepEqual(explicitlyExcludedWardrobeItems(items, "Build an outfit without jeans").map((item) => item.id).sort(), ["jeans-black", "jeans-blue"]);
+  for (const message of ["Build an outfit without jeans", "Build an outfit without Jeans"]) {
+    const result = rankOutfit(items, message);
+    assert.ok(result.pieces.every((piece) => !["jeans-blue", "jeans-black"].includes(piece.item.id)), message);
+  }
+  for (const message of ["Build an outfit, skip shoes", "Build an outfit and avoid shoes"]) {
+    assert.deepEqual(explicitlyExcludedWardrobeItems(items, message).map((item) => item.id).sort(), ["shoe-black", "shoe-white"], message);
+    assert.ok(rankOutfit(items, message).pieces.every((piece) => piece.item.category !== "shoe"), message);
+  }
+  assert.deepEqual(explicitlyRequestedWardrobeItems(items, "Use jeans").map((item) => item.id), [], "ambiguous positive requests still do not pick an arbitrary pair");
+});
+
+test("a requested three-piece outfit returns exactly three coherent pieces", () => {
+  assert.equal(requestedOutfitPieceCount("Create a three-piece outfit"), 3);
+  assert.equal(requestedOutfitPieceCount("Create a 3 piece outfit"), 3);
+  assert.equal(requestedOutfitPieceCount("Build an outfit with 3 pieces"), 3);
+  assert.equal(requestedOutfitPieceCount("Build an outfit with three pieces"), 3);
+  const result = rankOutfit(wardrobe, "Create a casual three-piece outfit");
+  assert.equal(result.pieces.length, 3);
+  assert.equal(rankOutfit(wardrobe, "Build an outfit with 3 pieces").pieces.length, 3);
+});
+
+test("a required shoe does not produce a second shoe in the same outfit", () => {
+  const result = rankOutfit(wardrobe, "Build an outfit using my White Sneaker");
+  const shoes = result.pieces.filter((piece) => piece.item.category === "shoe");
+  assert.deepEqual(shoes.map((piece) => piece.item.id), ["g-sneaker"]);
+});
+
+test("a requested dress replaces top and bottom rather than stacking all three", () => {
+  const withDress = [
+    ...wardrobe,
+    garment({ id: "i-dress", name: "Emerald Dress", category: "dress", subtype: "midi-dress", color: "green", style: ["elegant"] }),
+  ];
+  const result = rankOutfit(withDress, "Build a formal outfit around my Emerald Dress");
+  const categories = result.pieces.map((piece) => piece.item.category);
+  assert.ok(categories.includes("dress"));
+  assert.equal(categories.includes("top"), false);
+  assert.equal(categories.includes("bottom"), false);
+});
+
 test("REGRESSION: a follow-up sets aside what was already suggested", () => {
   const first = rankOutfit(wardrobe, "Build me a casual outfit");
   const firstNames = first.pieces.map((piece) => piece.item.name);
@@ -115,6 +209,18 @@ test("REGRESSION: a follow-up sets aside what was already suggested", () => {
   const repeated = second.pieces.filter((piece) => firstIds.has(piece.item.id));
   assert.equal(repeated.length, 0, "a follow-up must not repeat the same pieces");
   assert.ok(second.setAside > 0, "the set-aside count should be reported");
+});
+
+test("conversation history alone does not rotate a non-alternative request", () => {
+  const message = "Build me a casual outfit";
+  const first = rankOutfit(wardrobe, message);
+  const history = [
+    { role: "user" as const, content: message },
+    { role: "assistant" as const, content: `Try ${first.pieces.map((piece) => piece.item.name).join(", ")}.` },
+  ];
+  const repeated = rankOutfit(wardrobe, message, { history });
+  assert.deepEqual(repeated.pieces.map((piece) => piece.item.id), first.pieces.map((piece) => piece.item.id));
+  assert.equal(repeated.setAside, 0, "history is context, not an implicit request to replace the outfit");
 });
 
 test("REGRESSION: an explicit different-outfit request honors validated prior action ids", () => {

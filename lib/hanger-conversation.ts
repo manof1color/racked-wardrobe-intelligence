@@ -1,8 +1,9 @@
 import { BedrockRuntimeClient, ConverseCommand, type Message } from "@aws-sdk/client-bedrock-runtime";
 import type { BrandMetrics } from "./metrics.ts";
-import type { AgentChatTurn, BrandCommunityMetrics, BrandProductRegistration } from "./platform-types.ts";
+import type { AgentChatTurn, AgentReply, BrandCommunityMetrics, BrandProductRegistration } from "./platform-types.ts";
 import type { SavedOutfit, WardrobeItem } from "./types.ts";
 import { rankOutfit } from "./outfit-ranking.ts";
+import type { HangerTurnMode } from "./hanger-turn.ts";
 import { BEDROCK_CHAT_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
 
 const MAX_HISTORY_TURNS = 8;
@@ -67,10 +68,37 @@ export function hangerOutfitName(suggested: WardrobeItem[]) {
   return completeName.length <= 80 ? completeName : `Hanger outfit · ${names.length} selected pieces`;
 }
 
+export type ConsumerOutfitActionMode = "both" | "save" | "record" | "none";
+
+/**
+ * The visible cards and both mutations are projections of one canonical list. This prevents a
+ * garment name or image from drifting away from the ids that Save or Record will receive.
+ */
+export function consumerOutfitContract(
+  suggested: WardrobeItem[],
+  actionMode: ConsumerOutfitActionMode = "both",
+): Pick<AgentReply, "selection" | "actions"> {
+  const selection = suggested.map((item) => ({
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
+  }));
+  const itemIds = selection.map((item) => item.id).join(",");
+  const actions: AgentReply["actions"] = [];
+  if (selection.length && (actionMode === "both" || actionMode === "save")) {
+    actions.push({ label: "Save this exact outfit", type: "save-outfit", payload: { itemIds, name: hangerOutfitName(suggested) } });
+  }
+  if (selection.length && (actionMode === "both" || actionMode === "record")) {
+    actions.push({ label: "Record these exact pieces as worn", type: "record-outfit", payload: { itemIds } });
+  }
+  return { selection, actions };
+}
+
 export function groundedSelectionText(suggested: WardrobeItem[]) {
   if (!suggested.length) return "";
   const lines = suggested.map((item) => `• ${item.name} (${item.category})`).join("\n");
-  return `Selected outfit — these exact pieces appear in the photos and Save action:\n${lines}`;
+  return `Current outfit — these exact owned pieces are shown in the same order:\n${lines}`;
 }
 
 /** Reject model prose that names a different owned garment than the ranked selection. */
@@ -93,15 +121,27 @@ export interface ConsumerInspirationContext {
   recentLookTitles:string[];
 }
 
-function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], suggested: WardrobeItem[], required: WardrobeItem[] = [], inspiration?:ConsumerInspirationContext) {
+function consumerContext(
+  wardrobe: WardrobeItem[],
+  outfits: SavedOutfit[],
+  suggested: WardrobeItem[],
+  required: WardrobeItem[] = [],
+  inspiration?: ConsumerInspirationContext,
+  selectionReasons: Record<string, string[]> = {},
+) {
   const requiredIds = new Set(required.map((item) => item.id));
   return {
     wardrobe: wardrobe.slice(0, 60).map((item) => ({
       id: item.id,
       name: item.name,
       category: item.category,
+      subtype: item.subtype ?? null,
+      customType: item.customType ?? null,
       color: item.color,
+      pattern: item.pattern ?? null,
+      material: item.material ?? null,
       style: item.style,
+      season: item.season,
       wearCount: item.wearCount,
       lastWornDays: item.lastWornDays,
       brand: item.brand ?? null,
@@ -112,6 +152,14 @@ function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], sugge
       itemIds: outfit.itemIds,
       wears: outfit.wears,
     })),
+    contextLimits: {
+      wardrobeItemsProvided: Math.min(wardrobe.length, 60),
+      wardrobeItemsAvailable: wardrobe.length,
+      wardrobeTruncated: wardrobe.length > 60,
+      savedOutfitsProvided: Math.min(outfits.length, 20),
+      savedOutfitsAvailable: outfits.length,
+      savedOutfitsTruncated: outfits.length > 20,
+    },
     ...(inspiration&&inspiration.lookCount>0?{savedInspiration:{
       lookCount:inspiration.lookCount,
       styleHints:inspiration.styleHints.slice(0,8),
@@ -121,7 +169,19 @@ function consumerContext(wardrobe: WardrobeItem[], outfits: SavedOutfit[], sugge
       recentLookTitles:inspiration.recentLookTitles.slice(0,5),
       boundary:"Signals come only from public Looks this Consumer intentionally saved; current instructions take priority.",
     }}:{}),
-    candidateOutfit: suggested.map((item) => ({ id: item.id, name: item.name, category: item.category, directlyRequested: requiredIds.has(item.id) })),
+    candidateOutfit: suggested.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      subtype: item.subtype ?? item.customType ?? null,
+      color: item.color,
+      pattern: item.pattern ?? null,
+      material: item.material ?? null,
+      style: item.style,
+      season: item.season,
+      directlyRequested: requiredIds.has(item.id),
+      reasons: selectionReasons[item.id] ?? [],
+    })),
   };
 }
 
@@ -134,9 +194,14 @@ export function buildConsumerHangerPrompt(input: {
   inspiration?:ConsumerInspirationContext;
   remembered?:string;
   earlierConversation?:string|null;
+  turnMode?: HangerTurnMode;
+  activeBefore?: WardrobeItem[];
+  selectionReasons?: Record<string, string[]>;
 }) {
   const context={
-    ...consumerContext(input.wardrobe, input.outfits, input.suggested, input.required,input.inspiration),
+    ...consumerContext(input.wardrobe, input.outfits, input.suggested, input.required, input.inspiration, input.selectionReasons),
+    turnMode: input.turnMode ?? "create",
+    activeOutfitBeforeTurn: (input.activeBefore ?? []).map((item) => ({ name: item.name, category: item.category })),
     // Standing instructions from earlier messages, and an honest note when older turns fell
     // outside the context budget, so nothing is invented about what was said before.
     ...(input.remembered?{rememberedPreferences:input.remembered}:{}),
@@ -163,11 +228,10 @@ function releasedBrandContext(product: BrandProductRegistration, metrics: BrandM
       medianWearsPerOwner: metrics.medianWearsPerOwner,
       zeroWearOwners: metrics.zeroWearOwners,
       highFrequencyOwners: metrics.highFrequencyOwners,
-      lastWearAt: metrics.lastWearAt,
       wearDistribution: metrics.wearDistribution,
       weeklyTrend: metrics.weeklyTrend,
     },
-    ...(communityMetrics?{publicCommunityActivity:{publicOutfitAppearances:communityMetrics.publicOutfitAppearances,consumerOutfitAppearances:communityMetrics.consumerOutfitAppearances,brandLookAppearances:communityMetrics.brandLookAppearances,inspirationCount:communityMetrics.inspirationCount,recreateLookRequests:communityMetrics.recreateLookRequests,outboundProductClicks:communityMetrics.outboundProductClicks,pairedCategories:communityMetrics.pairedCategories,pairedVerifiedProducts:communityMetrics.pairedVerifiedProducts,privacyBoundary:communityMetrics.privacyBoundary}}:{}),
+    ...(communityMetrics?{publicCommunityActivity:{publicOutfitAppearances:communityMetrics.publicOutfitAppearances,consumerOutfitAppearances:communityMetrics.consumerOutfitAppearances,brandLookAppearances:communityMetrics.brandLookAppearances,inspirationCount:communityMetrics.inspirationCount,recreateLookRequests:communityMetrics.recreateLookRequests,outboundProductClicks:communityMetrics.outboundProductClicks,pairedCategories:communityMetrics.pairedCategories,pairedVerifiedProducts:communityMetrics.pairedVerifiedProducts.map(({name,brand,appearances})=>({name,brand,appearances})),privacyBoundary:communityMetrics.privacyBoundary}}:{}),
   };
 }
 
@@ -221,6 +285,28 @@ export function brandReplyPassesPrivacyReview(text: string) {
   return !prohibited.test(text);
 }
 
+/** Useful, truthful advice when Bedrock is unavailable and no new outfit was requested. */
+export function groundedWardrobeAdvice(wardrobe: WardrobeItem[], outfits: SavedOutfit[], message: string) {
+  const request = message.toLocaleLowerCase();
+  if (/not worn|underused|least worn|rotation/.test(request)) {
+    const candidates = [...wardrobe]
+      .sort((a, b) => a.wearCount - b.wearCount || b.lastWornDays - a.lastWornDays || a.id.localeCompare(b.id))
+      .slice(0, 3);
+    const details = candidates.map((item) => `${item.name} (${item.wearCount} recorded wear${item.wearCount === 1 ? "" : "s"})`).join(", ");
+    return `Among the ${wardrobe.length} pieces in your saved wardrobe, the least-worn I can see are ${details}. These are your recorded wears, not a claim about every time you wore them. Want me to build a look around one of these?`;
+  }
+  const byCategory = new Map<string, number>();
+  for (const item of wardrobe) byCategory.set(item.category, (byCategory.get(item.category) ?? 0) + 1);
+  const categories = [...byCategory.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (/gap|missing|need to buy|should i buy/.test(request)) {
+    const absent = ["shoe", ...(!byCategory.has("dress") ? ["top", "bottom"].filter((category) => !byCategory.has(category)) : [])].filter((category) => !byCategory.has(category));
+    const gap = absent.length ? `I do not see a saved ${absent.join(" or ")} piece yet.` : "Your saved wardrobe covers the main outfit categories, so I cannot justify a purchase from category counts alone.";
+    return `I checked ${wardrobe.length} saved pieces and ${outfits.length} saved outfits. ${gap} This is a wardrobe inventory observation, not a recommendation to buy without knowing your needs. What occasion feels hardest to dress for?`;
+  }
+  const summary = categories.slice(0, 4).map(([category, count]) => `${count} ${category}`).join(", ");
+  return `I checked ${wardrobe.length} saved pieces${summary ? ` (${summary})` : ""} and ${outfits.length} saved outfits. I can compare what you own, identify underused pieces, or build a look when you give me an occasion, weather, or dress code. What would you like to work on?`;
+}
+
 export async function generateConsumerHangerReply(input: {
   message: string;
   history: AgentChatTurn[];
@@ -231,26 +317,60 @@ export async function generateConsumerHangerReply(input: {
   inspiration?:ConsumerInspirationContext;
   remembered?:string;
   earlierConversation?:string|null;
+  turnMode?: HangerTurnMode;
+  activeBefore?: WardrobeItem[];
+  selectionReasons?: Record<string, string[]>;
+  styleSource?: "request" | "inspiration" | "none";
 }) {
-  const system = "You are Hanger, Racked's conversational wardrobe stylist. Answer the customer's latest question naturally and use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact selected pieces: discuss those pieces only and do not substitute, add, or rename a garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that it was kept for that reason and never claim it was chosen because it was underused. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only as optional inspiration when the current message does not state a conflicting preference, and say when it influenced the outfit. rememberedPreferences are standing instructions this person gave in earlier messages: follow them unless the current message overrides one, and say plainly when a remembered preference shaped the outfit. earlierConversation means older messages are no longer quoted; rely on what is supplied and never invent what was said before. Refer to items by their supplied names, explain styling choices, and ask one useful follow-up when it would improve the result. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather access or external social-network access. Clearly label any general shopping idea as not currently owned. Do not expose internal IDs or repeat the raw context JSON. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
+  if (input.turnMode === "advice" && /\b(?:do not|don['’]?t|never)\s+save\b/i.test(input.message)) {
+    return { message: "Understood—I will not save that outfit. Nothing was saved by this message. Your current wardrobe and saved outfits are unchanged.", usedModel: false };
+  }
+  if (input.turnMode === "advice" && /\b(?:do not|don['’]?t|never)\s+(?:record|log|mark)\b/i.test(input.message)) {
+    return { message: "Understood—I will not record a wear. Nothing was logged by this message.", usedModel: false };
+  }
+  if (input.wardrobe.length === 0) return { message: "I can help you plan a wardrobe, but I do not see any saved garments yet. Add one clear garment photo first, then ask me for an outfit, rotation, or wardrobe-gap review. What kind of outfit do you want to build first?", usedModel: false };
+  if ((input.turnMode === "save-confirm" || input.turnMode === "wear-confirm" || input.turnMode === "explain") && input.suggested.length === 0) {
+    return { message: "I do not have a current outfit in this conversation yet. Ask me to create one from your wardrobe first, then I can explain it, save it, or record it as worn.", usedModel: false };
+  }
+  const system = "You are Hanger, Racked's conversational wardrobe stylist. Respond naturally to the latest message while maintaining the supplied conversational context. The server has already classified this turn; obey turnMode. Only create or revise modes introduce a newly ranked outfit. Explain, save-confirm, and wear-confirm refer to the unchanged candidateOutfit. Advice answers the question and must not pretend a new outfit was created. If the customer says not to save or record, never suggest that disallowed action. Use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact pieces: discuss those pieces only and do not substitute, add, rename, or claim ownership of another garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that and never claim it was chosen because it was underused. Use the supplied reasons to explain choices accurately. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only when it actually shaped the supplied outfit and never overrule the current message. rememberedPreferences are standing instructions from earlier messages: follow them unless the current message clearly overrides one. earlierConversation means older messages are no longer quoted; never invent what they said. Refer to garments by their exact supplied names. Ask at most one useful follow-up. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather, Pinterest, or other external-network access. Clearly label general shopping ideas as not currently owned. Do not expose internal IDs or raw JSON. Write plain text with short paragraphs or simple bullets; no Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
   const groundedSelection = groundedSelectionText(input.suggested);
-  if (generated && consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested)) {
+  if (generated && (input.turnMode === "advice" || consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested))) {
     return { message: `${generated}${groundedSelection ? `\n\n${groundedSelection}` : ""}`, usedModel: true };
   }
   if (generated) console.warn("Hanger rejected a consumer response that named a garment outside the canonical selection.");
-  if (input.wardrobe.length === 0) return { message: "I can help you plan a wardrobe, but I do not see any saved garments yet. Add your front, back, and label photos first, then ask me for an outfit, rotation, or gap analysis. What kind of outfit do you want to build first?", usedModel: false };
   const names = input.suggested.map((item) => item.name);
-  if (names.length === 0) return { message: "I can see your wardrobe, but I could not form a grounded outfit from the current item details. Tell me the occasion and the type of piece you want to start with.", usedModel: false };
+  if (names.length === 0) {
+    if (input.turnMode === "advice") {
+      return { message: groundedWardrobeAdvice(input.wardrobe, input.outfits, input.message), usedModel: false };
+    }
+    return { message: "I can see your wardrobe, but the current constraints leave no complete grounded outfit. Name one piece to keep or one restriction to relax, and I’ll rebuild it without inventing anything you do not own.", usedModel: false };
+  }
   const requestedNames = (input.required ?? []).map((item) => item.name);
-  const usedInspiration=!requestedNames.length&&(input.inspiration?.lookCount??0)>0;
-  const selectionReason = requestedNames.length
+  const topReasons = input.suggested.slice(0, 3).flatMap((item) => (input.selectionReasons?.[item.id] ?? []).slice(0, 1).map((reason) => `${item.name}: ${reason}`));
+  const usedInspiration = input.styleSource === "inspiration" && (input.inspiration?.lookCount ?? 0) > 0;
+  const selectionReason = input.turnMode === "explain"
+    ? `I kept the current outfit unchanged and reviewed the same pieces you asked about.${topReasons.length ? ` My recorded reasons were ${topReasons.join("; ")}.` : ""}`
+    : input.turnMode === "save-confirm"
+    ? "I kept the current outfit unchanged so the Save action uses the same photos, names, and owned-item IDs."
+    : input.turnMode === "wear-confirm"
+    ? "I kept the current outfit unchanged so the wear record applies to these exact pieces."
+    : requestedNames.length
     ? `I kept ${requestedNames.join(", ")} because you explicitly asked to use ${requestedNames.length === 1 ? "that piece" : "those pieces"}, then built the rest of the outfit around ${requestedNames.length === 1 ? "it" : "them"}.`
     : usedInspiration
     ? `I used the style patterns from ${input.inspiration!.lookCount} Community Look${input.inspiration!.lookCount===1?"":"s"} you intentionally saved as inspiration, while keeping the outfit inside your own wardrobe.`
-    : "I prioritized lower-wear pieces to bring more of your closet into rotation.";
-  return { message: `I pulled your latest wardrobe. ${selectionReason}\n\n${groundedSelection}\n\nWhat occasion, weather, or dress code should I refine this for?`, usedModel: false };
+    : "I scored your owned pieces against the request, including occasion, weather, style, and wear history.";
+  const closing = input.turnMode === "save-confirm"
+    ? "Use the Save button below to store this exact outfit."
+    : input.turnMode === "wear-confirm"
+    ? "Use the Record button below to log these exact pieces as worn."
+    : input.turnMode === "explain"
+    ? "Tell me one part you want to keep or change, and I’ll revise this same outfit."
+    : "What occasion, weather, or dress code should I refine this for?";
+  return { message: `I pulled your latest wardrobe. ${selectionReason}\n\n${groundedSelection}\n\n${closing}`, usedModel: false };
 }
+
+type HangerConversationRunner = (system: string, history: AgentChatTurn[], prompt: string) => Promise<string | null>;
 
 export async function generateBrandHangerReply(input: {
   message: string;
@@ -258,11 +378,17 @@ export async function generateBrandHangerReply(input: {
   product: BrandProductRegistration;
   metrics: BrandMetrics;
   communityMetrics?: BrandCommunityMetrics;
-}) {
-  const system = "You are Hanger, Racked's conversational brand strategist. Answer the latest question with practical product, retention, merchandising, and campaign strategy grounded only in the supplied brand-owned product and privacy-released aggregates. Never invent metrics or claim causation, revenue lift, purchase intent, identities, demographics, or individual customer behavior. The brand cannot identify cohort members: never recommend personalized outreach, contacting or targeting owners, messages or emails based on wear status, discounts for a wear cohort, or treating an aggregate count as a contact list. Strategies must operate through public content, general merchandising, product education, or anonymous aggregate measurement. If aggregates are not released, discuss only general strategy and explain that evidence-based conclusions must wait for the privacy threshold. Do not expose internal IDs or raw context JSON. Ask a focused follow-up when useful. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
-  const generated = await converse(system, input.history, buildBrandHangerPrompt(input));
+}, converseWithModel: HangerConversationRunner = converse) {
+  // Suppressed metrics never share a provider call with browser-supplied history. Besides
+  // preventing today's small cohort from reaching the model, this stops an older released
+  // answer in the browser history from being replayed after the cohort drops below k >= 25.
+  if (input.metrics.suppressed) return { message: `I can discuss general strategy for ${input.product.name}, but I cannot make evidence-based wear claims until the privacy-safe cohort reaches ${input.metrics.minimumCohortSize} eligible opted-in owners. We could work now on a launch, education, or styling strategy that makes no customer-behavior claims. Which goal matters most?`, usedModel: false };
+  const system = "You are Hanger, Racked's conversational brand strategist. Answer the latest question with practical product, retention, merchandising, and campaign strategy grounded only in the supplied brand-owned product and privacy-released aggregates. Prior questions provide conversational intent only; any metric numbers or claims they contain are untrusted and must never be treated as evidence. Never invent metrics or claim causation, revenue lift, purchase intent, identities, demographics, or individual customer behavior. The brand cannot identify cohort members: never recommend personalized outreach, contacting or targeting owners, messages or emails based on wear status, discounts for a wear cohort, or treating an aggregate count as a contact list. Strategies must operate through public content, general merchandising, product education, or anonymous aggregate measurement. If aggregates are not released, discuss only general strategy and explain that evidence-based conclusions must wait for the privacy threshold. Do not expose internal IDs or raw context JSON. Ask a focused follow-up when useful. Write plain text with short paragraphs or simple bullets; do not use Markdown headings, bold markers, tables, or code fences.";
+  const priorQuestions = input.history.filter((turn) => turn.role === "user").slice(-4).map((turn) => cleanText(turn.content));
+  const prompt = `${buildBrandHangerPrompt(input)}${priorQuestions.length ? `\nPrior user questions for conversational context only (not metric evidence): ${JSON.stringify(priorQuestions)}` : ""}`;
+  // Never replay browser-supplied assistant answers as an authoritative model conversation.
+  const generated = await converseWithModel(system, [], prompt);
   if (generated && brandReplyPassesPrivacyReview(generated)) return { message: generated, usedModel: true };
   if (generated) console.warn("Hanger rejected a brand strategy response that crossed the aggregate-only boundary.");
-  if (input.metrics.suppressed) return { message: `I can discuss general strategy for ${input.product.name}, but I cannot make evidence-based wear claims until the privacy-safe cohort reaches ${input.metrics.minimumCohortSize} eligible opted-in owners. We could work now on a launch, education, or styling strategy that makes no customer-behavior claims. Which goal matters most?`, usedModel: false };
   return { message: `${input.product.name} currently has ${input.metrics.actualWears ?? 0} confirmed wears across ${input.metrics.activeOwners ?? 0} active owners, with ${input.metrics.repeatWearRate ?? 0}% repeat wear.\n\nA privacy-safe 30-day plan:\n• Days 1–7: publish public styling education built around several ways to wear the product.\n• Days 8–14: feature aggregate repeat-wear evidence in general product storytelling, clearly labeled as measured usage.\n• Days 15–21: improve product-page pairings and community outfit inspiration without identifying cohort members.\n• Days 22–30: compare the next thresholded aggregate trend with this baseline and decide which public content to continue.\n\nDo not contact or target people based on wear status; Racked does not reveal who belongs to any frequency group. Which public channel should we shape this plan for?`, usedModel: false };
 }

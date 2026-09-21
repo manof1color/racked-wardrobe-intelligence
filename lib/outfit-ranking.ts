@@ -9,8 +9,10 @@ import type { WardrobeItem } from "./types.ts";
 // never sampling — so results are reproducible and testable. It only ever ranks items
 // the signed-in account already owns; it cannot invent or introduce an item.
 
-export type OutfitOccasion = "work" | "formal" | "evening" | "casual" | "active" | "travel";
-export type OutfitWeather = "cold" | "warm" | "wet";
+export const OUTFIT_OCCASIONS = ["work", "formal", "evening", "casual", "active", "travel"] as const;
+export const OUTFIT_WEATHERS = ["cold", "warm", "wet"] as const;
+export type OutfitOccasion = (typeof OUTFIT_OCCASIONS)[number];
+export type OutfitWeather = (typeof OUTFIT_WEATHERS)[number];
 export type OutfitMode = "rotation" | "outfit";
 
 export interface OutfitIntent {
@@ -87,14 +89,20 @@ const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|adjust
 const OUTFIT_CREATION_KEYWORDS = /(?:build|create|make|style|suggest|give|show)(?:\s+[a-z0-9'-]+){0,8}\s+(?:outfit|look|rotation)|what (?:can|should) i wear/;
 export const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
 const REQUIRED_PIECE_CUE = /\b(?:use|using|wear|wearing|include|including|incorporate|pair|pairing|style|styling|with|from|around|centered|starting|start|featuring|feature|add|keep|want|need|must have)\b/;
-const REQUIRED_PIECE_NEGATION = /\b(?:without|except|other than|instead of|rather than|avoid|exclude|excluding|skip|leave out|do not use|don t use|dont use|do not wear|don t wear|dont wear|do not include|don t include|dont include|no|not)\b[^,.!?;]{0,40}$/;
+const REPLACEMENT_TARGET_CUE = /\b(?:change|swap|replace)\b[^|.!?;]{0,65}\b(?:to|for|with)(?:\s+(?:the|my|a))?$/;
+const EXCLUDED_PIECE_CUE = /\b(?:without|except|other than|instead of|rather than|avoid|exclude|excluding|skip|leave out|drop|remove|replace|swap out|change out|never|hate|do not want|don t want|dont want|do not use|don t use|dont use|do not wear|don t wear|dont wear|do not include|don t include|dont include|no|not)\b[^,.!?;]{0,50}$/;
+const EXCLUSION_CATEGORY_ALIASES: Record<string, string[]> = {
+  top: ["top", "tops"], bottom: ["bottom", "bottoms"], shoe: ["shoe", "shoes", "footwear"],
+  outerwear: ["outerwear"], dress: ["dress", "dresses"], bag: ["bag", "bags"],
+  jewelry: ["jewelry", "jewellery"], accessory: ["accessory", "accessories"],
+};
 const ITEM_ALIAS_STOPWORDS = new Set([
   "black", "white", "blue", "brown", "grey", "gray", "red", "green", "yellow", "orange", "purple", "pink", "navy", "beige", "tan",
   "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined",
   "piece", "item", "outfit", "look", "clothing", "garment",
 ]);
 
-const CATEGORY_SLOTS = ["top", "bottom", "shoe", "outerwear", "accessory"];
+const OPTIONAL_CATEGORY_SLOTS = ["outerwear", "bag", "accessory", "jewelry"];
 
 const OUTFIT_WEIGHTS = { occasion: 0.3, weather: 0.2, style: 0.15, underuse: 0.2, recency: 0.15 } as const;
 const ROTATION_WEIGHTS = { occasion: 0.1, weather: 0.1, style: 0.1, underuse: 0.45, recency: 0.25 } as const;
@@ -108,7 +116,24 @@ function searchable(value: unknown) {
 }
 
 function searchableRequest(value: unknown) {
-  return ` ${clean(value).replace(/[.!?;]/g, " | ").replace(/[^a-z0-9|]+/g, " ").replace(/\s+/g, " ").trim()} `;
+  // Commas separate instructions such as "without the tee, use the shirt". Retain them
+  // until cue resolution; otherwise "without" can leak into the next garment mention.
+  return ` ${clean(value).replace(/[.!?;]/g, " | ").replace(/,/g, " , ").replace(/[^a-z0-9|,]+/g, " ").replace(/\s+/g, " ").trim()} `;
+}
+
+function pieceInstructionBefore(request: string, index: number): "require" | "exclude" | null {
+  const before = request.slice(0, index);
+  const sentence = before.split("|").at(-1) ?? before;
+  // Explicit instructions after a comma or contrast word take precedence. A cue-free
+  // list member inherits the prior cue ("use my tee, my jeans"), but a new "use" or
+  // "not" starts its own instruction ("without my tee, use my shirt").
+  const clauses = sentence.split(/,|\b(?:but|while|and|or)\b/);
+  for (let position = clauses.length - 1; position >= 0; position--) {
+    const clause = clauses[position].trim();
+    if (EXCLUDED_PIECE_CUE.test(clause)) return "exclude";
+    if (REQUIRED_PIECE_CUE.test(clause) || REPLACEMENT_TARGET_CUE.test(clause)) return "require";
+  }
+  return null;
 }
 
 function aliasesFor(item: WardrobeItem) {
@@ -148,13 +173,10 @@ export function explicitlyRequestedWardrobeItems(wardrobe: WardrobeItem[], messa
     const index = request.indexOf(needle);
     if (index < 0) continue;
     const before = request.slice(Math.max(0, index - 90), index);
-    // A cue must be in the same sentence as the garment mention. This supports
-    // comma-separated lists without treating a garment mentioned in unrelated
-    // conversation context as a required piece.
     const sentenceBefore = before.split("|").at(-1) ?? before;
     const after = request.slice(index + needle.length, Math.min(request.length, index + needle.length + 30));
-    const sentenceContext = `${sentenceBefore} ${after.split("|")[0]}`;
-    if (!REQUIRED_PIECE_CUE.test(sentenceContext) || REQUIRED_PIECE_NEGATION.test(sentenceBefore)) continue;
+    if (/\b(?:swap|change|replace)\b/.test(sentenceBefore) && /^\s*(?:for|to|with)\b/.test(after)) continue;
+    if (pieceInstructionBefore(request, index) !== "require") continue;
     mentions.push({ item: owners[0], index, specificity: alias.length });
   }
   mentions.sort((a, b) => a.index - b.index || b.specificity - a.specificity || a.item.id.localeCompare(b.item.id));
@@ -168,12 +190,65 @@ export function explicitlyRequestedWardrobeItems(wardrobe: WardrobeItem[], messa
   return requested;
 }
 
+/**
+ * Resolves negative instructions to owned garments. These are hard exclusions for the current
+ * turn: "without my Grey Hoodie" must never quietly rank that hoodie back into the outfit.
+ * A negative class instruction such as "without jeans" excludes every matching owned item.
+ * Unlike a positive request, no arbitrary item needs to be selected from an ambiguous class.
+ */
+export function explicitlyExcludedWardrobeItems(wardrobe: WardrobeItem[], message: string) {
+  const request = searchableRequest(message);
+  const aliases = new Map<string, WardrobeItem[]>();
+  for (const item of wardrobe) {
+    const category = searchable(item.category).trim();
+    for (const alias of [...aliasesFor(item), ...(EXCLUSION_CATEGORY_ALIASES[category] ?? [])]) {
+      aliases.set(alias, [...(aliases.get(alias) ?? []), item]);
+    }
+  }
+  const mentions: Array<{ item: WardrobeItem; index: number; specificity: number }> = [];
+  for (const [alias, owners] of aliases) {
+    const needle = ` ${alias} `;
+    const index = request.indexOf(needle);
+    if (index < 0) continue;
+    if (pieceInstructionBefore(request, index) !== "exclude") continue;
+    for (const item of owners) mentions.push({ item, index, specificity: alias.length });
+  }
+  mentions.sort((a, b) => a.index - b.index || b.specificity - a.specificity || a.item.id.localeCompare(b.item.id));
+  const seen = new Set<string>();
+  return mentions.flatMap(({ item }) => {
+    if (seen.has(item.id)) return [];
+    seen.add(item.id);
+    return [item];
+  });
+}
+
+/** A bounded piece count stated by the customer; ordinary requests keep the four-piece default. */
+export function requestedOutfitPieceCount(message: string) {
+  const request = clean(message);
+  const numeric = request.match(/\b([1-4])(?:\s*[- ]\s*|\s+)pieces?\b/);
+  if (numeric) return Number(numeric[1]);
+  const words: Array<[number, string]> = [[1, "one"], [2, "two"], [3, "three"], [4, "four"]];
+  return words.find(([, word]) => new RegExp(`\\b${word}(?:\\s*[- ]\\s*|\\s+)pieces?\\b`).test(request))?.[0] ?? null;
+}
+
 /** Reads occasion, weather, style, and rotation signals out of the request itself. */
 export function readOutfitIntent(message: string): OutfitIntent {
   const request = clean(message);
-  const occasion = OCCASION_KEYWORDS.find(([, words]) => words.some((word) => request.includes(word)))?.[0] ?? null;
-  const weather = WEATHER_KEYWORDS.find(([, words]) => words.some((word) => request.includes(word)))?.[0] ?? null;
-  const styleHints = STYLE_VOCABULARY.filter((style) => request.includes(style));
+  const positiveMention = (word: string) => {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const matches = request.matchAll(new RegExp(`\\b${escaped}\\b`, "g"));
+    for (const match of matches) {
+      const before = request.slice(Math.max(0, (match.index ?? 0) - 30), match.index);
+      if (!/\b(?:not|no|no longer|less|without|avoid|never|do not want|don['’]?t want)\s+(?:for\s+)?(?:a\s+)?$/.test(before)) return true;
+    }
+    return false;
+  };
+  const statedLessFormal = /\b(?:less|not|no)\s+formal\b|\binformal\b/.test(request);
+  const statedLessCasual = /\b(?:less|not|no)\s+casual\b/.test(request);
+  const occasion = statedLessFormal ? "casual" : statedLessCasual ? "formal"
+    : OCCASION_KEYWORDS.find(([, words]) => words.some(positiveMention))?.[0] ?? null;
+  const weather = WEATHER_KEYWORDS.find(([, words]) => words.some(positiveMention))?.[0] ?? null;
+  const styleHints = STYLE_VOCABULARY.filter(positiveMention);
   return { mode: ROTATION_KEYWORDS.test(request) ? "rotation" : "outfit", occasion, weather, styleHints, styleSource:styleHints.length?"request":"none", alternativeRequested: ALTERNATIVE_KEYWORDS.test(request) };
 }
 
@@ -270,47 +345,74 @@ function seedRequired(ranked: RankedGarment[], requiredIds: string[], maxPieces:
   return requiredIds.map((id) => byId.get(id)).filter((entry): entry is RankedGarment => Boolean(entry)).slice(0, maxPieces);
 }
 
-function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredIds: string[] = []) {
+function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredIds: string[] = [], preferDress = false, freshIds: Set<string> | null = null) {
   const chosen: RankedGarment[] = seedRequired(ranked, requiredIds, maxPieces);
-  const used = new Set<string>();
-  for (const entry of chosen) used.add(entry.item.id);
-  for (const slot of CATEGORY_SLOTS) {
+  const usedItems = new Set(chosen.map((entry) => entry.item.id));
+  const usedCategories = new Set(chosen.map((entry) => clean(entry.item.category)));
+  const add = (entry: RankedGarment | undefined) => {
+    if (!entry || chosen.length >= maxPieces || usedItems.has(entry.item.id)) return;
+    chosen.push(entry);
+    usedItems.add(entry.item.id);
+    usedCategories.add(clean(entry.item.category));
+  };
+  const best = (category: string, freshOnly = false) => ranked.find((entry) => !usedItems.has(entry.item.id) && clean(entry.item.category) === category && (!freshOnly || freshIds?.has(entry.item.id)));
+
+  // A dress is a foundation in place of top + bottom, never an extra fourth torso piece.
+  const hasDress = usedCategories.has("dress");
+  const hasSeparates = usedCategories.has("top") || usedCategories.has("bottom");
+  if (!hasDress && !hasSeparates) {
+    const dress = best("dress");
+    const top = best("top");
+    const bottom = best("bottom");
+    const separateScore = top && bottom ? Math.round((top.score + bottom.score) / 2) : -1;
+    if (dress && (preferDress || !top || !bottom || dress.score > separateScore)) add(dress);
+    else { add(top); add(bottom); }
+  } else if (!hasDress) {
+    if (!usedCategories.has("top")) add(best("top"));
+    if (!usedCategories.has("bottom")) add(best("bottom"));
+  }
+
+  // Footwear is part of the foundation. Optional slots prefer unseen pieces before returning
+  // to an earlier suggestion of another category (for example a prior blazer over a fresh bag).
+  if (!usedCategories.has("shoe")) add(best("shoe"));
+  for (const slot of OPTIONAL_CATEGORY_SLOTS) {
     if (chosen.length >= maxPieces) break;
-    const best = ranked.find((entry) => !used.has(entry.item.id) && clean(entry.item.category).includes(slot));
-    if (best) { chosen.push(best); used.add(best.item.id); }
+    if (!usedCategories.has(slot)) add(best(slot, Boolean(freshIds)));
+  }
+  for (const slot of OPTIONAL_CATEGORY_SLOTS) {
+    if (chosen.length >= maxPieces) break;
+    if (!usedCategories.has(slot)) add(best(slot));
+  }
+
+  // Prefer a new category before using a second piece from the same category. Multiple pieces in
+  // one category still survive when the customer explicitly requested them because they were seeded.
+  for (const entry of ranked) {
+    if (chosen.length >= maxPieces) break;
+    const category = clean(entry.item.category);
+    const conflictsWithFoundation = category === "dress"
+      ? usedCategories.has("top") || usedCategories.has("bottom")
+      : (category === "top" || category === "bottom") && usedCategories.has("dress");
+    if (!usedItems.has(entry.item.id) && !usedCategories.has(category) && !conflictsWithFoundation) add(entry);
   }
   for (const entry of ranked) {
     if (chosen.length >= maxPieces) break;
-    if (!used.has(entry.item.id)) { chosen.push(entry); used.add(entry.item.id); }
+    const category = clean(entry.item.category);
+    const conflictsWithFoundation = category === "dress"
+      ? usedCategories.has("top") || usedCategories.has("bottom")
+      : (category === "top" || category === "bottom") && usedCategories.has("dress");
+    if (!usedItems.has(entry.item.id) && !conflictsWithFoundation) add(entry);
   }
   return chosen;
+}
+
+/** Score the already-selected owned pieces for explanation without choosing or replacing any ID. */
+export function scoreOwnedPieces(items: WardrobeItem[], intent: OutfitIntent): RankedGarment[] {
+  return items.map((item) => rankGarments([item], intent)[0]);
 }
 
 /** True only for a request to produce a look, not general wardrobe advice. */
 export function asksForOutfitSuggestion(message: string) {
   return OUTFIT_CREATION_KEYWORDS.test(clean(message));
-}
-
-function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGarment[], maxPieces: number, requiredIds: string[] = []) {
-  const allRanked = [...fresh, ...repeated];
-  const chosen: RankedGarment[] = seedRequired(allRanked, requiredIds, maxPieces);
-  const usedItems = new Set<string>();
-  const usedCategories = new Set<string>();
-  const categorySlot = (entry: RankedGarment) => CATEGORY_SLOTS.find((slot) => clean(entry.item.category).includes(slot)) ?? clean(entry.item.category);
-  for (const entry of chosen) { usedItems.add(entry.item.id); usedCategories.add(categorySlot(entry)); }
-  const add = (entry: RankedGarment | undefined) => {
-    if (!entry || chosen.length >= maxPieces || usedItems.has(entry.item.id)) return;
-    chosen.push(entry); usedItems.add(entry.item.id); usedCategories.add(categorySlot(entry));
-  };
-  // Take every distinct-category fresh option before reusing an older suggestion.
-  for (const slot of CATEGORY_SLOTS) add(fresh.find((entry) => clean(entry.item.category).includes(slot)));
-  for (const slot of CATEGORY_SLOTS) {
-    if (chosen.length >= maxPieces) break;
-    if (!usedCategories.has(slot)) add(repeated.find((entry) => clean(entry.item.category).includes(slot)));
-  }
-  for (const entry of fresh) add(entry);
-  for (const entry of repeated) add(entry);
-  return chosen;
 }
 
 /**
@@ -322,39 +424,60 @@ function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGa
 export function rankOutfit(
   wardrobe: WardrobeItem[],
   message: string,
-  options: { history?: AgentChatTurn[]; maxPieces?: number; avoidItemIds?: Iterable<string>; rotatePriorSuggestions?: boolean; inspirationStyleHints?: Iterable<string> } = {},
+  options: {
+    history?: AgentChatTurn[];
+    maxPieces?: number;
+    avoidItemIds?: Iterable<string>;
+    excludedItemIds?: Iterable<string>;
+    requiredItemIds?: Iterable<string>;
+    rotatePriorSuggestions?: boolean;
+    inspirationStyleHints?: Iterable<string>;
+    intentOverride?: OutfitIntent;
+  } = {},
 ): GroundedOutfit {
-  const requestedIntent = readOutfitIntent(message);
+  const requestedIntent = options.intentOverride ?? readOutfitIntent(message);
   const suppliedInspiration=[...new Set([...(options.inspirationStyleHints??[])].map(clean).filter(Boolean))];
   const inspirationStyleHints=STYLE_VOCABULARY.filter(style=>suppliedInspiration.some(hint=>style===hint||style.includes(hint)||hint.includes(style))).slice(0,8);
   // A style stated in the current message always outranks historical inspiration.
   // Inspiration is a transparent fallback, never an instruction override.
   const intent=requestedIntent.styleHints.length||!inspirationStyleHints.length?requestedIntent:{...requestedIntent,styleHints:inspirationStyleHints,styleSource:"inspiration" as const};
-  const maxPieces = Math.max(1, options.maxPieces ?? MAX_OUTFIT_PIECES);
-  const requiredItems = explicitlyRequestedWardrobeItems(wardrobe, message).slice(0, maxPieces);
-  const requiredPieceIds = requiredItems.map((item) => item.id);
+  const maxPieces = Math.max(1, Math.min(MAX_OUTFIT_PIECES, options.maxPieces ?? requestedOutfitPieceCount(message) ?? MAX_OUTFIT_PIECES));
+  const owned = new Set(wardrobe.map((item) => item.id));
+  const requiredPieceIds = [...new Set([
+    ...[...(options.requiredItemIds ?? [])].filter((id) => owned.has(id)),
+    ...explicitlyRequestedWardrobeItems(wardrobe, message).map((item) => item.id),
+  ])].slice(0, maxPieces);
   const requiredIdSet = new Set(requiredPieceIds);
-  const alreadySuggested = previouslySuggestedItemIds(wardrobe, options.history ?? []);
+  const excludedIdSet = new Set([
+    ...[...(options.excludedItemIds ?? [])].filter((id) => owned.has(id)),
+    ...explicitlyExcludedWardrobeItems(wardrobe, message).map((item) => item.id),
+  ]);
+  // A clear current inclusion is the strongest instruction for this turn. It may override an older
+  // standing dislike without erasing that stored preference for later turns.
+  for (const id of requiredPieceIds) excludedIdSet.delete(id);
+  const eligibleWardrobe = wardrobe.filter((item) => !excludedIdSet.has(item.id));
+  const alreadySuggested = new Set<string>();
   if (intent.alternativeRequested || options.rotatePriorSuggestions) {
-    const owned = new Set(wardrobe.map((item) => item.id));
+    for (const id of previouslySuggestedItemIds(eligibleWardrobe, options.history ?? [])) alreadySuggested.add(id);
     for (const id of options.avoidItemIds ?? []) if (owned.has(id)) alreadySuggested.add(id);
   }
   // An explicit current request outranks rotation: the customer may deliberately
   // ask to reuse a garment Hanger suggested earlier.
   for (const id of requiredPieceIds) alreadySuggested.delete(id);
-  const fresh = wardrobe.filter((item) => !alreadySuggested.has(item.id));
-  const repeated = wardrobe.filter((item) => alreadySuggested.has(item.id));
+  const fresh = eligibleWardrobe.filter((item) => !alreadySuggested.has(item.id));
+  const repeated = eligibleWardrobe.filter((item) => alreadySuggested.has(item.id));
   // Fresh pieces always rank before repeats. When the wardrobe cannot supply a
   // completely new outfit, Hanger fills only the missing slots from earlier pieces
   // instead of abandoning the alternative and returning the identical outfit.
   const freshRanked = rankGarments(fresh, intent);
   const repeatedRanked = rankGarments(repeated, intent);
-  const ranked = alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : rankGarments(wardrobe, intent);
+  const ranked = alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : rankGarments(eligibleWardrobe, intent);
+  const preferDress = /\b(?:dress|gown|jumpsuit|romper)\b/i.test(message);
   const pieces = intent.mode === "rotation"
     ? [...seedRequired(ranked, requiredPieceIds, maxPieces), ...ranked.filter((entry) => !requiredIdSet.has(entry.item.id))].slice(0, maxPieces)
     : alreadySuggested.size && fresh.length
-      ? fillAlternativeCategorySlots(freshRanked, repeatedRanked, maxPieces, requiredPieceIds)
-      : fillCategorySlots(ranked, maxPieces, requiredPieceIds);
+      ? fillCategorySlots([...freshRanked, ...repeatedRanked], maxPieces, requiredPieceIds, preferDress, new Set(fresh.map((item) => item.id)))
+      : fillCategorySlots(ranked, maxPieces, requiredPieceIds, preferDress);
   const groundedPieces = pieces.map((piece) => requiredIdSet.has(piece.item.id)
     ? { ...piece, reasons: ["Directly requested by the customer.", ...piece.reasons] }
     : piece);

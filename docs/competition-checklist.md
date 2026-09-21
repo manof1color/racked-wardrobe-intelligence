@@ -62,7 +62,7 @@ This is the judge’s index for the CUA rubric.
 
 - [x] Measured coverage, not asserted rigour: 96% of lines and 95% of functions across the suite, with the decision engines at 94–100% branch coverage. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
 
-- [x] Hanger is a continuing conversation, not a stateless prompt: turns, the preferences learned from them, and the pieces already suggested are stored on the account, resumable across devices, and clearable by the person. The context window is budgeted explicitly — newest turns that fit a character budget, with older ones counted and declared to the model rather than invented — and a remembered preference can only be a term the taxonomy and that wardrobe already use.
+- [x] Hanger is a continuing conversation, not a stateless prompt: turns, controlled preferences, previously suggested pieces, and the latest active outfit are stored on the account, resumable across devices, and clearable by the person. The context window is budgeted explicitly — newest complete turns that fit, with older ones counted and declared rather than invented — and a remembered preference can only be a term the taxonomy and that wardrobe already use.
 
 ## 3. AI integration / innovation — 20%
 
@@ -71,21 +71,21 @@ This is the judge’s index for the CUA rubric.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
 - [x] Consumer Hanger Agent is grounded in the signed-in account’s real wardrobe, wear, outfit, and context data.
-- [x] Outfit selection is server-side and transparent: occasion, weather, style, underuse, and recency are scored per garment with inspectable components, the model never chooses or invents the items, selection is deterministic, and a follow-up sets aside what was already suggested so asking for something else returns something else.
+- [x] Outfit selection is server-side and transparent: a controlled planner distinguishes creating, revising, explaining, saving, recording wear, and advice; only creation and revision rank garments. Occasion, weather, style, underuse, and recency have inspectable scores, while explicit owned-piece inclusions/exclusions and a requested one-to-four-piece count constrain the result. A dress replaces a top-and-bottom foundation rather than stacking with it. The model never chooses or invents items.
 - [x] Brand Hanger Agent can access only brand-owned products and thresholded wear aggregates.
 - [x] Both Hanger roles support free-form follow-up conversation and retrieve fresh server-side context for every message.
 - [x] Consumer Hanger can save a grounded outfit or record it as worn; the save route revalidates item ownership.
-- [x] Consumer Hanger recognizes natural revision language, maximizes unused owned pieces, and derives its written list, exact private image preview, action IDs, saved title, and board order from one canonical selection; mismatches are rejected before persistence.
+- [x] Consumer Hanger recognizes natural revision language and resolves “keep the shoes, change the top” against the current account-owned outfit, retaining unaffected pieces. “Why those?”, “save that,” and wear confirmation reuse that same selection; advice alone offers no outfit actions. New-look requests maximize unused owned pieces where possible. The written list, exact private image preview, action IDs, saved title, and board order derive from one canonical selection; mismatches are rejected before persistence.
 - [x] Explicitly requested owned garments are locked before scoring, including unique natural-language aliases and multiple same-category pieces; current keep requests override rotation while exclusions, ambiguity, and unknown garments fail safely.
 - [x] “Different outfit” requests carry the prior recommendation through an owner-validated structured handoff, maximize unseen pieces before necessary repeats, and display the exact pieces bound to Save.
-- [x] Hanger retains up to 100 owner-validated recommendation IDs, proves four four-piece turns use 16 unseen garments before cycling, and treats a repeated outfit-creation prompt as a fresh-look request without rotating general advice.
+- [x] Hanger retains up to 100 owner-validated recommendation IDs separately from the active outfit, proves four four-piece turns use 16 unseen garments before cycling, and treats a repeated outfit-creation prompt as a fresh-look request without rotating general advice.
 - [x] Brand Hanger can discuss product, retention, merchandising, and campaign strategy without receiving identities or suppressed values.
 - [x] Brand strategy output is rejected if it recommends individualized outreach inferred from anonymous wear groups.
 - [x] Production provider failure opens explicit manual review and saves no invented fallback attributes.
 - [x] Major-brand names are editable suggestions; only registry SKU/GTIN evidence creates verification.
 - [x] Clearly labeled 25-account synthetic cohort demonstrates the privacy threshold without claiming real customer results.
 - [x] Phone images are normalized before Bedrock vision analysis and structured responses are parsed defensively.
-- [x] Brand AI receives wear analysis only after the `k≥25` release threshold; below it, Hanger receives no cohort or wear values and is limited to general strategy.
+- [x] Brand AI receives wear analysis only after the `k≥25` release threshold; below it, Hanger returns deterministic general strategy before model/history use, so a previous product's released values cannot be replayed into a suppressed answer.
 
 - [x] A CC BY 4.0, 31,638-garment external corpus is documented for held-out recognition evaluation; deterministic sampling/scoring separates category, subtype, label-text, provider failure, and AI-only identity violations without inventing an accuracy claim.
 

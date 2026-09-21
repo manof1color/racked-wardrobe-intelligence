@@ -13,6 +13,7 @@ import {
   mergePreferences,
   preferenceSummary,
   readHangerConversation,
+  rememberActiveOutfit,
   rememberSuggestedItemIds,
 } from "../lib/hanger-memory.ts";
 import type { WardrobeItem } from "../lib/types.ts";
@@ -109,13 +110,48 @@ test("already-suggested pieces are remembered so a follow-up brings something ne
 });
 
 test("a stored record is read back defensively",()=>{
-  const recovered = readHangerConversation({ turns: [{ role: "assistant", content: "hi" }, { role: "nonsense", content: "" }], preferences: [{ kind: "avoid", facet: "subtype", value: "HEELS" }, { value: "" }], suggestedItemIds: ["a", "a", 7], earlierTurnCount: -3 });
+  const recovered = readHangerConversation({ turns: [{ role: "assistant", content: "hi" }, { role: "nonsense", content: "this must not be coerced into a user turn" }], preferences: [{ kind: "avoid", facet: "subtype", value: "HEELS" }, { value: "" }], suggestedItemIds: ["a", "a", 7], earlierTurnCount: -3 });
   assert.deepEqual(recovered.turns, [{ role: "assistant", content: "hi" }]);
   assert.deepEqual(recovered.preferences, [{ kind: "avoid", facet: "subtype", value: "heels" }]);
   assert.deepEqual(recovered.suggestedItemIds, ["a"]);
   assert.equal(recovered.earlierTurnCount, 0);
   assert.deepEqual(readHangerConversation(null), emptyHangerConversation());
   assert.deepEqual(readHangerConversation("nonsense"), emptyHangerConversation());
+});
+
+test("the active outfit persists only bounded, controlled context",()=>{
+  const intent = {
+    mode: "outfit" as const,
+    occasion: "work" as const,
+    weather: "cold" as const,
+    styleHints: ["tailored", "minimal"],
+    styleSource: "request" as const,
+    alternativeRequested: true,
+  };
+  const remembered = rememberActiveOutfit(emptyHangerConversation(), ["top-1", "bottom-1", "shoe-1", "coat-1", "extra-1", "top-1"], intent);
+  assert.deepEqual(remembered.activeOutfit, {
+    itemIds: ["top-1", "bottom-1", "shoe-1", "coat-1"],
+    intent: { ...intent, styleHints: ["minimal", "tailored"], alternativeRequested: false },
+  });
+
+  const recovered = readHangerConversation({
+    activeOutfit: {
+      itemIds: ["top-1", "top-1", "shoe-1", "coat-1", "bag-1", "too-many", 7, ""],
+      intent: { mode: "untrusted", occasion: "unknown", weather: "warm", styleHints: ["minimal", "not-controlled"] },
+    },
+  });
+  assert.deepEqual(recovered.activeOutfit, {
+    itemIds: ["top-1", "shoe-1", "coat-1", "bag-1"],
+    intent: {
+      mode: "outfit",
+      occasion: null,
+      weather: "warm",
+      styleHints: ["minimal"],
+      styleSource: "request",
+      alternativeRequested: false,
+    },
+  });
+  assert.equal(rememberActiveOutfit(remembered, [], intent).activeOutfit, null, "an empty selection clears stale active context");
 });
 
 test("the conversation is owned by the account: stored, cleared, and deleted with it",()=>{

@@ -47,6 +47,8 @@ Brand community intelligence is computed from the public-post partition and iden
 
 When a signed-in Consumer marks a public Look as inspiring, a conditional record under `USER#<consumer> / INSPIRATION#<public-post>` stores only bounded garment style, color, category, subtype, and public-title signals. It contains no creator handle, image, private wardrobe reference, or liker identity in the Community partition. The public post counter increments once; repeated taps cannot inflate it. Hanger aggregates at most 50 such records into bounded private hints. A style stated in the current message always wins, and the selector may use inspiration only as a fallback while still returning owned wardrobe pieces. Racked does not scrape or require an external social network for this path.
 
+The account-owned `HANGER_CHAT` record holds bounded conversation turns, controlled preferences, prior suggestion IDs, and a separate active outfit of up to four owned-item IDs with controlled occasion/weather/style intent. For every Consumer turn, the server reloads the current wardrobe and resolves those IDs against the signed-in account before a controlled planner classifies the message as create, revise, explain, save-confirm, wear-confirm, or advice. Only create/revise runs deterministic ranking. A targeted revision preserves unaffected active pieces; explanation and save/wear confirmation refer to the unchanged active selection; advice neither changes it nor produces outfit actions. The same canonical selection supplies the private image projection and action IDs, and the save/wear endpoints revalidate ownership independently. Deleting the conversation clears its stored active outfit as well.
+
 Saved-outfit mutations, including wear increments, are addressed inside the signed-in account's own partition, so one account cannot reach another account's outfits even with a guessed identifier.
 
 ## Brand ownership boundary
@@ -88,7 +90,7 @@ Community feed responses are rebuilt field by field from an explicit public allo
 
 Garments connected to an enrolled product are indexed by product ID. Brand metrics first confirm product ownership, then apply the enumeration budget, retrieve connected garments, batch-read only the relevant consent flags, remove non-opted-in owners, and enforce `k ≥ 25` before computing actual wears, active owners, or repeat-wear rate. A suppressed result is returned before any per-owner value is aggregated: the null fields are never computed, not filtered out afterward.
 
-The Brand Hanger agent shares that exact function, so the dashboard and the conversational agent cannot diverge. Released model context carries product identity plus aggregate metrics only; suppressed context carries the threshold rule and no values. A server-side output review additionally rejects strategy language that recommends identifying, contacting, or targeting owners inferred from anonymous wear groups.
+The Brand Hanger agent shares that exact function, so the dashboard and the conversational agent cannot diverge. Released model context carries product identity plus aggregate metrics only. A suppressed result returns threshold-safe guidance before a model call or browser-supplied history can be used, preventing earlier released product values from reappearing in that answer. A server-side output review additionally rejects strategy language that recommends identifying, contacting, or targeting owners inferred from anonymous wear groups.
 
 ## AWS infrastructure
 
