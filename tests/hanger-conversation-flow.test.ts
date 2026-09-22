@@ -190,3 +190,35 @@ test("REGRESSION: a piece named in the request is in the outfit", () => {
   assert.equal(unresolved.mode, "clarify");
   assert.match(unresolved.clarification ?? "", /exact saved name/);
 });
+
+// A set whose outfits differ by one shirt is five outfits on paper and one look in the mirror.
+// The seeded judge closet is the hard case: four tops and three bottoms, but only two pairs of
+// shoes, so forcing variety can strip a category bare if nothing stops it.
+test("outfits in a set differ by more than a single piece", () => {
+  const closet = [
+    make("t1", "Blue Oxford", "top", "dress-shirt"), make("t2", "White Tee", "top", "t-shirt"),
+    make("t3", "Charcoal Knit", "top", "sweater"), make("t4", "Signature Tee", "top", "t-shirt"),
+    make("b1", "Wool Trouser", "bottom", "dress-pants"), make("b2", "Indigo Jean", "bottom", "jeans"),
+    make("b3", "Linen Short", "bottom", "shorts"),
+    make("o1", "Tailored Blazer", "outerwear", "blazer"), make("o2", "Rain Shell", "outerwear", "rain-jacket"),
+    make("o3", "Olive Overshirt", "outerwear", "denim-jacket"),
+    make("s1", "Leather Derby", "shoe", "dress-shoes"), make("s2", "White Sneaker", "shoe", "sneakers"),
+  ];
+  const set = rankOutfitSet(closet, "Build me 5 unique outfits", { count: 5 });
+  assert.equal(set.length, 5, "five distinct outfits exist in this closet and all five are found");
+
+  for (const entry of set) {
+    const categories = new Set(entry.outfit.pieces.map((piece) => piece.item.category));
+    assert.ok(categories.has("shoe"), `outfit ${entry.index} has shoes — forcing variety must never empty a category`);
+    assert.equal(categories.size, entry.outfit.pieces.length, "one piece per category");
+  }
+
+  for (const [index, entry] of set.entries()) {
+    for (const other of set.slice(index + 1)) {
+      const ids = new Set(other.outfit.pieces.map((piece) => piece.item.id));
+      const shared = entry.outfit.pieces.filter((piece) => ids.has(piece.item.id)).length;
+      const size = Math.max(entry.outfit.pieces.length, other.outfit.pieces.length);
+      assert.ok(shared <= size - 2, `outfits ${entry.index} and ${other.index} share ${shared} of ${size} — they read as one look restyled`);
+    }
+  }
+});
