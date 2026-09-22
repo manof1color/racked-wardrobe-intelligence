@@ -113,6 +113,11 @@ occasion, weather, style, underuse, recency. **The model never picks the items.*
 the explanation for a selection that was already computed.
 
 - Ask for an outfit → you get the exact owned pieces, with their real photos.
+- Ask for **several** — "five outfits for the week" — and you get five, sharing no pieces, each with
+  its own Save and Record buttons. If your closet runs out of unused pieces first, Hanger builds what
+  it can and says how many.
+- If the stylist model cannot be reached, the reply is still grounded in your wardrobe and **says so**
+  on screen rather than looking like a stylist repeating itself.
 - **Save this outfit** or **Record as worn**, straight from the reply.
 - **Why these pieces** folds open to show the score components.
 - Ask for something different → the prior suggestion is set aside, so you get different

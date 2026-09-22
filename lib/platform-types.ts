@@ -165,6 +165,15 @@ export interface AgentReply {
   evidence: string[];
   /** Consumer-only visual grounding for the exact owned pieces Hanger selected. */
   selection?: Array<{ id:string; name:string; category:string; imageUrl?:string }>;
+  /**
+   * Every outfit in this reply when more than one was asked for. The first entry is the same
+   * selection as `selection`, so one outfit renders exactly as it always has.
+   */
+  outfits?: Array<{
+    title:string;
+    pieces:Array<{ id:string; name:string; category:string; imageUrl?:string }>;
+    actions:Array<{ label:string; type:string; payload:Record<string,string> }>;
+  }>;
 }
 
 export interface AgentChatTurn {

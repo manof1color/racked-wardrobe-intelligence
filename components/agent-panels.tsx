@@ -35,18 +35,31 @@ function id() {
  */
 function ReplyDetails({ reply, onAction, working }: { reply: AgentReply; onAction: (action: AgentAction, reply: AgentReply) => void; working: string | null }) {
   const hasSelection = Boolean(reply.selection && reply.selection.length > 0);
+  const set = reply.outfits && reply.outfits.length > 1 ? reply.outfits : null;
+  const pieceGrid = (pieces: NonNullable<AgentReply["selection"]>, label: string) => <div className="hanger-outfit-preview" role="group" aria-label={label}>
+    {pieces.map((item) => <figure key={item.id}>
+      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <span aria-hidden="true">{item.category.slice(0, 1).toUpperCase()}</span>}
+      <figcaption><strong>{item.name}</strong><small>{item.category}</small></figcaption>
+    </figure>)}
+  </div>;
+  const actionRow = (actions: AgentReply["actions"], keyPrefix: string) => <div className="agent-actions">
+    {actions.map((action, index) => <button type="button" key={`${keyPrefix}${action.type}`} className={index === 0 ? "hanger-action primary" : "hanger-action"} onClick={() => onAction(action, reply)} disabled={working !== null}>
+      {working === action.type ? "Working…" : action.label}
+    </button>)}
+  </div>;
   return <>
-    {hasSelection && <div className="hanger-outfit-preview" role="group" aria-label="Pieces in Hanger's current outfit">
-      {reply.selection!.map((item) => <figure key={item.id}>
-        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <span aria-hidden="true">{item.category.slice(0, 1).toUpperCase()}</span>}
-        <figcaption><strong>{item.name}</strong><small>{item.category}</small></figcaption>
-      </figure>)}
-    </div>}
-    {reply.actions.length > 0 && <div className="agent-actions">
-      {reply.actions.map((action, index) => <button type="button" key={action.type} className={index === 0 ? "hanger-action primary" : "hanger-action"} onClick={() => onAction(action, reply)} disabled={working !== null}>
-        {working === action.type ? "Working…" : action.label}
-      </button>)}
-    </div>}
+    {/* Several outfits asked for, several shown — each with the actions that belong to it. */}
+    {set
+      ? set.map((outfit) => <section className="hanger-outfit-set" key={outfit.title}>
+          <h4>{outfit.title}</h4>
+          {pieceGrid(outfit.pieces, `Pieces in ${outfit.title}`)}
+          {actionRow(outfit.actions, `${outfit.title}-`)}
+        </section>)
+      : <>
+          {hasSelection && pieceGrid(reply.selection!, "Pieces in Hanger's current outfit")}
+          {reply.actions.length > 0 && actionRow(reply.actions, "")}
+        </>}
+    {reply.provider === "grounded-wardrobe" && <p className="hanger-degraded" role="status">Written from your wardrobe without the stylist model — it did not answer this turn.</p>}
     <details className="hanger-reasoning">
       <summary>{hasSelection ? "Why these pieces" : "How Hanger answered"}</summary>
       <div className="agent-meta">

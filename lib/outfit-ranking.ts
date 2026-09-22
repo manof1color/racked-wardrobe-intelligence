@@ -319,6 +319,70 @@ function fillAlternativeCategorySlots(fresh: RankedGarment[], repeated: RankedGa
  * this conversation are set aside, unless doing so would leave too little to answer
  * with — a small wardrobe still gets a real outfit rather than an empty one.
  */
+/**
+ * More than one outfit, when more than one was asked for.
+ *
+ * "Build me five outfits for the week" used to return a single outfit, because the ranker only ever
+ * produced one and nothing read the number. A set is built by ranking repeatedly and excluding every
+ * piece already used, so the outfits share nothing — and when the closet runs out of pieces the set
+ * stops early and says how many it could actually build rather than padding with repeats.
+ */
+export const MAX_OUTFIT_SET = 5;
+const NUMBER_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, a: 1, an: 1 };
+
+export function requestedOutfitCount(message: string) {
+  const asked = message.toLocaleLowerCase();
+  const digits = /\b(\d{1,3})\s+(?:unique\s+|different\s+|separate\s+|distinct\s+)?(?:outfits|looks|fits)\b/.exec(asked);
+  if (digits) return Math.min(MAX_OUTFIT_SET, Math.max(1, Number(digits[1])));
+  const words = /\b(one|two|three|four|five|six|seven)\s+(?:unique\s+|different\s+|separate\s+|distinct\s+)?(?:outfits|looks|fits)\b/.exec(asked);
+  if (words) return Math.min(MAX_OUTFIT_SET, NUMBER_WORDS[words[1]] ?? 1);
+  // "outfits for the week" names a quantity without a number: five working days.
+  if (/\b(?:outfits|looks|fits)\b/.test(asked) && /\b(?:week|working week|workweek|every day|each day|daily)\b/.test(asked)) return MAX_OUTFIT_SET;
+  if (/\b(?:a few|several|some|multiple)\s+(?:unique\s+|different\s+)?(?:outfits|looks|fits)\b/.test(asked)) return 3;
+  return 1;
+}
+
+/**
+ * One piece per category. A single outfit may legitimately carry a fourth piece — a jacket, a bag —
+ * but the filler that tops an outfit up will otherwise add a second pair of trousers, which is both
+ * a worse outfit and a closet spent twice as fast across a set.
+ */
+function oneOfEachCategory(pieces: RankedGarment[]) {
+  const seen = new Set<string>();
+  return pieces.filter((piece) => {
+    const category = String(piece.item.category ?? "").toLocaleLowerCase();
+    if (seen.has(category)) return false;
+    seen.add(category);
+    return true;
+  });
+}
+
+export interface OutfitSetEntry {
+  /** 1-based position in the set, so a reply and an action can name the same outfit. */
+  index: number;
+  outfit: GroundedOutfit;
+}
+
+export function rankOutfitSet(
+  wardrobe: WardrobeItem[],
+  message: string,
+  options: Parameters<typeof rankOutfit>[2] & { count?: number } = {},
+): OutfitSetEntry[] {
+  const count = Math.max(1, Math.min(MAX_OUTFIT_SET, options.count ?? 1));
+  const used = new Set<string>([...(options.avoidItemIds ?? [])]);
+  const entries: OutfitSetEntry[] = [];
+  for (let index = 0; index < count; index++) {
+    const outfit = rankOutfit(wardrobe, message, { ...options, avoidItemIds: used, rotatePriorSuggestions: index > 0 || options.rotatePriorSuggestions });
+    const pieces = oneOfEachCategory(outfit.pieces);
+    const ids = pieces.map((piece) => piece.item.id);
+    // A second outfit that repeats the first is not a second outfit. Stop and report honestly.
+    if (!ids.length || ids.some((id) => used.has(id))) break;
+    for (const id of ids) used.add(id);
+    entries.push({ index: index + 1, outfit: { ...outfit, pieces } });
+  }
+  return entries;
+}
+
 export function rankOutfit(
   wardrobe: WardrobeItem[],
   message: string,
