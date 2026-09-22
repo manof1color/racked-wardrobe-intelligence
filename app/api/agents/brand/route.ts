@@ -12,20 +12,23 @@ export async function POST(request: Request) {
   const limit = consumeRateLimit(`brand-agent:${session.subject}`, RATE_LIMIT_RULES.brandAgent);
   if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const body = await request.json().catch(() => null) as { productId?: string; message?: string; history?: unknown } | null;
-  if (!body?.productId) return NextResponse.json({ error: "Choose a product." }, { status: 400 });
-  const message = (body.message?.trim() || "Analyze this product's actual wear and recommend the strongest next step.").slice(0, 1_000);
+  const productId = typeof body?.productId === "string" ? body.productId.trim() : "";
+  if (!productId) return NextResponse.json({ error: "Choose a product." }, { status: 400 });
+  const message = ((typeof body?.message === "string" ? body.message.trim() : "") || "Analyze this product's actual wear and recommend the strongest next step.").slice(0, 1_000);
 
   try {
     const [metrics, products, communityMetrics] = await Promise.all([
-      getRealProductMetrics(session.subject, body.productId),
+      getRealProductMetrics(session.subject, productId),
       listOwnedBrandProducts(session.subject),
-      getBrandCommunityMetrics(session.subject, body.productId),
+      getBrandCommunityMetrics(session.subject, productId),
     ]);
-    const product = products.find((item) => item.id === body.productId);
+    const product = products.find((item) => item.id === productId);
     if (!product) throw new Error("Product not found.");
     const generated = await generateBrandHangerReply({
       message,
-      history: sanitizeAgentHistory(body.history),
+      // Prior questions retain conversational intent, but browser-supplied assistant prose can
+      // replay old released metrics after a cohort changes. Never send that prose to the model.
+      history: metrics.suppressed ? [] : sanitizeAgentHistory(body?.history).filter((turn) => turn.role === "user"),
       product,
       metrics,
       communityMetrics,

@@ -55,7 +55,7 @@ export function HangerDock({ role, productId, brandHasProducts = false, onOpenCa
         {role === "consumer"
           ? <ConsumerAgentPanel onWearRecorded={onWearRecorded} onOutfitSaved={onOutfitSaved} />
           : productId
-            ? <BrandAgentPanel productId={productId} />
+            ? <BrandAgentPanel key={productId} productId={productId} />
             : brandHasProducts
               // Having products but none open is a different situation from having none at all, and
               // saying "enroll a product first" to a brand with a full catalog reads like a bug.
