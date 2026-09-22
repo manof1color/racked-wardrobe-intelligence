@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { GARMENT_TAXONOMY } from "@/lib/garment-taxonomy";
 import { generateConsumerHangerReply, hangerOutfitName, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
 import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberSuggestedItemIds } from "@/lib/hanger-memory";
-import { asksForOutfitSuggestion, rankOutfit, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
+import { asksForOutfitSuggestion, MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, requestedOutfitCount, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { clearHangerConversation, getConsumerInspirationProfile, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -80,7 +80,12 @@ export async function POST(request: Request) {
   // "show me another" even when the person did not type the word "another".
   // Advice questions remain deterministic and do not rotate implicitly.
   const rotatePriorSuggestions = previousSuggestionItemIds.length > 0 && asksForOutfitSuggestion(message);
-  const ranked = rankOutfit(wardrobe, message, { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds, ...avoidedItemIds(preferences, wardrobe)], rotatePriorSuggestions, inspirationStyleHints: inspiration.styleHints });
+  // A request for several outfits is answered with several outfits, sharing no pieces. Before this,
+  // the number was simply not read and one outfit came back however many were asked for.
+  const requestedCount = requestedOutfitCount(message);
+  const rankingOptions = { history, avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds, ...avoidedItemIds(preferences, wardrobe)], rotatePriorSuggestions, inspirationStyleHints: inspiration.styleHints };
+  const set = requestedCount > 1 ? rankOutfitSet(wardrobe, message, { ...rankingOptions, count: requestedCount }) : [];
+  const ranked = set.length ? set[0].outfit : rankOutfit(wardrobe, message, rankingOptions);
   const suggested = ranked.pieces.map((piece) => piece.item);
   const required = ranked.requiredPieceIds.map((itemId) => wardrobe.find((item) => item.id === itemId)).filter((item): item is typeof wardrobe[number] => Boolean(item));
   // One canonical selection feeds the visible cards and every action. Keeping
@@ -107,6 +112,25 @@ export async function POST(request: Request) {
     { label: "Save this exact outfit", type: "save-outfit", payload: { itemIds: selectedItemIds, name: hangerOutfitName(suggested) } },
     { label: "Record these exact pieces as worn", type: "record-outfit", payload: { itemIds: selectedItemIds } },
   ] : [];
+  // Each outfit in a set carries its own pieces and its own actions, so saving the third saves the
+  // third. The first entry repeats the single selection above, which keeps one outfit unchanged.
+  const outfitSet: AgentReply["outfits"] = set.length > 1 ? set.map(({ index, outfit }): NonNullable<AgentReply["outfits"]>[number] => {
+    const pieces = outfit.pieces.map((piece) => ({
+      id: piece.item.id,
+      name: piece.item.name,
+      category: piece.item.category,
+      ...(piece.item.imageUrl ? { imageUrl: piece.item.imageUrl } : {}),
+    }));
+    const itemIds = pieces.map((piece) => piece.id).join(",");
+    return {
+      title: `Outfit ${index}`,
+      pieces,
+      actions: [
+        { label: `Save outfit ${index}`, type: `save-outfit-${index}`, payload: { itemIds, name: hangerOutfitName(outfit.pieces.map((piece) => piece.item)) } },
+        { label: `Record outfit ${index} as worn`, type: `record-outfit-${index}`, payload: { itemIds } },
+      ],
+    };
+  }) : undefined;
   const reply: AgentReply = {
     agent: "consumer-stylist",
     provider: generated.usedModel ? "amazon-bedrock" : "grounded-wardrobe",
@@ -115,8 +139,12 @@ export async function POST(request: Request) {
     toolsUsed: ["private wardrobe", "wear history", "saved outfits", ...(inspiration.lookCount ? ["saved Community inspiration"] : []), ...(remembered ? ["remembered preferences"] : []), "conversation memory"],
     actions,
     selection,
+    ...(outfitSet ? { outfits: outfitSet } : {}),
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
+      ...(requestedCount > 1 ? [set.length >= requestedCount
+        ? `${set.length} outfits built, sharing no pieces`
+        : `${set.length} outfit${set.length === 1 ? "" : "s"} built of the ${requestedCount} asked for — your closet ran out of unused pieces${requestedCount >= MAX_OUTFIT_SET ? `, and a set stops at ${MAX_OUTFIT_SET}` : ""}`] : []),
       `${outfits.length} saved outfits checked this turn`,
       ...(history.length ? [`${history.length} earlier message${history.length === 1 ? "" : "s"} from this conversation were in context`] : []),
       ...(omittedTurnCount ? [`${omittedTurnCount} older message${omittedTurnCount === 1 ? "" : "s"} fell outside the context budget and were not quoted`] : []),
@@ -125,6 +153,9 @@ export async function POST(request: Request) {
       ...ranked.pieces.map((piece) => `${piece.item.name}: ${piece.reasons[0] ?? "scored against this request"}`),
       ...(required.length ? [`${required.map((item) => item.name).join(", ")} locked because the customer explicitly requested ${required.length === 1 ? "it" : "them"}`] : []),
       ...(ranked.setAside > 0 ? [`${ranked.setAside} piece${ranked.setAside === 1 ? "" : "s"} already suggested earlier in this conversation were set aside`] : []),
+      generated.usedModel
+        ? "The stylist model wrote this reply from the selection above"
+        : "The stylist model did not answer this turn, so this reply is composed from your wardrobe alone",
       "Only this signed-in account's wardrobe was available",
     ],
   };
@@ -132,7 +163,8 @@ export async function POST(request: Request) {
   try {
     await saveHangerConversation(subject, rememberSuggestedItemIds(
       appendTurns({ ...stored, preferences }, [{ role: "user", content: message }, { role: "assistant", content: reply.message }]),
-      selection.map((item) => item.id),
+      // Every piece offered this turn is remembered, so a follow-up rotates past the whole set.
+      (outfitSet ?? [{ pieces: selection }]).flatMap((entry) => entry.pieces).map((item) => item.id),
     ));
   } catch (reason) {
     // A reply the person can already see is worth more than a perfectly stored transcript.

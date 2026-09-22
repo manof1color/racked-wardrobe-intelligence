@@ -180,32 +180,98 @@ export function buildBrandHangerPrompt(input: {
   return `Fresh brand-owned, privacy-filtered context for this turn: ${JSON.stringify(releasedBrandContext(input.product, input.metrics,input.communityMetrics))}\nBrand message: ${JSON.stringify(cleanText(input.message))}`;
 }
 
+/**
+ * The models Hanger will try, in order.
+ *
+ * Amazon's Nova models are served through regional inference profiles: `amazon.nova-lite-v1:0` is
+ * rejected outright where `us.amazon.nova-lite-v1:0` is accepted. Garment detection had always used
+ * the prefixed form, but the chat path used the bare `AI_MODEL` value — so every conversational
+ * reply failed its single Bedrock call and fell back to the same grounded sentence, which is exactly
+ * what it looked like from the outside: a stylist repeating itself.
+ *
+ * The configured id is still honoured. It is simply tried in its prefixed form first, and the bare
+ * form is kept as a later attempt for accounts where that is what works.
+ */
+export const DEFAULT_HANGER_MODEL = "us.amazon.nova-lite-v1:0";
+export const FALLBACK_HANGER_MODEL = "us.amazon.nova-pro-v1:0";
+export const MAX_HANGER_MODEL_ATTEMPTS = 3;
+
+const INFERENCE_PROFILE_PREFIX = /^(?:us|eu|apac)\./;
+
+export function hangerModelCandidates(environment: { AI_HANGER_MODEL?: string; AI_MODEL?: string } = { AI_HANGER_MODEL: process.env.AI_HANGER_MODEL, AI_MODEL: process.env.AI_MODEL }) {
+  const configured = [environment.AI_HANGER_MODEL?.trim(), environment.AI_MODEL?.trim()].filter((value): value is string => Boolean(value));
+  const prefixed = configured.map((id) => (INFERENCE_PROFILE_PREFIX.test(id) || !id.startsWith("amazon.") ? id : `us.${id}`));
+  return [...new Set([...prefixed, DEFAULT_HANGER_MODEL, FALLBACK_HANGER_MODEL, ...configured])].slice(0, MAX_HANGER_MODEL_ATTEMPTS);
+}
+
+/**
+ * Whether a second model is worth trying. A rejected or unavailable model id is a configuration
+ * problem another id may solve; a timeout or a throttle is not, and retrying it would only double
+ * the wait before the grounded reply the person is going to get anyway.
+ */
+export function mayTryAnotherHangerModel(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  return ["ValidationException", "AccessDeniedException", "ResourceNotFoundException", "ModelNotReadyException"].includes(error.name);
+}
+
 async function converse(system: string, history: AgentChatTurn[], prompt: string) {
   if ((process.env.AI_PROVIDER ?? "").toLowerCase() !== "bedrock") return null;
   const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
-  const modelId = process.env.AI_HANGER_MODEL ?? process.env.AI_MODEL ?? "amazon.nova-lite-v1:0";
   const messages: Message[] = [
     ...normalizeProviderHistory(history).map((turn): Message => ({ role: turn.role, content: [{ text: turn.content }] })),
     { role: "user", content: [{ text: prompt }] },
   ];
-  try {
-    const response = await new BedrockRuntimeClient({ region }).send(new ConverseCommand({
-      modelId,
-      system: [{ text: system }],
-      messages,
-      inferenceConfig: { maxTokens: 650, temperature: 0.25 },
-    }), bedrockRequestOptions(BEDROCK_CHAT_TIMEOUT_MS));
-    const text = response.output?.message?.content?.find((block) => "text" in block)?.text?.trim();
-    return text ? formatHangerText(text).slice(0, 2_500) : null;
-  } catch (error) {
-    console.error("Hanger conversation failed", {
-      name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : "Unknown provider failure",
-      region,
-      modelId,
-    });
-    return null;
+  const client = new BedrockRuntimeClient({ region });
+  const candidates = hangerModelCandidates();
+  for (const [index, modelId] of candidates.entries()) {
+    try {
+      const response = await client.send(new ConverseCommand({
+        modelId,
+        system: [{ text: system }],
+        messages,
+        inferenceConfig: { maxTokens: 650, temperature: 0.4 },
+      }), bedrockRequestOptions(BEDROCK_CHAT_TIMEOUT_MS));
+      const text = response.output?.message?.content?.find((block) => "text" in block)?.text?.trim();
+      return text ? formatHangerText(text).slice(0, 2_500) : null;
+    } catch (error) {
+      console.error("Hanger conversation failed", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message: error instanceof Error ? error.message : "Unknown provider failure",
+        region,
+        modelId,
+        attempt: index + 1,
+        of: candidates.length,
+      });
+      if (!mayTryAnotherHangerModel(error)) return null;
+    }
   }
+  return null;
+}
+
+/**
+ * A different way of saying the same true thing, chosen by what is actually in the selection rather
+ * than at random, so the same request gives the same answer while a different one reads differently.
+ */
+function groundedOpening(suggested: Array<{ id: string }>) {
+  const openings = [
+    "Here is what your closet can do right now.",
+    "Working from the pieces you own today:",
+    "I pulled your latest wardrobe.",
+    "Built from what is actually in your closet:",
+  ];
+  const seed = suggested.reduce((total, item) => total + item.id.length, suggested.length);
+  return openings[seed % openings.length];
+}
+
+/** Ask for what the request did not supply, rather than asking the same question every time. */
+function groundedFollowUp(message: string) {
+  const asked = message.toLocaleLowerCase();
+  const hasOccasion = /\b(work|office|interview|wedding|dinner|date|party|gym|travel|flight|weekend|casual|formal|funeral|church|school|class)\b/.test(asked);
+  const hasWeather = /\b(cold|hot|warm|cool|rain|rainy|snow|humid|wind|windy|degrees|weather|summer|winter|autumn|fall|spring)\b/.test(asked);
+  if (!hasOccasion && !hasWeather) return "Tell me the occasion and the weather and I will tighten this up.";
+  if (!hasOccasion) return "What is the occasion? That is the one thing I am still guessing at.";
+  if (!hasWeather) return "How warm or cold will it be? I will adjust the layers.";
+  return "Want me to swap any single piece, or build a different one?";
 }
 
 export function formatHangerText(text: string) {
@@ -249,7 +315,7 @@ export async function generateConsumerHangerReply(input: {
     : usedInspiration
     ? `I used the style patterns from ${input.inspiration!.lookCount} Community Look${input.inspiration!.lookCount===1?"":"s"} you intentionally saved as inspiration, while keeping the outfit inside your own wardrobe.`
     : "I prioritized lower-wear pieces to bring more of your closet into rotation.";
-  return { message: `I pulled your latest wardrobe. ${selectionReason}\n\n${groundedSelection}\n\nWhat occasion, weather, or dress code should I refine this for?`, usedModel: false };
+  return { message: `${groundedOpening(input.suggested)} ${selectionReason}\n\n${groundedSelection}\n\n${groundedFollowUp(input.message)}`, usedModel: false };
 }
 
 export async function generateBrandHangerReply(input: {

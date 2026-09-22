@@ -1,5 +1,13 @@
 # AI use and model boundaries
 
+**Model routing (2026-09-22).** Amazon serves Nova through regional inference profiles, so
+`amazon.nova-lite-v1:0` is rejected where `us.amazon.nova-lite-v1:0` is accepted. Garment detection
+always used the prefixed form; the conversational path used the bare `AI_MODEL` value, so every
+Hanger reply failed its one Bedrock call and fell back to the same grounded sentence. Hanger now
+tries the prefixed form first, keeps the configured id as a later attempt, retries only on a
+model-configuration error (never on a timeout or a throttle), and states in the reply and on screen
+when a reply was composed without the model.
+
 ## Garment vision
 
 - Provider: Amazon Bedrock.
