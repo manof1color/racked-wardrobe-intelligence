@@ -33,7 +33,7 @@ test("unknown category and unrecognised colour safely render a neutral SVG", () 
   assert.match(svg, /^<svg /);
   assert.match(svg, /data-garment-outline="unknown"/);
   assert.match(svg, /fill="#747b77"/);
-  assert.doesNotMatch(svg, /<script>/);
+  assert.doesNotMatch(svg, /<script\b/i);
 });
 
 test("every wardrobe and product view visibly says SYNTHETIC DEMO", () => {
@@ -49,7 +49,7 @@ test("art is deterministic, escapes text, and never embeds photo-like assets", (
     assert.equal(first, render());
     assert.match(first, /&lt;script&gt;/);
     assert.doesNotMatch(first, /<image\b|\bhref\s*=|data:/i);
-    assert.doesNotMatch(first, /<script>/);
+    assert.doesNotMatch(first, /<script\b/i);
   }
 });
 
