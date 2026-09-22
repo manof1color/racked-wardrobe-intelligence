@@ -57,6 +57,11 @@ const DETAILS = {
   scarf: "M334 580 485 650M249 690H327",
   unknown: "M384 253Q450 315 516 253M335 390V713M565 390V713",
 };
+const BACK_DETAILS = {
+  top: "M340 360H560M450 360V720", pants: "M310 280H590M450 280V480",
+  shorts: "M310 280H590M450 280V430", skirt: "M350 275H550M450 275V700",
+  outerwear: "M350 320H550M450 320V760", dress: "M360 320H540M450 320V750",
+};
 
 function silhouetteKey(category, subtype) {
   const kind = String(category ?? "unknown").toLowerCase();
@@ -69,7 +74,7 @@ function silhouetteKey(category, subtype) {
 }
 function garmentShape(category, subtype, color, view = "front") {
   const key = silhouetteKey(category, subtype);
-  const details = view === "back" ? "M340 375H560M450 375V710" : DETAILS[key];
+  const details = view === "back" ? (BACK_DETAILS[key] ?? DETAILS[key]) : DETAILS[key];
   return `<g data-category-silhouette="${key}" stroke="${INK}" stroke-linejoin="round" stroke-linecap="round"><path data-garment-outline="${key}" d="${OUTLINES[key]}" fill="${fillFor(color)}" fill-rule="${key === "ring" ? "evenodd" : "nonzero"}" stroke-width="11"/><path d="${details}" fill="none" stroke-width="9"/></g>`;
 }
 function frame({ title, subtitle, color, body, badge }) {

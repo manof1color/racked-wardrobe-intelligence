@@ -234,12 +234,12 @@ async function seedConsumer(products) {
   // side they show the difference the whole boundary rests on: only the first is a brand link.
   const verifiedId = "judge-garment-verified-tee";
   ids.verified = verifiedId;
-  imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.png`, await imageBytes(garmentArt(PRODUCTS[0])), CONSUMER_ID);
+  imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.png`, await imageBytes(garmentArt(products.released)), CONSUMER_ID);
   await linkVerified({ ownerId: CONSUMER_ID, product: PRODUCTS[0], garmentId: verifiedId, wearCount: 5, lastWornDays: 3, imageKey: imageKeys.verified });
 
   const pickedId = "judge-garment-picked-overshirt";
   ids.picked = pickedId;
-  imageKeys.picked = await putObject(`wardrobe/${CONSUMER_ID}/${pickedId}.png`, await imageBytes(garmentArt(PRODUCTS[1])), CONSUMER_ID);
+  imageKeys.picked = await putObject(`wardrobe/${CONSUMER_ID}/${pickedId}.png`, await imageBytes(garmentArt(products.suppressed)), CONSUMER_ID);
   await putItem({
     id: pickedId, name: "Judge Olive Overshirt", category: "outerwear", subtype: "denim-jacket", color: "olive",
     pattern: "solid", material: "cotton", style: ["utility", "casual"], season: "fall", wearCount: 4, lastWornDays: 6,
