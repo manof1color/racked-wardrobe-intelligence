@@ -101,6 +101,18 @@ export function groundedSelectionText(suggested: WardrobeItem[]) {
   return `Current outfit — these exact owned pieces are shown in the same order:\n${lines}`;
 }
 
+/**
+ * Phrases that promise something on screen. When the server ranked no outfit, none of it is
+ * there: no photographs, no Save button, no "these exact pieces". Prose that claims otherwise is
+ * describing an outfit that does not exist, whatever it happens to have named.
+ */
+const CLAIMS_AN_OUTFIT = /\b(?:selected|current|suggested|final|complete[d]?)\s+outfit\b|\bthese\s+(?:exact\s+)?pieces\b|\bin\s+the\s+photos?\b|\bsave\s+action\b|\bsave\s+this\s+(?:exact\s+)?outfit\b|\brecord\s+these\b/i;
+
+/** True when a reply describes an outfit the server never built. */
+export function replyClaimsMissingOutfit(reply: string, suggested: WardrobeItem[]) {
+  return suggested.length === 0 && CLAIMS_AN_OUTFIT.test(reply);
+}
+
 /** Reject model prose that names a different owned garment than the ranked selection. */
 export function consumerReplyPassesSelectionReview(text: string, wardrobe: WardrobeItem[], suggested: WardrobeItem[]) {
   const selectedIds = new Set(suggested.map((item) => item.id));
@@ -197,10 +209,15 @@ export function buildConsumerHangerPrompt(input: {
   turnMode?: HangerTurnMode;
   activeBefore?: WardrobeItem[];
   selectionReasons?: Record<string, string[]>;
+  outfitCount?: number;
 }) {
   const context={
     ...consumerContext(input.wardrobe, input.outfits, input.suggested, input.required, input.inspiration, input.selectionReasons),
     turnMode: input.turnMode ?? "create",
+    // The set is rendered from server-ranked data beneath the reply. Telling the model how many
+    // outfits exist is what stops it writing its own list, which came out duplicated and
+    // missing shoes because nothing it writes is checked against the wardrobe.
+    outfitsShownBelowReply: input.outfitCount ?? (input.suggested.length ? 1 : 0),
     activeOutfitBeforeTurn: (input.activeBefore ?? []).map((item) => ({ name: item.name, category: item.category })),
     // Standing instructions from earlier messages, and an honest note when older turns fell
     // outside the context budget, so nothing is invented about what was said before.
@@ -293,7 +310,9 @@ async function converse(system: string, history: AgentChatTurn[], prompt: string
         modelId,
         system: [{ text: system }],
         messages,
-        inferenceConfig: { maxTokens: 650, temperature: 0.4 },
+        // Warm enough that two similar requests do not come back in identical sentences, which is
+        // what a stylist repeating itself actually looks like; cool enough to stay on the facts.
+        inferenceConfig: { maxTokens: 650, temperature: 0.6, topP: 0.9 },
       }), bedrockRequestOptions(BEDROCK_CHAT_TIMEOUT_MS));
       const text = response.output?.message?.content?.find((block) => "text" in block)?.text?.trim();
       return text ? formatHangerText(text).slice(0, 2_500) : null;
@@ -318,10 +337,10 @@ async function converse(system: string, history: AgentChatTurn[], prompt: string
  */
 function groundedOpening(suggested: Array<{ id: string }>) {
   const openings = [
-    "Here is what your closet can do right now.",
-    "Working from the pieces you own today:",
-    "I pulled your latest wardrobe.",
-    "Built from what is actually in your closet:",
+    "Here is what I would wear.",
+    "This is the one I would pick.",
+    "Try this.",
+    "Here is where I would start.",
   ];
   const seed = suggested.reduce((total, item) => total + item.id.length, suggested.length);
   return openings[seed % openings.length];
@@ -388,6 +407,7 @@ export async function generateConsumerHangerReply(input: {
   selectionReasons?: Record<string, string[]>;
   styleSource?: "request" | "inspiration" | "none";
   clarification?: string;
+  outfitCount?: number;
 }) {
   if (input.turnMode === "clarify") return { message: input.clarification ?? "Please tell me which owned piece to use before I build another outfit.", usedModel: false };
   if (input.turnMode === "advice" && /\b(?:do not|don['’]?t|never)\s+save\b/i.test(input.message)) {
@@ -400,13 +420,18 @@ export async function generateConsumerHangerReply(input: {
   if ((input.turnMode === "save-confirm" || input.turnMode === "wear-confirm" || input.turnMode === "explain") && input.suggested.length === 0) {
     return { message: "I do not have a current outfit in this conversation yet. Ask me to create one from your wardrobe first, then I can explain it, save it, or record it as worn.", usedModel: false };
   }
-  const system = "You are Hanger, Racked's conversational wardrobe stylist. Respond naturally to the latest message while maintaining the supplied conversational context. The server has already classified this turn; obey turnMode. Only create or revise modes introduce a newly ranked outfit. Explain, save-confirm, and wear-confirm refer to the unchanged candidateOutfit. Advice answers the question and must not pretend a new outfit was created. If the customer says not to save or record, never suggest that disallowed action. Use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact pieces: discuss those pieces only and do not substitute, add, rename, or claim ownership of another garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that and never claim it was chosen because it was underused. Use the supplied reasons to explain choices accurately. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only when it actually shaped the supplied outfit and never overrule the current message. rememberedPreferences are standing instructions from earlier messages: follow them unless the current message clearly overrides one. earlierConversation means older messages are no longer quoted; never invent what they said. Refer to garments by their exact supplied names. Ask at most one useful follow-up. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather, Pinterest, or other external-network access. Clearly label general shopping ideas as not currently owned. Do not expose internal IDs or raw JSON. Write plain text with short paragraphs or simple bullets; no Markdown headings, bold markers, tables, or code fences.";
+  const system = "You are Hanger, a working wardrobe stylist talking with a customer about clothes they own. Talk like a person: warm, direct, specific, and brief. Open by responding to what they actually said rather than describing your own process — never begin with a stock line such as 'Here is what your closet can do' or 'I pulled your latest wardrobe', and never open two consecutive replies the same way. Give the answer first, in the first sentence. Say why a piece works in concrete terms a person would use — the colour, the cut, the weather it suits, how often it has been worn. Never ask for something the customer has already told you, and never ask a question in place of the outfit they asked for: answer, then ask at most one short question if it would genuinely change what you suggest. If they ask for a number of outfits, that number has already been built for them and is shown beneath your reply, so introduce it in one sentence and do not list, invent, number, or re-describe the outfits yourself. The server has already classified this turn; obey turnMode. Only create or revise modes introduce a newly ranked outfit. Explain, save-confirm, and wear-confirm refer to the unchanged candidateOutfit. Advice answers the question and must not pretend a new outfit was created. If the customer says not to save or record, never suggest that disallowed action. Use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact pieces: discuss those pieces only and do not substitute, add, rename, or claim ownership of another garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that and never claim it was chosen because it was underused. Use the supplied reasons to explain choices accurately. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only when it actually shaped the supplied outfit and never overrule the current message. rememberedPreferences are standing instructions from earlier messages: follow them unless the current message clearly overrides one. earlierConversation means older messages are no longer quoted; never invent what they said. Refer to garments by their exact supplied names. Ask at most one useful follow-up. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather, Pinterest, or other external-network access. Clearly label general shopping ideas as not currently owned. Do not expose internal IDs or raw JSON. Write plain text with short paragraphs or simple bullets; no Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
   const groundedSelection = groundedSelectionText(input.suggested);
-  if (generated && (input.turnMode === "advice" || consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested))) {
+  // Advice used to skip this review on the grounds that it proposes no selection. That is exactly
+  // when a reply must be checked: with nothing ranked, anything it names came from the model.
+  const reviewed = generated
+    && !replyClaimsMissingOutfit(generated, input.suggested)
+    && (input.turnMode === "advice" || consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested));
+  if (reviewed && generated) {
     return { message: `${generated}${groundedSelection ? `\n\n${groundedSelection}` : ""}`, usedModel: true };
   }
-  if (generated) console.warn("Hanger rejected a consumer response that named a garment outside the canonical selection.");
+  if (generated) console.warn("Hanger rejected a consumer response that described an outfit it was not given.");
   const names = input.suggested.map((item) => item.name);
   if (names.length === 0) {
     if (input.turnMode === "advice") {

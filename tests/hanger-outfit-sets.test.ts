@@ -48,8 +48,8 @@ test("a closet that runs out stops the set instead of repeating itself", () => {
 });
 
 test("the route builds the set, and every outfit carries its own actions", () => {
-  assert.match(route, /const requestedCount = producesOutfit \? requestedOutfitCount\(message\) : 1;/);
-  assert.match(route, /const set = producesOutfit && requestedCount > 1 \? rankOutfitSet\(wardrobe, message, \{ \.\.\.rankingOptions, count: requestedCount \}\) : \[\];/);
+  assert.match(route, /const requestedCount = plan\.outfitCount;/);
+  assert.match(route, /const set = producesOutfit && requestedCount > 1 \? rankOutfitSet\(wardrobe, requestText, \{ \.\.\.rankingOptions, count: requestedCount \}\) : \[\];/);
   assert.match(route, /type: `save-outfit-\$\{index\}`/);
   assert.match(route, /type: `record-outfit-\$\{index\}`/);
   assert.match(route, /\(outfitSet \?\? \[\{ pieces: selection \}\]\)\.flatMap/, "every piece offered is remembered, so a follow-up rotates past the whole set");
@@ -64,7 +64,7 @@ test("the route builds the set, and every outfit carries its own actions", () =>
 // about the five already on screen, so it must not quietly propose five more underneath the answer.
 test("only a turn that builds outfits builds a set of them", () => {
   assert.match(route, /const producesOutfit = plan\.mode === "create" \|\| plan\.mode === "revise";/);
-  assert.match(route, /const ranked = set\.length \? set\[0\]\.outfit : producesOutfit \? rankOutfit\(wardrobe, message, rankingOptions\) : null;/);
+  assert.match(route, /const ranked = set\.length \? set\[0\]\.outfit : producesOutfit \? rankOutfit\(wardrobe, requestText, rankingOptions\) : null;/);
   assert.match(route, /actionMode === "both" \|\| actionMode === "save"/, "a set's Save buttons obey the same permission the single outfit gets");
   assert.match(route, /actionMode === "both" \|\| actionMode === "record"/);
 });
