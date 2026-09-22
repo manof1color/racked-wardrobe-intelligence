@@ -530,28 +530,40 @@ Racked does **not** claim garment recognition accuracy, sales lift, purchase int
 
 Everything above is self-contained; these go deeper.
 
-- [PROGRESS.md](PROGRESS.md) — real merged-PR history of how this was built
+**The product**
+
 - [User workflow](docs/user-workflow.md) — the Consumer and Brand journeys end to end
-- [Streamline plan](docs/streamline-plan.md) — measured cut list, surface simplification, and the gaps that block a store submission
-- [App Store and Google Play launch](docs/app-store-launch.md) — two tracks, policy blockers, and realistic timelines
-- [TikTok campaign](docs/tiktok-campaign.md) — positioning, content pillars, creators, and the eight-week plan
-- [Launch work orders](docs/work-orders/claude-launch-blockers.md) — blockers executed by Claude, and [follow-ups for ChatGPT](docs/work-orders/chatgpt-launch-follow-ups.md) with the rules its code is reviewed against
-- [Recognition work order](docs/work-order-recognition.md) — open tasks for measuring and improving garment recognition
-- [Segmentation backends](docs/segmentation-backends.md) — how cropping works, what it scores, and how to add a learned segmenter
-- [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist
+- [Judge accounts](docs/judge-accounts.md) — the four demo accounts, a three-minute tour, seeding, and the read-only checker
+- [Brand linking incentives](docs/brand-linking-incentives.md) — why linking is rewarded and data sharing never is
+- [Small/medium Brand UX review](docs/brand-ux-review.md)
+
+**The engineering**
+
 - [Architecture and trust boundaries](docs/architecture.md)
 - [Backend API](docs/backend-api.md) — every route, access level, and abuse control
 - [AI use and limitations](docs/ai-use-log.md) — models, prompts, boundaries, failure policy
+- [Segmentation backends](docs/segmentation-backends.md) — how cropping works, what it scores, and how to add a learned segmenter
+- [AWS deployment](docs/aws-deployment.md)
+- [PROGRESS.md](PROGRESS.md) — real merged-PR history of how this was built
+
+**What may be claimed**
+
+- [Privacy and ethics](docs/privacy-and-ethics.md) — consent, `k ≥ 25`, brand identity boundary
 - [Independent recognition evaluation](docs/evaluation.md) — 31,638-item source, license, protocol, claim rules
 - [Dataset provenance](docs/dataset-provenance.md) — production, synthetic, and external-data boundaries
-- [Judge accounts](docs/judge-accounts.md) — the four demo accounts, a three-minute tour, seeding, and the read-only checker
 - [Clearly labeled test cohort](docs/test-cohort.md) — the synthetic brands, products, and 25-owner cohort behind the threshold
-- [Brand linking incentives](docs/brand-linking-incentives.md) — why linking is rewarded and data sharing never is
 - [Fictional demo storefronts](docs/demo-storefronts.md) — safety rules and URL contract
-- [Small/medium Brand UX review](docs/brand-ux-review.md)
-- [Privacy and ethics](docs/privacy-and-ethics.md) — consent, `k ≥ 25`, brand identity boundary
-- [AWS deployment](docs/aws-deployment.md)
+- [Competition checklist](docs/competition-checklist.md) — per-criterion evidence checklist
 - [One-page summary](docs/one-page-summary.md) — problem, solution, technical choices, lessons learned
+
+**Where it goes next**
+
+- [Streamline plan](docs/streamline-plan.md) — measured cut list, surface simplification, and the gaps that block a store submission
+- [App Store and Google Play launch](docs/app-store-launch.md) — two tracks, policy blockers, and realistic timelines
+- [TikTok campaign](docs/tiktok-campaign.md) — positioning, content pillars, creators, and the eight-week plan
+
+**Terms**
+
 - [LICENSE](LICENSE) — source-available for reading and evaluation; all rights reserved
 
 ---
