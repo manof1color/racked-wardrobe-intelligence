@@ -12,7 +12,7 @@ reads one from `RACKED_TEST_PASSWORD` at runtime.
 | --- | --- |
 | `judge.consumer@racked.local` | A lived-in wardrobe: 12 pieces, 2 saved outfits, real wear history, one piece **verified** against a brand product, one linked by the owner's **own pick**, a published Community look, and a saved inspiration |
 | `judge.newconsumer@racked.local` | Empty. Scan a real photo, watch pieces arrive, and see the honest first-run states |
-| `judge.brand@racked.local` | **Judge Demo Atelier**: one product above the `k ≥ 25` release threshold, one deliberately below it, one retired, and a published Brand Look |
+| `judge.brand@racked.local` | **Judge Demo Atelier**: one product with **50 opted-in owners**, so the dashboard shows what a live product looks like; one with **4**, deliberately below the `k ≥ 25` threshold, so suppression is visible beside it; one retired; and a published Brand Look |
 | `judge.newbrand@racked.local` | **Judge New Label**, no products. Enroll one live from a single photo |
 
 ## A three-minute tour
@@ -59,7 +59,7 @@ verifies the label a judge can type while the retired product answers nothing.
 
 ## What the seed does not invent
 
-- **No real people.** The 25 opted-in owners are the same synthetic cohort as
+- **No real people.** The opted-in owners are the same synthetic cohort as
   [the demo cohort](test-cohort.md); any that are missing are created by this seed so the threshold
   demo works from a clean table.
 - **No claimed outcomes.** Wear counts, likes, and public activity are labelled demonstration data.

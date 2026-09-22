@@ -52,7 +52,13 @@ test("the released product clears the k >= 25 threshold and the other two do not
     .filter((item) => item.GSI1PK === `PRODUCT#${productId}` && optedIn.has(item.PK))
     .map((item) => item.PK));
   assert.ok(ownersOf("judge-product-released").size >= MINIMUM_COHORT_SIZE, `released product needs ${MINIMUM_COHORT_SIZE} opted-in owners, has ${ownersOf("judge-product-released").size}`);
+  // A product one owner past the threshold proves the rule and nothing else. Fifty owners gives a
+  // judge a distribution and a trend to read, and the suppressed product beside it still shows the
+  // rule holding — the contrast is the demo, so both halves of it are pinned here.
+  assert.equal(ownersOf("judge-product-released").size, 50, "the released product shows a live-scale cohort, not a borderline one");
   assert.equal(ownersOf("judge-product-suppressed").size, 4, "deliberately below the threshold, so suppression is visible");
+  assert.equal(summary.cohort.optedInOwnersForReleased, 50);
+  assert.equal(summary.cohort.suppressedProductOwners, 4);
   assert.equal(ownersOf("judge-product-retired").size, 0);
   assert.equal(summary.cohort.thresholdIs, MINIMUM_COHORT_SIZE);
 
