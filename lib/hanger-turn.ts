@@ -157,7 +157,7 @@ export function planHangerTurn(input: {
   const refersToActive = CURRENT_LOOK_REFERENCE.test(creationRequested && creationVerbAt >= 0 ? input.message.slice(creationVerbAt) : input.message);
   const addingToFullOutfit = hasActive && activeItemIds.length >= MAX_OUTFIT_PIECES && ADD_TO_LOOK.test(input.message) && requested.some((item) => !activeItemIds.includes(item.id));
   const specificOwnedPieceUnresolved = (creationRequested || ADD_TO_LOOK.test(input.message)) && requested.length === 0
-    && /\b(?:with|using|use|wear|include|including|add)\s+(?:my|the)\s+(?!(?:wardrobe|closet|outfit|look|plans)\b)[a-z]/i.test(input.message)
+    && /\b(?:with|using|use|uses|wear|wears|include|includes|including|add|adds|features|featuring|has|have)\s+(?:my|the)\s+(?!(?:wardrobe|closet|outfit|look|plans)\b)[a-z]/i.test(input.message)
     && !/\b(?:without|instead of|rather than)\s+(?:my|the)\b/i.test(input.message);
 
   let mode: HangerTurnMode;
