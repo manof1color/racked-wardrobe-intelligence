@@ -19,6 +19,8 @@ export const MAX_STORED_TURNS = 40;
 export const PROMPT_HISTORY_CHAR_BUDGET = 4_000;
 export const MAX_PREFERENCES = 12;
 export const MAX_SUGGESTED_ITEM_IDS = 100;
+/** A held-open request cannot ask for more outfits than a set will ever build. */
+export const MAX_PENDING_OUTFIT_COUNT = 5;
 const MAX_TURN_CHARS = 1_000;
 
 export type PreferenceKind = "avoid" | "prefer";
@@ -37,12 +39,25 @@ export interface HangerActiveOutfit {
   intent: OutfitIntent;
 }
 
+/**
+ * The request Hanger was in the middle of when it asked a question. "Build me five outfits" →
+ * "what is the weather?" → "cold" has to answer the *first* message, not start a new one, or the
+ * customer has to repeat themselves to get what they already asked for.
+ */
+export interface HangerPendingRequest {
+  /** The request that is still unanswered, so the reply can be built from both messages. */
+  message: string;
+  /** How many outfits that request asked for, which a one-word answer would otherwise lose. */
+  count: number;
+}
+
 export interface HangerConversationState {
   turns: AgentChatTurn[];
   preferences: HangerPreference[];
   /** Pieces already offered, so a follow-up brings something new rather than the same outfit. */
   suggestedItemIds: string[];
   activeOutfit: HangerActiveOutfit | null;
+  pendingRequest: HangerPendingRequest | null;
   /** Messages that have fallen off the record, so the prompt can say so instead of pretending. */
   earlierTurnCount: number;
   updatedAt: string;
@@ -59,7 +74,7 @@ const text = (value: unknown, maximum = MAX_TURN_CHARS) => (typeof value === "st
 const normalize = (value: string) => value.toLocaleLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 
 export function emptyHangerConversation(): HangerConversationState {
-  return { turns: [], preferences: [], suggestedItemIds: [], activeOutfit: null, earlierTurnCount: 0, updatedAt: new Date(0).toISOString() };
+  return { turns: [], preferences: [], suggestedItemIds: [], activeOutfit: null, pendingRequest: null, earlierTurnCount: 0, updatedAt: new Date(0).toISOString() };
 }
 
 /** Reads a stored record defensively: anything unexpected becomes an empty conversation. */
@@ -116,8 +131,12 @@ export function readHangerConversation(value: unknown): HangerConversationState 
       alternativeRequested: false,
     },
   } : null;
+  const pendingRecord = record.pendingRequest && typeof record.pendingRequest === "object" ? record.pendingRequest as Record<string, unknown> : null;
+  const pendingMessage = text(pendingRecord?.message);
+  const pendingCount = Number.isFinite(pendingRecord?.count) ? Math.max(1, Math.min(MAX_PENDING_OUTFIT_COUNT, Math.floor(Number(pendingRecord?.count)))) : 1;
+  const pendingRequest: HangerPendingRequest | null = pendingMessage ? { message: pendingMessage, count: pendingCount } : null;
   const earlierTurnCount = Number.isFinite(record.earlierTurnCount) ? Math.max(0, Math.floor(Number(record.earlierTurnCount))) : 0;
-  return { turns, preferences, suggestedItemIds, activeOutfit, earlierTurnCount, updatedAt: text(record.updatedAt, 40) || new Date(0).toISOString() };
+  return { turns, preferences, suggestedItemIds, activeOutfit, pendingRequest, earlierTurnCount, updatedAt: text(record.updatedAt, 40) || new Date(0).toISOString() };
 }
 
 export function appendTurns(state: HangerConversationState, turns: AgentChatTurn[], now: Date = new Date()): HangerConversationState {
@@ -130,6 +149,18 @@ export function appendTurns(state: HangerConversationState, turns: AgentChatTurn
 export function rememberSuggestedItemIds(state: HangerConversationState, itemIds: Iterable<string>): HangerConversationState {
   const merged = [...new Set([...state.suggestedItemIds, ...[...itemIds].filter((id) => typeof id === "string" && id.length > 0)])];
   return { ...state, suggestedItemIds: merged.slice(-MAX_SUGGESTED_ITEM_IDS) };
+}
+
+/**
+ * Hold the request open while Hanger waits for an answer, and drop it once one arrives. A request
+ * is only worth holding when Hanger actually asked something back; otherwise the next unrelated
+ * message would be read as an answer to a question nobody asked.
+ */
+export function rememberPendingRequest(state: HangerConversationState, pending: HangerPendingRequest | null): HangerConversationState {
+  const message = text(pending?.message);
+  if (!message) return { ...state, pendingRequest: null };
+  const count = Math.max(1, Math.min(MAX_PENDING_OUTFIT_COUNT, Math.floor(Number(pending?.count) || 1)));
+  return { ...state, pendingRequest: { message, count } };
 }
 
 export function rememberActiveOutfit(state: HangerConversationState, itemIds: Iterable<string>, intent: OutfitIntent): HangerConversationState {

@@ -22,7 +22,7 @@ test("Hanger's successful save immediately reaches the dashboard outfit state",(
 // from the browser's message list, so a follow-up brings new pieces even after a reload.
 test("what Hanger already suggested is remembered on the account, not in the browser",()=>{assert.match(agent,/JSON\.stringify\(\{ message \}\)/);assert.doesNotMatch(agent,/previousSuggestionItemIds/);assert.match(consumerAgentRoute,/rememberSuggestedItemIds\(/);assert.match(consumerAgentRoute,/selection\.map\(\(item\) => item\.id\)/);});
 
-test("repeated creation prompts rotate accumulated owned suggestions server-side",()=>{assert.match(consumerAgentRoute,/planHangerTurn\(\{ wardrobe, message, activeOutfit: stored\.activeOutfit \}\)/);assert.match(consumerAgentRoute,/rotatePriorSuggestions: plan\.rotatePriorSuggestions/);assert.match(consumerAgentRoute,/ownedSuggestionItemIds\(stored\.suggestedItemIds, wardrobe\)/,"the rotation list comes from the stored conversation");});
+test("repeated creation prompts rotate accumulated owned suggestions server-side",()=>{assert.match(consumerAgentRoute,/planHangerTurn\(\{ wardrobe, message, activeOutfit: stored\.activeOutfit, pendingRequest: stored\.pendingRequest \}\)/);assert.match(consumerAgentRoute,/rotatePriorSuggestions: plan\.rotatePriorSuggestions/);assert.match(consumerAgentRoute,/ownedSuggestionItemIds\(stored\.suggestedItemIds, wardrobe\)/,"the rotation list comes from the stored conversation");});
 
 test("Hanger displays the exact owned garment images before an outfit is saved",()=>{assert.match(agent,/reply\.selection/);assert.match(agent,/hanger-outfit-preview/);assert.match(agent,/item\.imageUrl/);});
 

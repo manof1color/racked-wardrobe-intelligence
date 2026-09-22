@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { GARMENT_TAXONOMY } from "@/lib/garment-taxonomy";
 import { consumerOutfitContract, generateConsumerHangerReply, hangerOutfitName, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
-import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberSuggestedItemIds } from "@/lib/hanger-memory";
+import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberPendingRequest, rememberSuggestedItemIds } from "@/lib/hanger-memory";
 import { allowedOutfitActions, planHangerTurn } from "@/lib/hanger-turn";
-import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, requestedOutfitCount, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
+import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { clearHangerConversation, getConsumerInspirationProfile, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -81,12 +81,12 @@ export async function POST(request: Request) {
   const remembered = preferenceSummary(preferences);
   const previousSuggestionItemIds = ownedSuggestionItemIds(stored.suggestedItemIds, wardrobe);
   const mostRecentSavedItemIds = outfits[0]?.itemIds ?? [];
-  const plan = planHangerTurn({ wardrobe, message, activeOutfit: stored.activeOutfit });
+  const plan = planHangerTurn({ wardrobe, message, activeOutfit: stored.activeOutfit, pendingRequest: stored.pendingRequest });
+  // What this turn is really answering: the latest message, or the request it completes.
+  const requestText = plan.effectiveMessage;
   const activeOwnedItems = plan.activeItemIds.map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is WardrobeItem => Boolean(item));
   const producesOutfit = plan.mode === "create" || plan.mode === "revise";
-  // Only a turn that builds outfits can build several of them: "explain that" asks about the one
-  // already on screen, however many outfits the sentence happens to mention.
-  const requestedCount = producesOutfit ? requestedOutfitCount(message) : 1;
+  const requestedCount = plan.outfitCount;
   const rankingOptions = {
     history,
     intentOverride: plan.intent,
@@ -97,8 +97,8 @@ export async function POST(request: Request) {
     rotatePriorSuggestions: plan.rotatePriorSuggestions,
     inspirationStyleHints: inspiration.styleHints,
   };
-  const set = producesOutfit && requestedCount > 1 ? rankOutfitSet(wardrobe, message, { ...rankingOptions, count: requestedCount }) : [];
-  const ranked = set.length ? set[0].outfit : producesOutfit ? rankOutfit(wardrobe, message, rankingOptions) : null;
+  const set = producesOutfit && requestedCount > 1 ? rankOutfitSet(wardrobe, requestText, { ...rankingOptions, count: requestedCount }) : [];
+  const ranked = set.length ? set[0].outfit : producesOutfit ? rankOutfit(wardrobe, requestText, rankingOptions) : null;
   const suggested = ranked
     ? ranked.pieces.map((piece) => piece.item)
     : (plan.mode === "explain" || plan.mode === "save-confirm" || plan.mode === "wear-confirm") ? activeOwnedItems : [];
@@ -110,7 +110,8 @@ export async function POST(request: Request) {
   const explainedPieces = ranked?.pieces ?? (plan.mode === "explain" ? scoreOwnedPieces(suggested, plan.intent) : []);
   const selectionReasons = Object.fromEntries(explainedPieces.map((piece) => [piece.item.id, piece.reasons]));
   const generated = await generateConsumerHangerReply({
-    message,
+    message: requestText,
+    outfitCount: set.length || (ranked ? 1 : 0),
     history,
     wardrobe,
     outfits,
@@ -153,6 +154,8 @@ export async function POST(request: Request) {
     ...(outfitSet ? { outfits: outfitSet } : {}),
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
+      ...(repeatedPiecesInSet(set) > 0 ? [`${repeatedPiecesInSet(set)} piece${repeatedPiecesInSet(set) === 1 ? "" : "s"} appear in more than one outfit — your closet has fewer of those than the set needed`] : []),
+      ...(plan.effectiveMessage !== message ? ["This answered the request still open from an earlier message"] : []),
       ...(requestedCount > 1 ? [set.length >= requestedCount
         ? `${set.length} outfits built, sharing no pieces`
         : `${set.length} outfit${set.length === 1 ? "" : "s"} built of the ${requestedCount} asked for — your closet ran out of unused pieces${requestedCount >= MAX_OUTFIT_SET ? `, and a set stops at ${MAX_OUTFIT_SET}` : ""}`] : []),
@@ -182,6 +185,7 @@ export async function POST(request: Request) {
       nextState = rememberSuggestedItemIds(nextState, offered);
       nextState = rememberActiveOutfit(nextState, selection.map((item) => item.id), ranked.intent);
     }
+    nextState = rememberPendingRequest(nextState, plan.pendingRequest);
     await saveHangerConversation(subject, nextState);
   } catch (reason) {
     // A reply the person can already see is worth more than a perfectly stored transcript.

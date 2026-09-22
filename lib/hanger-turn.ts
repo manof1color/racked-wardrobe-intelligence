@@ -5,13 +5,14 @@
  * "those" or a revision such as "keep the shoes" refers to. This planner resolves those phrases
  * only against the latest owned outfit saved in the account's Hanger state.
  */
-import type { HangerActiveOutfit } from "./hanger-memory.ts";
+import type { HangerActiveOutfit, HangerPendingRequest } from "./hanger-memory.ts";
 import {
   MAX_OUTFIT_PIECES,
   asksForOutfitSuggestion,
   explicitlyExcludedWardrobeItems,
   explicitlyRequestedWardrobeItems,
   readOutfitIntent,
+  requestedOutfitCount,
   requestedOutfitPieceCount,
   type OutfitIntent,
 } from "./outfit-ranking.ts";
@@ -21,6 +22,15 @@ export type HangerTurnMode = "create" | "revise" | "explain" | "save-confirm" | 
 
 export interface HangerTurnPlan {
   mode: HangerTurnMode;
+  /**
+   * The request being answered. Normally the latest message; when that message only supplies
+   * something Hanger asked for, it is that answer appended to the request still outstanding.
+   */
+  effectiveMessage: string;
+  /** How many outfits this turn owes, which only a turn that builds outfits can be more than one. */
+  outfitCount: number;
+  /** The request to hold open if this turn ends in a question, so the answer completes it. */
+  pendingRequest: HangerPendingRequest | null;
   intent: OutfitIntent;
   activeItemIds: string[];
   requiredItemIds: string[];
@@ -54,6 +64,21 @@ const NEGATED_ACTION = /\b(?:do not|don['’]?t|never|not|no)\s+(?:save|record|l
 const ADD_TO_LOOK = /\badd\b[^.!?;]{0,70}\b(?:to|into)\s+(?:(?:this|that|the|my|current)\s+)?(?:outfit|look)\b/i;
 const CURRENT_LOOK_REFERENCE = /\b(?:this|that|current|same)\s+(?:outfit|look)\b|\b(?:make|style|change|adjust|redo|revise)\s+it\b/i;
 const OMIT_CUE = /\b(?:remove|drop|leave out|without|no)\b/;
+
+/**
+ * Words that supply what Hanger asks for when it asks. A message made only of these is an answer
+ * to the outstanding question — "cold", "for a wedding", "weather please" — and must finish the
+ * request that prompted it rather than starting a thinner one of its own.
+ */
+const SUPPLIES_CONTEXT = /\b(?:weather|forecast|temperature|cold|cool|chilly|warm|hot|mild|rain|rainy|raining|wet|snow|snowy|windy|humid|sunny|indoors|outdoors|work|office|school|class|date|dinner|lunch|brunch|party|wedding|funeral|interview|meeting|church|gym|travel|flight|errands|casual|formal|smart|business|dressy|relaxed|comfortable|night out|going out|day|evening|morning|tonight|tomorrow|weekend|today)\b/i;
+const ANSWER_LENGTH_WORDS = 8;
+
+/** True when the message reads as an answer to a question rather than a fresh request. */
+export function suppliesPendingContext(message: string) {
+  const words = message.trim().split(/\s+/).filter(Boolean);
+  if (!words.length || words.length > ANSWER_LENGTH_WORDS) return false;
+  return SUPPLIES_CONTEXT.test(message) || words.length <= 4;
+}
 
 const CATEGORY_WORDS: Record<string, string[]> = {
   top: ["top", "tops", "shirt", "shirts", "tee", "tees", "hoodie", "hoodies", "sweater", "sweaters", "blouse", "blouses"],
@@ -117,6 +142,7 @@ export function planHangerTurn(input: {
   wardrobe: WardrobeItem[];
   message: string;
   activeOutfit?: HangerActiveOutfit | null;
+  pendingRequest?: HangerPendingRequest | null;
 }): HangerTurnPlan {
   const currentIntent = readOutfitIntent(input.message);
   const creationRequested = asksForOutfitSuggestion(input.message);
@@ -148,6 +174,14 @@ export function planHangerTurn(input: {
   else if (hasActive && (ADD_TO_LOOK.test(input.message) || (refersToActive && (creationRequested || REVISION_CUE.test(input.message))) || REVISION_CUE.test(input.message) || requested.length > 0 || explicitlyExcluded.length > 0)) mode = "revise";
   else if (creationRequested || currentIntent.mode === "rotation" || requested.length > 0) mode = "create";
   else mode = "advice";
+
+  // "Build me five outfits" → "what is the weather?" → "cold" has to answer the first message.
+  // Without this, the answer is read as a new and much vaguer request, and the five outfits the
+  // customer already asked for never arrive.
+  const pending = input.pendingRequest ?? null;
+  const continues = mode === "advice" && Boolean(pending) && suppliesPendingContext(input.message);
+  if (continues) mode = "create";
+  const effectiveMessage = continues && pending ? `${pending.message} ${input.message}`.slice(0, 1_000) : input.message;
 
   const required = new Set(requested.map((item) => item.id));
   const excluded = new Set(explicitlyExcluded.map((item) => item.id));
@@ -187,8 +221,17 @@ export function planHangerTurn(input: {
   const addition = mode === "revise" && ADD_TO_LOOK.test(input.message) && requested.some((item) => !activeItemIds.includes(item.id)) ? 1 : 0;
   const maxPieces = Math.max(1, Math.min(MAX_OUTFIT_PIECES, requestedCount ?? (mode === "revise" && activeItemIds.length ? activeItemIds.length - removedActiveCount + addition : MAX_OUTFIT_PIECES)));
 
+  const producesOutfit = mode === "create" || mode === "revise";
+  const outfitCount = !producesOutfit ? 1
+    : continues && pending ? pending.count
+    : requestedOutfitCount(effectiveMessage);
+
   return {
     mode,
+    effectiveMessage,
+    outfitCount,
+    // Held open only while a question is outstanding; answering it clears the request.
+    pendingRequest: producesOutfit && !continues ? { message: effectiveMessage, count: outfitCount } : null,
     intent,
     activeItemIds,
     requiredItemIds: [...required].slice(0, maxPieces),

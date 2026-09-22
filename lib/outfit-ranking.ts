@@ -86,7 +86,7 @@ const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|negl
 // recognized before ranking so "redo it" and "use other pieces" do not silently
 // return the same deterministic selection.
 const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|adjust(?: it| the outfit| this look)?|redo(?: it| the outfit| this look)?|remake(?: it| the outfit| this look)?|revise(?: it| the outfit| this look)?|try again|start over|use (?:my )?other pieces|change (?:it|the outfit|this look)|switch (?:it|the outfit|this look)|swap (?:it|the outfit|this look|the pieces)|refresh (?:it|the outfit|this look)/;
-const OUTFIT_CREATION_KEYWORDS = /(?:build|create|make|style|suggest|give|show)(?:\s+[a-z0-9'-]+){0,8}\s+(?:outfit|look|rotation)|what (?:can|should) i wear/;
+const OUTFIT_CREATION_KEYWORDS = /(?:build|create|make|style|suggest|give|show|put together|throw together|plan)(?:\s+[a-z0-9'-]+){0,8}\s+(?:outfit|look|rotation|fit)|what (?:can|should|could) i wear|what about (?:an?|another|some) (?:outfit|look|fit)|an? (?:outfit|look|fit)(?:\s+[a-z0-9'-]+){0,3}\s+(?:that|which|with|using|including|includes|featuring|around)|(?:advice|help|ideas?|suggestions?|recommendations?|thoughts)(?:\s+[a-z0-9'-]+){0,4}\s+(?:on |for |about )?what to wear|(?:what|something|anything) to wear|dress me|help me (?:get )?dress|outfit ideas|style me/;
 export const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
 const REQUIRED_PIECE_CUE = /\b(?:use|using|wear|wearing|include|including|incorporate|pair|pairing|style|styling|with|from|around|centered|starting|start|featuring|feature|add|keep|want|need|must have)\b/;
 const REPLACEMENT_TARGET_CUE = /\b(?:change|swap|replace)\b[^|.!?;]{0,65}\b(?:to|for|with)(?:\s+(?:the|my|a))?$/;
@@ -471,24 +471,77 @@ export interface OutfitSetEntry {
   outfit: GroundedOutfit;
 }
 
+/** The same pieces in a different order are the same outfit, so a set is deduplicated by id. */
+const outfitSignature = (pieces: RankedGarment[]) => pieces.map((piece) => piece.item.id).sort().join("|");
+
+/**
+ * How many outfits in a set one piece may appear in. A category with at least as many pieces as
+ * the set needs spends each one once — five pairs of shoes should not repeat across five outfits.
+ * A category with fewer shares them out evenly instead: three tops across five outfits appear
+ * twice at most, so the set rotates the whole closet rather than leaning on one favourite.
+ */
+function appearanceAllowance(wardrobe: WardrobeItem[], count: number) {
+  const owned = new Map<string, number>();
+  for (const item of wardrobe) {
+    const category = String(item.category ?? "").toLocaleLowerCase();
+    owned.set(category, (owned.get(category) ?? 0) + 1);
+  }
+  const allowance = new Map<string, number>();
+  for (const [category, pieces] of owned) allowance.set(category, Math.max(1, Math.ceil(count / pieces)));
+  return allowance;
+}
+
 export function rankOutfitSet(
   wardrobe: WardrobeItem[],
   message: string,
   options: Parameters<typeof rankOutfit>[2] & { count?: number } = {},
 ): OutfitSetEntry[] {
   const count = Math.max(1, Math.min(MAX_OUTFIT_SET, options.count ?? 1));
-  const used = new Set<string>([...(options.avoidItemIds ?? [])]);
+  const allowance = appearanceAllowance(wardrobe, count);
+  const carriedAvoid = [...(options.avoidItemIds ?? [])];
+  const appearances = new Map<string, number>();
+  const used = new Set<string>();
+  const signatures = new Set<string>();
   const entries: OutfitSetEntry[] = [];
+
   for (let index = 0; index < count; index++) {
-    const outfit = rankOutfit(wardrobe, message, { ...options, avoidItemIds: used, rotatePriorSuggestions: index > 0 || options.rotatePriorSuggestions });
-    const pieces = oneOfEachCategory(outfit.pieces);
-    const ids = pieces.map((piece) => piece.item.id);
+    // A piece that has had its share of the set steps aside so the rest of the closet is seen.
+    const spent = wardrobe
+      .filter((item) => (appearances.get(item.id) ?? 0) >= (allowance.get(String(item.category ?? "").toLocaleLowerCase()) ?? 1))
+      .map((item) => item.id);
+    let pieces: RankedGarment[] = [];
+    let outfit = null as ReturnType<typeof rankOutfit> | null;
+    // Two attempts, and the second one only widens what may be reused: never an endless search.
+    for (const excluded of [spent, [] as string[]]) {
+      outfit = rankOutfit(wardrobe, message, {
+        ...options,
+        excludedItemIds: [...(options.excludedItemIds ?? []), ...excluded],
+        avoidItemIds: [...carriedAvoid, ...used],
+        rotatePriorSuggestions: index > 0 || options.rotatePriorSuggestions,
+      });
+      pieces = oneOfEachCategory(outfit.pieces);
+      if (pieces.length && !signatures.has(outfitSignature(pieces))) break;
+      pieces = [];
+    }
     // A second outfit that repeats the first is not a second outfit. Stop and report honestly.
-    if (!ids.length || ids.some((id) => used.has(id))) break;
-    for (const id of ids) used.add(id);
-    entries.push({ index: index + 1, outfit: { ...outfit, pieces } });
+    if (!outfit || !pieces.length) break;
+    signatures.add(outfitSignature(pieces));
+    for (const piece of pieces) {
+      used.add(piece.item.id);
+      appearances.set(piece.item.id, (appearances.get(piece.item.id) ?? 0) + 1);
+    }
+    entries.push({ index: entries.length + 1, outfit: { ...outfit, pieces } });
   }
   return entries;
+}
+
+/** How many pieces the set had to use more than once, so the reply can say so rather than hide it. */
+export function repeatedPiecesInSet(entries: OutfitSetEntry[]) {
+  const seen = new Map<string, number>();
+  for (const entry of entries) {
+    for (const piece of entry.outfit.pieces) seen.set(piece.item.id, (seen.get(piece.item.id) ?? 0) + 1);
+  }
+  return [...seen.values()].filter((appearances) => appearances > 1).length;
 }
 
 export function rankOutfit(
