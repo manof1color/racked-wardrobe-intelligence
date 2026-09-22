@@ -491,6 +491,46 @@ function appearanceAllowance(wardrobe: WardrobeItem[], count: number) {
   return allowance;
 }
 
+/** How many pieces two outfits hold in common. */
+function sharedPieceCount(left: RankedGarment[], right: RankedGarment[]) {
+  const ids = new Set(right.map((piece) => piece.item.id));
+  return left.filter((piece) => ids.has(piece.item.id)).length;
+}
+
+/**
+ * Two outfits that differ by one shirt are the same look restyled, not two looks. A new outfit
+ * must differ from every outfit already in the set by at least two pieces — relaxed only when a
+ * closet cannot do better, because a near-duplicate still beats refusing to answer.
+ */
+const MINIMUM_DIFFERING_PIECES = 2;
+
+/**
+ * Keeps every category answerable. The set builder holds pieces back to force variety, and with a
+ * two-pair shoe rail that can block both pairs at once — which produced an outfit with no shoes.
+ * A category whose every remaining piece is held back gets them all released. Pieces the customer
+ * themselves excluded are never released: "without the boots" is not a constraint to relax.
+ */
+function withCategoryFloor(held: Iterable<string>, wardrobe: WardrobeItem[], customerExcluded: Iterable<string>) {
+  const blocked = new Set(held);
+  const offLimits = new Set(customerExcluded);
+  const byCategory = new Map<string, WardrobeItem[]>();
+  for (const item of wardrobe) {
+    const category = String(item.category ?? "").toLocaleLowerCase();
+    byCategory.set(category, [...(byCategory.get(category) ?? []), item]);
+  }
+  for (const items of byCategory.values()) {
+    const eligible = items.filter((item) => !offLimits.has(item.id));
+    if (eligible.length && eligible.every((item) => blocked.has(item.id))) {
+      for (const item of eligible) blocked.delete(item.id);
+    }
+  }
+  return [...blocked];
+}
+
+function tooSimilarTo(candidate: RankedGarment[], entries: OutfitSetEntry[]) {
+  return entries.find((entry) => sharedPieceCount(candidate, entry.outfit.pieces) > Math.max(candidate.length, entry.outfit.pieces.length) - MINIMUM_DIFFERING_PIECES);
+}
+
 export function rankOutfitSet(
   wardrobe: WardrobeItem[],
   message: string,
@@ -511,17 +551,38 @@ export function rankOutfitSet(
       .map((item) => item.id);
     let pieces: RankedGarment[] = [];
     let outfit = null as ReturnType<typeof rankOutfit> | null;
-    // Two attempts, and the second one only widens what may be reused: never an endless search.
-    for (const excluded of [spent, [] as string[]]) {
+    // Pieces held back this turn because they made the candidate a near-copy of an earlier outfit.
+    const breakingUp = new Set<string>();
+    // Four attempts at most, each one loosening a single constraint, so the search always ends:
+    // step aside for spent pieces and near-copies, then drop each requirement in turn.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const relaxAllowance = attempt >= 2;
+      const acceptNearCopy = attempt >= 3;
+      const held = [...(relaxAllowance ? [] : spent), ...(attempt === 0 ? [] : breakingUp)];
+      const excluded = withCategoryFloor(held, wardrobe, options.excludedItemIds ?? []);
       outfit = rankOutfit(wardrobe, message, {
         ...options,
         excludedItemIds: [...(options.excludedItemIds ?? []), ...excluded],
         avoidItemIds: [...carriedAvoid, ...used],
         rotatePriorSuggestions: index > 0 || options.rotatePriorSuggestions,
       });
-      pieces = oneOfEachCategory(outfit.pieces);
-      if (pieces.length && !signatures.has(outfitSignature(pieces))) break;
+      const candidate = oneOfEachCategory(outfit.pieces);
       pieces = [];
+      if (!candidate.length || signatures.has(outfitSignature(candidate))) continue;
+      const nearCopy = tooSimilarTo(candidate, entries);
+      if (!nearCopy || acceptNearCopy) {
+        pieces = candidate;
+        break;
+      }
+      // Hold back what this candidate shares with the outfit it copies, and look again — but only
+      // from categories deep enough to spare a piece. Holding back one of two pairs of shoes twice
+      // over leaves an outfit barefoot, which is not the kind of variety anybody asked for.
+      const shared = new Set(nearCopy.outfit.pieces.map((piece) => piece.item.id));
+      for (const piece of candidate) {
+        const category = String(piece.item.category ?? "").toLocaleLowerCase();
+        const depth = wardrobe.filter((item) => String(item.category ?? "").toLocaleLowerCase() === category).length;
+        if (shared.has(piece.item.id) && depth >= MINIMUM_DIFFERING_PIECES + 1) breakingUp.add(piece.item.id);
+      }
     }
     // A second outfit that repeats the first is not a second outfit. Stop and report honestly.
     if (!outfit || !pieces.length) break;
