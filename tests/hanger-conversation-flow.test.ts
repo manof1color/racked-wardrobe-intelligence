@@ -167,3 +167,26 @@ test("the stylist is told not to ask the same question twice", () => {
   assert.match(source, /illustration only and never as a source of garments/, "the voice example cannot be mined for clothes");
   assert.match(source, /temperature: 0\.6/, "two similar requests do not come back in identical sentences");
 });
+
+// REGRESSION: "an outfit that includes the Megalace Slides" produced an outfit without them. The
+// cue list held "include" but not "includes", and a word boundary makes those different words, so
+// the piece the customer named by hand was never required — and nothing asked about it either.
+test("REGRESSION: a piece named in the request is in the outfit", () => {
+  const asked = plan("What about an outfit that includes the Megalace Slides");
+  assert.equal(asked.mode, "create");
+  assert.deepEqual(asked.requiredItemIds, ["s3"], "the named piece is required, not merely mentioned");
+
+  for (const phrasing of [
+    "an outfit that includes the Megalace Slides",
+    "a look that features the Black Skully",
+    "something that uses the Blue Jeans",
+    "build a fit with the Megalace Slides",
+  ]) {
+    assert.ok(plan(phrasing).requiredItemIds.length > 0, phrasing);
+  }
+
+  // A named piece that is not owned still asks rather than quietly building something else.
+  const unresolved = plan("What about an outfit that includes the red velvet blazer");
+  assert.equal(unresolved.mode, "clarify");
+  assert.match(unresolved.clarification ?? "", /exact saved name/);
+});
