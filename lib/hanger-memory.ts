@@ -11,6 +11,7 @@
  */
 import type { AgentChatTurn } from "./platform-types.ts";
 import type { WardrobeItem } from "./types.ts";
+import { OUTFIT_OCCASIONS, OUTFIT_WEATHERS, STYLE_VOCABULARY, type OutfitIntent } from "./outfit-ranking.ts";
 
 /** Turns kept on the record. Older ones fall away; what was learned from them does not. */
 export const MAX_STORED_TURNS = 40;
@@ -29,11 +30,19 @@ export interface HangerPreference {
   value: string;
 }
 
+export interface HangerActiveOutfit {
+  /** The latest outfit being discussed, distinct from the cumulative rotation history. */
+  itemIds: string[];
+  /** Controlled intent survives short follow-ups such as "swap the shoes" without storing prose. */
+  intent: OutfitIntent;
+}
+
 export interface HangerConversationState {
   turns: AgentChatTurn[];
   preferences: HangerPreference[];
   /** Pieces already offered, so a follow-up brings something new rather than the same outfit. */
   suggestedItemIds: string[];
+  activeOutfit: HangerActiveOutfit | null;
   /** Messages that have fallen off the record, so the prompt can say so instead of pretending. */
   earlierTurnCount: number;
   updatedAt: string;
@@ -50,7 +59,7 @@ const text = (value: unknown, maximum = MAX_TURN_CHARS) => (typeof value === "st
 const normalize = (value: string) => value.toLocaleLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 
 export function emptyHangerConversation(): HangerConversationState {
-  return { turns: [], preferences: [], suggestedItemIds: [], earlierTurnCount: 0, updatedAt: new Date(0).toISOString() };
+  return { turns: [], preferences: [], suggestedItemIds: [], activeOutfit: null, earlierTurnCount: 0, updatedAt: new Date(0).toISOString() };
 }
 
 /** Reads a stored record defensively: anything unexpected becomes an empty conversation. */
@@ -60,7 +69,8 @@ export function readHangerConversation(value: unknown): HangerConversationState 
   const turns = Array.isArray(record.turns)
     ? record.turns
         .filter((turn): turn is Record<string, unknown> => Boolean(turn) && typeof turn === "object")
-        .map((turn) => ({ role: turn.role === "assistant" ? "assistant" as const : "user" as const, content: text(turn.content) }))
+        .filter((turn) => turn.role === "user" || turn.role === "assistant")
+        .map((turn) => ({ role: turn.role as "user" | "assistant", content: text(turn.content) }))
         .filter((turn) => turn.content.length > 0)
         .slice(-MAX_STORED_TURNS)
     : [];
@@ -78,8 +88,36 @@ export function readHangerConversation(value: unknown): HangerConversationState 
   const suggestedItemIds = Array.isArray(record.suggestedItemIds)
     ? [...new Set(record.suggestedItemIds.filter((id): id is string => typeof id === "string" && id.length > 0 && id.length <= 128))].slice(-MAX_SUGGESTED_ITEM_IDS)
     : [];
+  const activeRecord = record.activeOutfit && typeof record.activeOutfit === "object" ? record.activeOutfit as Record<string, unknown> : null;
+  const activeIntentRecord = activeRecord?.intent && typeof activeRecord.intent === "object" ? activeRecord.intent as Record<string, unknown> : null;
+  const activeItemIds = Array.isArray(activeRecord?.itemIds)
+    ? [...new Set(activeRecord.itemIds.filter((id): id is string => typeof id === "string" && id.length > 0 && id.length <= 128))].slice(0, 4)
+    : [];
+  const activeOccasion = OUTFIT_OCCASIONS.find((value) => value === activeIntentRecord?.occasion) ?? null;
+  const activeWeather = OUTFIT_WEATHERS.find((value) => value === activeIntentRecord?.weather) ?? null;
+  const storedActiveStyles = Array.isArray(activeIntentRecord?.styleHints) ? activeIntentRecord.styleHints : [];
+  const activeStyles = storedActiveStyles.length
+    ? STYLE_VOCABULARY.filter((style) => storedActiveStyles.includes(style)).slice(0, 8)
+    : [];
+  // Older stored conversations predate styleSource. Their controlled style hints came from
+  // the customer's request; preserve that meaning when restoring the current outfit.
+  const activeStyleSource = !activeStyles.length ? "none"
+    : activeIntentRecord?.styleSource === "request" || activeIntentRecord?.styleSource === "inspiration"
+      ? activeIntentRecord.styleSource
+      : activeIntentRecord?.styleSource === undefined ? "request" : "none";
+  const activeOutfit: HangerActiveOutfit | null = activeItemIds.length ? {
+    itemIds: activeItemIds,
+    intent: {
+      mode: activeIntentRecord?.mode === "rotation" ? "rotation" : "outfit",
+      occasion: activeOccasion,
+      weather: activeWeather,
+      styleHints: activeStyles,
+      styleSource: activeStyleSource,
+      alternativeRequested: false,
+    },
+  } : null;
   const earlierTurnCount = Number.isFinite(record.earlierTurnCount) ? Math.max(0, Math.floor(Number(record.earlierTurnCount))) : 0;
-  return { turns, preferences, suggestedItemIds, earlierTurnCount, updatedAt: text(record.updatedAt, 40) || new Date(0).toISOString() };
+  return { turns, preferences, suggestedItemIds, activeOutfit, earlierTurnCount, updatedAt: text(record.updatedAt, 40) || new Date(0).toISOString() };
 }
 
 export function appendTurns(state: HangerConversationState, turns: AgentChatTurn[], now: Date = new Date()): HangerConversationState {
@@ -92,6 +130,24 @@ export function appendTurns(state: HangerConversationState, turns: AgentChatTurn
 export function rememberSuggestedItemIds(state: HangerConversationState, itemIds: Iterable<string>): HangerConversationState {
   const merged = [...new Set([...state.suggestedItemIds, ...[...itemIds].filter((id) => typeof id === "string" && id.length > 0)])];
   return { ...state, suggestedItemIds: merged.slice(-MAX_SUGGESTED_ITEM_IDS) };
+}
+
+export function rememberActiveOutfit(state: HangerConversationState, itemIds: Iterable<string>, intent: OutfitIntent): HangerConversationState {
+  const ownedIds = [...new Set([...itemIds].filter((id) => typeof id === "string" && id.length > 0 && id.length <= 128))].slice(0, 4);
+  return {
+    ...state,
+    activeOutfit: ownedIds.length ? {
+      itemIds: ownedIds,
+      intent: {
+        mode: intent.mode,
+        occasion: intent.occasion,
+        weather: intent.weather,
+        styleHints: STYLE_VOCABULARY.filter((style) => intent.styleHints.includes(style)).slice(0, 8),
+        styleSource: intent.styleHints.length && (intent.styleSource === "request" || intent.styleSource === "inspiration") ? intent.styleSource : "none",
+        alternativeRequested: false,
+      },
+    } : null,
+  };
 }
 
 /**

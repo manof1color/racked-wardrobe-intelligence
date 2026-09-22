@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, consumerReplyPassesSelectionReview, formatHangerText, generateConsumerHangerReply, groundedSelectionText, hangerOutfitName, MAX_PRIOR_SUGGESTION_IDS, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
+import { brandReplyPassesPrivacyReview, buildBrandHangerPrompt, buildConsumerHangerPrompt, consumerOutfitContract, consumerReplyPassesSelectionReview, formatHangerText, generateConsumerHangerReply, groundedSelectionText, groundedWardrobeAdvice, hangerOutfitName, MAX_PRIOR_SUGGESTION_IDS, normalizeProviderHistory, ownedSuggestionItemIds, sanitizeAgentHistory, selectGroundedOutfit } from "../lib/hanger-conversation.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -62,9 +62,43 @@ test("saved Hanger outfits are named from their actual selected pieces", () => {
 });
 
 test("Hanger's canonical words list the same selected garments shown and saved", () => {
-  assert.equal(groundedSelectionText(wardrobe.slice(0, 2)), "Selected outfit — these exact pieces appear in the photos and Save action:\n• Blue Oxford (top)\n• Black Trouser (bottom)");
+  assert.equal(groundedSelectionText(wardrobe.slice(0, 2)), "Current outfit — these exact owned pieces are shown in the same order:\n• Blue Oxford (top)\n• Black Trouser (bottom)");
   assert.equal(consumerReplyPassesSelectionReview("Pair Blue Oxford with Black Trouser.", wardrobe, wardrobe.slice(0, 2)), true);
   assert.equal(consumerReplyPassesSelectionReview("Pair Blue Oxford with White Sneaker.", wardrobe, wardrobe.slice(0, 2)), false);
+});
+
+test("one canonical selection keeps garment photos, names, and action ids aligned", () => {
+  const pictured = wardrobe.map((item, index) => ({ ...item, imageUrl: `https://example.test/photo-${index}.jpg` }));
+  const contract = consumerOutfitContract(pictured, "both");
+  assert.deepEqual(contract.selection?.map((item) => item.id), pictured.map((item) => item.id));
+  assert.deepEqual(contract.selection?.map((item) => item.name), pictured.map((item) => item.name));
+  assert.deepEqual(contract.selection?.map((item) => item.imageUrl), pictured.map((item) => item.imageUrl));
+  assert.deepEqual(contract.actions.map((action) => action.payload.itemIds), [pictured.map((item) => item.id).join(","), pictured.map((item) => item.id).join(",")]);
+  assert.equal(contract.actions[0].payload.name, hangerOutfitName(pictured));
+  assert.deepEqual(consumerOutfitContract(pictured, "save").actions.map((action) => action.type), ["save-outfit"]);
+  assert.deepEqual(consumerOutfitContract(pictured, "record").actions.map((action) => action.type), ["record-outfit"]);
+  assert.deepEqual(consumerOutfitContract(pictured, "none").actions, []);
+  assert.deepEqual(consumerOutfitContract([], "both").actions, []);
+});
+
+test("Hanger explains context with garment attributes, without private storage details", () => {
+  const detailed = [{ ...wardrobe[0], subtype: "dress-shirt" as const, pattern: "striped", material: "cotton", customType: null }];
+  const prompt = buildConsumerHangerPrompt({ message: "Why this?", wardrobe: detailed, outfits: [], suggested: detailed, turnMode: "explain", activeBefore: detailed, selectionReasons: { "top-1": ["Occasion fit: classic suits work."] } });
+  assert.match(prompt, /"turnMode":"explain"/);
+  assert.match(prompt, /"subtype":"dress-shirt"/);
+  assert.match(prompt, /"pattern":"striped"/);
+  assert.match(prompt, /"material":"cotton"/);
+  assert.match(prompt, /classic suits work/);
+  assert.doesNotMatch(prompt, /private\/account|imageKey|imageUrl/);
+});
+
+test("advice fallback reports actual wardrobe facts without inventing purchases or an outfit", () => {
+  const wear = groundedWardrobeAdvice(wardrobe, [], "What have I not worn lately?");
+  assert.match(wear, /White Sneaker \(0 recorded wears\)/);
+  assert.match(wear, /recorded wears, not a claim/);
+  const gap = groundedWardrobeAdvice(wardrobe, [], "What wardrobe gap should I prioritize?");
+  assert.match(gap, /cannot justify a purchase from category counts alone/);
+  assert.doesNotMatch(gap, /saved dress piece yet/);
 });
 
 test("Hanger acknowledges a required piece instead of claiming low-wear selection", async () => {
