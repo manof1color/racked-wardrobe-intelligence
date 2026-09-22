@@ -11,9 +11,11 @@
 //                                   pick, a published Community look, and a saved inspiration
 //   judge.newconsumer@racked.local  an empty account, so the first-run experience can be shown
 //                                   without disturbing the one above
-//   judge.brand@racked.local        Judge Demo Atelier: one product above the k>=25 release
-//                                   threshold, one deliberately below it, one retired, and a
-//                                   published Brand Look
+//   judge.brand@racked.local        Judge Demo Atelier: one product with 50 opted-in owners, so a
+//                                   judge sees what a live product looks like rather than one
+//                                   scraping over the line; one deliberately below the k>=25
+//                                   threshold, so suppression is visible beside it; one retired;
+//                                   and a published Brand Look
 //   judge.newbrand@racked.local     a brand with no products, so enrollment can be shown live
 //
 // Run (dry run first — it writes nothing and needs no AWS):
@@ -62,6 +64,13 @@ async function putObject(key, body, ownerId) {
 
 const createdAt = "2026-09-01T12:00:00.000Z";
 const at = (daysAgo, extraMinutes = 0) => new Date(Date.parse(createdAt) - daysAgo * 86_400_000 + extraMinutes * 60_000).toISOString();
+
+/**
+ * Opted-in owners for the released product. A product one owner past k>=25 proves the threshold
+ * and nothing else; fifty is a readable distribution, a real trend line, and a dashboard a judge
+ * can reason about. The judge consumer owns it too, so the synthetic cohort supplies the rest.
+ */
+const RELEASED_OWNER_TARGET = 50;
 
 const CONSUMER_ID = "judge-consumer-account";
 const CONSUMER_EMAIL = "judge.consumer@racked.local";
@@ -134,13 +143,13 @@ async function productImage(product, view) {
 }
 
 /**
- * The 25 opted-in owners the released product needs. They come from the main demo cohort; any that
+ * The opted-in owners the released product needs. They come from the main demo cohort; any that
  * are missing are created here, so the judge brand shows released metrics even when only this seed
  * has been run. Without their profiles, every aggregate would sit suppressed and the threshold demo
  * would look like a bug.
  */
 async function ensureCohortOwners() {
-  const ids = Array.from({ length: 25 }, (_, index) => `demo-consumer-${String(index + 1).padStart(2, "0")}`);
+  const ids = Array.from({ length: RELEASED_OWNER_TARGET - 1 }, (_, index) => `demo-consumer-${String(index + 1).padStart(2, "0")}`);
   let existing = new Set();
   if (!dryRun) {
     for (let offset = 0; offset < ids.length; offset += 100) {
@@ -375,7 +384,7 @@ export async function buildJudgeSeed() {
   freshConsumer: { email: FRESH_CONSUMER_EMAIL, wardrobePieces: 0, purpose: "first-run experience" },
     judgeBrand: { email: BRAND_EMAIL, brand: BRAND_NAME, publicPage: `/brands/${BRAND_SLUG}`, releasedProduct: PRODUCTS[0].sku, suppressedProduct: PRODUCTS[1].sku, retiredProduct: PRODUCTS[2].sku, brandLook: community.lookId, publicActivityEvents: community.events },
   freshBrand: { email: FRESH_BRAND_EMAIL, brand: FRESH_BRAND_NAME, products: 0, purpose: "live enrollment from one photo" },
-    cohort: { optedInOwnersForReleased, createdMissingOwners: owners.created.length, wearEvents: cohort.wearEvents, thresholdIs: 25 },
+    cohort: { optedInOwnersForReleased, suppressedProductOwners: 4, createdMissingOwners: owners.created.length, wearEvents: cohort.wearEvents, thresholdIs: 25 },
     totals: { items: written.items.length, objects: written.objects.length },
     passwordSource: "RACKED_TEST_PASSWORD (runtime only, never committed)",
     clearlyLabeledSyntheticData: true,
