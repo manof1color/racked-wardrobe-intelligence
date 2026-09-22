@@ -157,3 +157,13 @@ test("the route answers the held request and reports a repeated piece", () => {
   assert.match(route, /appear in more than one outfit/);
   assert.match(route, /This answered the request still open from an earlier message/);
 });
+
+// Every reply in the reported session ended with the same sentence — the clearest signal that
+// something is reciting rather than talking.
+test("the stylist is told not to ask the same question twice", () => {
+  const source = read("lib/hanger-conversation.ts");
+  assert.match(source, /Never close two replies in a row with the same question/);
+  assert.match(source, /never repeat a question the conversation has already answered/);
+  assert.match(source, /illustration only and never as a source of garments/, "the voice example cannot be mined for clothes");
+  assert.match(source, /temperature: 0\.6/, "two similar requests do not come back in identical sentences");
+});
