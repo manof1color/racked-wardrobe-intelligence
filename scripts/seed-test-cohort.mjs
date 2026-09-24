@@ -4,6 +4,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import sharp from "sharp";
+import { productArt } from "./lib/synthetic-garment-art.mjs";
 
 if(process.env.ALLOW_RACKED_TEST_SEED!=="yes")throw new Error("Set ALLOW_RACKED_TEST_SEED=yes to confirm this clearly labeled synthetic test write.");
 const table=process.env.RACKED_TABLE_NAME,bucket=process.env.RACKED_UPLOAD_BUCKET,password=process.env.RACKED_TEST_PASSWORD;
@@ -25,8 +26,9 @@ async function accountItem({id,email,role,displayName,brandName=null,brandSlug=n
 
 async function imageFor(cohort,index,view){
   const productName=cohort.names[index],sku=`${cohort.prefix}-${String(index+1).padStart(3,"0")}`;
-  const shape=view==="label"?`<rect x="130" y="180" width="640" height="740" rx="28" fill="#fffdf8" stroke="#171914" stroke-width="8"/>`:`<path d="M230 230 350 160h200l120 70 115 210-105 58-75-110v520H295V388l-75 110-105-58z" fill="${cohort.base}"/>`;
-  const svg=`<svg width="900" height="1100" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3efe5"/>${shape}<text x="450" y="430" text-anchor="middle" font-family="Arial" font-weight="800" font-size="42" fill="${view==="label"?"#171914":cohort.accent}">${cohort.brand}</text><text x="450" y="520" text-anchor="middle" font-family="Arial" font-size="38" fill="${view==="label"?"#171914":cohort.accent}">${productName}</text><text x="450" y="605" text-anchor="middle" font-family="Arial" font-size="34" fill="${view==="label"?"#171914":cohort.accent}">${sku}</text><text x="450" y="760" text-anchor="middle" font-family="Arial" font-weight="700" font-size="26" fill="#e94f30">SYNTHETIC DEMO · ${view.toUpperCase()}</text></svg>`;
+  const category=cohort.categories[index];
+  const subtype=category==="shoe"?"sneakers":category==="jewelry"?"necklace":category==="top"?"t-shirt":category==="bottom"?"casual-pants":category==="outerwear"?"bomber-jacket":"accessory";
+  const svg=productArt({name:productName,sku,brand:cohort.brand,category,subtype,color:cohort.base,view});
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 

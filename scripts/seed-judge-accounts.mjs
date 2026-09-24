@@ -33,6 +33,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { pathToFileURL } from "node:url";
 import sharp from "sharp";
+import { garmentArt, productArt } from "./lib/synthetic-garment-art.mjs";
 
 const dryRun = process.env.RACKED_SEED_DRY_RUN === "yes" || process.argv.includes("--dry-run");
 const table = process.env.RACKED_TABLE_NAME ?? (dryRun ? "dry-run-table" : undefined);
@@ -126,19 +127,8 @@ function brandNameClaim(brandSlug, accountId, brandName) {
   return { PK: `BRANDNAME#${brandSlug}`, SK: "CLAIM", GSI1PK: "BRAND_NAMES", GSI1SK: brandSlug, accountId, brandName, createdAt, testCohort: true, dataClassification: "DEMO" };
 }
 
-async function garmentImage({ name, color, category }) {
+async function imageBytes(svg) {
   if (dryRun) return Buffer.from("dry-run-image");
-  const svg = `<svg width="900" height="1100" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3efe5"/><path d="M230 230 350 160h200l120 70 115 210-105 58-75-110v520H295V388l-75 110-105-58z" fill="#394a63"/><text x="450" y="430" text-anchor="middle" font-family="Arial" font-weight="800" font-size="40" fill="#d5f66d">${name}</text><text x="450" y="510" text-anchor="middle" font-family="Arial" font-size="34" fill="#d5f66d">${color} ${category}</text><text x="450" y="760" text-anchor="middle" font-family="Arial" font-weight="700" font-size="26" fill="#e94f30">SYNTHETIC DEMO · JUDGE ACCOUNT</text></svg>`;
-  return sharp(Buffer.from(svg)).png().toBuffer();
-}
-
-async function productImage(product, view) {
-  if (dryRun) return Buffer.from("dry-run-image");
-  const shape = view === "label"
-    ? `<rect x="130" y="180" width="640" height="740" rx="28" fill="#fffdf8" stroke="#171914" stroke-width="8"/>`
-    : `<path d="M230 230 350 160h200l120 70 115 210-105 58-75-110v520H295V388l-75 110-105-58z" fill="#2f3a4d"/>`;
-  const ink = view === "label" ? "#171914" : "#d5f66d";
-  const svg = `<svg width="900" height="1100" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3efe5"/>${shape}<text x="450" y="430" text-anchor="middle" font-family="Arial" font-weight="800" font-size="42" fill="${ink}">${BRAND_NAME}</text><text x="450" y="520" text-anchor="middle" font-family="Arial" font-size="38" fill="${ink}">${product.name}</text><text x="450" y="605" text-anchor="middle" font-family="Arial" font-size="34" fill="${ink}">${product.sku}</text><text x="450" y="760" text-anchor="middle" font-family="Arial" font-weight="700" font-size="26" fill="#e94f30">SYNTHETIC DEMO · ${view.toUpperCase()}</text></svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
@@ -178,7 +168,7 @@ async function seedBrand() {
   for (const product of PRODUCTS) {
     const views = {};
     for (const view of ["front", "back", "label"]) {
-      const bytes = await productImage(product, view);
+      const bytes = await imageBytes(productArt({ ...product, brand: BRAND_NAME, view }));
       const key = `brand/${BRAND_ID}/${product.sku}-${view}.png`;
       await putObject(key, bytes, BRAND_ID);
       views[view] = { view, fileName: `${product.sku}-${view}.png`, contentType: "image/png", size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), storageKey: key };
@@ -227,7 +217,7 @@ async function seedConsumer(products) {
   for (const piece of WARDROBE) {
     const garmentId = `judge-garment-${piece.key}`;
     ids[piece.key] = garmentId;
-    const imageKey = await putObject(`wardrobe/${CONSUMER_ID}/${garmentId}.png`, await garmentImage(piece), CONSUMER_ID);
+    const imageKey = await putObject(`wardrobe/${CONSUMER_ID}/${garmentId}.png`, await imageBytes(garmentArt(piece)), CONSUMER_ID);
     imageKeys[piece.key] = imageKey;
     await putItem({
       id: garmentId, name: piece.name, category: piece.category, subtype: piece.subtype, color: piece.color,
@@ -244,12 +234,12 @@ async function seedConsumer(products) {
   // side they show the difference the whole boundary rests on: only the first is a brand link.
   const verifiedId = "judge-garment-verified-tee";
   ids.verified = verifiedId;
-  imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.png`, await garmentImage({ name: products.released.name, color: "navy", category: "top" }), CONSUMER_ID);
+  imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.png`, await imageBytes(garmentArt(products.released)), CONSUMER_ID);
   await linkVerified({ ownerId: CONSUMER_ID, product: PRODUCTS[0], garmentId: verifiedId, wearCount: 5, lastWornDays: 3, imageKey: imageKeys.verified });
 
   const pickedId = "judge-garment-picked-overshirt";
   ids.picked = pickedId;
-  imageKeys.picked = await putObject(`wardrobe/${CONSUMER_ID}/${pickedId}.png`, await garmentImage({ name: products.suppressed.name, color: "olive", category: "outerwear" }), CONSUMER_ID);
+  imageKeys.picked = await putObject(`wardrobe/${CONSUMER_ID}/${pickedId}.png`, await imageBytes(garmentArt(products.suppressed)), CONSUMER_ID);
   await putItem({
     id: pickedId, name: "Judge Olive Overshirt", category: "outerwear", subtype: "denim-jacket", color: "olive",
     pattern: "solid", material: "cotton", style: ["utility", "casual"], season: "fall", wearCount: 4, lastWornDays: 6,
