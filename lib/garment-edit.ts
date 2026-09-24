@@ -99,11 +99,21 @@ export function readGarmentEdit(value: unknown): GarmentEdit {
 const touchesIdentity = (edit: GarmentEdit) => "brand" in edit || "catalogProductId" in edit;
 
 /**
+ * Whether a stored piece is verified. The status field alone is not enough: a piece verified
+ * before that field existed has no status, yet sits in its brand's owner index with a registry id.
+ * Reading only the status let such a piece be relabelled as another brand while the first brand
+ * kept counting it and its wears.
+ */
+export function isVerifiedPiece(item: Pick<WardrobeItem, "identityStatus" | "registryProductId"> & { GSI1PK?: unknown }) {
+  return item.identityStatus === "verified" || Boolean(item.registryProductId) || String(item.GSI1PK ?? "").startsWith("PRODUCT#");
+}
+
+/**
  * The fields to write for this edit. Only fields named here are ever written; everything else on
  * the stored record — wear history, photos, owner, verified identity — is left exactly as it is.
  */
 export function applyGarmentEdit(item: WardrobeItem, edit: GarmentEdit, registry: BrandProductRegistration[] = []): Partial<WardrobeItem> {
-  if (item.identityStatus === "verified" && touchesIdentity(edit)) {
+  if (isVerifiedPiece(item) && touchesIdentity(edit)) {
     throw new GarmentEditRefused("This piece was verified from its care label, so its brand details can only change through the label. Everything else can be edited.", 409);
   }
   const changes: Partial<WardrobeItem> = {};

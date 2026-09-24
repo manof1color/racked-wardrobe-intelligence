@@ -152,10 +152,11 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
           setPieces([...found]);
           // Suggestions are fetched now for pieces whose brand was read, since their section is
           // already open. Nothing is linked until the person taps "This is mine".
+          // Look-alikes first; the brand search runs only if they come back empty, since it would
+          // mostly repeat them. Catalog matching is rate-limited, and a batch holds up to 24 pieces.
           for (const entry of created) {
             if (!entry.readBrand || entry.overrides.category === "unknown") continue;
             void loadCandidates(entry);
-            searchCatalog(entry, entry.readBrand);
           }
         } catch (reason) {
           // A batch stops only when the server says to stop; one unreadable photo does not.
@@ -243,6 +244,8 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
       const data = await readJsonResponse<{ error?: string; candidates?: CatalogCandidate[] }>(response, "The catalog returned an unreadable response.");
       if (!response.ok) throw new Error(data.error ?? "The catalog could not be searched.");
       update(piece.id, (current) => ({ ...current, candidates: data.candidates ?? [], candidatesState: "done" }));
+      // No look-alike for a brand read on the piece: fall back to searching that brand by name.
+      if (piece.readBrand && !(data.candidates ?? []).length) searchCatalog(piece, piece.readBrand);
     } catch {
       update(piece.id, (current) => ({ ...current, candidates: [], candidatesState: "failed" }));
     }
