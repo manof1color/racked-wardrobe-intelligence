@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { generateConsumerHangerReply, replyClaimsMissingOutfit } from "../lib/hanger-conversation.ts";
 import { rememberPendingRequest, readHangerConversation, emptyHangerConversation } from "../lib/hanger-memory.ts";
-import { planHangerTurn, suppliesPendingContext } from "../lib/hanger-turn.ts";
+import { planHangerTurn, replyAsksBack, suppliesPendingContext } from "../lib/hanger-turn.ts";
 import { rankOutfitSet, repeatedPiecesInSet } from "../lib/outfit-ranking.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -126,7 +126,7 @@ test("the request is held open only while Hanger is waiting on an answer", () =>
 test("REGRESSION: a reply cannot describe an outfit that was never built", () => {
   const invented = "Selected outfit — these exact pieces appear in the photos and Save action:\n• black boots (shoe)";
   assert.equal(replyClaimsMissingOutfit(invented, []), true);
-  assert.equal(replyClaimsMissingOutfit("Your current outfit works well for that.", []), true);
+  assert.equal(replyClaimsMissingOutfit("Here is your suggested outfit for that.", []), true);
   assert.equal(replyClaimsMissingOutfit("You have not worn the rugby shirt in a while — it would work here.", []), false, "naming a garment is not claiming an outfit");
   assert.equal(replyClaimsMissingOutfit(invented, [wardrobe[0]]), false, "with a real selection the phrasing is accurate");
 
@@ -153,7 +153,7 @@ test("the model is told the set already exists so it does not write its own", as
 test("the route answers the held request and reports a repeated piece", () => {
   assert.match(route, /pendingRequest: stored\.pendingRequest/);
   assert.match(route, /const requestText = plan\.effectiveMessage;/);
-  assert.match(route, /rememberPendingRequest\(nextState, plan\.pendingRequest\)/);
+  assert.match(route, /rememberPendingRequest\(nextState, replyAsksBack\(reply\.message\) \? plan\.pendingRequest : null\)/);
   assert.match(route, /appear in more than one outfit/);
   assert.match(route, /This answered the request still open from an earlier message/);
 });
@@ -221,4 +221,54 @@ test("outfits in a set differ by more than a single piece", () => {
       assert.ok(shared <= size - 2, `outfits ${entry.index} and ${other.index} share ${shared} of ${size} — they read as one look restyled`);
     }
   }
+});
+
+// REGRESSION (found in review of #141): any message of four words or fewer counted as an answer,
+// so after an outfit request "thanks!", "love it", and "lol" each built five more outfits — the
+// exact going-in-circles behaviour the continuation was written to stop.
+test("REGRESSION: saying thanks does not rebuild the outfits", () => {
+  const pendingRequest = { message: "build me 5 unique outfits", count: 5 };
+  const activeOutfit = { itemIds: ["t1", "b1", "s1"], intent: null };
+  for (const message of ["thanks!", "ok cool", "love it", "hello", "nice one", "lol", "have a good day", "no, that's fine for work", "yes"]) {
+    const turn = plan(message, { pendingRequest, activeOutfit } as never);
+    assert.notEqual(turn.mode, "create", `${JSON.stringify(message)} is conversation, not a request`);
+    assert.equal(turn.outfitCount, 1, `${JSON.stringify(message)} must not ask for five outfits`);
+  }
+  assert.notEqual(plan("cool, thanks", { pendingRequest, activeOutfit } as never).mode, "create", "thanks anywhere is thanks");
+  // A real answer still completes the request — including the weather words that double as
+  // pleasantries, since a request is only held right after Hanger asked something.
+  assert.equal(plan("cold and rainy", { pendingRequest, activeOutfit } as never).outfitCount, 5);
+  assert.equal(plan("cool and rainy", { pendingRequest, activeOutfit } as never).outfitCount, 5);
+});
+
+// The request is held only when the reply asked something. Holding it after every outfit meant
+// the next unrelated message was read as an answer to a question nobody had asked.
+test("a request is held open only when the reply actually asked something", () => {
+  assert.equal(replyAsksBack("Here are five looks for the week. Want them warmer?"), true);
+  assert.equal(replyAsksBack("Here are five looks for the week."), false);
+  assert.match(route, /replyAsksBack\(reply\.message\) \? plan\.pendingRequest : null/);
+});
+
+// REGRESSION (found in review of #144): adding "has" and "have" as cues for a requested piece
+// made "I don't have the black boots anymore" *require* the boots, and made "I have the day off
+// tomorrow" ask which garment was meant instead of building an outfit.
+test("REGRESSION: 'have' is not a request for a piece", () => {
+  const dayOff = plan("I have the day off tomorrow, what should I wear?");
+  assert.equal(dayOff.mode, "create", "an ordinary sentence gets an outfit, not a question about a garment");
+  assert.deepEqual(dayOff.requiredItemIds, []);
+
+  assert.deepEqual(plan("I don't have the black boots anymore, build me an outfit").requiredItemIds, [], "a piece someone no longer has is never required");
+  assert.deepEqual(plan("my friend has the same Blue Jeans, what should I wear").requiredItemIds, []);
+
+  // The fix for "includes" still stands.
+  assert.deepEqual(plan("What about an outfit that includes the Megalace Slides").requiredItemIds, ["s3"]);
+});
+
+// The guard exists to stop a reply describing screen furniture that is not there. Ordinary
+// speech about someone's clothes is not that, and rejecting it threw good advice away.
+test("the claims guard rejects invented screen furniture, not ordinary speech", () => {
+  assert.equal(replyClaimsMissingOutfit("These pieces are your least worn.", []), false);
+  assert.equal(replyClaimsMissingOutfit("Your current outfit already handles rain.", []), false);
+  assert.equal(replyClaimsMissingOutfit("Selected outfit — these exact pieces appear in the photos and Save action.", []), true);
+  assert.equal(replyClaimsMissingOutfit("Tap Save action below.", []), true);
 });

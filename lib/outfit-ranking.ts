@@ -88,7 +88,7 @@ const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|negl
 const ALTERNATIVE_KEYWORDS = /something else|different|another|new outfit|adjust(?: it| the outfit| this look)?|redo(?: it| the outfit| this look)?|remake(?: it| the outfit| this look)?|revise(?: it| the outfit| this look)?|try again|start over|use (?:my )?other pieces|change (?:it|the outfit|this look)|switch (?:it|the outfit|this look)|swap (?:it|the outfit|this look|the pieces)|refresh (?:it|the outfit|this look)/;
 const OUTFIT_CREATION_KEYWORDS = /(?:build|create|make|style|suggest|give|show|put together|throw together|plan)(?:\s+[a-z0-9'-]+){0,8}\s+(?:outfit|look|rotation|fit)|what (?:can|should|could) i wear|what about (?:an?|another|some) (?:outfit|look|fit)|an? (?:outfit|look|fit)(?:\s+[a-z0-9'-]+){0,3}\s+(?:that|which|with|using|including|includes|featuring|around)|(?:advice|help|ideas?|suggestions?|recommendations?|thoughts)(?:\s+[a-z0-9'-]+){0,4}\s+(?:on |for |about )?what to wear|(?:what|something|anything) to wear|dress me|help me (?:get )?dress|outfit ideas|style me/;
 export const STYLE_VOCABULARY = ["minimal", "classic", "casual", "tailored", "relaxed", "elegant", "utility", "sporty", "athletic", "vintage", "structured", "sleek", "comfortable", "statement", "layered", "refined"];
-const REQUIRED_PIECE_CUE = /\b(?:use|uses|using|wear|wears|wearing|include|includes|including|incorporate|incorporates|pair|pairs|pairing|style|styles|styling|with|from|around|centered|starting|start|featuring|feature|features|add|adds|keep|keeps|want|wants|need|needs|has|have|must have|built around|based on)\b/;
+const REQUIRED_PIECE_CUE = /\b(?:use|uses|using|wear|wears|wearing|include|includes|including|incorporate|incorporates|pair|pairs|pairing|style|styles|styling|with|from|around|centered|starting|start|featuring|feature|features|add|adds|keep|keeps|want|wants|need|needs|must have|built around|based on)\b/;
 const REPLACEMENT_TARGET_CUE = /\b(?:change|swap|replace)\b[^|.!?;]{0,65}\b(?:to|for|with)(?:\s+(?:the|my|a))?$/;
 const EXCLUDED_PIECE_CUE = /\b(?:without|except|other than|instead of|rather than|avoid|exclude|excluding|skip|leave out|drop|remove|replace|swap out|change out|never|hate|do not want|don t want|dont want|do not use|don t use|dont use|do not wear|don t wear|dont wear|do not include|don t include|dont include|no|not)\b[^,.!?;]{0,50}$/;
 const EXCLUSION_CATEGORY_ALIASES: Record<string, string[]> = {
@@ -568,12 +568,16 @@ export function rankOutfitSet(
       });
       const candidate = oneOfEachCategory(outfit.pieces);
       pieces = [];
-      if (!candidate.length || signatures.has(outfitSignature(candidate))) continue;
+      if (!candidate.length) continue;
+      // An exact repeat is the nearest copy there is: never accepted, and broken up like any other
+      // rather than simply retried, which would only return it again.
+      const repeat = signatures.has(outfitSignature(candidate));
       const nearCopy = tooSimilarTo(candidate, entries);
-      if (!nearCopy || acceptNearCopy) {
+      if (!repeat && (!nearCopy || acceptNearCopy)) {
         pieces = candidate;
         break;
       }
+      if (!nearCopy) continue;
       // Hold back what this candidate shares with the outfit it copies, and look again — but only
       // from categories deep enough to spare a piece. Holding back one of two pairs of shoes twice
       // over leaves an outfit barefoot, which is not the kind of variety anybody asked for.
