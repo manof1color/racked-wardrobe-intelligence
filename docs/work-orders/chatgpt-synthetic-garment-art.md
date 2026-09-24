@@ -100,9 +100,11 @@ is currently untested. Add `tests/synthetic-garment-art.test.ts` covering at min
 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm audit:prod` — all green, summary
 pasted into the PR.
 
-Also paste `pnpm seed:judge:dry` output showing item and object counts unchanged from `main`
-(151 items / 21 objects at the time of writing). A changed count means data moved, which this work
-order forbids.
+Also paste `pnpm seed:judge:dry` output showing the `totals` block unchanged from `main` — run it on
+`main` first and compare, rather than trusting a number written here. At the time of writing a dry
+run reports **310 items / 21 objects**; a live run reports fewer items, because it skips cohort
+owners that already exist, so never compare a dry run against a live one. A changed dry-run count
+means data moved, which this work order forbids.
 
 ## Docs in the same PR
 

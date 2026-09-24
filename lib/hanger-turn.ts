@@ -72,12 +72,35 @@ const OMIT_CUE = /\b(?:remove|drop|leave out|without|no)\b/;
  */
 const SUPPLIES_CONTEXT = /\b(?:weather|forecast|temperature|cold|cool|chilly|warm|hot|mild|rain|rainy|raining|wet|snow|snowy|windy|humid|sunny|indoors|outdoors|work|office|school|class|date|dinner|lunch|brunch|party|wedding|funeral|interview|meeting|church|gym|travel|flight|errands|casual|formal|smart|business|dressy|relaxed|comfortable|night out|going out|day|evening|morning|tonight|tomorrow|weekend|today)\b/i;
 const ANSWER_LENGTH_WORDS = 8;
+/**
+ * Replies that keep a conversation going without answering anything. "Have a good day" names a
+ * day and "no, that's fine for work" names an occasion, but both are someone saying they are
+ * done — read as answers, they would rebuild the outfits that person just accepted.
+ */
+// "cool", "fine", and "good" are left out on purpose: each is also an answer about the weather
+// ("cool and rainy"), and a request is only held when Hanger has just asked a question, so the
+// weather meaning is the likelier one. Thanks count wherever they appear ("cool, thanks").
+const ACKNOWLEDGEMENT = /^\s*(?:ok|okay|k|nice|great|perfect|awesome|amazing|love|lol|haha|no|nah|nope|yes|yeah|yep|yup|sure|that'?s (?:fine|good|great|perfect|it)|all good|sounds good|got it|bye|see ya|have a (?:good|great|nice)|talk (?:soon|later))\b|\b(?:thanks|thank you|thx|ty)\b/i;
 
-/** True when the message reads as an answer to a question rather than a fresh request. */
+/**
+ * True when the message reads as an answer to a question rather than a fresh request. It must
+ * name something Hanger could have asked for; length alone proves nothing, and treating every
+ * short message as an answer turned "thanks!" into a request for five more outfits.
+ */
 export function suppliesPendingContext(message: string) {
   const words = message.trim().split(/\s+/).filter(Boolean);
   if (!words.length || words.length > ANSWER_LENGTH_WORDS) return false;
-  return SUPPLIES_CONTEXT.test(message) || words.length <= 4;
+  if (ACKNOWLEDGEMENT.test(message)) return false;
+  return SUPPLIES_CONTEXT.test(message);
+}
+
+/**
+ * Whether a reply asked the customer anything. A request is held open only when it did; holding
+ * it after every outfit meant the next unrelated message was read as an answer to a question
+ * nobody had asked.
+ */
+export function replyAsksBack(reply: string) {
+  return reply.includes("?");
 }
 
 const CATEGORY_WORDS: Record<string, string[]> = {
@@ -157,7 +180,7 @@ export function planHangerTurn(input: {
   const refersToActive = CURRENT_LOOK_REFERENCE.test(creationRequested && creationVerbAt >= 0 ? input.message.slice(creationVerbAt) : input.message);
   const addingToFullOutfit = hasActive && activeItemIds.length >= MAX_OUTFIT_PIECES && ADD_TO_LOOK.test(input.message) && requested.some((item) => !activeItemIds.includes(item.id));
   const specificOwnedPieceUnresolved = (creationRequested || ADD_TO_LOOK.test(input.message)) && requested.length === 0
-    && /\b(?:with|using|use|uses|wear|wears|include|includes|including|add|adds|features|featuring|has|have)\s+(?:my|the)\s+(?!(?:wardrobe|closet|outfit|look|plans)\b)[a-z]/i.test(input.message)
+    && /\b(?:with|using|use|uses|wear|wears|include|includes|including|add|adds|features|featuring)\s+(?:my|the)\s+(?!(?:wardrobe|closet|outfit|look|plans)\b)[a-z]/i.test(input.message)
     && !/\b(?:without|instead of|rather than)\s+(?:my|the)\b/i.test(input.message);
 
   let mode: HangerTurnMode;

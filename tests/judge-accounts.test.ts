@@ -82,7 +82,12 @@ test("the judge closet shows a verified link and an owner's pick side by side", 
   assert.equal(judgeGarments.length, 12);
 });
 
-test("nothing in the seed points at an image that was never uploaded", () => {
+// Scope, stated plainly: this covers everything a judge is shown — the judge closet, the brand's
+// product photos, and the published looks. It does not cover the synthetic cohort's linked
+// garments, whose image keys are never uploaded. Those records exist to be counted by the brand
+// aggregate, which reads no image; nobody signs in as a cohort owner during the demo. If that ever
+// changes, this test must widen before the demo does.
+test("nothing a judge is shown points at an image that was never uploaded", () => {
   for (const garment of items.filter((item) => String(item.SK).startsWith("GARMENT#") && item.PK === `USER#${JUDGE_SEED_IDS.consumer.id}`)) {
     assert.ok(objects.has(String(garment.imageKey)), `missing wardrobe image ${garment.imageKey}`);
   }

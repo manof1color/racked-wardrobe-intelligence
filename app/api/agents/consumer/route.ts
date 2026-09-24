@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { GARMENT_TAXONOMY } from "@/lib/garment-taxonomy";
 import { consumerOutfitContract, generateConsumerHangerReply, hangerOutfitName, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
 import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberPendingRequest, rememberSuggestedItemIds } from "@/lib/hanger-memory";
-import { allowedOutfitActions, planHangerTurn } from "@/lib/hanger-turn";
+import { allowedOutfitActions, planHangerTurn, replyAsksBack } from "@/lib/hanger-turn";
 import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { clearHangerConversation, getConsumerInspirationProfile, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
@@ -185,7 +185,8 @@ export async function POST(request: Request) {
       nextState = rememberSuggestedItemIds(nextState, offered);
       nextState = rememberActiveOutfit(nextState, selection.map((item) => item.id), ranked.intent);
     }
-    nextState = rememberPendingRequest(nextState, plan.pendingRequest);
+    // Held open only when this reply actually asked something back.
+    nextState = rememberPendingRequest(nextState, replyAsksBack(reply.message) ? plan.pendingRequest : null);
     await saveHangerConversation(subject, nextState);
   } catch (reason) {
     // A reply the person can already see is worth more than a perfectly stored transcript.
