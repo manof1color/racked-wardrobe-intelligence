@@ -346,6 +346,17 @@ function rankGarments(wardrobe: WardrobeItem[], intent: OutfitIntent): RankedGar
     .sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
 }
 
+/**
+ * Summer and winter pieces do not belong in one outfit; every other season goes with anything.
+ * Only an explicit contradiction counts — "all-season", spring, fall, and an unset season never
+ * clash — so a closet without season tags is ranked exactly as before.
+ */
+export function seasonsClash(first: unknown, second: unknown) {
+  const a = clean(first);
+  const b = clean(second);
+  return (a === "summer" && b === "winter") || (a === "winter" && b === "summer");
+}
+
 function seedRequired(ranked: RankedGarment[], requiredIds: string[], maxPieces: number) {
   const byId = new Map(ranked.map((entry) => [entry.item.id, entry]));
   return requiredIds.map((id) => byId.get(id)).filter((entry): entry is RankedGarment => Boolean(entry)).slice(0, maxPieces);
@@ -361,7 +372,14 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
     usedItems.add(entry.item.id);
     usedCategories.add(clean(entry.item.category));
   };
-  const best = (category: string, freshOnly = false) => ranked.find((entry) => !usedItems.has(entry.item.id) && clean(entry.item.category) === category && (!freshOnly || freshIds?.has(entry.item.id)));
+  // A piece whose season contradicts one already chosen is passed over while a coherent piece of
+  // the same category exists. Each piece used to be scored alone, so with no weather given the
+  // judge closet's Looks screen opened on a winter knit over summer linen shorts.
+  const coherent = (entry: RankedGarment) => !chosen.some((picked) => seasonsClash(picked.item.season, entry.item.season));
+  const best = (category: string, freshOnly = false) => {
+    const candidates = ranked.filter((entry) => !usedItems.has(entry.item.id) && clean(entry.item.category) === category && (!freshOnly || freshIds?.has(entry.item.id)));
+    return candidates.find(coherent) ?? candidates[0];
+  };
 
   // A dress is a foundation in place of top + bottom, never an extra fourth torso piece.
   const hasDress = usedCategories.has("dress");
@@ -372,7 +390,8 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
     const bottom = best("bottom");
     const separateScore = top && bottom ? Math.round((top.score + bottom.score) / 2) : -1;
     if (dress && (preferDress || !top || !bottom || dress.score > separateScore)) add(dress);
-    else { add(top); add(bottom); }
+    // The bottom is chosen after the top is in, so it can be checked against the top's season.
+    else { add(top); add(best("bottom")); }
   } else if (!hasDress) {
     if (!usedCategories.has("top")) add(best("top"));
     if (!usedCategories.has("bottom")) add(best("bottom"));
@@ -398,7 +417,8 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
     const conflictsWithFoundation = category === "dress"
       ? usedCategories.has("top") || usedCategories.has("bottom")
       : (category === "top" || category === "bottom") && usedCategories.has("dress");
-    if (!usedItems.has(entry.item.id) && !usedCategories.has(category) && !conflictsWithFoundation) add(entry);
+    // An extra piece is never needed, so one that clashes on season is simply left out.
+    if (!usedItems.has(entry.item.id) && !usedCategories.has(category) && !conflictsWithFoundation && coherent(entry)) add(entry);
   }
   for (const entry of ranked) {
     if (chosen.length >= maxPieces) break;
@@ -406,7 +426,7 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
     const conflictsWithFoundation = category === "dress"
       ? usedCategories.has("top") || usedCategories.has("bottom")
       : (category === "top" || category === "bottom") && usedCategories.has("dress");
-    if (!usedItems.has(entry.item.id) && !conflictsWithFoundation) add(entry);
+    if (!usedItems.has(entry.item.id) && !conflictsWithFoundation && coherent(entry)) add(entry);
   }
   return chosen;
 }
