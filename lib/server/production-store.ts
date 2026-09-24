@@ -9,6 +9,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost, DataClassification } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
 import { normalizeGarmentClassification } from "@/lib/garment-taxonomy";
+import { applyGarmentEdit, type GarmentEdit } from "@/lib/garment-edit";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
@@ -246,6 +247,31 @@ export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,ov
   const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId,identityStatus,selectedProductId:selectedProduct?.id??null,listedPrice:catalogProduct?.price??null,listedCurrency:catalogProduct?.price!==undefined?(catalogProduct.currency??"USD"):null,createdAt:new Date().toISOString()};
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:registryProductId?`PRODUCT#${registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
+}
+
+/**
+ * The only fields an edit may write. applyGarmentEdit already returns nothing else; this list is
+ * a second, independent guard, so no change there can reach wear history, photos, the owner, or a
+ * verified registry link.
+ */
+const EDITABLE_GARMENT_FIELDS = new Set(["name", "category", "subtype", "customType", "wearableUnit", "color", "pattern", "material", "style", "season", "brand", "sku", "selectedProductId", "identityStatus", "listedPrice", "listedCurrency"]);
+
+/** Edits one piece in the signed-in person's own wardrobe. Returns null when it is not theirs. */
+export async function updateWardrobeItem(ownerId:string,itemId:string,edit:GarmentEdit):Promise<WardrobeItem|null> {
+  const key={PK:`USER#${ownerId}`,SK:`GARMENT#${itemId}`};
+  const existing=(await db.send(new GetCommand({TableName:requireTable(),Key:key}))).Item as WardrobeItem|undefined;
+  if(!existing)return null;
+  const registry=typeof edit.catalogProductId==="string"?await listRegistryProducts():[];
+  const changes=Object.entries(applyGarmentEdit(existing,edit,registry)).filter(([field])=>EDITABLE_GARMENT_FIELDS.has(field));
+  if(changes.length){
+    const names:Record<string,string>={};
+    const values:Record<string,unknown>={};
+    const assignments=changes.map(([field,value],index)=>{names[`#f${index}`]=field;values[`:v${index}`]=value??null;return `#f${index} = :v${index}`;});
+    // The owner is part of the key, and the condition refuses to create a record that is not
+    // already there: an edit can only ever reach a piece this account already owns.
+    await db.send(new UpdateCommand({TableName:requireTable(),Key:key,UpdateExpression:`SET ${assignments.join(", ")}`,ConditionExpression:"attribute_exists(PK)",ExpressionAttributeNames:names,ExpressionAttributeValues:values}));
+  }
+  return (await listWardrobe(ownerId)).find(item=>item.id===itemId)??null;
 }
 
 export async function recordRealWear(ownerId:string,itemIds:string[]) {

@@ -540,6 +540,16 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .garment-delete>button{justify-self:start;min-height:36px;border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 12px;font-size:.7rem;font-weight:850;letter-spacing:.04em;cursor:pointer}
 .garment-delete>button:hover{border-color:#5d1712;color:#5d1712}
 .garment-delete>button.confirm-delete{background:#5d1712;border-color:#5d1712;color:#fff}
+.garment-delete{grid-template-columns:auto auto;justify-content:start}
+.garment-delete>small{grid-column:1/-1}
+.garment-delete>button.garment-edit-button:hover{border-color:var(--ink);color:var(--ink)}
+.garment-editor{display:grid;gap:12px;padding:0 13px 13px}
+.garment-editor-brand{display:grid;gap:7px;border-top:1px dashed var(--line);padding-top:10px}
+.garment-editor-brand>strong{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase}
+.garment-editor-brand label{display:grid;gap:5px;font-size:.66rem;font-weight:800}
+.garment-editor-brand input{border:1px solid var(--line);padding:9px 10px;background:var(--white)}
+.garment-editor-actions{display:flex;gap:8px}
+.garment-editor-note{color:var(--muted);font-size:.64rem;line-height:1.45}
 
 /* Account deletion sits in its own card, so it can never be mistaken for saving settings. */
 .settings-danger{border-top:4px solid #5d1712}
