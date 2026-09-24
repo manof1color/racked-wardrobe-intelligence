@@ -25,6 +25,8 @@ export const RATE_LIMIT_RULES = {
   accountSettings: { limit: 10, windowMs: 15 * 60 * 1000 },
   accountDeletion: { limit: 5, windowMs: 15 * 60 * 1000 },
   garmentDelete: { limit: 30, windowMs: 10 * 60 * 1000 },
+  // Tidying a closet is many small saves in a row, so the budget is looser than deletion's.
+  garmentEdit: { limit: 60, windowMs: 10 * 60 * 1000 },
   garmentVerify: { limit: 20, windowMs: 10 * 60 * 1000 },
   // One scan is one photo, and a batch is up to six of them, so this allows a few batches rather
   // than a few photos. Each one is still a metered Bedrock call.
