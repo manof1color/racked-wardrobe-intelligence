@@ -13,7 +13,7 @@ when a reply was composed without the model.
 - Provider: Amazon Bedrock.
 - Models: Amazon Nova Lite (`amazon.nova-lite-v1:0`) for single- and multi-view garment analysis; the US Amazon Nova Pro geographic profile (`us.amazon.nova-pro-v1:0`) for whole-look instance detection only.
 - Inputs: only the garment views the Consumer chose to upload.
-- Outputs: confidence, visible label text, visibly printed brand text (autofill only — see `docs/privacy-and-ethics.md`, Brand identity boundary), controlled category and subtype, color, pattern, style, construction, material, uncertainty alternatives, and view-specific evidence.
+- Outputs: confidence, visible label text, visibly printed brand text (autofill only — see `docs/privacy-and-ethics.md`, Brand identity boundary; in the Closet scan it pre-fills the brand search and ranks enrolled look-alikes, and may let through a product whose listed type disagrees with the scan only when its colour matches exactly, but a link is made solely by the person tapping "This is mine" and is saved as their own pick, never verified), controlled category and subtype, color, pattern, style, construction, material, uncertainty alternatives, and view-specific evidence.
 
 The system prompt forbids inferring a person, body, gender, age, ethnicity, income, preference, or ownership. Unknown evidence must remain unknown. Model-visible label text is not sufficient to verify a brand; the application registry must independently match a brand-enrolled hash, GTIN, or brand-plus-SKU identity.
 
