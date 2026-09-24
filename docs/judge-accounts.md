@@ -54,7 +54,8 @@ judge edits or deletes something, re-run it.
 `tests/judge-accounts.test.ts` runs the seed in dry-run mode on every CI run and checks its output
 against the app's own rules: that the released product really does clear `k ≥ 25` with opted-in
 owners, that the suppressed one really is below it, that the picked piece never joins the brand's
-owner index, that no record points at an image the seed never uploaded, and that the seeded catalog
+owner index, that nothing a judge is shown points at an image the seed never uploaded (the synthetic
+cohort's linked garments, which only the brand aggregate reads, have no images), and that the seeded catalog
 verifies the label a judge can type while the retired product answers nothing.
 
 ## What the seed does not invent

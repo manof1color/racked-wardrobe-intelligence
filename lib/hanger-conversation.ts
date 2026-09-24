@@ -106,7 +106,7 @@ export function groundedSelectionText(suggested: WardrobeItem[]) {
  * there: no photographs, no Save button, no "these exact pieces". Prose that claims otherwise is
  * describing an outfit that does not exist, whatever it happens to have named.
  */
-const CLAIMS_AN_OUTFIT = /\b(?:selected|current|suggested|final|complete[d]?)\s+outfit\b|\bthese\s+(?:exact\s+)?pieces\b|\bin\s+the\s+photos?\b|\bsave\s+action\b|\bsave\s+this\s+(?:exact\s+)?outfit\b|\brecord\s+these\b/i;
+const CLAIMS_AN_OUTFIT = /\b(?:selected|suggested)\s+outfit\b|\bthese\s+exact\s+pieces\b|\bin\s+the\s+photos?\b|\bsave\s+action\b|\bsave\s+this\s+(?:exact\s+)?outfit\b|\brecord\s+these\b/i;
 
 /** True when a reply describes an outfit the server never built. */
 export function replyClaimsMissingOutfit(reply: string, suggested: WardrobeItem[]) {

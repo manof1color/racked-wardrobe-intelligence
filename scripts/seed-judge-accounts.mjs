@@ -343,11 +343,17 @@ async function seedCohortLinks(products, ownerIds) {
     await linkVerified({ ownerId, product: PRODUCTS[0], garmentId: `judge-linked-${PRODUCTS[0].sku}-${index + 1}`, wearCount, lastWornDays: (index % 7) + 1, imageKey: `wardrobe/${ownerId}/judge-linked-${PRODUCTS[0].sku}.png` });
     wearEvents += wearCount;
   }
-  for (const [index, ownerId] of ownerIds.slice(0, 4).entries()) {
+  const suppressedOwners = ownerIds.slice(0, 4);
+  for (const [index, ownerId] of suppressedOwners.entries()) {
     await linkVerified({ ownerId, product: PRODUCTS[1], garmentId: `judge-linked-${PRODUCTS[1].sku}-${index + 1}`, wearCount: index + 1, lastWornDays: index + 3, imageKey: `wardrobe/${ownerId}/judge-linked-${PRODUCTS[1].sku}.png` });
     wearEvents += index + 1;
   }
-  return { wearEvents };
+  return { wearEvents, suppressedOwners: suppressedOwners.length };
+}
+
+/** Wear events actually written against one product, counted rather than restated. */
+function wearEventsFor(productId) {
+  return written.items.filter((item) => item.PK === `PRODUCT#${productId}` && String(item.SK).startsWith("WEAR#")).length;
 }
 
 export const JUDGE_SEED_IDS = {
@@ -374,7 +380,9 @@ export async function buildJudgeSeed() {
   freshConsumer: { email: FRESH_CONSUMER_EMAIL, wardrobePieces: 0, purpose: "first-run experience" },
     judgeBrand: { email: BRAND_EMAIL, brand: BRAND_NAME, publicPage: `/brands/${BRAND_SLUG}`, releasedProduct: PRODUCTS[0].sku, suppressedProduct: PRODUCTS[1].sku, retiredProduct: PRODUCTS[2].sku, brandLook: community.lookId, publicActivityEvents: community.events },
   freshBrand: { email: FRESH_BRAND_EMAIL, brand: FRESH_BRAND_NAME, products: 0, purpose: "live enrollment from one photo" },
-    cohort: { optedInOwnersForReleased, suppressedProductOwners: 4, createdMissingOwners: owners.created.length, wearEvents: cohort.wearEvents, thresholdIs: 25 },
+    // Per-product wear counts, because a single cohort total — which spans both products and omits
+    // the judge's own wears — was once quoted as the released product's figure. It was not.
+    cohort: { optedInOwnersForReleased, suppressedProductOwners: cohort.suppressedOwners, createdMissingOwners: owners.created.length, cohortWearEvents: cohort.wearEvents, releasedWearEvents: wearEventsFor(PRODUCTS[0].id), suppressedWearEvents: wearEventsFor(PRODUCTS[1].id), thresholdIs: 25 },
     totals: { items: written.items.length, objects: written.objects.length },
     passwordSource: "RACKED_TEST_PASSWORD (runtime only, never committed)",
     clearlyLabeledSyntheticData: true,
