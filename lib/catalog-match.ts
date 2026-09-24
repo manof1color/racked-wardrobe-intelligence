@@ -131,10 +131,13 @@ export function brandTextNames(product: BrandProductRegistration, brandText?: st
 }
 
 /**
- * Ranks the catalog against one scanned piece. Category must agree, and a known type that
- * contradicts the piece rules a product out: a hoodie is never offered as someone's t-shirt. A
- * brand name read off the piece counts for 30% and is otherwise just a hint — without it, only a
- * product that matches closely on type, colour, and more is offered at all.
+ * Ranks the catalog against one scanned piece. Category must agree. A known type that contradicts
+ * the piece rules a product out — a hoodie is never offered as someone's t-shirt — unless the
+ * brand's own name was read on the garment and its colour matches exactly. Printed text is stronger
+ * evidence than the scan's guess at a type: a black Versatile tee read as a "sweatshirt" was being
+ * hidden from its owner even though "Versatile" was on the shirt. Such a product is still ranked
+ * below one whose type agrees, and says the types differ, so the person decides. A brand name
+ * counts for 30% of the score.
  */
 export function rankCatalogCandidates(piece: CatalogPieceDescription, registry: BrandProductRegistration[], imageUrlFor: (product: BrandProductRegistration) => string | undefined = () => undefined): CatalogCandidate[] {
   const target = normalizeGarmentClassification(text(piece.category, 40), text(piece.subtype, 60));
@@ -153,12 +156,20 @@ export function rankCatalogCandidates(piece: CatalogPieceDescription, registry: 
       const appearance = catalogAppearance(product);
       if (appearance.category !== described.category) return [];
       const { components, score: appearanceScore } = scoreGarmentAppearance(described, appearance);
-      if (components.find((component) => component.key === "subtype")?.score === 0) return [];
       const brandEvidence = brandTextNames(product, piece.brandText);
+      const typeDisagrees = components.find((component) => component.key === "subtype")?.score === 0;
+      // The brand overrides a type disagreement only when the colour matches exactly. A black
+      // Versatile tee read as a sweatshirt differs only in the scan's guess at its type; a cream
+      // hoodie offered for a navy tee differs in everything but the label, and is still not
+      // offered. "Close" colours are not enough here: the scorer counts navy and cream as close.
+      const colourMatches = components.find((component) => component.key === "color")?.score === 100;
+      if (typeDisagrees && !(brandEvidence && colourMatches)) return [];
       const score = Math.round(appearanceScore * CATALOG_MATCH_WEIGHTS.appearance + (brandEvidence ? 100 : 0) * CATALOG_MATCH_WEIGHTS.brand);
       if (score < MIN_CANDIDATE_SCORE) return [];
       const reasons = [
         ...(brandEvidence ? [`${product.brand} was read on this piece`] : []),
+        // Said plainly, so a brand match on the wrong garment is easy to turn down.
+        ...(typeDisagrees && appearance.subtype && described.subtype ? [`Listed as ${words(appearance.subtype).join(" ")}; the scan read ${words(described.subtype).join(" ")}`] : []),
         ...components.flatMap((component) => matchReason(component.key, component.score, described, appearance)),
       ].slice(0, 4);
       return [{ ...catalogProductSummary(product, imageUrlFor(product)), score, brandEvidence, reasons }];

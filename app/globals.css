@@ -721,6 +721,7 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .catalog-option strong{font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .catalog-option small{font-size:.64rem;color:var(--muted);line-height:1.4}
 .catalog-note{margin:0;font-size:.68rem;color:var(--muted);line-height:1.5}
+.catalog-read-brand{margin:0;padding:8px 10px;border-left:3px solid var(--acid);background:var(--white);font-size:.72rem;line-height:1.45}
 .catalog-picked{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .catalog-picked p{margin:0;font-size:.68rem;color:var(--muted);line-height:1.5}
 @media (max-width:420px){.catalog-options li{flex-wrap:wrap}.catalog-options li .button{width:100%}}

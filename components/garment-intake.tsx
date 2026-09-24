@@ -55,6 +55,8 @@ interface Piece extends DetectedLookGarment {
   query: string;
   results: CatalogProductSummary[];
   searching: boolean;
+  /** A brand name the scan read on the garment itself, or "" — a suggestion, never a link. */
+  readBrand: string;
 }
 
 /**
@@ -79,6 +81,12 @@ function statusLabel(piece: Piece) {
   if (piece.link.status === "selected") return { text: "BRAND · YOUR PICK", tone: "picked" };
   if (piece.analysis.provider === "manual-review") return { text: "NEEDS YOUR LABEL", tone: "manual" };
   return { text: "YOUR GARMENT", tone: "plain" };
+}
+
+/** Search results not already offered above as look-alikes, so one product is never listed twice. */
+function searchOnlyResults(piece: Piece) {
+  const offered = new Set((piece.candidates ?? []).map((candidate) => candidate.registryProductId));
+  return piece.results.filter((result) => !offered.has(result.registryProductId));
 }
 
 /** One enrolled product, as its brand page shows it: photo, name, brand, and why it was offered. */
@@ -139,8 +147,16 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
           if (!response.ok || !data.detections) throw new Error(data.error ?? "The pieces could not be detected.");
           const room = remainingPieceCapacity(found.length);
           if (data.detections.length > room) reachedPieceLimit = true;
-          found.push(...data.detections.slice(0, room).map((detection) => piece(detection, photoNumber)));
+          const created = data.detections.slice(0, room).map((detection) => piece(detection, photoNumber));
+          found.push(...created);
           setPieces([...found]);
+          // Suggestions are fetched now for pieces whose brand was read, since their section is
+          // already open. Nothing is linked until the person taps "This is mine".
+          for (const entry of created) {
+            if (!entry.readBrand || entry.overrides.category === "unknown") continue;
+            void loadCandidates(entry);
+            searchCatalog(entry, entry.readBrand);
+          }
         } catch (reason) {
           // A batch stops only when the server says to stop; one unreadable photo does not.
           const message = reason instanceof Error ? reason.message : "That photo could not be read.";
@@ -154,17 +170,21 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
   }
 
   function piece(detection: DetectedLookGarment, sourcePhoto: number): Piece {
+    const readBrand = /^brand not verified$/i.test(detection.analysis.label.brand) ? "" : detection.analysis.label.brand.trim();
     return {
       ...detection,
       selected: true,
-      expanded: false,
+      // A brand read on the garment opens the section with the search already filled in, so the
+      // person confirms a suggestion instead of retyping what the scan already saw.
+      expanded: Boolean(readBrand),
       labelText: "",
       link: { status: "none" },
       candidates: null,
       candidatesState: "idle",
-      query: "",
+      query: readBrand,
       results: [],
       searching: false,
+      readBrand,
       sourcePhoto,
       // A fallback subtype is an absence of recognition, so the field starts empty and
       // asks, rather than prefilling "Other Shoes" as though that were an answer.
@@ -418,6 +438,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
                           <button type="button" className="button button-light button-small" onClick={() => update(piece.id, (current) => ({ ...current, link: { status: "none" } }))}>Choose a different product</button>
                         </div>
                       : <>
+                          {piece.readBrand && <p className="catalog-read-brand" role="status">Hanger read <strong>{piece.readBrand}</strong> on this piece. Check the match below — nothing is linked until you choose it.</p>}
                           <p className="catalog-note">Linked pieces show their product details in your Closet, and their cost per wear where the brand lists a price.</p>
                           {piece.candidatesState === "loading" && <p className="catalog-note" role="status">Looking through brand catalogs…</p>}
                           {piece.candidates && piece.candidates.length > 0 && <div className="catalog-group">
@@ -427,14 +448,14 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
                               <button type="button" className="button button-dark button-small" disabled={!piece.selected} onClick={() => choose(piece, candidate)}>This is mine</button>
                             </li>)}</ul>
                           </div>}
-                          {piece.candidatesState === "done" && piece.candidates?.length === 0 && <p className="catalog-note">No enrolled product looks like this one. Search for the brand below.</p>}
+                          {piece.candidatesState === "done" && piece.candidates?.length === 0 && <p className="catalog-note">No enrolled product looks like this one.{piece.readBrand ? "" : " Search for the brand below."}</p>}
                           <label>Search brands
                             <input type="search" value={piece.query} maxLength={80} placeholder="Brand, product name, or style code" disabled={!piece.selected}
                               onChange={(event) => searchCatalog(piece, event.target.value)} />
                           </label>
                           {piece.searching && <p className="catalog-note" role="status">Searching…</p>}
                           {!piece.searching && piece.query.trim().length >= 2 && piece.results.length === 0 && <p className="catalog-note">No enrolled product matches &ldquo;{piece.query.trim()}&rdquo;{piece.overrides.category !== "unknown" ? ` in ${piece.overrides.category}` : ""}. The brand may not be on Racked yet.</p>}
-                          {piece.results.length > 0 && <ul className="catalog-options">{piece.results.map((result) => <li key={result.registryProductId}>
+                          {searchOnlyResults(piece).length > 0 && <ul className="catalog-options">{searchOnlyResults(piece).map((result) => <li key={result.registryProductId}>
                             <CatalogOption product={result} />
                             <button type="button" className="button button-dark button-small" disabled={!piece.selected} onClick={() => choose(piece, result)}>This is mine</button>
                           </li>)}</ul>}
