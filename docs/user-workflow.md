@@ -86,10 +86,21 @@ outfit left empty is deleted), your Community posts stop showing it, and its pho
 
 ### 5. Looks — build an outfit
 
-Tap garments to add them to a look. A flat-lay preview arranges the private cropped photos
-by category on a clean white canvas. Saving stores the outfit **and records one wear for
-every selected piece** — outfit building and wear tracking are the same action, which is
-why the wear data stays honest.
+One row per slot, in the order a person dresses: **Layer** (optional — jackets first, then
+shirts, so an open overshirt can go over a tee), **Top**, **Bottom**, and **Shoes**. **Dress**
+swaps Top and Bottom for a single Dress row. **+ Hat**, **+ Bag**, **+ Jewellery**, and
+**+ Other** add optional rows, offered only when the closet holds such a piece. Swipe a row or
+tap its arrows; the whole outfit stays on one phone screen, because seeing the combination at
+once is the point. A shirt worn as the Top is never offered as the Layer over itself.
+
+The screen opens on **Hanger's pick for today** — the same deterministic ranker Hanger uses.
+**Lock** a row to keep it; **Shuffle** refills the unlocked rows with something not yet shown,
+and **Finish it** asks Hanger for its best completion around what is locked. Neither is random.
+
+**Save look** stores the outfit for later. **Wear today** stores it and records one wear for
+every piece. The two are separate on purpose: saving a look for Friday must not record a wear
+that has not happened, which is what keeps the wear data honest. Hanger's chat already works
+this way, with separate Save and Record actions.
 
 ### 6. Outfits — wear it again
 
