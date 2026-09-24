@@ -95,17 +95,21 @@ function rowItems(key: LooksRowKey, wardrobe: WardrobeItem[]) {
 /** Resolves the state against the wardrobe as it is now. */
 export function looksRows(wardrobe: WardrobeItem[], state: LooksState): LooksRow[] {
   const byId = new Map(wardrobe.map((item) => [item.id, item]));
-  return visibleRowKeys(state).map((key) => {
+  const keys = visibleRowKeys(state);
+  return keys.map((key) => {
     const chosen = state.selected[key];
     const selected = chosen ? byId.get(chosen) ?? null : null;
+    // A required row whose piece was deleted falls back to another piece rather than showing
+    // nothing — but never to one already chosen in another row, or a deleted Top could be
+    // replaced by the very shirt already worn as the Layer. An optional row falls back to "none".
+    const takenElsewhere = new Set(keys.filter((other) => other !== key).map((other) => state.selected[other]).filter((id): id is string => Boolean(id && byId.has(id))));
+    const fallback = isOptional(key) ? null : wardrobe.find((item) => rowAccepts(key, item) && !takenElsewhere.has(item.id)) ?? null;
     return {
       key,
       label: ROW_LABELS[key],
       optional: isOptional(key),
       items: rowItems(key, wardrobe),
-      // A required row whose piece was deleted falls back to its first piece rather than showing
-      // nothing; an optional one falls back to "none".
-      selected: selected && rowAccepts(key, selected) ? selected : isOptional(key) ? null : wardrobe.find((item) => rowAccepts(key, item)) ?? null,
+      selected: selected && rowAccepts(key, selected) ? selected : fallback,
       locked: state.locked.includes(key),
     };
   });

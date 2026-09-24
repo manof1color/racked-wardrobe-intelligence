@@ -123,3 +123,15 @@ test("the dashboard's Looks tab uses the row builder, with save and wear kept se
   // The layout budget that keeps the whole outfit on one phone screen, measured at 724px of 778.
   assert.match(read("app/globals.css"), /\.looks-row\{position:relative;height:124px;/);
 });
+
+// REGRESSION (found in review): when the Top was deleted, its row fell back to the first shirt in
+// the closet — which could be the very shirt already worn as the Layer, showing it twice.
+test("REGRESSION: a deleted Top is never replaced by the shirt already worn as the Layer", () => {
+  const wardrobe = [make("tee", "top", "t-shirt"), make("oxford", "top", "dress-shirt"), make("jean", "bottom", "jeans"), make("derby", "shoe", "derbies")];
+  const state: LooksState = { mode: "separates", extras: [], selected: { layer: "tee", top: "oxford", bottom: "jean", shoe: "derby" }, locked: [], seen: [] };
+  const afterDelete = wardrobe.filter((item) => item.id !== "oxford");
+  const rows = looksRows(afterDelete, state);
+  assert.equal(rows.filter((row) => row.selected?.id === "tee").length, 1, "one shirt, one row");
+  const freed = looksRows(afterDelete, { ...state, selected: { ...state.selected, layer: null } });
+  assert.equal(freed.find((row) => row.key === "top")?.selected?.id, "tee", "once the Layer lets it go, the Top takes it");
+});

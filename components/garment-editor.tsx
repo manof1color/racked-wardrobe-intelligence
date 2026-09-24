@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRef, useState } from "react";
 import type { CatalogProductSummary } from "@/lib/catalog-match";
-import { SEASONS, type GarmentEdit } from "@/lib/garment-edit";
+import { isVerifiedPiece, SEASONS, type GarmentEdit } from "@/lib/garment-edit";
 import { garmentSubtypeLabel, garmentTypeSuggestions, normalizeGarmentCategory, resolveTypedGarmentType, type GarmentSubtype } from "@/lib/garment-taxonomy";
 import { PLANNED_CATEGORIES } from "@/lib/photo-plan";
 import { readJsonResponse } from "@/lib/upload-client";
@@ -31,7 +31,7 @@ export function GarmentEditor({ item, onSaved, onCancel }: { item: WardrobeItem;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const timer = useRef<number | undefined>(undefined);
-  const verified = item.identityStatus === "verified";
+  const verified = isVerifiedPiece(item);
   const linkedPick = item.identityStatus === "owner-selected";
 
   function search(value: string) {

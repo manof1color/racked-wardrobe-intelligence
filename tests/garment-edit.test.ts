@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { applyGarmentEdit, GarmentEditRefused, readGarmentEdit } from "../lib/garment-edit.ts";
+import { applyGarmentEdit, GarmentEditRefused, isVerifiedPiece, readGarmentEdit } from "../lib/garment-edit.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
@@ -106,4 +106,21 @@ test("the Closet offers Edit beside Delete, and the form sends only what changed
   assert.match(editor, /function changes\(\): GarmentEdit/);
   assert.match(editor, /Brand details come from the care label and cannot be changed here/);
   assert.match(editor, /Wear history and the photo stay as they are/);
+});
+
+// REGRESSION (found in review): a piece verified before identityStatus existed has no status, but
+// sits in its brand's owner index with a registry id. The edit rules read only the status, so its
+// brand could be rewritten to another brand while the first brand kept counting it and its wears.
+test("REGRESSION: an older verified piece with no status field still keeps its brand details", () => {
+  const legacy = piece({ brand: "Northstar Atelier", sku: "NA-OW-1042", registryProductId: "registry-na-ow-1042", identityStatus: undefined } as Partial<WardrobeItem>);
+  for (const edit of [{ brand: "Stussy" }, { catalogProductId: "p-flag" }, { catalogProductId: null }]) {
+    assert.throws(() => applyGarmentEdit(legacy, readGarmentEdit(edit), registry), (error: unknown) => error instanceof GarmentEditRefused && error.status === 409);
+  }
+  const indexOnly = { ...piece({ identityStatus: undefined }), GSI1PK: "PRODUCT#registry-na-ow-1042" } as unknown as WardrobeItem;
+  assert.throws(() => applyGarmentEdit(indexOnly, readGarmentEdit({ brand: "Stussy" })), GarmentEditRefused, "the owner-index key alone marks it verified");
+  assert.equal(isVerifiedPiece(piece()), false, "an ordinary piece is not");
+  assert.equal(isVerifiedPiece(piece({ identityStatus: "owner-selected", selectedProductId: "p-flag" })), false, "nor is an owner's pick");
+  // The Closet card and the edit form use the same rule, so they cannot disagree about a piece.
+  assert.match(read("components/consumer-dashboard.tsx"), /\{isVerifiedPiece\(item\)\?<span className="confirmed brand-verified">/);
+  assert.match(read("components/garment-editor.tsx"), /const verified = isVerifiedPiece\(item\);/);
 });

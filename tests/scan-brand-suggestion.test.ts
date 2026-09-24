@@ -50,7 +50,9 @@ test("without a brand read on the garment, a type disagreement still rules a pro
 test("a brand read on the garment opens the section with the search filled in, and links nothing", () => {
   assert.match(intake, /expanded: Boolean\(readBrand\)/, "the brand section opens by itself");
   assert.match(intake, /query: readBrand,/, "the search starts from what the scan read");
-  assert.match(intake, /void loadCandidates\(entry\);\s*searchCatalog\(entry, entry\.readBrand\);/, "matches are fetched as soon as the piece appears");
+  assert.match(intake, /continue;\s*void loadCandidates\(entry\);\s*\}/, "look-alikes are fetched as soon as the piece appears");
+  assert.match(intake, /if \(piece\.readBrand && !\(data\.candidates \?\? \[\]\)\.length\) searchCatalog\(piece, piece\.readBrand\);/,
+    "the brand search runs only when look-alikes come back empty — matching is rate-limited and a batch holds up to 24 pieces");
   assert.match(intake, /link: \{ status: "none" \},/, "a new piece is never linked");
   assert.match(intake, /nothing is linked until you choose it/);
   assert.match(intake, /function searchOnlyResults\(piece: Piece\)/, "a product offered as a look-alike is not listed again under search");
