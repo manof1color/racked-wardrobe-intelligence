@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { GARMENT_TAXONOMY } from "@/lib/garment-taxonomy";
-import { consumerOutfitContract, generateConsumerHangerReply, hangerOutfitName, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
+import { consumerOutfitContract, generateConsumerHangerReply, hangerOutfitName, outfitCards, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
+import { isAgentEnabled, runHangerAgent, summarizeCommunityTrends } from "@/lib/hanger-agent";
 import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberPendingRequest, rememberSuggestedItemIds } from "@/lib/hanger-memory";
 import { allowedOutfitActions, planHangerTurn, replyAsksBack } from "@/lib/hanger-turn";
-import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
+import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, readOutfitIntent, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { clearHangerConversation, getConsumerInspirationProfile, getHomeCity, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
+import { clearHangerConversation, getConsumerInspirationProfile, getHomeCity, listCommunityPosts, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
 import { fetchForecast, validCoordinates, type Forecast } from "@/lib/weather";
 import type { AgentReply } from "@/lib/platform-types";
 import type { WardrobeItem } from "@/lib/types";
@@ -25,6 +26,11 @@ function preferenceVocabulary(wardrobe: WardrobeItem[]) {
     colors: [...new Set(wardrobe.map((item) => String(item.color ?? "").toLowerCase()).filter(Boolean))],
     styles: STYLE_VOCABULARY,
   };
+}
+
+/** The intent a request carries on its own, for remembering an agent-built outfit. */
+function plan0Intent(message: string) {
+  return readOutfitIntent(message);
 }
 
 async function consumerSession() {
@@ -90,6 +96,65 @@ export async function POST(request: Request) {
   const remembered = preferenceSummary(preferences);
   const previousSuggestionItemIds = ownedSuggestionItemIds(stored.suggestedItemIds, wardrobe);
   const mostRecentSavedItemIds = outfits[0]?.itemIds ?? [];
+  // Hanger as an agent first: the model reads the message and calls the tools it needs — wardrobe
+  // search, the outfit builder, the forecast, Racked trends. If it cannot answer inside its time
+  // budget, or the model is unavailable, the grounded pipeline below answers instead.
+  const agentAttempted = isAgentEnabled();
+  if (agentAttempted) {
+    const onScreen = (stored.activeOutfit?.itemIds ?? []).map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is WardrobeItem => Boolean(item));
+    const agent = await runHangerAgent({
+      message, history, wardrobe, forecast, activeOutfit: onScreen, remembered, today: new Date(),
+      rankingBase: {
+        history,
+        excludedItemIds: avoidedItemIds(preferences, wardrobe),
+        avoidItemIds: [...previousSuggestionItemIds, ...mostRecentSavedItemIds],
+        rotatePriorSuggestions: onScreen.length > 0,
+        inspirationStyleHints: inspiration.styleHints,
+      },
+      loadTrends: async () => summarizeCommunityTrends(await listCommunityPosts()),
+    }).catch(() => null);
+    if (agent) {
+      const agentActions = allowedOutfitActions("create", message);
+      const first = agent.outfits[0] ?? [];
+      const agentContract = consumerOutfitContract(first, agentActions);
+      const agentSet = agent.outfits.length > 1 ? outfitCards(agent.outfits, agentActions) : undefined;
+      const built = agent.toolsUsed.includes("outfit builder");
+      const agentReply: AgentReply = {
+        agent: "consumer-stylist",
+        provider: "amazon-bedrock",
+        message: agent.message,
+        confidence: first.length >= 3 ? "high" : "medium",
+        toolsUsed: ["private wardrobe", ...agent.toolsUsed, ...(remembered ? ["remembered preferences"] : []), "conversation memory"],
+        actions: agentContract.actions,
+        selection: agentContract.selection ?? [],
+        ...(agentSet ? { outfits: agentSet } : {}),
+        evidence: [
+          `${wardrobe.length} owned garments available this turn`,
+          ...(built ? [`${agent.outfits.length} outfit${agent.outfits.length === 1 ? "" : "s"} built from your own wardrobe by the outfit builder`] : []),
+          ...(agent.toolsUsed.includes("wardrobe search") ? ["Searched your wardrobe"] : []),
+          ...(agent.toolsUsed.includes("weather") && forecast ? [`Forecast for ${forecast.place} from Open-Meteo`] : []),
+          ...(agent.toolsUsed.includes("Racked trends") ? ["Trends from recent public Racked looks — anonymous totals"] : []),
+          ...(agent.notFound.length ? [`Not found in your wardrobe: ${agent.notFound.join(", ")}`] : []),
+          "The stylist model chose which tools to use and wrote this reply",
+          "Only this signed-in account's wardrobe was available",
+        ],
+      };
+      try {
+        let nextState = appendTurns({ ...stored, preferences }, [{ role: "user", content: message }, { role: "assistant", content: agentReply.message }]);
+        if (first.length) {
+          nextState = rememberSuggestedItemIds(nextState, agent.offered);
+          nextState = rememberActiveOutfit(nextState, first.map((item) => item.id), agent.intent ?? plan0Intent(message));
+        }
+        // The agent follows the conversation itself, so nothing is held open for the keyword rules.
+        nextState = rememberPendingRequest(nextState, null);
+        await saveHangerConversation(subject, nextState);
+      } catch (reason) {
+        console.error("Hanger conversation could not be saved", { name: reason instanceof Error ? reason.name : "UnknownError" });
+      }
+      return NextResponse.json({ reply: agentReply, remembered });
+    }
+  }
+
   const plan = planHangerTurn({ wardrobe, message, activeOutfit: stored.activeOutfit, pendingRequest: stored.pendingRequest });
   // Weather the person states always wins. Only when they said nothing about it does the forecast
   // decide — "something for tonight" on a cold, wet evening should not come back in linen shorts.
@@ -123,6 +188,7 @@ export async function POST(request: Request) {
   const selectionReasons = Object.fromEntries(explainedPieces.map((piece) => [piece.item.id, piece.reasons]));
   const generated = await generateConsumerHangerReply({
     message: requestText,
+    allowModel: !agentAttempted,
     outfitCount: set.length || (ranked ? 1 : 0),
     alsoShown: set.slice(1).flatMap(({ outfit }) => outfit.pieces.map((piece) => piece.item)),
     history,

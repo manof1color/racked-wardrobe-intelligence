@@ -29,7 +29,8 @@ test("Hanger displays the exact owned garment images before an outfit is saved",
 
 test("Hanger derives preview and save ids from one canonical server selection",()=>{assert.match(consumerAgentRoute,/consumerOutfitContract\(suggested, actionMode\)/);assert.match(consumerAgentRoute,/const selection = contract\.selection/);assert.match(consumerAgentRoute,/const actions = contract\.actions/);assert.match(consumerAgentRoute,/selection,/);});
 
-test("the client blocks saving when visible cards and action ids do not match",()=>{assert.match(agent,/const visibleItemIds = reply\.selection/);assert.match(agent,/visibleItemIds\.length !== itemIds\.length/);assert.match(agent,/visibleItemIds\.some\(\(itemId, index\) => itemId !== itemIds\[index\]\)/);});
+// The check covers each outfit of a set too: a set's buttons are matched against their own card.
+test("the client blocks saving when visible cards and action ids do not match",()=>{assert.match(agent,/const visibleItemIds = \(setIndex \? reply\.outfits\?\.\[setIndex - 1\]\?\.pieces : reply\.selection\)/);assert.match(agent,/visibleItemIds\.length !== itemIds\.length/);assert.match(agent,/visibleItemIds\.some\(\(itemId, index\) => itemId !== itemIds\[index\]\)/);});
 
 test("the saved board preserves Hanger's selected piece order",()=>{const start=store.indexOf("export async function saveOutfit");const end=store.indexOf("export async function updateOutfitItems",start);const implementation=store.slice(start,end);assert.match(implementation,/unique\.map\(itemId=>byId\.get\(itemId\)\)/);assert.doesNotMatch(implementation,/wardrobe\.filter\(item=>unique\.includes\(item\.id\)\)/);});
 
