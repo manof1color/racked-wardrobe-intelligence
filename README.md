@@ -188,18 +188,22 @@ Module names can imply more than they do, so this table says plainly which code 
 
 ```mermaid
 flowchart TB
-  phone["Phone or desktop browser<br/>installable PWA"] -->|"HTTPS · signed HTTP-only session cookie"| app
+  phone["Phone or desktop browser<br/>installable PWA"] -->|"HTTPS · signed HTTP-only session cookie"| auth
   subgraph app["AWS Amplify Hosting — Next.js 15 server rendering and API routes"]
-    direction LR
-    auth["Sign-in, roles,<br/>rate limits"]
+    auth["Session and role check<br/>rate limits"]
+    intake["Photo intake<br/>one bounded crop per piece"]
     hanger["Hanger agents<br/>tool use"]
     builder["Outfit builder<br/>+ stylist knowledge"]
     gate["Consent filter → k ≥ 25<br/>→ enumeration budget"]
+    store["Owner-scoped store<br/>every read checks the account"]
+    auth --> intake & hanger & gate
+    hanger --> builder
+    intake & hanger & gate --> store
   end
-  app --> bedrock["Amazon Bedrock<br/>Nova Pro: garment detection, Hanger<br/>Nova Lite: fallback, benchmark analysis"]
-  app --> dynamo["DynamoDB<br/>single table, on demand"]
-  app --> s3["Private encrypted S3<br/>evidence photo + bounded crop per piece<br/>1-hour links"]
-  app --> weather["Open-Meteo forecast<br/>rounded coordinates"]
+  intake & hanger --> bedrock["Amazon Bedrock<br/>Nova Pro, Nova Lite fallback"]
+  hanger --> weather["Open-Meteo forecast<br/>rounded coordinates"]
+  store --> dynamo["DynamoDB<br/>single table"]
+  store --> s3["Private encrypted S3<br/>1-hour links"]
   gate --> brand["Brand dashboard<br/>released aggregates only"]
 ```
 
