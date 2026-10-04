@@ -212,18 +212,22 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
     setWorking(action.type); setError(""); setStatus("");
     try {
       const itemIds = action.payload.itemIds?.split(",").filter(Boolean) ?? [];
-      const visibleItemIds = reply.selection?.map((item) => item.id) ?? [];
-      if ((action.type === "save-outfit" || action.type === "record-outfit") &&
+      // A set's buttons are "save-outfit-2", "record-outfit-3": the same actions, aimed at one
+      // outfit of the set. They used to match neither branch below, so tapping them did nothing.
+      const kind = action.type.startsWith("save-outfit") ? "save-outfit" : action.type.startsWith("record-outfit") ? "record-outfit" : action.type;
+      const setIndex = Number(/-(\d+)$/.exec(action.type)?.[1] ?? 0);
+      const visibleItemIds = (setIndex ? reply.outfits?.[setIndex - 1]?.pieces : reply.selection)?.map((item) => item.id) ?? [];
+      if ((kind === "save-outfit" || kind === "record-outfit") &&
         (visibleItemIds.length !== itemIds.length || visibleItemIds.some((itemId, index) => itemId !== itemIds[index]))) {
         throw new Error("Hanger's visible outfit changed before saving. Ask Hanger to create the outfit again so every photo and label stays matched.");
       }
-      if (action.type === "record-outfit") {
+      if (kind === "record-outfit") {
         const response = await fetch("/api/wears", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemIds }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "The outfit could not be recorded.");
         onWearRecorded?.(data.counts);
         setStatus(`${itemIds.length} outfit pieces were recorded as worn.`);
-      } else if (action.type === "save-outfit") {
+      } else if (kind === "save-outfit") {
         const response = await fetch("/api/consumer/outfits", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemIds, name: action.payload.name ?? "Hanger outfit" }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "The outfit could not be saved.");
