@@ -73,7 +73,7 @@ During the first mobile registration test, DynamoDB rejected the email-index que
 
 - DynamoDB uses on-demand billing.
 - S3 is private and temporary objects under `temp/` expire after one day.
-- Bedrock is usage-billed; uploads are limited to control request size. Nova Pro is reserved for the complex whole-look scan while routine analysis and Hanger remain on lower-cost Nova Lite.
+- Bedrock is usage-billed; uploads are limited to control request size. Nova Pro handles the complex whole-look scan and Hanger's conversation, where Nova Lite lost the thread of longer exchanges; routine analysis stays on lower-cost Nova Lite. Hanger's model is chosen by `AI_HANGER_MODEL` alone — it no longer inherits `AI_MODEL` — and falls back to Nova Lite if Nova Pro is unavailable.
 - Create an AWS Budget alert and monitor Amplify, S3, DynamoDB, and Bedrock usage.
 - Never place access keys, session secrets, account identifiers, or private image URLs in GitHub issues or logs.
 
