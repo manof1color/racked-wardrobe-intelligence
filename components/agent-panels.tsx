@@ -60,7 +60,9 @@ function ReplyDetails({ reply, onAction, working }: { reply: AgentReply; onActio
           {hasSelection && pieceGrid(reply.selection!, "Pieces in Hanger's current outfit")}
           {reply.actions.length > 0 && actionRow(reply.actions, "")}
         </>}
-    {reply.provider === "grounded-wardrobe" && <p className="hanger-degraded" role="status">Written from your wardrobe without the stylist model — it did not answer this turn.</p>}
+    {reply.provider === "grounded-wardrobe"
+      ? <p className="hanger-degraded" role="status">Written from your wardrobe without the stylist model — {reply.degradedReason ?? "it did not answer this turn"}.</p>
+      : reply.degradedReason && <p className="hanger-degraded" role="status">Written without Hanger&rsquo;s wardrobe tools this turn — {reply.degradedReason}.</p>}
     <details className="hanger-reasoning">
       <summary>{hasSelection ? "Why these pieces" : "How Hanger answered"}</summary>
       <div className="agent-meta">

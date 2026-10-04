@@ -1,3 +1,4 @@
+import { formalityGap, occasionFit } from "./garment-knowledge.ts";
 import type { AgentChatTurn } from "./platform-types.ts";
 import type { WardrobeItem } from "./types.ts";
 
@@ -52,22 +53,15 @@ export interface GroundedOutfit {
 export const MAX_OUTFIT_PIECES = 4;
 
 const OCCASION_KEYWORDS: Array<[OutfitOccasion, string[]]> = [
-  ["formal", ["formal", "wedding", "gala", "black tie", "interview", "ceremony"]],
-  ["work", ["work", "office", "meeting", "business", "professional", "presentation"]],
+  // "Dressier" and "classier" are how people usually ask for formal; the builder then reaches for
+  // the most formal pieces they own, whatever that turns out to be.
+  ["formal", ["formal", "wedding", "gala", "black tie", "interview", "ceremony", "dressy", "dressier", "dress up", "dressed up", "fancy", "fancier", "classy", "classier", "upscale", "elevated", "funeral"]],
+  ["work", ["work", "office", "meeting", "business", "professional", "presentation", "smart casual", "business casual", "polished"]],
   ["evening", ["dinner", "date", "drinks", "night out", "evening", "party", "cocktail"]],
   ["active", ["gym", "workout", "run", "running", "training", "athletic", "hike", "exercise"]],
   ["travel", ["travel", "flight", "airport", "trip", "commute", "train"]],
   ["casual", ["casual", "weekend", "everyday", "relaxed", "errands", "coffee", "brunch"]],
 ];
-
-const OCCASION_STYLES: Record<OutfitOccasion, string[]> = {
-  work: ["tailored", "classic", "minimal", "smart", "structured", "refined"],
-  formal: ["tailored", "formal", "classic", "elegant", "refined"],
-  evening: ["elegant", "sleek", "statement", "refined", "minimal"],
-  casual: ["casual", "relaxed", "everyday", "comfortable", "minimal"],
-  active: ["athletic", "sport", "technical", "performance", "utility"],
-  travel: ["comfortable", "casual", "layered", "utility", "relaxed"],
-};
 
 const WEATHER_KEYWORDS: Array<[OutfitWeather, string[]]> = [
   ["wet", ["rain", "rainy", "wet", "storm", "drizzle", "downpour"]],
@@ -103,8 +97,14 @@ const ITEM_ALIAS_STOPWORDS = new Set([
 ]);
 
 const OPTIONAL_CATEGORY_SLOTS = ["outerwear", "bag", "accessory", "jewelry"];
+const FOUNDATION_CATEGORIES = new Set(["top", "bottom", "dress", "shoe"]);
 
 const OUTFIT_WEIGHTS = { occasion: 0.3, weather: 0.2, style: 0.15, underuse: 0.2, recency: 0.15 } as const;
+/**
+ * When the person names an occasion, suiting it is the point; rotation only breaks ties. With the
+ * ordinary weights a never-worn graphic tee out-scored a henley for "a more formal outfit".
+ */
+const OCCASION_LED_WEIGHTS = { occasion: 0.45, weather: 0.2, style: 0.1, underuse: 0.15, recency: 0.1 } as const;
 const ROTATION_WEIGHTS = { occasion: 0.1, weather: 0.1, style: 0.1, underuse: 0.45, recency: 0.25 } as const;
 
 function clean(value: unknown) {
@@ -260,11 +260,9 @@ export function readOutfitIntent(message: string): OutfitIntent {
 
 function occasionScore(item: WardrobeItem, intent: OutfitIntent) {
   if (!intent.occasion) return { score: 50, evidence: "No occasion given, so occasion fit is neutral." };
-  const expected = OCCASION_STYLES[intent.occasion];
-  const tags = (item.style ?? []).map(clean);
-  const overlap = tags.filter((tag) => expected.some((want) => tag.includes(want) || want.includes(tag)));
-  if (overlap.length === 0) return { score: tags.length ? 20 : 45, evidence: `No ${intent.occasion} style tags on this piece.` };
-  return { score: Math.min(100, 60 + overlap.length * 20), evidence: `${overlap.join(", ")} suits ${intent.occasion}.` };
+  // What kind of garment it is decides, from the stylist knowledge in garment-knowledge.ts — not
+  // only whichever style tags image recognition happened to attach.
+  return occasionFit(item, intent.occasion);
 }
 
 function weatherScore(item: WardrobeItem, intent: OutfitIntent) {
@@ -299,7 +297,7 @@ function recencyScore(item: WardrobeItem) {
 }
 
 function componentsFor(item: WardrobeItem, intent: OutfitIntent): OutfitScoreComponent[] {
-  const weights = intent.mode === "rotation" ? ROTATION_WEIGHTS : OUTFIT_WEIGHTS;
+  const weights = intent.mode === "rotation" ? ROTATION_WEIGHTS : intent.occasion ? OCCASION_LED_WEIGHTS : OUTFIT_WEIGHTS;
   const occasion = occasionScore(item, intent);
   const weather = weatherScore(item, intent);
   const style = styleScore(item, intent);
@@ -362,8 +360,18 @@ function seedRequired(ranked: RankedGarment[], requiredIds: string[], maxPieces:
   return requiredIds.map((id) => byId.get(id)).filter((entry): entry is RankedGarment => Boolean(entry)).slice(0, maxPieces);
 }
 
-function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredIds: string[] = [], preferDress = false, freshIds: Set<string> | null = null) {
+function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredIds: string[] = [], preferDress = false, freshIds: Set<string> | null = null, occasion: OutfitOccasion | null = null) {
   const chosen: RankedGarment[] = seedRequired(ranked, requiredIds, maxPieces);
+  // With an occasion named, suitability is a gate and not just a weight: each slot is filled from
+  // the pieces closest to the occasion's band of formality, and only then does rotation choose
+  // among them. A piece the occasion does not call for is never added as an optional extra — a
+  // skully does not top off a formal outfit. Required pieces were asked for and are never gated.
+  const gap = (entry: RankedGarment) => (occasion ? formalityGap(entry.item, occasion) : 0);
+  const suitable = (candidates: RankedGarment[]) => {
+    if (!occasion || !candidates.length) return candidates;
+    const closest = Math.min(...candidates.map(gap));
+    return candidates.filter((entry) => gap(entry) <= closest);
+  };
   const usedItems = new Set(chosen.map((entry) => entry.item.id));
   const usedCategories = new Set(chosen.map((entry) => clean(entry.item.category)));
   const add = (entry: RankedGarment | undefined) => {
@@ -376,8 +384,12 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
   // the same category exists. Each piece used to be scored alone, so with no weather given the
   // judge closet's Looks screen opened on a winter knit over summer linen shorts.
   const coherent = (entry: RankedGarment) => !chosen.some((picked) => seasonsClash(picked.item.season, entry.item.season));
-  const best = (category: string, freshOnly = false) => {
-    const candidates = ranked.filter((entry) => !usedItems.has(entry.item.id) && clean(entry.item.category) === category && (!freshOnly || freshIds?.has(entry.item.id)));
+  const best = (category: string, freshOnly = false, optional = false) => {
+    const all = ranked.filter((entry) => !usedItems.has(entry.item.id) && clean(entry.item.category) === category);
+    // The gate is measured over the whole category, so "fresh only" cannot fall back to a fresh
+    // piece the occasion rules out while a suitable earlier suggestion exists.
+    const fitting = new Set(suitable(all).filter((entry) => !optional || gap(entry) === 0).map((entry) => entry.item.id));
+    const candidates = all.filter((entry) => fitting.has(entry.item.id) && (!freshOnly || freshIds?.has(entry.item.id)));
     return candidates.find(coherent) ?? candidates[0];
   };
 
@@ -402,11 +414,11 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
   if (!usedCategories.has("shoe")) add(best("shoe"));
   for (const slot of OPTIONAL_CATEGORY_SLOTS) {
     if (chosen.length >= maxPieces) break;
-    if (!usedCategories.has(slot)) add(best(slot, Boolean(freshIds)));
+    if (!usedCategories.has(slot)) add(best(slot, Boolean(freshIds), true));
   }
   for (const slot of OPTIONAL_CATEGORY_SLOTS) {
     if (chosen.length >= maxPieces) break;
-    if (!usedCategories.has(slot)) add(best(slot));
+    if (!usedCategories.has(slot)) add(best(slot, false, true));
   }
 
   // Prefer a new category before using a second piece from the same category. Multiple pieces in
@@ -418,7 +430,7 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
       ? usedCategories.has("top") || usedCategories.has("bottom")
       : (category === "top" || category === "bottom") && usedCategories.has("dress");
     // An extra piece is never needed, so one that clashes on season is simply left out.
-    if (!usedItems.has(entry.item.id) && !usedCategories.has(category) && !conflictsWithFoundation && coherent(entry)) add(entry);
+    if (!usedItems.has(entry.item.id) && !usedCategories.has(category) && !conflictsWithFoundation && coherent(entry) && gap(entry) === 0) add(entry);
   }
   for (const entry of ranked) {
     if (chosen.length >= maxPieces) break;
@@ -426,7 +438,7 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
     const conflictsWithFoundation = category === "dress"
       ? usedCategories.has("top") || usedCategories.has("bottom")
       : (category === "top" || category === "bottom") && usedCategories.has("dress");
-    if (!usedItems.has(entry.item.id) && !conflictsWithFoundation && coherent(entry)) add(entry);
+    if (!usedItems.has(entry.item.id) && !conflictsWithFoundation && coherent(entry) && gap(entry) === 0) add(entry);
   }
   return chosen;
 }
@@ -610,6 +622,10 @@ export function rankOutfitSet(
     }
     // A second outfit that repeats the first is not a second outfit. Stop and report honestly.
     if (!outfit || !pieces.length) break;
+    // Nor is a "formal" outfit of a henley, jeans, and sneakers. Once the closet's pieces for the
+    // occasion are spent, the set ends — the first outfit is always given, as the closest there is.
+    const occasion = outfit.intent.occasion;
+    if (entries.length && occasion && pieces.some((piece) => FOUNDATION_CATEGORIES.has(clean(piece.item.category)) && formalityGap(piece.item, occasion) > 1)) break;
     signatures.add(outfitSignature(pieces));
     for (const piece of pieces) {
       used.add(piece.item.id);
@@ -684,8 +700,8 @@ export function rankOutfit(
   const pieces = intent.mode === "rotation"
     ? [...seedRequired(ranked, requiredPieceIds, maxPieces), ...ranked.filter((entry) => !requiredIdSet.has(entry.item.id))].slice(0, maxPieces)
     : alreadySuggested.size && fresh.length
-      ? fillCategorySlots([...freshRanked, ...repeatedRanked], maxPieces, requiredPieceIds, preferDress, new Set(fresh.map((item) => item.id)))
-      : fillCategorySlots(ranked, maxPieces, requiredPieceIds, preferDress);
+      ? fillCategorySlots([...freshRanked, ...repeatedRanked], maxPieces, requiredPieceIds, preferDress, new Set(fresh.map((item) => item.id)), intent.occasion)
+      : fillCategorySlots(ranked, maxPieces, requiredPieceIds, preferDress, null, intent.occasion);
   const groundedPieces = pieces.map((piece) => requiredIdSet.has(piece.item.id)
     ? { ...piece, reasons: ["Directly requested by the customer.", ...piece.reasons] }
     : piece);

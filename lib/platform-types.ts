@@ -163,6 +163,11 @@ export interface AgentReply {
   toolsUsed: string[];
   actions: Array<{ label:string; type:string; payload:Record<string,string> }>;
   evidence: string[];
+  /**
+   * Why Hanger's tool-using stylist did not answer this turn, in plain words — e.g. "the model
+   * returned an error (ValidationException)". Present only when it fell back.
+   */
+  degradedReason?: string;
   /** Consumer-only visual grounding for the exact owned pieces Hanger selected. */
   selection?: Array<{ id:string; name:string; category:string; imageUrl?:string }>;
   /**

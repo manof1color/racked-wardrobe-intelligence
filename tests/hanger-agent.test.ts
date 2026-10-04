@@ -187,7 +187,8 @@ test("the stylist's standing instructions", () => {
   assert.match(prompt, /Never write an outfit list yourself/);
   assert.match(prompt, /pick one and say why; never answer 'either'/);
   assert.match(prompt, /Never state or guess the weather without get_weather/);
-  assert.match(prompt, /- Green Henley · top · green · worn 2×/, "the wardrobe is indexed one line per piece");
+  assert.match(prompt, /- Green Henley · top · green · smart casual · worn 2×/, "the wardrobe is indexed one line per piece, with its formality");
+  assert.match(prompt, /formality ladder: athletic or lounge, casual, smart casual, business, formal/);
   assert.match(prompt, /no location set/);
 });
 
@@ -198,10 +199,11 @@ test("without a configured provider the agent never runs", async () => {
   if (before !== undefined) process.env.AI_PROVIDER = before;
 });
 
+// The plain model reply is tried only after a fast rejection, never after a slow or throttled call.
 test("the route asks the agent first and falls back without a second model wait", () => {
   const route = read("app/api/agents/consumer/route.ts");
   assert.ok(route.indexOf("await runHangerAgent(") < route.indexOf("const plan = planHangerTurn("), "the agent runs before the keyword rules");
-  assert.match(route, /allowModel: !agentAttempted,/, "if the agent already tried the model, the fallback answers from the wardrobe at once");
+  assert.match(route, /allowModel: !agentAttempted \|\| plainReplyWorthTrying\(agentOutcome\.failure\),/, "a slow agent failure is answered from the wardrobe at once");
   assert.match(route, /outfitCards\(agent\.outfits, agentActions\)/);
   assert.match(route, /rememberSuggestedItemIds\(nextState, agent\.offered\)/);
   assert.match(read("lib/hanger-conversation.ts"), /input\.allowModel === false \? null : await converse\(/);
