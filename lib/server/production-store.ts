@@ -10,6 +10,7 @@ import type { GarmentAnalysis, BrandProductRegistration, OutfitPost, DataClassif
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
 import { normalizeGarmentClassification } from "@/lib/garment-taxonomy";
 import { applyGarmentEdit, type GarmentEdit } from "@/lib/garment-edit";
+import { validCoordinates, type Place } from "@/lib/weather";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
@@ -545,6 +546,29 @@ export async function saveBrandProduct(ownerId:string,product:BrandProductRegist
 
 export async function getBrandDataSharing(ownerId:string){const account=await getAccount(ownerId);return account?.brandDataSharing===true;}
 export async function setBrandDataSharing(ownerId:string,value:boolean){await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:"SET brandDataSharing = :value",ExpressionAttributeValues:{":value":value}}));return value;}
+
+/**
+ * The home city Hanger checks the weather for. It lives on the person's own profile, is read only by
+ * their own Hanger, and never enters a brand aggregate or a Community post. Coordinates are stored
+ * rounded to about a kilometre. Deleting the account deletes the profile, and the city with it.
+ */
+export async function getHomeCity(ownerId:string):Promise<Place|null> {
+  const result=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},ProjectionExpression:"homeCity"}));
+  const stored=(result.Item as {homeCity?:Partial<Place>}|undefined)?.homeCity;
+  const coordinates=stored?validCoordinates(stored.latitude,stored.longitude):null;
+  if(!stored||!coordinates||typeof stored.name!=="string"||!stored.name)return null;
+  return {name:stored.name,region:typeof stored.region==="string"?stored.region:null,country:typeof stored.country==="string"?stored.country:null,...coordinates};
+}
+
+export async function setHomeCity(ownerId:string,place:Place|null) {
+  const key={PK:`USER#${ownerId}`,SK:"PROFILE"};
+  if(!place){await db.send(new UpdateCommand({TableName:requireTable(),Key:key,UpdateExpression:"REMOVE homeCity",ConditionExpression:"attribute_exists(PK)"}));return null;}
+  const coordinates=validCoordinates(place.latitude,place.longitude);
+  if(!coordinates)throw new Error("Those coordinates are not a place on Earth.");
+  const homeCity={name:place.name.slice(0,80),region:place.region?.slice(0,80)??null,country:place.country?.slice(0,80)??null,...coordinates};
+  await db.send(new UpdateCommand({TableName:requireTable(),Key:key,UpdateExpression:"SET homeCity = :city",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":city":homeCity}}));
+  return homeCity;
+}
 
 type StoredPost=StoredCommunityPost&{ownerId:string;sourceOutfitId?:string;sourceBrandLookId?:string};
 // Public feed responses are rebuilt through toPublicOutfitPost so stored private fields

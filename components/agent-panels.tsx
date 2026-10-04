@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AgentChatTurn, AgentReply } from "@/lib/platform-types";
+import { roundCoordinate } from "@/lib/weather";
 import type { SavedOutfit } from "@/lib/types";
 
 type AgentAction = AgentReply["actions"][number];
@@ -121,6 +122,8 @@ function Composer({ value, setValue, send, busy, prompts, label, showPrompts, st
   </div>;
 }
 
+const SHARED_LOCATION_KEY = "racked-hanger-location";
+
 export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRecorded?: (counts: Record<string, number>) => void; onOutfitSaved?: (outfit: SavedOutfit) => void }) {
   const [entries, setEntries] = useState<ChatEntry[]>([{ id: "consumer-intro", role: "assistant", content: CONSUMER_INTRO }]);
   const [draft, setDraft] = useState("");
@@ -129,6 +132,11 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [remembered, setRemembered] = useState("");
+  // Where the forecast comes from: the home city in Settings, or — only when the person taps for it
+  // — the phone's location, rounded to about a kilometre on the device and kept for this session.
+  const [weatherPlace, setWeatherPlace] = useState<string | null>(null);
+  const [sharedLocation, setSharedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locating, setLocating] = useState(false);
 
   // The conversation belongs to the account, not this tab, so reopening Hanger continues it.
   useEffect(() => {
@@ -140,6 +148,11 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
         const turns = Array.isArray(data.turns) ? (data.turns as AgentChatTurn[]) : [];
         if (turns.length) setEntries((current) => [...current, ...turns.map((turn) => ({ ...turn, id: id() }))]);
         setRemembered(typeof data.remembered === "string" ? data.remembered : "");
+        setWeatherPlace(typeof data.weatherPlace === "string" ? data.weatherPlace : null);
+        try {
+          const saved = JSON.parse(sessionStorage.getItem(SHARED_LOCATION_KEY) ?? "null") as { latitude?: unknown; longitude?: unknown } | null;
+          if (saved && typeof saved.latitude === "number" && typeof saved.longitude === "number") setSharedLocation({ latitude: saved.latitude, longitude: saved.longitude });
+        } catch { /* storage unavailable: the home city is used instead */ }
       })
       .catch(() => undefined);
     return () => { cancelled = true; };
@@ -151,7 +164,7 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
     setEntries((current) => [...current, { id: id(), role: "user", content: message }]);
     setDraft(""); setBusy(true); setError(""); setStatus("");
     try {
-      const response = await fetch("/api/agents/consumer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message }) });
+      const response = await fetch("/api/agents/consumer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, ...(sharedLocation ? { location: sharedLocation } : {}) }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Hanger could not respond.");
       const reply = data.reply as AgentReply;
@@ -160,6 +173,25 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Hanger could not respond.");
     } finally { setBusy(false); }
+  }
+
+  function shareLocation() {
+    if (!("geolocation" in navigator)) { setError("This browser cannot share a location. Set a home city in Settings instead."); return; }
+    setLocating(true); setError("");
+    navigator.geolocation.getCurrentPosition((position) => {
+      const location = { latitude: roundCoordinate(position.coords.latitude), longitude: roundCoordinate(position.coords.longitude) };
+      setSharedLocation(location);
+      try { sessionStorage.setItem(SHARED_LOCATION_KEY, JSON.stringify(location)); } catch { /* kept in memory only */ }
+      setLocating(false);
+    }, () => {
+      setLocating(false);
+      setError(weatherPlace ? `Location was not shared, so Hanger will use ${weatherPlace}.` : "Location was not shared. You can set a home city in Settings instead.");
+    }, { enableHighAccuracy: false, timeout: 10_000, maximumAge: 10 * 60 * 1000 });
+  }
+
+  function stopSharing() {
+    setSharedLocation(null);
+    try { sessionStorage.removeItem(SHARED_LOCATION_KEY); } catch { /* nothing stored */ }
   }
 
   // Forgetting is the person's to do, and it removes the stored record rather than hiding it.
@@ -210,6 +242,13 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
       <span>{remembered ? `Hanger remembers: ${remembered}` : "Hanger remembers this conversation."}</span>
       <button type="button" onClick={forget}>Clear</button>
     </div>}
+    <div className="hanger-weather-note">
+      <span>{sharedLocation ? "Weather: your current location" : weatherPlace ? `Weather: ${weatherPlace}` : "Weather: off"}</span>
+      {sharedLocation
+        ? <button type="button" onClick={stopSharing}>Stop sharing</button>
+        : <button type="button" onClick={shareLocation} disabled={locating}>{locating ? "Locating…" : "Use my location"}</button>}
+      {!sharedLocation && !weatherPlace && <a href="/settings">Set a home city</a>}
+    </div>
     <Composer value={draft} setValue={setDraft} send={send} busy={busy} prompts={consumerPrompts} label="consumer"
       showPrompts={!hasConversation} status={status} error={error} />
   </section>;
