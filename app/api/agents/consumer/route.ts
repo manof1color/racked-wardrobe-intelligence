@@ -6,7 +6,8 @@ import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversation
 import { allowedOutfitActions, planHangerTurn, replyAsksBack } from "@/lib/hanger-turn";
 import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { clearHangerConversation, getConsumerInspirationProfile, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
+import { clearHangerConversation, getConsumerInspirationProfile, getHomeCity, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
+import { fetchForecast, validCoordinates, type Forecast } from "@/lib/weather";
 import type { AgentReply } from "@/lib/platform-types";
 import type { WardrobeItem } from "@/lib/types";
 
@@ -39,7 +40,8 @@ export async function GET() {
   if (error) return error;
   try {
     const state = await loadHangerConversation(session!.subject);
-    return NextResponse.json({ turns: state.turns, remembered: preferenceSummary(state.preferences), earlierTurnCount: state.earlierTurnCount });
+    const homeCity = await getHomeCity(session!.subject).catch(() => null);
+    return NextResponse.json({ turns: state.turns, remembered: preferenceSummary(state.preferences), earlierTurnCount: state.earlierTurnCount, weatherPlace: homeCity?.name ?? null });
   } catch (reason) {
     console.error("Hanger conversation could not be loaded", { name: reason instanceof Error ? reason.name : "UnknownError" });
     return NextResponse.json({ turns: [], remembered: "", earlierTurnCount: 0 });
@@ -66,14 +68,21 @@ export async function POST(request: Request) {
   const limit = consumeRateLimit(`consumer-agent:${subject}`, RATE_LIMIT_RULES.consumerAgent);
   if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const parsedBody = await request.json().catch(() => ({})) as unknown;
-  const body = parsedBody && typeof parsedBody === "object" ? parsedBody as { message?: unknown; occasion?: unknown; weather?: unknown } : {};
+  const body = parsedBody && typeof parsedBody === "object" ? parsedBody as { message?: unknown; occasion?: unknown; weather?: unknown; location?: { latitude?: unknown; longitude?: unknown } } : {};
   const occasion = typeof body.occasion === "string" ? body.occasion.trim() : "my plans";
   const weather = typeof body.weather === "string" ? body.weather.trim() : "";
   const legacyMessage = `Build an outfit for ${occasion || "my plans"}${weather ? ` in ${weather}` : ""}.`;
   const message = (typeof body.message === "string" ? body.message.trim() : legacyMessage).slice(0, 1_000);
   if (!message) return NextResponse.json({ error: "Tell Hanger what you would like help with." }, { status: 400 });
 
-  const [wardrobe, outfits, inspiration, stored] = await Promise.all([listWardrobe(subject), listOutfits(subject), getConsumerInspirationProfile(subject), loadHangerConversation(subject)]);
+  const [wardrobe, outfits, inspiration, stored, homeCity] = await Promise.all([listWardrobe(subject), listOutfits(subject), getConsumerInspirationProfile(subject), loadHangerConversation(subject), getHomeCity(subject).catch(() => null)]);
+  // The phone's location, when the person chose to share it, wins for this one message and is never
+  // stored; otherwise the home city from Settings. No location, no forecast — and Hanger then never
+  // guesses the weather. The forecast has a short deadline, so it can only ever cost a reply its
+  // forecast, never the reply.
+  const shared = validCoordinates(body.location?.latitude, body.location?.longitude);
+  const location = shared ? { ...shared, place: "your current location" } : homeCity ? { latitude: homeCity.latitude, longitude: homeCity.longitude, place: homeCity.name } : null;
+  const forecast: Forecast | null = location ? await fetchForecast(location).catch(() => null) : null;
   // The conversation is the account's, not the browser's, and the context window is spent
   // deliberately: the newest turns that fit a character budget, with older ones counted, not faked.
   const { history, omittedTurnCount } = conversationForPrompt(stored);
@@ -82,6 +91,9 @@ export async function POST(request: Request) {
   const previousSuggestionItemIds = ownedSuggestionItemIds(stored.suggestedItemIds, wardrobe);
   const mostRecentSavedItemIds = outfits[0]?.itemIds ?? [];
   const plan = planHangerTurn({ wardrobe, message, activeOutfit: stored.activeOutfit, pendingRequest: stored.pendingRequest });
+  // Weather the person states always wins. Only when they said nothing about it does the forecast
+  // decide — "something for tonight" on a cold, wet evening should not come back in linen shorts.
+  const turnIntent = !plan.intent.weather && forecast?.outfitWeather ? { ...plan.intent, weather: forecast.outfitWeather } : plan.intent;
   // What this turn is really answering: the latest message, or the request it completes.
   const requestText = plan.effectiveMessage;
   const activeOwnedItems = plan.activeItemIds.map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is WardrobeItem => Boolean(item));
@@ -89,7 +101,7 @@ export async function POST(request: Request) {
   const requestedCount = plan.outfitCount;
   const rankingOptions = {
     history,
-    intentOverride: plan.intent,
+    intentOverride: turnIntent,
     maxPieces: plan.maxPieces,
     requiredItemIds: plan.requiredItemIds,
     excludedItemIds: [...plan.excludedItemIds, ...avoidedItemIds(preferences, wardrobe)],
@@ -107,7 +119,7 @@ export async function POST(request: Request) {
   const contract = consumerOutfitContract(suggested, actionMode);
   const selection = contract.selection ?? [];
   const actions = contract.actions;
-  const explainedPieces = ranked?.pieces ?? (plan.mode === "explain" ? scoreOwnedPieces(suggested, plan.intent) : []);
+  const explainedPieces = ranked?.pieces ?? (plan.mode === "explain" ? scoreOwnedPieces(suggested, turnIntent) : []);
   const selectionReasons = Object.fromEntries(explainedPieces.map((piece) => [piece.item.id, piece.reasons]));
   const generated = await generateConsumerHangerReply({
     message: requestText,
@@ -125,6 +137,7 @@ export async function POST(request: Request) {
     activeBefore: activeOwnedItems,
     selectionReasons,
     styleSource: ranked?.intent.styleSource ?? plan.intent.styleSource,
+    forecast,
     clarification: plan.clarification,
   });
   const outfitSet: AgentReply["outfits"] = set.length > 1 ? set.map(({ index, outfit }): NonNullable<AgentReply["outfits"]>[number] => {
@@ -155,6 +168,7 @@ export async function POST(request: Request) {
     ...(outfitSet ? { outfits: outfitSet } : {}),
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
+      ...(forecast ? [`Forecast for ${forecast.place} from Open-Meteo${turnIntent.weather && !plan.intent.weather ? ` — dressed for ${turnIntent.weather} weather` : ""}`] : []),
       ...(repeatedPiecesInSet(set) > 0 ? [`${repeatedPiecesInSet(set)} piece${repeatedPiecesInSet(set) === 1 ? "" : "s"} appear in more than one outfit — your closet has fewer of those than the set needed`] : []),
       ...(plan.effectiveMessage !== message ? ["This answered the request still open from an earlier message"] : []),
       ...(requestedCount > 1 ? [set.length >= requestedCount

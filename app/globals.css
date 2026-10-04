@@ -906,3 +906,11 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .looks-extras{display:flex;gap:7px;flex-wrap:wrap;padding:10px 18px 8px;border-top:1px dashed var(--line)}
 .looks-chip{border:1.5px dashed #a9a396;background:transparent;padding:6px 10px;font-size:.66rem;font-weight:800;cursor:pointer}
 .looks-cta{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 18px}
+
+/* Hanger weather: the source line in the chat, and the home city picker in Settings. */
+.hanger-weather-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 16px;font-size:.7rem;color:var(--muted)}
+.hanger-weather-note button,.hanger-weather-note a{border:0;background:transparent;padding:0;font-size:.7rem;font-weight:800;color:var(--ink);text-decoration:underline;cursor:pointer}
+.hanger-weather-note button:disabled{opacity:.5;cursor:default}
+.home-city-empty{color:var(--muted);font-size:.8rem}
+.home-city-results{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.home-city-results li{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);padding:8px 10px;background:var(--white);font-size:.8rem}

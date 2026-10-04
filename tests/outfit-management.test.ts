@@ -20,7 +20,8 @@ test("Hanger's successful save immediately reaches the dashboard outfit state",(
 
 // What Hanger has already suggested is remembered on the account instead of being reassembled
 // from the browser's message list, so a follow-up brings new pieces even after a reload.
-test("what Hanger already suggested is remembered on the account, not in the browser",()=>{assert.match(agent,/JSON\.stringify\(\{ message \}\)/);assert.doesNotMatch(agent,/previousSuggestionItemIds/);assert.match(consumerAgentRoute,/rememberSuggestedItemIds\(/);assert.match(consumerAgentRoute,/selection\.map\(\(item\) => item\.id\)/);});
+// The body may carry a shared location for the forecast, and nothing else besides the message.
+test("what Hanger already suggested is remembered on the account, not in the browser",()=>{assert.match(agent,/JSON\.stringify\(\{ message, \.\.\.\(sharedLocation \? \{ location: sharedLocation \} : \{\}\) \}\)/);assert.doesNotMatch(agent,/previousSuggestionItemIds/);assert.match(consumerAgentRoute,/rememberSuggestedItemIds\(/);assert.match(consumerAgentRoute,/selection\.map\(\(item\) => item\.id\)/);});
 
 test("repeated creation prompts rotate accumulated owned suggestions server-side",()=>{assert.match(consumerAgentRoute,/planHangerTurn\(\{ wardrobe, message, activeOutfit: stored\.activeOutfit, pendingRequest: stored\.pendingRequest \}\)/);assert.match(consumerAgentRoute,/rotatePriorSuggestions: plan\.rotatePriorSuggestions/);assert.match(consumerAgentRoute,/ownedSuggestionItemIds\(stored\.suggestedItemIds, wardrobe\)/,"the rotation list comes from the stored conversation");});
 

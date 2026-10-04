@@ -30,6 +30,17 @@ AI-read brand text is autofill, never verification. When garment analysis can re
 
 Consumer and Brand images are encrypted in an S3 bucket with all public access blocked. The browser receives short-lived signed URLs. Wardrobe save confirmation is HMAC-bound to the account, S3 key, garment fields, and registry result, preventing another browser from substituting an image or verified product connection.
 
+## Location and weather
+
+Hanger can check the weather, which means it can know roughly where someone is. That is kept as small and as local as the feature allows.
+
+- **Home city.** A consumer may choose one in Settings. It is stored on their own profile as a place name and a coordinate rounded to two decimal places — about a kilometre — read only by their own Hanger, never placed in a brand aggregate or a Community post, removable at any time, and deleted with the account.
+- **Shared location.** The Hanger chat offers "Use my location". Only when the person taps it does the phone share a position, at low accuracy, which is rounded to about a kilometre on the device before it is sent. It is used for that message's forecast and kept in the browser's session storage, so it ends when the browser session does. The server never stores it.
+- **What leaves Racked.** To get a forecast, the rounded coordinate — and nothing else: no name, account, or wardrobe — is sent to Open-Meteo. A city search sends the typed city name to Open-Meteo's geocoder. Searches are rate-limited.
+- **No forecast, no weather.** Without a location Hanger never states or guesses the weather. A forecast also never overrides weather the person states themselves.
+
+Open-Meteo's free service is licensed for non-commercial use, which covers the competition build. Charging customers would require its commercial plan or another provider.
+
 ## Data minimization
 
 The matching and wear systems do not store protected demographic attributes. Brand analytics do not query names, email addresses, images, or full wardrobes. Password hashes and salts are never returned by application APIs.
