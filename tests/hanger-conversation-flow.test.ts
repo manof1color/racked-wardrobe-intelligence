@@ -131,7 +131,7 @@ test("REGRESSION: a reply cannot describe an outfit that was never built", () =>
   assert.equal(replyClaimsMissingOutfit(invented, [wardrobe[0]]), false, "with a real selection the phrasing is accurate");
 
   const source = read("lib/hanger-conversation.ts");
-  assert.match(source, /!replyClaimsMissingOutfit\(generated, input\.suggested\)/, "every turn is reviewed, advice included");
+  assert.match(source, /!replyClaimsMissingOutfit\(generated, shown\)/, "every turn is reviewed, advice included");
 });
 
 test("the model is told the set already exists so it does not write its own", async () => {

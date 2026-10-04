@@ -11,7 +11,7 @@ when a reply was composed without the model.
 ## Garment vision
 
 - Provider: Amazon Bedrock.
-- Models: Amazon Nova Lite (`amazon.nova-lite-v1:0`) for single- and multi-view garment analysis; the US Amazon Nova Pro geographic profile (`us.amazon.nova-pro-v1:0`) for whole-look instance detection only.
+- Models: Amazon Nova Lite (`amazon.nova-lite-v1:0`) for single- and multi-view garment analysis; the US Amazon Nova Pro geographic profile (`us.amazon.nova-pro-v1:0`) for whole-look instance detection and for Hanger's consumer conversation, with Nova Lite as Hanger's fallback. Hanger's model is set by `AI_HANGER_MODEL` alone. A Hanger reply is checked against every outfit shown in that turn, not the first alone, and on a turn that built no outfit a reply that assembles one of its own — announcing a number of outfits, or a numbered or "+"-joined line of three owned pieces — is rejected. Naming pieces in an ordinary sentence is not.
 - Inputs: only the garment views the Consumer chose to upload.
 - Outputs: confidence, visible label text, visibly printed brand text (autofill only — see `docs/privacy-and-ethics.md`, Brand identity boundary; in the Closet scan it pre-fills the brand search and ranks enrolled look-alikes, and may let through a product whose listed type disagrees with the scan only when its colour matches exactly, but a link is made solely by the person tapping "This is mine" and is saved as their own pick, never verified), controlled category and subtype, color, pattern, style, construction, material, uncertainty alternatives, and view-specific evidence.
 

@@ -16,7 +16,7 @@ const owned = (id: string, overrides: Partial<WardrobeItem> = {}): WardrobeItem 
 // chat path used the bare AI_MODEL value, so every conversational reply failed its one Bedrock call
 // and fell back to the same grounded sentence — a stylist that looked like it was repeating itself.
 test("REGRESSION: the chat model is tried in its inference-profile form first", () => {
-  const candidates = hangerModelCandidates({ AI_MODEL: "amazon.nova-lite-v1:0" });
+  const candidates = hangerModelCandidates({ AI_HANGER_MODEL: "amazon.nova-lite-v1:0" });
   assert.equal(candidates[0], "us.amazon.nova-lite-v1:0", "the prefixed form leads");
   assert.ok(candidates.includes("amazon.nova-lite-v1:0"), "and the configured id is still tried");
   assert.ok(candidates.length <= MAX_HANGER_MODEL_ATTEMPTS, "attempts stay bounded so a reply is never slow to arrive");
@@ -24,6 +24,17 @@ test("REGRESSION: the chat model is tried in its inference-profile form first", 
   assert.equal(hangerModelCandidates({ AI_HANGER_MODEL: "us.amazon.nova-pro-v1:0" })[0], "us.amazon.nova-pro-v1:0", "an already-prefixed id is left alone");
   assert.equal(hangerModelCandidates({ AI_HANGER_MODEL: "anthropic.claude-haiku-4-5-20251001-v1:0" })[0], "anthropic.claude-haiku-4-5-20251001-v1:0", "a non-Nova id is never rewritten");
   assert.deepEqual(hangerModelCandidates({}), [DEFAULT_HANGER_MODEL, FALLBACK_HANGER_MODEL], "with nothing configured, both Nova profiles are tried");
+});
+
+// REGRESSION: Hanger inherited AI_MODEL — the cheaper model the rest of the app uses — which put
+// Nova Lite first in every conversation. It repeated its last answer and answered a colour question
+// with outfits. Hanger now leads with Nova Pro, and only a Hanger-specific setting overrides it.
+test("REGRESSION: Hanger's conversation runs on Nova Pro, not the app-wide model", () => {
+  assert.equal(DEFAULT_HANGER_MODEL, "us.amazon.nova-pro-v1:0");
+  assert.equal(FALLBACK_HANGER_MODEL, "us.amazon.nova-lite-v1:0", "Nova Lite is only the fallback");
+  assert.equal(hangerModelCandidates({})[0], "us.amazon.nova-pro-v1:0");
+  const source = read("lib/hanger-conversation.ts");
+  assert.doesNotMatch(/export function hangerModelCandidates[\s\S]*?\n\}/.exec(source)?.[0] ?? "", /AI_MODEL\b/, "the app-wide AI_MODEL no longer chooses Hanger's model");
 });
 
 test("another model is tried for a configuration failure, never for a timeout", () => {

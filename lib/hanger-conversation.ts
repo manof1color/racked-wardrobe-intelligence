@@ -113,6 +113,25 @@ export function replyClaimsMissingOutfit(reply: string, suggested: WardrobeItem[
   return suggested.length === 0 && CLAIMS_AN_OUTFIT.test(reply);
 }
 
+/**
+ * True when a reply assembles outfits of its own: one line naming three or more owned pieces, or a
+ * line announcing a number of outfits. Asked which colours go together, the model answered with
+ * "Black Skully + Blue Jeans + … + Black Skully" — a list the outfit builder never made, with the
+ * same beanie twice. Outfits come from the builder alone; a reply may mention pieces, not invent sets.
+ */
+const ANNOUNCES_OUTFITS = /\b(?:here are|here's|i(?:'ve| have) (?:made|built|put together))\s+(?:\d+|two|three|four|five|a few|some)\s+(?:\w+\s+){0,2}(?:outfits|looks)\b|^\s*(?:outfit|look)\s*\d+\s*[:.-]/im;
+export function replyInventsOutfits(reply: string, wardrobe: WardrobeItem[]) {
+  if (ANNOUNCES_OUTFITS.test(reply)) return true;
+  const names = wardrobe.map((item) => item.name.trim().toLocaleLowerCase()).filter((name) => name.length >= 4);
+  // Only a list counts — pieces joined with "+", or a numbered line. Real advice names pieces in a
+  // sentence ("pair the Henley with the ripped jeans and the Timbs"), and must not be rejected for it.
+  return reply.split(/\n+/).some((line) => {
+    if (!line.includes("+") && !/^\s*\d+[.)]\s/.test(line)) return false;
+    const lowered = line.toLocaleLowerCase();
+    return names.filter((name) => lowered.includes(name)).length >= 3;
+  });
+}
+
 /** Reject model prose that names a different owned garment than the ranked selection. */
 export function consumerReplyPassesSelectionReview(text: string, wardrobe: WardrobeItem[], suggested: WardrobeItem[]) {
   const selectedIds = new Set(suggested.map((item) => item.id));
@@ -272,15 +291,20 @@ export function buildBrandHangerPrompt(input: {
  *
  * The configured id is still honoured. It is simply tried in its prefixed form first, and the bare
  * form is kept as a later attempt for accounts where that is what works.
+ *
+ * Hanger's conversation runs on Nova Pro. It used to inherit AI_MODEL — the cheaper model the rest of
+ * the app uses for routine calls — which put Nova Lite ahead of Nova Pro in every conversation. Nova
+ * Lite lost the thread of longer exchanges: it repeated its last answer, and answered a colour
+ * question with outfits. Only AI_HANGER_MODEL, a setting for Hanger alone, overrides the default now.
  */
-export const DEFAULT_HANGER_MODEL = "us.amazon.nova-lite-v1:0";
-export const FALLBACK_HANGER_MODEL = "us.amazon.nova-pro-v1:0";
+export const DEFAULT_HANGER_MODEL = "us.amazon.nova-pro-v1:0";
+export const FALLBACK_HANGER_MODEL = "us.amazon.nova-lite-v1:0";
 export const MAX_HANGER_MODEL_ATTEMPTS = 3;
 
 const INFERENCE_PROFILE_PREFIX = /^(?:us|eu|apac)\./;
 
-export function hangerModelCandidates(environment: { AI_HANGER_MODEL?: string; AI_MODEL?: string } = { AI_HANGER_MODEL: process.env.AI_HANGER_MODEL, AI_MODEL: process.env.AI_MODEL }) {
-  const configured = [environment.AI_HANGER_MODEL?.trim(), environment.AI_MODEL?.trim()].filter((value): value is string => Boolean(value));
+export function hangerModelCandidates(environment: { AI_HANGER_MODEL?: string } = { AI_HANGER_MODEL: process.env.AI_HANGER_MODEL }) {
+  const configured = [environment.AI_HANGER_MODEL?.trim()].filter((value): value is string => Boolean(value));
   const prefixed = configured.map((id) => (INFERENCE_PROFILE_PREFIX.test(id) || !id.startsWith("amazon.") ? id : `us.${id}`));
   return [...new Set([...prefixed, DEFAULT_HANGER_MODEL, FALLBACK_HANGER_MODEL, ...configured])].slice(0, MAX_HANGER_MODEL_ATTEMPTS);
 }
@@ -408,6 +432,8 @@ export async function generateConsumerHangerReply(input: {
   styleSource?: "request" | "inspiration" | "none";
   clarification?: string;
   outfitCount?: number;
+  /** Pieces of the second and later outfits in a set, which are on screen too. */
+  alsoShown?: WardrobeItem[];
 }) {
   if (input.turnMode === "clarify") return { message: input.clarification ?? "Please tell me which owned piece to use before I build another outfit.", usedModel: false };
   if (input.turnMode === "advice" && /\b(?:do not|don['’]?t|never)\s+save\b/i.test(input.message)) {
@@ -420,14 +446,19 @@ export async function generateConsumerHangerReply(input: {
   if ((input.turnMode === "save-confirm" || input.turnMode === "wear-confirm" || input.turnMode === "explain") && input.suggested.length === 0) {
     return { message: "I do not have a current outfit in this conversation yet. Ask me to create one from your wardrobe first, then I can explain it, save it, or record it as worn.", usedModel: false };
   }
-  const system = "You are Hanger, a working wardrobe stylist talking with a customer about clothes they own. Talk like a person: warm, direct, specific, and brief. Open by responding to what they actually said rather than describing your own process — never begin with a stock line such as 'Here is what your closet can do' or 'I pulled your latest wardrobe', and never open two consecutive replies the same way. Give the answer first, in the first sentence. Say why a piece works in concrete terms a person would use — the colour, the cut, the weather it suits, how often it has been worn. Never ask for something the customer has already told you, and never ask a question in place of the outfit they asked for: answer, then ask at most one short question if it would genuinely change what you suggest. If they ask for a number of outfits, that number has already been built for them and is shown beneath your reply, so introduce it in one sentence and do not list, invent, number, or re-describe the outfits yourself. The server has already classified this turn; obey turnMode. Only create or revise modes introduce a newly ranked outfit. Explain, save-confirm, and wear-confirm refer to the unchanged candidateOutfit. Advice answers the question and must not pretend a new outfit was created. If the customer says not to save or record, never suggest that disallowed action. Use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact pieces: discuss those pieces only and do not substitute, add, rename, or claim ownership of another garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that and never claim it was chosen because it was underused. Use the supplied reasons to explain choices accurately. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only when it actually shaped the supplied outfit and never overrule the current message. rememberedPreferences are standing instructions from earlier messages: follow them unless the current message clearly overrides one. earlierConversation means older messages are no longer quoted; never invent what they said. Refer to garments by their exact supplied names. Never close two replies in a row with the same question, and never repeat a question the conversation has already answered — if there is nothing worth asking, end on the clothes instead. Style, for illustration only and never as a source of garments: not \"I pulled your latest wardrobe and prioritized lower-wear pieces to bring more of your closet into rotation\", which describes your own machinery; rather \"Cold and casual, then — the heavier jacket over the tee, and the boots rather than the sneakers since it is wet\", which answers the person. Sound like someone who has looked at their clothes and has an opinion about them. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather, Pinterest, or other external-network access. Clearly label general shopping ideas as not currently owned. Do not expose internal IDs or raw JSON. Write plain text with short paragraphs or simple bullets; no Markdown headings, bold markers, tables, or code fences.";
+  const system = "You are Hanger, a working wardrobe stylist talking with a customer about clothes they own. Talk like a person: warm, direct, specific, and brief. Open by responding to what they actually said rather than describing your own process — never begin with a stock line such as 'Here is what your closet can do' or 'I pulled your latest wardrobe', and never open two consecutive replies the same way. Give the answer first, in the first sentence. Say why a piece works in concrete terms a person would use — the colour, the cut, the weather it suits, how often it has been worn. Never ask for something the customer has already told you, and never ask a question in place of the outfit they asked for: answer, then ask at most one short question if it would genuinely change what you suggest. If they ask for a number of outfits, that number has already been built for them and is shown beneath your reply, so introduce it in one sentence and do not list, invent, number, or re-describe the outfits yourself. The server has already classified this turn; obey turnMode. Only create or revise modes introduce a newly ranked outfit. Explain, save-confirm, and wear-confirm refer to the unchanged candidateOutfit. Advice answers the question and must not pretend a new outfit was created. If the customer says not to save or record, never suggest that disallowed action. Use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact pieces: discuss those pieces only and do not substitute, add, rename, or claim ownership of another garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that and never claim it was chosen because it was underused. Use the supplied reasons to explain choices accurately. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only when it actually shaped the supplied outfit and never overrule the current message. rememberedPreferences are standing instructions from earlier messages: follow them unless the current message clearly overrides one. earlierConversation means older messages are no longer quoted; never invent what they said. Refer to garments by their exact supplied names. If the person asks a general styling question — which colours go together, what pairs with what, how something should fit — answer it directly from fashion knowledge with a clear opinion and the reason, without building or listing outfits. If they ask which of two options is better, pick one, say why in a sentence or two, and only then mention when the other would win; never answer with 'either'. If they say you missed their question, find the question they asked earlier in the conversation and answer that one. Never close two replies in a row with the same question, and never repeat a question the conversation has already answered — if there is nothing worth asking, end on the clothes instead. Style, for illustration only and never as a source of garments: not \"I pulled your latest wardrobe and prioritized lower-wear pieces to bring more of your closet into rotation\", which describes your own machinery; rather \"Cold and casual, then — the heavier jacket over the tee, and the boots rather than the sneakers since it is wet\", which answers the person. Sound like someone who has looked at their clothes and has an opinion about them. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. Never claim live weather, Pinterest, or other external-network access. Clearly label general shopping ideas as not currently owned. Do not expose internal IDs or raw JSON. Write plain text with short paragraphs or simple bullets; no Markdown headings, bold markers, tables, or code fences.";
   const generated = await converse(system, input.history, buildConsumerHangerPrompt(input));
   const groundedSelection = groundedSelectionText(input.suggested);
   // Advice used to skip this review on the grounds that it proposes no selection. That is exactly
   // when a reply must be checked: with nothing ranked, anything it names came from the model.
+  // Everything on screen may be discussed: a reply about a three-outfit set was being checked
+  // against the first outfit only, so naming a piece from the second rejected it and replaced the
+  // stylist's words with the canned template.
+  const shown = [...input.suggested, ...(input.alsoShown ?? [])];
   const reviewed = generated
-    && !replyClaimsMissingOutfit(generated, input.suggested)
-    && (input.turnMode === "advice" || consumerReplyPassesSelectionReview(generated, input.wardrobe, input.suggested));
+    && !replyClaimsMissingOutfit(generated, shown)
+    && !(shown.length === 0 && replyInventsOutfits(generated, input.wardrobe))
+    && (input.turnMode === "advice" || consumerReplyPassesSelectionReview(generated, input.wardrobe, shown));
   if (reviewed && generated) {
     return { message: `${generated}${groundedSelection ? `\n\n${groundedSelection}` : ""}`, usedModel: true };
   }

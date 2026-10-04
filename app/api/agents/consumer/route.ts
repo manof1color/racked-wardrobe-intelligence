@@ -112,6 +112,7 @@ export async function POST(request: Request) {
   const generated = await generateConsumerHangerReply({
     message: requestText,
     outfitCount: set.length || (ranked ? 1 : 0),
+    alsoShown: set.slice(1).flatMap(({ outfit }) => outfit.pieces.map((piece) => piece.item)),
     history,
     wardrobe,
     outfits,
