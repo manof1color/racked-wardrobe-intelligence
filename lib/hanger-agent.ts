@@ -18,6 +18,7 @@
  */
 import { BedrockRuntimeClient, ConverseCommand, type ContentBlock, type Message, type Tool } from "@aws-sdk/client-bedrock-runtime";
 import { BEDROCK_CHAT_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
+import { garmentFormality } from "./garment-knowledge.ts";
 import { formatHangerText, hangerModelCandidates, mayTryAnotherHangerModel, normalizeProviderHistory, replyInventsOutfits } from "./hanger-conversation.ts";
 import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, readOutfitIntent, type OutfitIntent } from "./outfit-ranking.ts";
 import type { Forecast } from "./weather.ts";
@@ -52,6 +53,44 @@ export interface AgentInput {
   /** Loaded only if the model asks for trends. */
   loadTrends: () => Promise<TrendSummary | null>;
   today: Date;
+  /** Told why a turn fell back, so the reply can say so instead of only the server log. */
+  onFallback?: (failure: AgentFailure) => void;
+}
+
+/**
+ * Why the agent did not answer. `model-error` carries the provider's error name (never its message
+ * or anything the person wrote), which is what identifies a live misconfiguration.
+ */
+export interface AgentFailure {
+  kind: "model-error" | "no-response" | "out-of-time" | "too-many-rounds" | "invented-outfits" | "empty-reply";
+  errorName?: string;
+  elapsedMs: number;
+}
+
+/** Plain words for the reply, e.g. "the model returned an error (ValidationException)". */
+export function describeAgentFailure(failure: AgentFailure) {
+  switch (failure.kind) {
+    case "model-error": return `the model returned an error${failure.errorName ? ` (${failure.errorName})` : ""}`;
+    case "out-of-time": return "it ran out of time";
+    case "too-many-rounds": return "it needed too many steps";
+    case "invented-outfits": return "it kept writing outfits it had not built";
+    case "empty-reply": return "it returned an empty reply";
+    default: return "it returned nothing";
+  }
+}
+
+/** Errors the provider raises on a timeout or a throttle: retrying with another model would only add to the wait. */
+const SLOW_FAILURES = new Set(["TimeoutError", "AbortError", "ThrottlingException", "ServiceUnavailableException", "ModelTimeoutException"]);
+
+/**
+ * Whether the plain, tool-free model reply is still worth trying after the agent failed. A tool-use
+ * call can be rejected while an ordinary one is accepted, and a fast rejection leaves time for it;
+ * a slow or throttled provider does not, and would only double the wait.
+ */
+export function plainReplyWorthTrying(failure: AgentFailure | null) {
+  if (!failure || failure.elapsedMs > 8_000) return false;
+  if (failure.kind === "model-error") return !SLOW_FAILURES.has(failure.errorName ?? "");
+  return failure.kind === "invented-outfits" || failure.kind === "empty-reply";
 }
 
 export interface AgentResult {
@@ -78,7 +117,7 @@ export const AGENT_TOOLS: Tool[] = [
     description: "Look up pieces the person owns by colour, category, or words from the name or type. Use it before saying they do or do not own something.",
     inputSchema: { json: { type: "object", properties: {
       color: { type: "string", description: "A colour, e.g. green" },
-      category: { type: "string", enum: CATEGORIES },
+      category: { type: "string", description: `One of: ${CATEGORIES.join(", ")}` },
       text: { type: "string", description: "Words from the piece's name or type, e.g. henley, timbs" },
     } } },
   } },
@@ -87,7 +126,7 @@ export const AGENT_TOOLS: Tool[] = [
     description: "Build complete outfits from the person's own wardrobe. The only way to propose an outfit: results appear as cards with photos and Save and Record buttons below your reply.",
     inputSchema: { json: { type: "object", properties: {
       request: { type: "string", description: "What the outfit is for, in the person's words: occasion, style, weather" },
-      count: { type: "integer", minimum: 1, maximum: MAX_OUTFIT_SET, description: "How many different outfits" },
+      count: { type: "integer", description: `How many different outfits, 1 to ${MAX_OUTFIT_SET}` },
       include: { type: "array", items: { type: "string" }, description: "Names of owned pieces that must be in every outfit" },
       exclude: { type: "array", items: { type: "string" }, description: "Names of owned pieces to leave out" },
     }, required: ["request"] } },
@@ -95,19 +134,19 @@ export const AGENT_TOOLS: Tool[] = [
   { toolSpec: {
     name: "get_weather",
     description: "Today's and tomorrow's forecast for where the person is.",
-    inputSchema: { json: { type: "object", properties: {} } },
+    inputSchema: { json: { type: "object", properties: { day: { type: "string", description: "today or tomorrow" } } } },
   } },
   { toolSpec: {
     name: "get_trends",
     description: "What people on Racked have been wearing in recent public looks: the most common colours, styles, and pieces. Anonymous totals only.",
-    inputSchema: { json: { type: "object", properties: {} } },
+    inputSchema: { json: { type: "object", properties: { focus: { type: "string", description: "colours, styles, or pieces" } } } },
   } },
 ];
 
 /** One line per piece: enough for the model to know what exists without a JSON dump. */
 function wardrobeIndex(wardrobe: WardrobeItem[]) {
   const lines = wardrobe.slice(0, WARDROBE_INDEX_LIMIT).map((item) =>
-    `- ${item.name} · ${item.category}${item.customType ? ` (${item.customType})` : ""} · ${item.color} · worn ${item.wearCount}×`);
+    `- ${item.name} · ${item.category}${item.customType ? ` (${item.customType})` : ""} · ${item.color} · ${garmentFormality(item).label} · worn ${item.wearCount}×`);
   const more = wardrobe.length > WARDROBE_INDEX_LIMIT ? `\n…and ${wardrobe.length - WARDROBE_INDEX_LIMIT} more — use search_wardrobe.` : "";
   return lines.join("\n") + more;
 }
@@ -121,6 +160,7 @@ export function agentSystemPrompt(input: Pick<AgentInput, "wardrobe" | "forecast
     "Outfits come only from build_outfits, which uses pieces they own and shows each outfit as a card with photos below your reply. Never write an outfit list yourself — no numbered outfits, no pieces joined with plus signs. After building, introduce the outfits in a sentence or two and say why they work; do not repeat every piece.",
     "When they ask a general styling question — which colours go together, what pairs with what, how something should fit — answer from fashion knowledge with a clear opinion and the reason. When they ask which of two options is better, pick one and say why; never answer 'either'. When they say you missed their question, find it earlier in the conversation and answer it.",
     "Only build outfits when they want outfits. Refer to pieces by their exact names. Label any shopping idea as something they do not own.",
+    "Know your formality ladder: athletic or lounge, casual, smart casual, business, formal. Each piece in their wardrobe is labelled with its level. A graphic tee, ripped jeans, sneakers, and a beanie are casual; a henley or polo is smart casual; an oxford shirt, chinos, loafers, or a blazer dress an outfit up. When they ask for something more formal, dressier, or more casual than what is on screen, call build_outfits with that word in the request — the builder ranks by formality — and then say honestly how formal their wardrobe can go.",
     "Never state or guess the weather without get_weather. Never claim access to news, Pinterest, or other outside sources. Never infer body shape, gender, age, ethnicity, income, or health.",
     "Write plain text: short paragraphs, no markdown headings, bold, tables, or code.",
     "",
@@ -159,7 +199,7 @@ export function searchWardrobe(input: unknown, wardrobe: WardrobeItem[]) {
   return {
     count: matches.length,
     pieces: matches.slice(0, 25).map((item) => ({
-      name: item.name, category: item.category, type: item.customType ?? item.subtype ?? null, color: item.color,
+      name: item.name, category: item.category, type: item.customType ?? item.subtype ?? null, color: item.color, formality: garmentFormality(item).label,
       wears: item.wearCount, lastWorn: item.lastWornDays > 365 ? "never" : `${item.lastWornDays} days ago`,
     })),
   };
@@ -194,15 +234,16 @@ export function stripThinking(reply: string) {
   return reply.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "").replace(/<\/?thinking>/gi, "").trim();
 }
 
-/** Why a turn fell back, for the server log. Never includes what the person wrote. */
-function fallBack(reason: string): null {
-  console.warn("Hanger agent fell back to the grounded reply", { reason });
-  return null;
-}
-
 /** Runs one turn. Null means "fall back to the grounded reply". */
 export async function runHangerAgent(input: AgentInput, call: AgentConverse = bedrockAgentConverse, clock: () => number = Date.now): Promise<AgentResult | null> {
   const started = clock();
+  /** Why a turn fell back, for the server log and the reply. Never includes what the person wrote. */
+  const fallBack = (kind: AgentFailure["kind"], errorName?: string): null => {
+    const failure: AgentFailure = { kind, ...(errorName ? { errorName } : {}), elapsedMs: clock() - started };
+    console.warn("Hanger agent fell back to the grounded reply", failure);
+    input.onFallback?.(failure);
+    return null;
+  };
   const system = agentSystemPrompt(input);
   const messages: Message[] = [
     ...normalizeProviderHistory(input.history).map((turn): Message => ({ role: turn.role, content: [{ text: turn.content }] })),
@@ -244,7 +285,9 @@ export async function runHangerAgent(input: AgentInput, call: AgentConverse = be
       for (const outfit of outfits) for (const item of outfit) offered.add(item.id);
       return {
         outfits: outfits.map((outfit, index) => ({ number: index + 1, pieces: outfit.map((item) => ({ name: item.name, category: item.category, color: item.color })) })),
-        ...(count > outfits.length ? { note: `Only ${outfits.length} distinct outfit${outfits.length === 1 ? "" : "s"} could be made from this wardrobe.` } : {}),
+        ...(count > outfits.length ? { note: intent?.occasion
+          ? `Only ${outfits.length} outfit${outfits.length === 1 ? "" : "s"} in this wardrobe suit ${intent.occasion}. Say so plainly rather than padding the set.`
+          : `Only ${outfits.length} distinct outfit${outfits.length === 1 ? "" : "s"} could be made from this wardrobe.` } : {}),
         ...(notFound.size ? { notOwned: [...notFound] } : {}),
         shown: "These appear as cards with photos and Save/Record buttons below your reply. Describe them briefly; do not list every piece.",
       };
@@ -265,9 +308,12 @@ export async function runHangerAgent(input: AgentInput, call: AgentConverse = be
 
   for (let round = 0; round < MAX_AGENT_ROUNDS; round++) {
     const remaining = AGENT_DEADLINE_MS - (clock() - started);
-    if (remaining < MIN_CALL_MS) return fallBack("out of time");
-    const response = await call({ system, messages, tools: AGENT_TOOLS, timeoutMs: Math.min(BEDROCK_CHAT_TIMEOUT_MS, remaining) }).catch(() => null);
-    if (!response || !response.content.length) return fallBack("no model response");
+    if (remaining < MIN_CALL_MS) return fallBack("out-of-time");
+    let errorName = "";
+    const response = await call({ system, messages, tools: AGENT_TOOLS, timeoutMs: Math.min(BEDROCK_CHAT_TIMEOUT_MS, remaining) })
+      .catch((error: unknown) => { errorName = error instanceof Error ? error.name : "UnknownError"; return null; });
+    if (errorName) return fallBack(SLOW_FAILURES.has(errorName) ? "out-of-time" : "model-error", errorName);
+    if (!response || !response.content.length) return fallBack("no-response");
     messages.push({ role: "assistant", content: response.content });
 
     const uses = response.content.flatMap((block) => (block.toolUse ? [block.toolUse] : []));
@@ -282,24 +328,29 @@ export async function runHangerAgent(input: AgentInput, call: AgentConverse = be
     }
 
     const reply = stripThinking(response.content.map((block) => block.text ?? "").join(""));
-    if (!reply) return fallBack("empty reply");
+    if (!reply) return fallBack("empty-reply");
     // An outfit list the builder never made: ask once for the tool instead, then give up on it.
     if (!outfits.length && replyInventsOutfits(reply, input.wardrobe)) {
-      if (corrected) return fallBack("invented outfits twice");
+      if (corrected) return fallBack("invented-outfits");
       corrected = true;
       messages.push({ role: "user", content: [{ text: "Do not write outfit lists yourself. Call build_outfits if outfits are wanted; otherwise answer without listing outfits." }] });
       continue;
     }
     return { message: formatHangerText(reply).slice(0, 2_500), outfits, offered: [...offered], intent, toolsUsed: [...toolsUsed], notFound: [...notFound] };
   }
-  return fallBack("too many tool rounds");
+  return fallBack("too-many-rounds");
 }
 
-/** The real model call: Nova Pro first, the next candidate only for a configuration error. */
+/**
+ * The real model call: Nova Pro first, the next candidate only for a configuration error. A
+ * failure is thrown, not swallowed, so the turn can say which error it was — the first live run of
+ * the agent fell back with nothing on screen to say why.
+ */
 export async function bedrockAgentConverse(request: Parameters<AgentConverse>[0]): Promise<AgentModelResponse | null> {
   if ((process.env.AI_PROVIDER ?? "").toLowerCase() !== "bedrock") return null;
   const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
   const client = new BedrockRuntimeClient({ region });
+  let lastError: unknown = null;
   for (const modelId of hangerModelCandidates()) {
     try {
       const response = await client.send(new ConverseCommand({
@@ -307,14 +358,19 @@ export async function bedrockAgentConverse(request: Parameters<AgentConverse>[0]
         system: [{ text: request.system }],
         messages: request.messages,
         toolConfig: { tools: request.tools },
-        // Low temperature keeps tool calls well formed; variety comes from the conversation itself.
-        inferenceConfig: { maxTokens: 800, temperature: 0.2 },
+        // Amazon recommends near-greedy decoding for Nova tool use: sampled tool calls are where
+        // "Model produced invalid sequence as part of ToolUse" comes from. Variety comes from the
+        // conversation itself.
+        inferenceConfig: { maxTokens: 900, temperature: 0.1 },
       }), bedrockRequestOptions(request.timeoutMs));
       return { content: response.output?.message?.content ?? [], stopReason: response.stopReason };
     } catch (error) {
-      console.error("Hanger agent model call failed", { name: error instanceof Error ? error.name : "UnknownError", modelId });
-      if (!mayTryAnotherHangerModel(error)) return null;
+      // Provider messages name the field or rule that failed and never echo the conversation.
+      console.error("Hanger agent model call failed", { name: error instanceof Error ? error.name : "UnknownError", detail: error instanceof Error ? error.message.slice(0, 300) : "", modelId });
+      lastError = error;
+      if (!mayTryAnotherHangerModel(error)) throw error;
     }
   }
+  if (lastError) throw lastError;
   return null;
 }

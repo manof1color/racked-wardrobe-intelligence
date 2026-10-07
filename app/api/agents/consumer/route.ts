@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { GARMENT_TAXONOMY } from "@/lib/garment-taxonomy";
 import { consumerOutfitContract, generateConsumerHangerReply, hangerOutfitName, outfitCards, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
-import { isAgentEnabled, runHangerAgent, summarizeCommunityTrends } from "@/lib/hanger-agent";
+import { describeAgentFailure, isAgentEnabled, plainReplyWorthTrying, runHangerAgent, summarizeCommunityTrends, type AgentFailure } from "@/lib/hanger-agent";
 import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberPendingRequest, rememberSuggestedItemIds } from "@/lib/hanger-memory";
 import { allowedOutfitActions, planHangerTurn, replyAsksBack } from "@/lib/hanger-turn";
 import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, readOutfitIntent, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
@@ -100,6 +100,8 @@ export async function POST(request: Request) {
   // search, the outfit builder, the forecast, Racked trends. If it cannot answer inside its time
   // budget, or the model is unavailable, the grounded pipeline below answers instead.
   const agentAttempted = isAgentEnabled();
+  // Why the agent did not answer, when it did not — shown with the reply so a live failure names itself.
+  const agentOutcome: { failure: AgentFailure | null } = { failure: null };
   if (agentAttempted) {
     const onScreen = (stored.activeOutfit?.itemIds ?? []).map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is WardrobeItem => Boolean(item));
     const agent = await runHangerAgent({
@@ -112,6 +114,7 @@ export async function POST(request: Request) {
         inspirationStyleHints: inspiration.styleHints,
       },
       loadTrends: async () => summarizeCommunityTrends(await listCommunityPosts()),
+      onFallback: (failure) => { agentOutcome.failure = failure; },
     }).catch(() => null);
     if (agent) {
       const agentActions = allowedOutfitActions("create", message);
@@ -188,7 +191,9 @@ export async function POST(request: Request) {
   const selectionReasons = Object.fromEntries(explainedPieces.map((piece) => [piece.item.id, piece.reasons]));
   const generated = await generateConsumerHangerReply({
     message: requestText,
-    allowModel: !agentAttempted,
+    // After a fast rejection of the tool-using call, the plain model reply still gets its turn;
+    // after a slow or throttled one it does not, so the wait never doubles.
+    allowModel: !agentAttempted || plainReplyWorthTrying(agentOutcome.failure),
     outfitCount: set.length || (ranked ? 1 : 0),
     alsoShown: set.slice(1).flatMap(({ outfit }) => outfit.pieces.map((piece) => piece.item)),
     history,
@@ -232,6 +237,7 @@ export async function POST(request: Request) {
     actions,
     selection,
     ...(outfitSet ? { outfits: outfitSet } : {}),
+    ...(agentOutcome.failure ? { degradedReason: describeAgentFailure(agentOutcome.failure) } : {}),
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
       ...(forecast ? [`Forecast for ${forecast.place} from Open-Meteo${turnIntent.weather && !plan.intent.weather ? ` — dressed for ${turnIntent.weather} weather` : ""}`] : []),
@@ -239,7 +245,7 @@ export async function POST(request: Request) {
       ...(plan.effectiveMessage !== message ? ["This answered the request still open from an earlier message"] : []),
       ...(requestedCount > 1 ? [set.length >= requestedCount
         ? `${set.length} outfits built, sharing no pieces`
-        : `${set.length} outfit${set.length === 1 ? "" : "s"} built of the ${requestedCount} asked for — your closet ran out of unused pieces${requestedCount >= MAX_OUTFIT_SET ? `, and a set stops at ${MAX_OUTFIT_SET}` : ""}`] : []),
+        : `${set.length} outfit${set.length === 1 ? "" : "s"} built of the ${requestedCount} asked for — your closet ran out of unused pieces${turnIntent.occasion ? ` that suit ${turnIntent.occasion}` : ""}${requestedCount >= MAX_OUTFIT_SET ? `, and a set stops at ${MAX_OUTFIT_SET}` : ""}`] : []),
       `${outfits.length} saved outfits checked this turn`,
       `Conversation mode: ${plan.mode}`,
       ...(plan.contextUsed ? ["Follow-up resolved against this account's current outfit"] : []),
@@ -250,6 +256,7 @@ export async function POST(request: Request) {
       ...explainedPieces.map((piece) => `${piece.item.name}: ${piece.reasons[0] ?? "scored against this request"}`),
       ...(required.length ? [`${required.map((item) => item.name).join(", ")} locked because the customer explicitly requested ${required.length === 1 ? "it" : "them"}`] : []),
       ...(ranked && ranked.setAside > 0 ? [`${ranked.setAside} piece${ranked.setAside === 1 ? "" : "s"} already suggested earlier in this conversation were set aside`] : []),
+      ...(agentOutcome.failure ? [`Hanger's tool-using stylist did not answer: ${describeAgentFailure(agentOutcome.failure)}`] : []),
       generated.usedModel
         ? "The stylist model wrote this reply from the selection above"
         : "The stylist model did not answer this turn, so this reply is composed from your wardrobe alone",
