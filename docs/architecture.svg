@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-label="Racked — system architecture" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="1200" height="1200" rx="24" fill="#f5f2ea"/>
+  <title>Racked — system architecture</title>
+  <desc>A browser reaches the session and role check in AWS Amplify Hosting. Photo intake and Hanger call Amazon Bedrock; Hanger also checks Open-Meteo and the outfit builder. An owner-scoped store connects to DynamoDB and private S3. Only the consent, cohort, and enumeration privacy gate releases aggregates to brands.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 1 L 9 5 L 1 9 Z" fill="#171914"/>
+    </marker>
+    <marker id="privacy-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 1 1 L 9 5 L 1 9 Z" fill="#e94f30"/>
+    </marker>
+  </defs>
+  <g fill="#171914">
+    <text x="30" y="50" font-size="32" font-weight="750">Racked — system architecture</text>
+    <text x="30" y="84" font-size="22">One door to brands: the privacy gate.</text>
+    <g font-size="20">
+      <circle cx="716" cy="71" r="8" fill="#cfc5ff"/><text x="733" y="78">AI</text>
+      <circle cx="794" cy="71" r="8" fill="#ff6846"/><text x="811" y="78">privacy</text>
+      <circle cx="912" cy="71" r="8" fill="#b8ddb7"/><text x="929" y="78">storage</text>
+      <circle cx="1050" cy="71" r="8" fill="#d5f66d"/><text x="1067" y="78">external</text>
+    </g>
+  </g>
+  <g id="amplify">
+    <rect x="30" y="335" width="800" height="635" rx="20" fill="#ece6d8" stroke="#d9d4c8" stroke-width="2"/>
+    <text x="55" y="376" font-size="28" font-weight="700" fill="#171914">AWS Amplify Hosting</text>
+    <text x="55" y="408" font-size="20" fill="#716f68">Next.js 15 · server rendering and API routes</text>
+  </g>
+
+  <!-- Exactly fourteen directed connections. Bridge halos separate crossing routes. -->
+  <g fill="none" stroke="#171914" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path id="edge-client-entry" data-from="client" data-to="entry" d="M 30 215 H 15 V 492 H 55" marker-end="url(#arrow)"/>
+    <path id="edge-entry-intake" data-from="entry" data-to="intake" d="M 385 492 H 445" marker-end="url(#arrow)"/>
+    <path id="edge-entry-hanger" data-from="entry" data-to="hanger" d="M 220 540 V 600" marker-end="url(#arrow)"/>
+    <path id="edge-entry-gate" data-from="entry" data-to="gate" d="M 340 540 V 550 H 515 V 790" marker-end="url(#arrow)"/>
+    <path d="M 485 665 H 505 Q 515 653 525 665 H 540" stroke="#ece6d8" stroke-width="10"/>
+    <path id="edge-hanger-builder" data-from="hanger" data-to="builder" d="M 485 665 H 505 Q 515 653 525 665 H 540" marker-end="url(#arrow)"/>
+    <path d="M 620 540 V 570 H 525 Q 515 558 505 570 H 230 Q 220 558 210 570 H 40 V 815 H 220 V 835" stroke="#ece6d8" stroke-width="10"/>
+    <path id="edge-intake-store" data-from="intake" data-to="store" d="M 620 540 V 570 H 525 Q 515 558 505 570 H 230 Q 220 558 210 570 H 40 V 815 H 220 V 835" marker-end="url(#arrow)"/>
+    <path id="edge-hanger-store" data-from="hanger" data-to="store" d="M 260 725 V 835" marker-end="url(#arrow)"/>
+    <path id="edge-gate-store" data-from="gate" data-to="store" d="M 410 875 H 380" marker-end="url(#arrow)"/>
+    <path id="edge-intake-bedrock" data-from="intake" data-to="bedrock" d="M 710 445 V 290" marker-end="url(#arrow)"/>
+    <path d="M 440 600 V 590 H 505 Q 515 578 525 590 H 855 V 310 H 795 V 290" stroke="#ece6d8" stroke-width="10"/>
+    <path id="edge-hanger-bedrock" data-from="hanger" data-to="bedrock" d="M 440 600 V 590 H 505 Q 515 578 525 590 H 855 V 310 H 795 V 290" marker-end="url(#arrow)"/>
+    <path d="M 485 700 H 500 V 750 H 505 Q 515 738 525 750 H 875 V 310 H 1020 V 290" stroke="#ece6d8" stroke-width="10"/>
+    <path id="edge-hanger-weather" data-from="hanger" data-to="weather" d="M 485 700 H 500 V 750 H 505 Q 515 738 525 750 H 875 V 310 H 1020 V 290" marker-end="url(#arrow)"/>
+    <path id="edge-store-dynamodb" data-from="store" data-to="dynamodb" d="M 210 950 V 1005" marker-end="url(#arrow)"/>
+    <path id="edge-store-s3" data-from="store" data-to="s3" d="M 325 950 V 985 H 585 V 1005" marker-end="url(#arrow)"/>
+    <path id="edge-gate-brands" data-from="gate" data-to="brands" d="M 805 850 H 895" stroke="#e94f30" stroke-width="4" marker-end="url(#privacy-arrow)"/>
+  </g>
+  <text x="55" y="304" font-size="20" fill="#171914"><tspan x="55">HTTPS · signed HTTP-only</tspan><tspan x="55" dy="25">session</tspan></text>
+
+  <g id="client">
+    <rect x="30" y="155" width="320" height="115" rx="14" fill="#fffdf8" stroke="#d9d4c8" stroke-width="2"/>
+    <text x="50" y="190" font-size="28" font-weight="700" fill="#171914"><tspan x="50">Phone or desktop</tspan><tspan x="50" dy="32">browser</tspan></text>
+    <text x="50" y="250" font-size="20" fill="#716f68">Installable PWA</text>
+  </g>
+  <g id="bedrock">
+    <rect x="400" y="155" width="430" height="135" rx="14" fill="#cfc5ff"/>
+    <text x="420" y="193" font-size="28" font-weight="700" fill="#171914">Amazon Bedrock</text>
+    <text x="420" y="227" font-size="20" fill="#171914"><tspan x="420">Nova Pro: garment detection + Hanger</tspan><tspan x="420" dy="30">Nova Lite fallback</tspan></text>
+  </g>
+  <g id="weather">
+    <rect x="865" y="155" width="305" height="135" rx="14" fill="#d5f66d"/>
+    <text x="885" y="193" font-size="28" font-weight="700" fill="#171914">Open-Meteo</text>
+    <text x="885" y="227" font-size="20" fill="#171914"><tspan x="885">Coordinates rounded</tspan><tspan x="885" dy="30">to ~1 km</tspan></text>
+  </g>
+  <g id="entry">
+    <rect x="55" y="445" width="330" height="95" rx="14" fill="#fffdf8" stroke="#d9d4c8" stroke-width="2"/>
+    <text x="75" y="481" font-size="26" font-weight="700" fill="#171914">Session &amp; role check</text>
+    <text x="75" y="513" font-size="20" fill="#716f68">Rate limits</text>
+  </g>
+  <g id="intake">
+    <rect x="445" y="445" width="350" height="95" rx="14" fill="#cfc5ff"/>
+    <text x="465" y="481" font-size="28" font-weight="700" fill="#171914">Photo intake</text>
+    <text x="465" y="513" font-size="20" fill="#171914">One bounded crop per piece</text>
+  </g>
+  <g id="hanger">
+    <rect x="55" y="600" width="430" height="125" rx="14" fill="#cfc5ff"/>
+    <text x="75" y="637" font-size="28" font-weight="700" fill="#171914">Hanger agents</text>
+    <text x="75" y="672" font-size="20" fill="#171914"><tspan x="75">wardrobe search · outfit builder ·</tspan><tspan x="75" dy="29">weather · trends</tspan></text>
+  </g>
+  <g id="builder">
+    <rect x="540" y="610" width="260" height="100" rx="14" fill="#fffdf8" stroke="#d9d4c8" stroke-width="2"/>
+    <text x="560" y="649" font-size="28" font-weight="700" fill="#171914">Outfit builder</text>
+    <text x="560" y="681" font-size="20" fill="#716f68">Stylist knowledge</text>
+  </g>
+  <g id="gate">
+    <rect x="410" y="790" width="395" height="125" rx="14" fill="#ff6846"/>
+    <text x="430" y="829" font-size="28" font-weight="700" fill="#171914">Privacy gate</text>
+    <text x="430" y="864" font-size="20" fill="#171914"><tspan x="430">Consent → k ≥ 25 →</tspan><tspan x="430" dy="29">enumeration budget</tspan></text>
+  </g>
+  <g id="store">
+    <rect x="55" y="835" width="325" height="115" rx="14" fill="#b8ddb7"/>
+    <text x="75" y="874" font-size="26" font-weight="700" fill="#171914">Owner-scoped store</text>
+    <text x="75" y="906" font-size="20" fill="#171914"><tspan x="75">Every read checks</tspan><tspan x="75" dy="26">the account</tspan></text>
+  </g>
+  <path d="M 830 778 V 955" fill="none" stroke="#e94f30" stroke-width="3" stroke-dasharray="9 8"/>
+  <text x="850" y="770" font-size="20" font-weight="650" fill="#e94f30">privacy boundary</text>
+  <g id="brands">
+    <rect x="895" y="790" width="275" height="125" rx="14" fill="#ff6846"/>
+    <text x="915" y="829" font-size="26" font-weight="700" fill="#171914">Brand dashboard</text>
+    <text x="915" y="864" font-size="20" fill="#171914"><tspan x="915">Released aggregates</tspan><tspan x="915" dy="29">only</tspan></text>
+  </g>
+  <text x="890" y="950" font-size="20" font-weight="650" fill="#171914"><tspan x="890">Never names, emails,</tspan><tspan x="890" dy="27">photos, wardrobes,</tspan><tspan x="890" dy="27">or owner IDs</tspan></text>
+  <g id="dynamodb">
+    <rect x="55" y="1005" width="300" height="80" rx="14" fill="#b8ddb7"/>
+    <text x="75" y="1039" font-size="28" font-weight="700" fill="#171914">DynamoDB</text>
+    <text x="75" y="1070" font-size="20" fill="#171914">single table</text>
+  </g>
+  <g id="s3">
+    <rect x="410" y="1005" width="350" height="80" rx="14" fill="#b8ddb7"/>
+    <text x="430" y="1039" font-size="28" font-weight="700" fill="#171914">Private S3</text>
+    <text x="430" y="1070" font-size="20" fill="#171914">encrypted · 1-hour links</text>
+  </g>
+  <rect x="30" y="1105" width="1140" height="75" rx="14" fill="#fffdf8" stroke="#d9d4c8" stroke-width="2"/>
+  <text x="50" y="1136" font-size="20" fill="#171914"><tspan x="50">Pull request → CI: audit · lint · type check · tests · build + CodeQL → merge to main</tspan><tspan x="50" dy="28">→ Amplify builds → /api/version reports the commit</tspan></text>
+</svg>
