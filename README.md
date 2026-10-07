@@ -26,7 +26,7 @@ Every scoring category, what Racked does for it, and where to check it yourself.
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures what is actually worn — consented, and released only above 25 owners. Synthetic hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Live AWS app with real accounts: photo → wardrobe, Looks builder, Hanger stylist, outfits and wear tracking, Community and Recreate, brand enrollment, and a `k ≥ 25` brand dashboard | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Five-minute path](#five-minute-judge-path) · [Feature highlights](#feature-highlights) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro finds every garment in a photo; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **646 tests** in 91 files; every PR passes audit, lint, type check, tests, build, and CodeQL before merge; 145+ merged PRs; a 71-phase build log | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
+| **Code, docs & GitHub** | 15% | **652 tests** in 92 files; every PR passes audit, lint, type check, tests, build, and CodeQL before merge; 145+ merged PRs; a 73-phase build log | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece garment previews, and honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Looks builder](components/looks-builder.tsx) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Business model](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) · [Proof point](#competition-proof-point) |
 | **Bonus** | — | Explicit consent, `k ≥ 25` plus an enumeration budget, private encrypted storage, rate limits, owner-scoped deletion | [Privacy boundaries](#security-and-privacy-boundaries) · [`privacy.ts`](lib/privacy.ts) · [Privacy and ethics](docs/privacy-and-ethics.md) |
@@ -186,6 +186,11 @@ Module names can imply more than they do, so this table says plainly which code 
 
 ## Architecture Overview
 
+![Racked architecture: a phone or desktop browser connects over HTTPS to AWS Amplify Hosting, where a session and role check routes requests to photo intake, the Hanger agents, and the privacy gate; intake and Hanger call Amazon Bedrock, Hanger reads the Open-Meteo forecast, an owner-scoped store reads and writes DynamoDB and private S3, and only the privacy gate reaches the brand dashboard, with released aggregates only.](docs/architecture.svg)
+
+<details>
+<summary><strong>The same diagram as text — expand</strong></summary>
+
 ```mermaid
 flowchart TB
   phone["Phone or desktop browser<br/>installable PWA"] -->|"HTTPS · signed HTTP-only session cookie"| auth
@@ -207,6 +212,8 @@ flowchart TB
   gate --> brand["Brand dashboard<br/>released aggregates only"]
 ```
 
+</details>
+
 Brands receive released aggregates only — never names, emails, photos, raw wardrobes, or owner IDs.
 
 **Infrastructure:** AWS Amplify Hosting (SSR) deployed automatically from `main` · DynamoDB single table, on demand · private encrypted S3 with public access blocked · Amazon Bedrock from `us-east-2`. Whole-look detection and both Hanger agents use the US Nova Pro geographic profile with Nova Lite as fallback. The synchronous scan stores a bounded crop per piece and makes no per-piece segmentation request. The Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions ([`infra/template.yaml`](infra/template.yaml)). The template also describes narrowly scoped SES sending for password recovery, but that permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
@@ -220,7 +227,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: consumer dashboard, photo intake, Looks builder, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry, weather
 lib/server/     The only code that reads or writes DynamoDB and S3, with every ownership check
-tests/          91 test files, 646 tests (node --test)
+tests/          92 test files, 652 tests (node --test)
 scripts/        Judge and demo seeding, read-only verification, crop benchmark, evaluation runners
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -472,7 +479,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 4. **Tests** — `node --test` across `tests/`
 5. **Production build** — `next build`
 
-**646 passing tests** in 91 files (verified 2026-10-04). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return.
+**652 passing tests** in 92 files (verified 2026-10-06). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return.
 
 | What is protected | Where to read the tests |
 | --- | --- |
