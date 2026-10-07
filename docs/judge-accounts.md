@@ -25,7 +25,7 @@ reads one from `RACKED_TEST_PASSWORD` at runtime.
    is rejected if it names anything that isn't in the selection. Ask again and it rotates.
 3. **Open Community**, then **Recreate with my wardrobe** on the judge's own look. It splits the
    look into what this account owns and what is missing, with the reason for each match.
-4. **Sign in as `judge.brand`.** `Judge Signature Tee` (JDA-001) releases metrics: 26 opted-in
+4. **Sign in as `judge.brand`.** `Judge Signature Tee` (JDA-001) releases metrics: 50 opted-in
    owners, a wear chart, repeat-wear rate. `Judge Limited Overshirt` (JDA-002) has four owners, so
    everything is suppressed and the page says why — including that the count itself is withheld.
    `Judge Archive Cap` (JDA-003) is retired: it keeps its owners, and it is gone from
