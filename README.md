@@ -26,7 +26,7 @@ Every scoring category, what Racked does for it, and where to check it yourself.
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures what is actually worn — consented, and released only above 25 owners. Synthetic hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app with real accounts. **A person:** photograph clothes → confirm the pieces → get an outfit recommendation. **A brand:** an anonymous, consented cohort → wear evidence released only at `k ≥ 25` → a campaign brief. Everything else built is on the [roadmap](#roadmap) | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [The demo path](#five-minute-judge-path) · [Feature highlights](#feature-highlights) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro finds every garment in a photo; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **655 tests** in 92 files; every PR passes audit, lint, type check, tests, build, and CodeQL before merge; 145+ merged PRs; a 71-phase build log | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
+| **Code, docs & GitHub** | 15% | **656 tests** in 93 files; every PR passes audit, lint, type check, tests, build, and CodeQL before merge; 145+ merged PRs; a 71-phase build log | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece garment previews, and honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Looks builder](components/looks-builder.tsx) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Business model](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) · [Proof point](#competition-proof-point) |
 | **Bonus** | — | Explicit consent, `k ≥ 25` plus an enumeration budget, private encrypted storage, rate limits, owner-scoped deletion | [Privacy boundaries](#security-and-privacy-boundaries) · [`privacy.ts`](lib/privacy.ts) · [Privacy and ethics](docs/privacy-and-ethics.md) |
@@ -243,7 +243,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: consumer dashboard, photo intake, Looks builder, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry, weather
 lib/server/     The only code that reads or writes DynamoDB and S3, with every ownership check
-tests/          92 test files, 655 tests (node --test)
+tests/          93 test files, 656 tests (node --test)
 scripts/        Judge and demo seeding, read-only verification, crop benchmark, evaluation runners
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -496,7 +496,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 4. **Tests** — `node --test` across `tests/`
 5. **Production build** — `next build`
 
-**655 passing tests** in 92 files (verified 2026-10-13). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return.
+**656 passing tests** in 93 files (verified 2026-10-13). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return.
 
 | What is protected | Where to read the tests |
 | --- | --- |
