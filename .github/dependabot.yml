@@ -10,6 +10,16 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
+    # One reviewable PR for routine updates instead of one per package; a queue of stale single
+    # bumps reads as an unattended project. Security updates still arrive on their own.
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    # A Next.js major changes the framework under the live Amplify deployment. It waits until after
+    # judging (30 November 2026), when it can be taken deliberately rather than in the final weeks.
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
@@ -21,3 +31,6 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
