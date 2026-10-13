@@ -23,7 +23,7 @@ function OutfitGallery({ post }: { post: OutfitPost }) {
   </div>;
 }
 
-export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,savedOutfits}:{initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];savedOutfits:SavedOutfitOption[]}) {
+export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initialOwnPostIds,savedOutfits}:{initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[]}) {
   const [posts,setPosts]=useState(initialPosts);
   const [title,setTitle]=useState("");
   const [caption,setCaption]=useState("");
@@ -39,6 +39,11 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,saved
   const [pendingRecreate,setPendingRecreate]=useState<string|null>(null);
   const [recreations,setRecreations]=useState<Record<string,RecreateLookResult>>({});
   const [shopping,setShopping]=useState<OutfitPost|null>(null);
+  // Looks this person published. Only they see an Unpublish control, and only on their own posts.
+  const [ownPostIds,setOwnPostIds]=useState(()=>new Set(initialOwnPostIds));
+  const [confirmUnpublishId,setConfirmUnpublishId]=useState<string|null>(null);
+  const [pendingUnpublish,setPendingUnpublish]=useState<string|null>(null);
+  const [notice,setNotice]=useState("");
 
   // Style and category options are derived from what has actually been published, so
   // the feed never offers a filter that would return nothing.
@@ -53,12 +58,25 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,saved
     const response=await fetch("/api/community",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({outfitTitle:title,caption,outfitId})});
     const data=await response.json();
     if(!response.ok){setError(data.error??"Post could not be published.");return;}
-    setPosts(current=>[data.post,...current]);setTitle("");setCaption("");setComposerOpen(false);
+    setPosts(current=>[data.post,...current]);setOwnPostIds(current=>new Set([...current,data.post.id]));setTitle("");setCaption("");setComposerOpen(false);
   }
   async function like(postId:string){
     setPendingLike(postId);setError("");
     try{const response=await fetch("/api/community",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({postId})});const data=await response.json();if(!response.ok)throw new Error(data.error??"Inspiration could not be saved.");setPosts(current=>current.map(item=>item.id===postId?{...item,likes:data.likes}:item));if(data.inspired)setInspiredPostIds(current=>new Set([...current,postId]));}
     catch(reason){setError(reason instanceof Error?reason.message:"Like could not be recorded.");}finally{setPendingLike(null);}
+  }
+  async function unpublish(post:OutfitPost){
+    setPendingUnpublish(post.id);setError("");setNotice("");
+    try{
+      const response=await fetch(`/api/community/${encodeURIComponent(post.id)}`,{method:"DELETE"});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error??"The look could not be taken down.");
+      setPosts(current=>current.filter(item=>item.id!==post.id));
+      setOwnPostIds(current=>{const next=new Set(current);next.delete(post.id);return next;});
+      setConfirmUnpublishId(null);
+      setNotice(`"${post.outfitTitle}" is no longer in Community. Your outfit and wardrobe are unchanged.`);
+    }catch(reason){setError(reason instanceof Error?reason.message:"The look could not be taken down.");}
+    finally{setPendingUnpublish(null);}
   }
   async function recreate(postId:string){
     setPendingRecreate(postId);setError("");
@@ -123,6 +141,7 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,saved
     </form>}
 
     {error&&<div className="form-error" role="alert">{error}</div>}
+    {notice&&<div className="agent-action-status" role="status">✓ {notice}</div>}
 
     {visible.length===0
       ? <div className="empty-wardrobe"><h2>{posts.length===0?"No public outfits yet.":"No looks match this search."}</h2><p>{posts.length===0?"Be the first to share a look built from your saved wardrobe.":"Try a different style, piece, or search term."}</p>{filtersActive&&posts.length>0&&<button type="button" className="button button-accent" onClick={clearFilters}>Clear filters</button>}</div>
@@ -153,6 +172,12 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,saved
               {shoppable&&<button type="button" className="button button-light button-small" onClick={()=>setShopping(post)}>Shop the look</button>}
               <button type="button" className="like-button" disabled={pendingLike===post.id||inspiredPostIds.has(post.id)} onClick={()=>like(post.id)} aria-label={inspiredPostIds.has(post.id)?`${post.outfitTitle} is saved as Hanger inspiration.`:`Save ${post.outfitTitle} as Hanger inspiration. Currently ${post.likes}.`}>{inspiredPostIds.has(post.id)?"♥ Inspired":`♡ ${post.likes}`}{pendingLike===post.id?" saving…":""}</button>
             </div>
+
+            {ownPostIds.has(post.id)&&<div className="look-owner-actions">
+              {confirmUnpublishId===post.id
+                ? <><button type="button" className="button button-small confirm-unpublish" disabled={pendingUnpublish===post.id} onClick={()=>unpublish(post)}>{pendingUnpublish===post.id?"Taking it down…":"Confirm unpublish"}</button><button type="button" className="text-button" onClick={()=>setConfirmUnpublishId(null)}>Cancel</button><small>This takes the look out of Community for everyone. Your saved outfit and wardrobe stay as they are; anyone who saved it as inspiration keeps only the style words, never a photo or your name.</small></>
+                : <button type="button" className="text-button" aria-label={`Unpublish ${post.outfitTitle} from Community`} onClick={()=>setConfirmUnpublishId(post.id)}>Your look · Unpublish</button>}
+            </div>}
 
             {recreated&&<RecreatePanel result={recreated} canShop={shoppable} onShop={()=>setShopping(post)}/>}
           </div>

@@ -911,3 +911,7 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .home-city-empty{color:var(--muted);font-size:.8rem}
 .home-city-results{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .home-city-results li{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);padding:8px 10px;background:var(--white);font-size:.8rem}
+/* Unpublish: shown only on the viewer's own looks, two steps like every other removal. */
+.look-owner-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.look-owner-actions small{flex-basis:100%;color:var(--muted);font-size:.78rem;line-height:1.45}
+.look-owner-actions .confirm-unpublish{background:#5d1712;border-color:#5d1712;color:#fff}

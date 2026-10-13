@@ -397,6 +397,29 @@ async function ownCommunityPosts(ownerId:string) {
   return await queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",FilterExpression:"ownerId = :owner",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#",":owner":ownerId}}) as unknown as StoredPost[];
 }
 
+/**
+ * The public ids of the looks this person published, so the feed can offer them an Unpublish
+ * control. Post ids are already public; this only tells the owner which of them are theirs.
+ */
+export async function listOwnCommunityPostIds(ownerId:string) {
+  return (await ownCommunityPosts(ownerId)).map((post)=>String(post.id));
+}
+
+/**
+ * Takes one of the owner's looks back out of Community. Publishing is opt-in per post, and this is
+ * the other half of that choice. The post's photographs are the owner's own wardrobe images served
+ * through a post-scoped proxy, so once the record is gone they cannot be fetched through Community;
+ * the outfit and wardrobe are untouched. Brand public-activity totals count only posts that exist,
+ * so its appearances drop out of them too. Returns false when no post with this id belongs to this
+ * owner, so "not yours" and "not there" are indistinguishable to the caller.
+ */
+export async function unpublishCommunityPost(ownerId:string,postId:string) {
+  const post=(await ownCommunityPosts(ownerId)).find((entry)=>entry.id===postId);
+  if(!post)return false;
+  await db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:String(post.PK),SK:String(post.SK)},ConditionExpression:"ownerId = :owner",ExpressionAttributeValues:{":owner":ownerId}}));
+  return true;
+}
+
 async function deleteOwnWearEvents(ownerId:string,productKey:string,garmentId?:string) {
   if(!productKey.startsWith("PRODUCT#"))return 0;
   const events=await queryEveryPage({
