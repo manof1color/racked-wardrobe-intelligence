@@ -1,7 +1,6 @@
 import type { GarmentCategory, GarmentHypothesis, GarmentSubtype } from "./garment-taxonomy.ts";
 
 export type GarmentView = "front" | "back" | "label";
-export type PartnerVertical = "vintage" | "clothing" | "shoes" | "jewelry";
 export type DataClassification = "DEMO" | "PILOT" | "REGULAR";
 
 export interface UploadDescriptor {
@@ -186,11 +185,3 @@ export interface AgentChatTurn {
   content: string;
 }
 
-export interface PartnerDashboardData {
-  vertical: PartnerVertical;
-  title: string;
-  description: string;
-  metrics: Array<{ label:string; value:string; detail:string }>;
-  inventory: Array<{ sku:string; name:string; actualWears:number; owners:number; repeatWearRate:number; status:string }>;
-  agentBrief: string;
-}

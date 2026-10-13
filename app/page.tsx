@@ -109,7 +109,6 @@ export default async function Home() {
           </div>
           <nav aria-label="Footer navigation">
             <Link href="/community">Community</Link>
-            <Link href="/partners/clothing">Partners</Link>
             <Link href="/pricing">Pricing</Link>
             <Link href="/privacy">Privacy & ethics</Link>
             <Link href="/terms">Terms</Link>
