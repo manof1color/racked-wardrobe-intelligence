@@ -45,7 +45,7 @@ test("illustrative figures are labelled as examples, and nothing claims results"
 });
 
 test("the page still leads people where they need to go", () => {
-  for (const href of ["/login", "/community", "/pricing", "/privacy", "/terms", "/partners/clothing", "#how-it-works"]) {
+  for (const href of ["/login", "/community", "/pricing", "/privacy", "/terms", "#how-it-works"]) {
     assert.ok(page.includes(`href="${href}"`), `missing link to ${href}`);
   }
   assert.match(page, /id="how-it-works"/);

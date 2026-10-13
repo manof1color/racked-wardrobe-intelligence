@@ -15,10 +15,12 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
-    # A Next.js major changes the framework under the live Amplify deployment. It waits until after
-    # judging (30 November 2026), when it can be taken deliberately rather than in the final weeks.
+    # Major versions wait until after judging (30 November 2026), when they can be taken deliberately
+    # rather than in the final weeks: Next.js changes the framework under the live Amplify deployment,
+    # TypeScript majors change the compiler, and @types/node must track the Node 22 runtime, not the
+    # newest Node. Security updates are unaffected.
     ignore:
-      - dependency-name: "next"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions

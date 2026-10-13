@@ -1,5 +1,29 @@
 # AI use and model boundaries
 
+## What calls a model, and what does not
+
+Racked uses the word "agent" for both Hangers, and a skeptical reader is right to ask what that
+means. Plainly: **only the consumer Hanger is an agent** — a model that reads the message and decides
+which tools to call. **Brand Hanger is a single model call** over privacy-released aggregates, with no
+tools. **Everything else is deterministic code** that returns the same answer for the same input.
+The API paths are named `/api/agents/...` for both Hangers; the name is historical, not a claim.
+
+| Action | Calls a model? | What decides |
+| --- | --- | --- |
+| Finding garments in a photo (consumer scan; brand **Fill in from photo**) | **Yes** — Nova Pro, one call per photo; Nova Lite only if Nova Pro is rejected as misconfigured | The model proposes pieces. Code crops them, joins shoe pairs, maps them onto the controlled taxonomy, and saves nothing until a person confirms |
+| A consumer Hanger conversation | **Yes** — Nova Pro, one to five calls per message inside 22 seconds | The model chooses tools; every tool is code |
+| Hanger's tools: wardrobe search, outfit builder, Racked trends | No | Search over the account's own pieces; the outfit ranker with the stylist knowledge dataset; counts over public looks |
+| Hanger's weather tool | No | The Open-Meteo forecast service, with coordinates rounded to about 1 km |
+| Hanger when the agent cannot answer | Only after a fast failure: one plain reply, no tools; none after a slow or throttled one | The keyword turn planner and the outfit ranker; the reply says it was written without the stylist model |
+| Brand Hanger | **Yes, only when the aggregate is released** — a single reply, no tools; **none** below `k ≥ 25` | The privacy gate decides first; below the threshold a fixed reply declines evidence claims |
+| Looks: today's pick, Shuffle, Finish | No | The same outfit ranker, in the browser |
+| Verifying a brand product from its label | No | A whole-code GTIN, or brand plus style code, matched against the registry |
+| Look-alike products, catalog search, Recreate This Look, similar products | No | Weighted attribute scoring with inspectable reasons |
+| Whether a brand sees an aggregate at all | No | Consent filter, `k ≥ 25`, and the enumeration budget |
+
+No model ever decides what a brand may see, verifies a product, or puts an outfit on screen that the
+outfit ranker did not build from owned pieces.
+
 **Model routing (2026-09-22).** Amazon serves Nova through regional inference profiles, so
 `amazon.nova-lite-v1:0` is rejected where `us.amazon.nova-lite-v1:0` is accepted. Garment detection
 always used the prefixed form; the conversational path used the bare `AI_MODEL` value, so every
@@ -91,7 +115,7 @@ The outfit builder ranks with written stylist knowledge rather than a trained mo
 
 Two properties matter for honesty. Selection is **deterministic** — weighted scores with an id tie-break, never sampling — so the same request against the same wardrobe and conversation state is reproducible and testable. A new or different creation request sets aside prior owner-validated suggestions before necessary reuse; a targeted revision instead preserves active pieces the person did not ask to change. Non-outfit advice does not rotate implicitly. If a wardrobe category is too small to avoid repeating, Hanger can reuse an eligible owned piece rather than inventing one. Across a multi-outfit set each piece receives a share of the set determined by how many of that category the wardrobe holds, so a plentiful category never repeats while a scarce one is spread evenly; two outfits in a set are never the same arrangement, and any piece that had to appear more than once is reported in the response evidence. Conversational sampling runs at temperature 0.6 with top-p 0.9 so two similar requests do not return identical prose; selection itself remains deterministic and is never sampled.
 
-## Brand Hanger Agent
+## Brand Hanger (a single model call, not a tool-using agent)
 
 Allowed tools:
 
