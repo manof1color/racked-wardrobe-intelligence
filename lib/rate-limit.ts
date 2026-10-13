@@ -37,6 +37,7 @@ export const RATE_LIMIT_RULES = {
   brandAgent: { limit: 20, windowMs: 5 * 60 * 1000 },
   brandMetrics: { limit: 30, windowMs: 5 * 60 * 1000 },
   communityPublish: { limit: 10, windowMs: 60 * 60 * 1000 },
+  communityUnpublish: { limit: 20, windowMs: 60 * 60 * 1000 },
   communityLike: { limit: 40, windowMs: 5 * 60 * 1000 },
   outboundClick: { limit: 30, windowMs: 5 * 60 * 1000 },
   demoPurchase: { limit: 20, windowMs: 5 * 60 * 1000 },

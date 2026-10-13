@@ -26,7 +26,7 @@ Every scoring category, what Racked does for it, and where to check it yourself.
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures what is actually worn — consented, and released only above 25 owners. Synthetic hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app with real accounts. **A person:** photograph clothes → confirm the pieces → get an outfit recommendation. **A brand:** an anonymous, consented cohort → wear evidence released only at `k ≥ 25` → a campaign brief. Everything else built is on the [roadmap](#roadmap) | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [The demo path](#five-minute-judge-path) · [Feature highlights](#feature-highlights) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro finds every garment in a photo; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **650 tests** in 91 files; every PR passes audit, lint, type check, tests, build, and CodeQL before merge; 145+ merged PRs; a 71-phase build log | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
+| **Code, docs & GitHub** | 15% | **655 tests** in 92 files; every PR passes audit, lint, type check, tests, build, and CodeQL before merge; 145+ merged PRs; a 71-phase build log | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece garment previews, and honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Looks builder](components/looks-builder.tsx) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Business model](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) · [Proof point](#competition-proof-point) |
 | **Bonus** | — | Explicit consent, `k ≥ 25` plus an enumeration budget, private encrypted storage, rate limits, owner-scoped deletion | [Privacy boundaries](#security-and-privacy-boundaries) · [`privacy.ts`](lib/privacy.ts) · [Privacy and ethics](docs/privacy-and-ethics.md) |
@@ -123,7 +123,7 @@ These run on the live app and are tested, but the demo does not spend time on th
 
 | Area | What it does | Where it lives |
 | --- | --- | --- |
-| **Community & Recreate** | **Private by default:** nothing is public until its owner picks one saved outfit in the composer and presses **Publish this outfit** — and only that outfit's pieces, under new public IDs, appear. Anyone signed in can then see how much of a public look their own closet makes | [`community-feed.tsx`](components/community-feed.tsx) · [`recreate-look.ts`](lib/recreate-look.ts) |
+| **Community & Recreate** | **Private by default:** nothing is public until its owner picks one saved outfit in the composer and presses **Publish this outfit** — and only that outfit's pieces, under new public IDs, appear. **Unpublish** takes it down again at any time. Anyone signed in can see how much of a public look their own closet makes | [`community-feed.tsx`](components/community-feed.tsx) · [`recreate-look.ts`](lib/recreate-look.ts) |
 | **Shop the Look** | Only a registry-verified product with a validated destination is shoppable; a fictional $0.00 checkout proves the journey without collecting anything | [`shop-the-look.tsx`](components/shop-the-look.tsx) · [`commerce.ts`](lib/commerce.ts) |
 | **Brand linking** | A barcode or brand + style code verifies a product against the brand registry; without a label, look-alikes and search link it as the owner's pick. A brand name alone verifies nothing | [`product-registry.ts`](lib/product-registry.ts) · [`catalog-match.ts`](lib/catalog-match.ts) |
 | **Brand enrollment** | Up to six products at once, one photo each; **Fill in from photo** proposes the details, the brand supplies the style code; products can be corrected or retired | [`brand-product-enrollment.tsx`](components/brand-product-enrollment.tsx) |
@@ -133,7 +133,6 @@ These run on the live app and are tested, but the demo does not spend time on th
 
 ### Next
 
-- **Withdraw a published look.** Publishing is opt-in per post; taking a post back down from Community is the next privacy control to add.
 - **Measured recognition accuracy** on the [independent evaluation dataset](#independent-evaluation-dataset) — the protocol is written; no accuracy is claimed until it is run.
 - **A learned segmenter** that beats the [measured crop baseline](#measured-garment-isolation).
 - **Next.js 16**, taken after judging rather than in its final weeks.
@@ -244,7 +243,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: consumer dashboard, photo intake, Looks builder, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry, weather
 lib/server/     The only code that reads or writes DynamoDB and S3, with every ownership check
-tests/          91 test files, 650 tests (node --test)
+tests/          92 test files, 655 tests (node --test)
 scripts/        Judge and demo seeding, read-only verification, crop benchmark, evaluation runners
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -341,6 +340,7 @@ infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute rol
 | `PATCH /api/brand/products/[productId]` | Brand | Corrects or retires one owned product. Ownership is the record's own key; brand, SKU, GTIN, and photos are immutable |
 | `POST /api/products/[productId]/demo-purchase` | Public | Records a $0.00 demo checkout simulation — DEMO products only, never a sale |
 | `GET/POST/PATCH /api/community` | Public / Consumer | Read the feed; publish one selected saved outfit; record inspiration |
+| `DELETE /api/community/[postId]` | Consumer (owner) | Unpublishes the signed-in consumer's own look; anyone else's answers as not found. The outfit and wardrobe are untouched |
 | `POST /api/community/[postId]/recreate` | Consumer | Recreate This Look against only the signed-in wardrobe |
 | `GET /api/community/images/[postId]/[garmentId]` | Public | Post-scoped image proxy; never exposes a private S3 key |
 | `GET /api/products/similar` · `/[productId]/outbound` | Public | Registry-only suggestions; server-validated outbound redirect |
@@ -434,7 +434,7 @@ Consumer and Brand accounts have a Settings screen for display name, email, and 
 - **Deletion is owner-scoped and retry-safe.** Deleting a garment updates saved outfits, removes its photo from the owner's own Community posts, deletes the wear events it added to brand totals, and deletes its photos. Deleting a consumer account requires the current password and the typed word DELETE, and removes every record with the profile last. Storage outside the account's own prefix is never touched.
 - Garment saves require a server-signed confirmation token tied to the account and both private image keys.
 - S3 public access is blocked; image links expire after one hour.
-- Consumer photos and raw wardrobe records are never returned to brands. **Sharing is opt-in per post and private by default:** nothing reaches Community until its owner picks one saved outfit and presses Publish, and then only that outfit appears, with new public garment IDs, through a post-scoped image proxy.
+- Consumer photos and raw wardrobe records are never returned to brands. **Sharing is opt-in per post and private by default:** nothing reaches Community until its owner picks one saved outfit and presses Publish, and then only that outfit appears, with new public garment IDs, through a post-scoped image proxy. Its owner can **unpublish** it at any time; the outfit and wardrobe stay as they are.
 - Brand metrics count only opted-in owners and fail closed below `k ≥ 25` — below the threshold even the owner count is withheld. A DynamoDB-backed **enumeration budget** caps how many distinct products one brand can pull aggregates for in a rolling window, defeating differencing across products; the dashboard says what is left of it.
 - **Brand identity is never AI-granted.** A brand name read from a photo or typed by a consumer only prefills an editable, clearly unverified label.
 - Hanger's location is a home city the person sets, or a phone location shared for one message and never stored; coordinates sent to the forecast are rounded to about 1 km.
@@ -496,7 +496,7 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 4. **Tests** — `node --test` across `tests/`
 5. **Production build** — `next build`
 
-**650 passing tests** in 91 files (verified 2026-10-13). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return.
+**655 passing tests** in 92 files (verified 2026-10-13). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return.
 
 | What is protected | Where to read the tests |
 | --- | --- |

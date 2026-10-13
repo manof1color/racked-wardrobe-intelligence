@@ -26,7 +26,7 @@ test("everything outside the demo is listed as roadmap, with Community private b
     assert.ok(roadmap.includes(feature), `${feature} is on the roadmap`);
   }
   assert.match(roadmap, /Private by default:/);
-  assert.match(roadmap, /Withdraw a published look/, "the missing privacy control is stated, not hidden");
+  assert.match(roadmap, /\*\*Unpublish\*\* takes it down again at any time/, "and sharing can be taken back");
 });
 
 test("the README and the AI use log say plainly which actions call a model", () => {
