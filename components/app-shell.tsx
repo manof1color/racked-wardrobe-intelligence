@@ -23,6 +23,9 @@ export function AppShell({ role, children }: { role:Role; children:ReactNode }) 
     try {
       const response=await fetch("/api/auth/logout", { method:"POST" });
       if(!response.ok)throw new Error("Sign out failed");
+      // A full reload, not router.push: it discards the signed-out account's wardrobe, Hanger
+      // conversation, and cached private pages from memory instead of carrying them forward.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/");
     } catch { setSigningOut(false); }
   }
