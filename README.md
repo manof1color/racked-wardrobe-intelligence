@@ -23,10 +23,10 @@ Every scoring category, what Racked does for it, and where to check it yourself.
 
 | Category | Weight | What to look for | Verify it |
 | --- | ---: | --- | --- |
-| **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures what is actually worn — consented, and released only above 25 owners. Synthetic hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
+| **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear — consented, and released only at 25 or more qualifying owners. Synthetic seed hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app with real accounts. **A person:** photograph clothes → confirm the pieces → get an outfit recommendation. **A brand:** an anonymous, consented cohort → wear evidence released only at `k ≥ 25` → a campaign brief. Everything else built is on the [roadmap](#roadmap) | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [The demo path](#five-minute-judge-path) · [Feature highlights](#feature-highlights) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro finds every garment in a photo; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **656 tests** in 93 files; every PR passes audit, lint, type check, tests, build, and CodeQL before merge; 145+ merged PRs; a 71-phase build log | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
+| **Code, docs & GitHub** | 15% | **660 tests** in 94 files; CI runs audit, lint, type check, tests, build, and CodeQL; **154 merged PRs** counted on 2026-10-13 before this documentation merge; build log through Phase 77 | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece garment previews, and honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Looks builder](components/looks-builder.tsx) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Business model](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) · [Proof point](#competition-proof-point) |
 | **Bonus** | — | Explicit consent, `k ≥ 25` plus an enumeration budget, private encrypted storage, rate limits, owner-scoped deletion | [Privacy boundaries](#security-and-privacy-boundaries) · [`privacy.ts`](lib/privacy.ts) · [Privacy and ethics](docs/privacy-and-ethics.md) |
@@ -78,9 +78,9 @@ The demo is two flows and nothing else. Everything outside them is built and wor
 | Judge Brand | `judge.brand@racked.local` | One product with **50 opted-in owners** showing released metrics, one with 4 — deliberately below the 25-owner threshold — showing suppression beside it, one **retired** product, and a published Brand Look |
 | New Consumer | `judge.newconsumer@racked.local` | Empty on purpose: scan a real photo and see the honest first-run states |
 | New Brand | `judge.newbrand@racked.local` | No products: enrol one live from a single photo with **Fill in from photo** |
-| Synthetic cohort | 25 `DEMO` consumers, 3 fictional brands | Community feed, Recreate This Look, public-activity metrics |
+| Main synthetic cohort seed | 25 opted-in `DEMO` consumers + 1 separate Recreate consumer; 3 fictional brands with 10 products each | Community feed, Recreate This Look, public-activity metrics; separate from the four judge accounts and the judge seed's 50-owner product |
 
-**Passwords are deliberately not in this repository.** The repository is public, and a committed password would let anyone alter the demo before it is reviewed. Credentials are handed to judges in the submission packet; the seed reads its password at runtime only. See [docs/judge-accounts.md](docs/judge-accounts.md) for the tour, the seed, and the read-only checker (`pnpm verify:judge`) that confirms the released product really clears `k ≥ 25` and the suppressed one really does not. The same seed runs in dry-run mode in CI against the app's own rules ([`tests/judge-accounts.test.ts`](tests/judge-accounts.test.ts)).
+**Passwords are deliberately not in this repository.** The repository is public, and a committed password would let anyone alter the demo before it is reviewed. Credentials reach judges privately, outside this repository; the seed reads its password at runtime only. The table describes repeatable seed expectations, not a live-table audit or real-user statistics. See [docs/judge-accounts.md](docs/judge-accounts.md) for the tour, the seed, and the read-only checker (`pnpm verify:judge`) that confirms the released product really clears `k ≥ 25` and the suppressed one really does not. The same seed runs in dry-run mode in CI against the app's own rules ([`tests/judge-accounts.test.ts`](tests/judge-accounts.test.ts)).
 
 Every seeded record is classified `DEMO`, and every seeded garment image carries a visible `SYNTHETIC DEMO` mark. These are illustrations, not product photographs.
 
@@ -203,7 +203,7 @@ The outfit builder ranks with a curated dataset rather than a black box. [`lib/g
 
 ### Coverage, measured
 
-`node --test --experimental-test-coverage` over the whole suite (2026-10-04): **97% of lines, 86% of branches, 95% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%, `recreate-look.ts` 99%, `matching.ts` 98%, `similar-products.ts` 97%, `outfit-ranking.ts` 94%, `garment-knowledge.ts` 94%, and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. `hanger-agent.ts` is at 79%: its uncovered lines are the live Bedrock call itself, which the tests replace with a scripted model. Coverage shows what the tests execute, not that the scoring is *right*; the per-band, tie-break, and uncertainty numbers in [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) and the stylist evaluation set are the part that argues for correctness.
+`node --experimental-strip-types --test --experimental-test-coverage tests/*.test.ts` over the whole suite (2026-10-13): **97.00% of lines, 86.07% of branches, 94.76% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%, `recreate-look.ts` 98.85%, `matching.ts` 97.67%, `similar-products.ts` 96.67%, `outfit-ranking.ts` 93.72%, `garment-knowledge.ts` 93.62%, and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. `hanger-agent.ts` is at 79.45%; its provider boundary is tested with a scripted model, not a live Bedrock call. Coverage shows what the tests execute, not that the scoring is *right*; the per-band, tie-break, and uncertainty numbers in [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) and the stylist evaluation set are the part that argues for correctness.
 
 ---
 
@@ -243,7 +243,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: consumer dashboard, photo intake, Looks builder, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry, weather
 lib/server/     The only code that reads or writes DynamoDB and S3, with every ownership check
-tests/          93 test files, 656 tests (node --test)
+tests/          94 test files, 660 tests (node --test)
 scripts/        Judge and demo seeding, read-only verification, crop benchmark, evaluation runners
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -355,9 +355,9 @@ Full access levels and abuse controls: [docs/backend-api.md](docs/backend-api.md
 
 ## Competition Proof Point
 
-The deterministic, clearly labelled synthetic cohort gives **each of three hero products 76 confirmed wears across 25 opted-in owners**. This is not claimed customer traction; it demonstrates the exact post-purchase intelligence Racked can calculate and the privacy gate required before a brand may see it.
+The main cohort seed deterministically defines **each of three hero products 76 confirmed wears across 25 opted-in owners**. These are reproducible seed expectations, not a live-table audit or real-user statistics. They demonstrate the post-purchase intelligence Racked can calculate and the privacy gate required before a brand may see it. The separate judge seed defines JDA-001 with 50 qualifying owners and JDA-002 with 4; neither cohort is evidence of customer traction.
 
-| Demonstration signal | Verified synthetic result | Business question it answers |
+| Demonstration signal | Reproducible synthetic seed result | Business question it answers |
 | --- | ---: | --- |
 | Eligible cohort | 25 opted-in owners per hero SKU | Is the group large enough to release safely? |
 | Actual use | **76 confirmed wears per hero SKU** | Is the purchased product entering real rotation? |
@@ -376,7 +376,7 @@ The deterministic, clearly labelled synthetic cohort gives **each of three hero 
 
 #### Adding a piece from one photo
 
-**Photographs are the only way in.** An outfit, a flat lay, a closet shelf, or a shoe rack becomes up to 16 separate wardrobe pieces, each on its own card for the person to check. Up to **six photos** can be scanned in one batch — the camera takes one at a time, the library takes several — and every piece lands in one review list, tagged with the photo it came from. An unreadable photo never discards the pieces already found. The list is bounded at 24 pieces.
+**Photographs are the only way in.** An outfit, a flat lay, a closet shelf, or a shoe rack becomes up to 16 separate wardrobe pieces, each on its own card for the person to check. Up to **6 photos** can be scanned in one batch — the camera takes one at a time, the library takes several — and every piece lands in one review list, tagged with the photo it came from. An unreadable photo never discards the pieces already found. The list is bounded at 24 pieces.
 
 | Step | What the person sees | What happens underneath |
 | --- | --- | --- |
@@ -482,7 +482,7 @@ Racked has selected the CC BY 4.0 [Clothing Dataset for Second-Hand Fashion, ver
 
 **Accuracy is not claimed yet, and this is not training data.** The benchmark will measure category, subtype, label-text, provider-failure, and AI-only-verification violations. The protocol and reporting rules are in [docs/evaluation.md](docs/evaluation.md).
 
-The first reproducible label-coverage audit sampled 1,000 evenly spaced records: **93.9%** map to Racked's broad categories, **62.6%** have labels specific enough for exact-subtype scoring, and **94.0%** contain usable brand annotations. These measure benchmark compatibility, not model accuracy. The aggregate report is committed at [`data/evaluation-label-coverage.json`](data/evaluation-label-coverage.json).
+The first reproducible label-coverage audit sampled 1,000 records in ten evenly spaced 100-record windows: **93.9%** map to Racked's broad categories, **62.6%** have labels specific enough for exact-subtype scoring, and **94.0%** contain usable brand annotations. These measure benchmark compatibility, not model accuracy. The aggregate report is committed at [`data/evaluation-label-coverage.json`](data/evaluation-label-coverage.json).
 
 ---
 
@@ -496,11 +496,11 @@ The first reproducible label-coverage audit sampled 1,000 evenly spaced records:
 4. **Tests** — `node --test` across `tests/`
 5. **Production build** — `next build`
 
-**656 passing tests** in 93 files (verified 2026-10-13). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return.
+**660 passing tests** in 94 files (verified 2026-10-13). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return. Numerical documentation checks recompute the synthetic wear metrics with the app's analytics, reconcile the label-audit percentages, and compare test-file counts, limits, progress, and proposed prices with their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
 | What is protected | Where to read the tests |
 | --- | --- |
-| Brands see aggregates above `k ≥ 25` and nothing else | [`privacy`](tests/privacy.test.ts) · [`brand-route-guards`](tests/brand-route-guards.test.ts) · [`brand-integrity`](tests/brand-integrity.test.ts) · [`brand-community-metrics`](tests/brand-community-metrics.test.ts) |
+| Brands see private wear aggregates only when `k ≥ 25` | [`privacy`](tests/privacy.test.ts) · [`brand-route-guards`](tests/brand-route-guards.test.ts) · [`brand-integrity`](tests/brand-integrity.test.ts) · [`brand-community-metrics`](tests/brand-community-metrics.test.ts) |
 | Sessions, accounts, and deletion | [`session`](tests/session.test.ts) · [`session-guards`](tests/session-guards.test.ts) · [`account-security`](tests/account-security.test.ts) · [`account-and-garment-deletion`](tests/account-and-garment-deletion.test.ts) |
 | Only registry evidence verifies a brand | [`product-registry`](tests/product-registry.test.ts) · [`scan-brand-suggestion`](tests/scan-brand-suggestion.test.ts) · [`brand-autofill`](tests/brand-autofill.test.ts) · [`brand-catalog`](tests/brand-catalog.test.ts) |
 | Photo recognition and intake | [`look-garment-detection`](tests/look-garment-detection.test.ts) · [`detection-bounds`](tests/detection-bounds.test.ts) · [`multi-photo-intake`](tests/multi-photo-intake.test.ts) · [`look-scan-resilience`](tests/look-scan-resilience.test.ts) · [`garment-intake`](tests/garment-intake.test.ts) |
@@ -533,7 +533,7 @@ Consumers stay free to solve the cold-start problem; the brand side carries reve
 <details>
 <summary><strong>Clone, configure, run the gate, install on a phone — expand</strong></summary>
 
-Requirements: Node.js 22+ and pnpm.
+Requirements: Node.js **22.13.0 or newer**, with **pnpm 11.9.0** declared in `package.json`.
 
 ```bash
 # Clone and install
@@ -572,7 +572,7 @@ Racked augments a person's judgment about their own wardrobe and never replaces 
 - Brands receive aggregates, never people. Consent is per-account and revocable, `k ≥ 25` fails closed, and an enumeration budget prevents reconstructing small cohorts across products.
 - Nothing is published without an explicit action by its owner.
 
-Racked does **not** claim garment recognition accuracy, sales lift, purchase intent, demographic inference, photorealistic virtual try-on, body-fit prediction, or production-scale validation. Multi-piece detection is visibility-dependent: overlapping, hidden, tiny, or blurred items may need a second photo. The Looks flat-lay is an outfit composition tool, not virtual try-on. The three-brand, 25-account cohort is synthetic and classified `DEMO` throughout. Pricing is a proposal; nothing is billed and no payment method is ever collected.
+Racked does **not** claim garment recognition accuracy, sales lift, purchase intent, demographic inference, photorealistic virtual try-on, body-fit prediction, or production-scale validation. Multi-piece detection is visibility-dependent: overlapping, hidden, tiny, or blurred items may need a second photo. The Looks flat-lay is an outfit composition tool, not virtual try-on. Both seeds are synthetic and classified `DEMO` throughout: the main seed has 25 opted-in consumers plus a separate Recreate consumer and three brands; the judge seed has four judge sign-ins, with 49 cohort profiles plus the judge consumer qualifying for its 50-owner released product. The seeds reuse some consumer profiles, so these counts must not be added together or cited as real people. Pricing is a proposal; nothing is billed and no payment method is ever collected.
 
 ---
 
@@ -620,6 +620,6 @@ Racked does **not** claim garment recognition accuracy, sales lift, purchase int
 
 ---
 
-**Last updated:** 13 October 2026 — active competition build
+**Last updated:** 13 October 2026 — numerical evidence checked against main `314388c` plus this documentation-only change
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026
