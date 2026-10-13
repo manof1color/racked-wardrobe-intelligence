@@ -29,7 +29,7 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 
 - **Next.js 15 (SSR) on AWS Amplify, DynamoDB single-table, private encrypted S3.** One table keeps
   ownership in the key itself (`USER#<id>`), so one account's data cannot be reached by a filter bug.
-- **Amazon Bedrock Nova Pro for vision, Nova Lite for the stylist.** One remote call per scan, with a
+- **Amazon Bedrock Nova Pro for vision and Hanger, Nova Lite as fallback.** One remote call per scan, with a
   bounded timeout; a provider failure degrades to an editable manual-review card instead of guesses.
 - **The model never picks the outfit.** A deterministic server-side ranker scores every owned garment
   on five signals and selects; the model writes the explanation. A reply naming a piece outside that
@@ -37,8 +37,8 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **457 tests and a CI gate** — lint, type check, tests, production build, dependency audit, CodeQL —
-  on every pull request, with a 46-phase merged-PR history.
+- **660 tests and a CI gate** — lint, type check, tests, production build, dependency audit, CodeQL —
+  on every pull request, with a build log through Phase 77 (verified 2026-10-13).
 
 ## Lessons learned
 
