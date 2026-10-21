@@ -26,7 +26,7 @@ Every scoring category, what Racked does for it, and where to check it yourself.
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear — consented, and released only at 25 or more qualifying owners. Synthetic seed hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app with real accounts. **A person:** photograph clothes → confirm the pieces → get an outfit recommendation. **A brand:** an anonymous, consented cohort → wear evidence released only at `k ≥ 25` → a campaign brief. Everything else built is on the [roadmap](#roadmap) | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [The demo path](#five-minute-judge-path) · [Feature highlights](#feature-highlights) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro finds every garment in a photo; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **666 tests** in 95 files; CI runs audit, lint, type check, tests, build, and CodeQL; **155 merged PRs** counted on 2026-10-13 before this architecture merge; build log through Phase 78 | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
+| **Code, docs & GitHub** | 15% | **677 tests** in 96 files; CI runs audit, lint, type check, tests, build, and CodeQL; **156 merged PRs** counted on 2026-10-21; build log through Phase 79 | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece garment previews, and honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Looks builder](components/looks-builder.tsx) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Business model](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) · [Proof point](#competition-proof-point) |
 | **Bonus** | — | Explicit consent, `k ≥ 25` plus an enumeration budget, private encrypted storage, rate limits, owner-scoped deletion | [Privacy boundaries](#security-and-privacy-boundaries) · [`privacy.ts`](lib/privacy.ts) · [Privacy and ethics](docs/privacy-and-ethics.md) |
@@ -250,7 +250,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: consumer dashboard, photo intake, Looks builder, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry, weather
 lib/server/     The only code that reads or writes DynamoDB and S3, with every ownership check
-tests/          95 test files, 666 tests (node --test)
+tests/          96 test files, 677 tests (node --test)
 scripts/        Judge and demo seeding, read-only verification, crop benchmark, evaluation runners
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -446,6 +446,10 @@ Consumer and Brand accounts have a Settings screen for display name, email, and 
 - **Brand identity is never AI-granted.** A brand name read from a photo or typed by a consumer only prefills an editable, clearly unverified label.
 - Hanger's location is a home city the person sets, or a phone location shared for one message and never stored; coordinates sent to the forecast are rounded to about 1 km.
 - Sliding-window rate limits protect sign-in, registration, AI endpoints, brand metrics, place search, and Community writes. Counters are per compute instance — a documented first layer, not a WAF replacement.
+- **Every response carries browser security headers** — HTTPS-only (HSTS), no MIME sniffing, no framing by other sites, a strict referrer policy, and camera and location permitted to Racked alone — plus a Content Security Policy running in report-only mode while real-use reports are collected.
+- **A guard runs in front of every API route** (`middleware.ts`, `lib/request-guard.ts`): a request that changes anything must come from Racked's own pages, so another site cannot make a signed-in browser act for it; request bodies are capped at what the app sends (64 KB of JSON, 16 MB of photos).
+- **Photographs are stored without the metadata a phone writes into them** — GPS position, device, time. Consumer scans always were; brand product photos, which consumers see, now are too, and every upload must decode as the image it claims to be.
+- **Sign-in does not reveal which emails have accounts:** an unknown email takes as long to reject as a wrong password.
 - Protected demographic attributes are excluded from image prompts, matching, and analytics.
 
 ---
@@ -503,7 +507,7 @@ The first reproducible label-coverage audit sampled 1,000 records in ten evenly 
 4. **Tests** — `node --test` across `tests/`
 5. **Production build** — `next build`
 
-**666 passing tests** in 95 files (verified 2026-10-13). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return. Numerical documentation checks recompute the synthetic wear metrics with the app's analytics, reconcile the label-audit percentages, and compare test-file counts, limits, progress, and proposed prices with their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**677 passing tests** in 96 files (verified 2026-10-21). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return. Numerical documentation checks recompute the synthetic wear metrics with the app's analytics, reconcile the label-audit percentages, and compare test-file counts, limits, progress, and proposed prices with their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
 | What is protected | Where to read the tests |
 | --- | --- |
