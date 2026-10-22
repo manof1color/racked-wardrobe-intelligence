@@ -5,6 +5,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/garment-analysis";
 import { detectLookOrManualReview } from "@/lib/look-scan-resilience";
 import { describeProductFromDetections } from "@/lib/product-description";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { spendAiAllowance } from "@/lib/server/abuse-guard";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,10 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Racked could not read this image. Choose a valid JPG, PNG, or WebP file under 5 MB." }, { status: 400 });
   }
+
+  // Reading a photo is a paid model call: spent from the brand's daily allowance and the site's ceiling.
+  const allowance = await spendAiAllowance("brand-describe", session.subject);
+  if (!allowance.allowed) return NextResponse.json({ error: allowance.message }, { status: allowance.scope === "account" ? 429 : 503, headers: { "retry-after": String(allowance.retryAfterSeconds) } });
 
   try {
     const recognition = await detectLookOrManualReview({ base64: prepared.data.toString("base64"), contentType: "image/jpeg", image: { width: prepared.info.width, height: prepared.info.height } });

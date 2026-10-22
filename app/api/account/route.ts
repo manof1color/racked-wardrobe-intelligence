@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, SESSION_COOKIE } from "@/lib/auth";
-import { AccountConflictError, AccountDeletionUnavailableError, deleteOwnConsumerAccount, getAccount, updateOwnAccount } from "@/lib/server/production-store";
+import { AccountConflictError, AccountDeletionUnavailableError, deleteOwnConsumerAccount, getAccount, recordAccountActivity, updateOwnAccount } from "@/lib/server/production-store";
+import { deviceLabel } from "@/lib/device-label";
 import { ACCOUNT_DELETION_CONFIRMATION, accountDeletionConfirmed } from "@/lib/deletion-plan";
 import { passwordValidationError } from "@/lib/account-security";
 import { createSessionToken } from "@/lib/session";
@@ -21,6 +22,7 @@ export async function PATCH(request:Request){
   try{
     const account=await updateOwnAccount(session.subject,{displayName:body.displayName,email:body.email,currentPassword:body.currentPassword,newPassword:body.newPassword});
     if(!account)return NextResponse.json({error:"Current password was incorrect."},{status:401});
+    await recordAccountActivity(account.id,body.newPassword?"password-changed":"details-updated",deviceLabel(request.headers.get("user-agent"))).catch(()=>undefined);
     const response=NextResponse.json({account:{displayName:account.displayName,email:account.email,role:account.role,brandName:account.brandName},passwordChanged:Boolean(body.newPassword)});
     if(body.newPassword){const secret=process.env.SESSION_SECRET;if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});const token=await createSessionToken({subject:account.id,role:account.role,sessionVersion:account.sessionVersion??0,expiresAt:Date.now()+1000*60*60*24*7},secret);response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*24*7});}
     return response;

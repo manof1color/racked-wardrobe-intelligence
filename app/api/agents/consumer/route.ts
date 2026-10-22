@@ -6,7 +6,9 @@ import { describeAgentFailure, isAgentEnabled, plainReplyWorthTrying, runHangerA
 import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberPendingRequest, rememberSuggestedItemIds } from "@/lib/hanger-memory";
 import { allowedOutfitActions, planHangerTurn, replyAsksBack } from "@/lib/hanger-turn";
 import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, readOutfitIntent, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
+import { SITE_PAUSE_REASON } from "@/lib/abuse-limits";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { spendAiAllowance } from "@/lib/server/abuse-guard";
 import { clearHangerConversation, getConsumerInspirationProfile, getHomeCity, listCommunityPosts, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
 import { fetchForecast, validCoordinates, type Forecast } from "@/lib/weather";
 import type { AgentReply } from "@/lib/platform-types";
@@ -80,6 +82,12 @@ export async function POST(request: Request) {
   const legacyMessage = `Build an outfit for ${occasion || "my plans"}${weather ? ` in ${weather}` : ""}.`;
   const message = (typeof body.message === "string" ? body.message.trim() : legacyMessage).slice(0, 1_000);
   if (!message) return NextResponse.json({ error: "Tell Hanger what you would like help with." }, { status: 400 });
+  // Each message may call the model several times, so it is spent from the account's daily
+  // allowance and the site's ceiling first. Past the account's allowance the person is told; past
+  // the site's ceiling Hanger keeps answering — from the wardrobe, without the model, saying why.
+  const allowance = isAgentEnabled() ? await spendAiAllowance("hanger", subject) : { allowed: true as const };
+  if (!allowance.allowed && allowance.scope === "account") return NextResponse.json({ error: allowance.message }, { status: 429, headers: { "retry-after": String(allowance.retryAfterSeconds) } });
+  const aiPaused = !allowance.allowed;
 
   const [wardrobe, outfits, inspiration, stored, homeCity] = await Promise.all([listWardrobe(subject), listOutfits(subject), getConsumerInspirationProfile(subject), loadHangerConversation(subject), getHomeCity(subject).catch(() => null)]);
   // The phone's location, when the person chose to share it, wins for this one message and is never
@@ -99,7 +107,7 @@ export async function POST(request: Request) {
   // Hanger as an agent first: the model reads the message and calls the tools it needs — wardrobe
   // search, the outfit builder, the forecast, Racked trends. If it cannot answer inside its time
   // budget, or the model is unavailable, the grounded pipeline below answers instead.
-  const agentAttempted = isAgentEnabled();
+  const agentAttempted = isAgentEnabled() && !aiPaused;
   // Why the agent did not answer, when it did not — shown with the reply so a live failure names itself.
   const agentOutcome: { failure: AgentFailure | null } = { failure: null };
   if (agentAttempted) {
@@ -193,7 +201,7 @@ export async function POST(request: Request) {
     message: requestText,
     // After a fast rejection of the tool-using call, the plain model reply still gets its turn;
     // after a slow or throttled one it does not, so the wait never doubles.
-    allowModel: !agentAttempted || plainReplyWorthTrying(agentOutcome.failure),
+    allowModel: !aiPaused && (!agentAttempted || plainReplyWorthTrying(agentOutcome.failure)),
     outfitCount: set.length || (ranked ? 1 : 0),
     alsoShown: set.slice(1).flatMap(({ outfit }) => outfit.pieces.map((piece) => piece.item)),
     history,
@@ -237,7 +245,7 @@ export async function POST(request: Request) {
     actions,
     selection,
     ...(outfitSet ? { outfits: outfitSet } : {}),
-    ...(agentOutcome.failure ? { degradedReason: describeAgentFailure(agentOutcome.failure) } : {}),
+    ...(aiPaused ? { degradedReason: SITE_PAUSE_REASON } : agentOutcome.failure ? { degradedReason: describeAgentFailure(agentOutcome.failure) } : {}),
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
       ...(forecast ? [`Forecast for ${forecast.place} from Open-Meteo${turnIntent.weather && !plan.intent.weather ? ` — dressed for ${turnIntent.weather} weather` : ""}`] : []),

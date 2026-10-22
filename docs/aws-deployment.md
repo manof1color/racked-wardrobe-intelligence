@@ -38,6 +38,8 @@ AI_MODEL=amazon.nova-lite-v1:0
 AI_LOOK_DETECTION_MODEL=us.amazon.nova-pro-v1:0
 AI_BRAND_MODEL=amazon.nova-lite-v1:0
 AI_BACKGROUND_REMOVAL_MODEL=us.stability.stable-image-remove-background-v1:0
+# Optional: site-wide daily ceiling on model-backed requests (default 1000).
+AI_DAILY_CEILING
 NEXT_PUBLIC_SITE_URL
 ```
 
@@ -75,6 +77,8 @@ During the first mobile registration test, DynamoDB rejected the email-index que
 - S3 is private and temporary objects under `temp/` expire after one day.
 - Bedrock is usage-billed; uploads are limited to control request size. Nova Pro handles the complex whole-look scan and Hanger's conversation, where Nova Lite lost the thread of longer exchanges; routine analysis stays on lower-cost Nova Lite. Hanger's model is chosen by `AI_HANGER_MODEL` alone — it no longer inherits `AI_MODEL` — and falls back to Nova Lite if Nova Pro is unavailable.
 - Create an AWS Budget alert and monitor Amplify, S3, DynamoDB, and Bedrock usage.
+- Model-backed requests are capped per account per day and across the site per day (`lib/abuse-limits.ts`). The site ceiling defaults to 1,000 requests a day; set `AI_DAILY_CEILING` in Amplify to change it.
+- **DynamoDB time-to-live must be on** for the `ttl` attribute (`infra/template.yaml` declares it). It expires password-reset tokens, shared rate-limit windows, and the 90-day account activity log. If the stack predates this, turn it on in the console: DynamoDB → Tables → the Racked table → Additional settings → Time to Live → attribute `ttl`.
 - Never place access keys, session secrets, account identifiers, or private image URLs in GitHub issues or logs.
 
 ## Rollback

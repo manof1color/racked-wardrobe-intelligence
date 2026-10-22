@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { consumePasswordReset } from "@/lib/server/production-store";
+import { consumePasswordReset, recordAccountActivity } from "@/lib/server/production-store";
+import { deviceLabel } from "@/lib/device-label";
 import { passwordValidationError } from "@/lib/account-security";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
@@ -9,5 +10,6 @@ export async function POST(request:Request){
   if(!body?.token||body.token.length>200)return NextResponse.json({error:"This reset link is invalid or expired."},{status:400});
   const passwordError=passwordValidationError(body.password??"");if(passwordError)return NextResponse.json({error:passwordError},{status:400});
   const account=await consumePasswordReset(body.token,body.password!);if(!account)return NextResponse.json({error:"This reset link is invalid, expired, or already used."},{status:400});
+  await recordAccountActivity(account.id,"password-reset",deviceLabel(request.headers.get("user-agent"))).catch(()=>undefined);
   return NextResponse.json({message:"Password updated. Sign in with your new password."});
 }

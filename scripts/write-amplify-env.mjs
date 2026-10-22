@@ -11,6 +11,8 @@ const allowlist = [
   "AI_BRAND_MODEL",
   "AI_HANGER_MODEL",
   "AI_LOOK_DETECTION_MODEL",
+  // Optional: the site-wide daily ceiling on model-backed requests (lib/abuse-limits.ts).
+  "AI_DAILY_CEILING",
   "NEXT_PUBLIC_SITE_URL",
   "RACKED_TABLE_NAME",
   "RACKED_UPLOAD_BUCKET",

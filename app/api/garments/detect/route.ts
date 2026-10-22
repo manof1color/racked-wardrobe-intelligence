@@ -5,6 +5,7 @@ import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis"
 import { type NormalizedBounds } from "@/lib/look-garment-detection";
 import { detectLookOrManualReview, prepareSimpleLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { spendAiAllowance } from "@/lib/server/abuse-guard";
 import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
 export const runtime="nodejs";
@@ -47,6 +48,9 @@ export async function POST(request:Request) {
       .resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true})
       .jpeg({quality:84,mozjpeg:true})
       .toBuffer({resolveWithObject:true});
+    // Each scan is a paid model call: spent from the account's daily allowance and the site's ceiling.
+    const allowance=await spendAiAllowance("scan",session.subject);
+    if(!allowance.allowed)return NextResponse.json({error:allowance.message},{status:allowance.scope==="account"?429:503,headers:{"retry-after":String(allowance.retryAfterSeconds)}});
     stage="recognition";
     const recognition=await detectLookOrManualReview({
       base64:prepared.data.toString("base64"),

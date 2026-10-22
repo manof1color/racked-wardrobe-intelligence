@@ -1,22 +1,33 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { checkFormSubmission, formCheckMessage, HONEYPOT_FIELD } from "@/lib/bot-trap";
+import { deviceLabel } from "@/lib/device-label";
+import { claimSignUp } from "@/lib/server/abuse-guard";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
-import { AccountConflictError, createAccount, ProductionConfigurationError } from "@/lib/server/production-store";
+import { AccountConflictError, createAccount, ProductionConfigurationError, recordAccountActivity } from "@/lib/server/production-store";
 import type { Role } from "@/lib/types";
 import { passwordValidationError } from "@/lib/account-security";
 
 export async function POST(request:Request) {
   const limit=consumeRateLimit(`register:${clientIdentifier(request)}`,RATE_LIMIT_RULES.register);
   if(!limit.allowed)return NextResponse.json({error:"Too many account requests. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
-  const body=await request.json().catch(()=>null) as {email?:string;password?:string;role?:Role;displayName?:string;brandName?:string;consent?:boolean}|null;
+  const body=await request.json().catch(()=>null) as {email?:string;password?:string;role?:Role;displayName?:string;brandName?:string;consent?:boolean;formToken?:string;[HONEYPOT_FIELD]?:string}|null;
+  // The bot trap: a hidden field a person never fills, and a signed token proving the form was
+  // served by Racked a few seconds ago. A script posting straight here has neither.
+  const secret=process.env.SESSION_SECRET;
+  if(secret){const check=checkFormSubmission({token:body?.formToken,honeypot:body?.[HONEYPOT_FIELD],secret});if(!check.ok)return NextResponse.json({error:formCheckMessage(check)},{status:400});}
   if(!body?.email||!/^\S+@\S+\.\S+$/.test(body.email)||!body.displayName||!body.role||!["consumer","brand"].includes(body.role)) return NextResponse.json({error:"Complete every required account field."},{status:400});
   const passwordError=passwordValidationError(body.password??"");if(passwordError)return NextResponse.json({error:passwordError},{status:400});
   if(body.role==="consumer"&&body.consent!==true) return NextResponse.json({error:"Consent is required to process wardrobe photos."},{status:400});
   if(body.role==="brand"&&!body.brandName?.trim()) return NextResponse.json({error:"Enter the brand name you represent."},{status:400});
+  // A site-wide ceiling on new accounts, shared across every server instance.
+  const slot=await claimSignUp();
+  if(!slot.allowed)return NextResponse.json({error:"Racked is taking a lot of new accounts right now. Try again in a little while."},{status:429,headers:{"retry-after":String(slot.retryAfterSeconds)}});
   try {
     const account=await createAccount({email:body.email,password:body.password!,role:body.role,displayName:body.displayName,brandName:body.brandName});
-    const secret=process.env.SESSION_SECRET;if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});
+    if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});
+    await recordAccountActivity(account.id,"account-created",deviceLabel(request.headers.get("user-agent"))).catch(()=>undefined);
     const token=await createSessionToken({subject:account.id,role:account.role,sessionVersion:account.sessionVersion??0,expiresAt:Date.now()+1000*60*60*24*7},secret);
     const response=NextResponse.json({destination:account.role==="consumer"?"/consumer":"/brand"},{status:201});
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*24*7});return response;
