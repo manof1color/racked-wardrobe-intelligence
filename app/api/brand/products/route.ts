@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFirstUpload } from "@/lib/garment-analysis";
+import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFirstUpload } from "@/lib/garment-analysis";
+import { readCappedFormData } from "@/lib/request-body";
 import { stripImageMetadata } from "@/lib/image-sanitize";
 import { createBrandProductRegistration, registryIdentityConflict } from "@/lib/product-registry";
 import { getAccount, listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
@@ -19,7 +20,8 @@ export async function POST(request:Request){
   const contentLength=Number(request.headers.get("content-length")??0);
   if(contentLength>(MAX_UPLOAD_BYTES*3)+1_000_000)return NextResponse.json({error:"The complete registration must be no more than 16 MB."},{status:413});
   try {
-    const form=await request.formData();
+    // Up to three photos, read under the upload cap whatever Content-Length claimed.
+    const form=await readCappedFormData(request).catch((error:unknown)=>{throw asUploadError(error);});
     // A product photo is required; back and label photos are optional. Identity comes from the SKU
     // and GTIN typed below, and no match has ever read a label photo, so requiring one only slowed
     // enrollment down.

@@ -1,3 +1,4 @@
+import { BodyTooLargeError, MalformedBodyError } from "./request-body.ts";
 import { matchBrandProduct, seedBrandProducts, suggestMajorBrand } from "./product-registry.ts";
 import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
@@ -83,6 +84,13 @@ export class UploadValidationError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+/** A body that was too large or unreadable, as the upload error the photo routes already handle. */
+export function asUploadError(error: unknown) {
+  if (error instanceof BodyTooLargeError) return new UploadValidationError("That upload is too large.", 413);
+  if (error instanceof MalformedBodyError) return new UploadValidationError(error.message, 400);
+  return error;
 }
 
 export function validateThreeViewUpload(parts: UploadDescriptor[]) {

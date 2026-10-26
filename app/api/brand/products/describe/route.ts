@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { MAX_UPLOAD_BYTES } from "@/lib/garment-analysis";
+import { BodyTooLargeError, MAX_INPUT_PIXELS, readCappedFormData, SINGLE_PHOTO_BODY_BYTES } from "@/lib/request-body";
 import { detectLookOrManualReview } from "@/lib/look-scan-resilience";
 import { describeProductFromDetections } from "@/lib/product-description";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
@@ -29,13 +30,15 @@ export async function POST(request: Request) {
 
   let prepared: { data: Buffer; info: { width: number; height: number } };
   try {
-    const form = await request.formData();
+    // Read under a hard cap, whatever Content-Length claimed.
+    const form = await readCappedFormData(request, SINGLE_PHOTO_BODY_BYTES);
     const file = form.get("front");
     if (!(file instanceof File) || file.size === 0) return NextResponse.json({ error: "Choose the product photo first." }, { status: 400 });
     if (!allowedTypes.has(file.type)) return NextResponse.json({ error: "The product photo must be JPG, PNG, or WebP." }, { status: 400 });
     if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: "The photo must be no more than 5 MB." }, { status: 413 });
-    prepared = await sharp(Buffer.from(await file.arrayBuffer())).rotate().resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 84, mozjpeg: true }).toBuffer({ resolveWithObject: true });
-  } catch {
+    prepared = await sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: MAX_INPUT_PIXELS }).rotate().resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 84, mozjpeg: true }).toBuffer({ resolveWithObject: true });
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) return NextResponse.json({ error: "The photo must be no more than 5 MB." }, { status: 413 });
     return NextResponse.json({ error: "Racked could not read this image. Choose a valid JPG, PNG, or WebP file under 5 MB." }, { status: 400 });
   }
 

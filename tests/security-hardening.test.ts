@@ -10,13 +10,16 @@ import { readFileSync } from "node:fs";
 import sharp from "sharp";
 import nextConfig, { CONTENT_SECURITY_POLICY } from "../next.config.ts";
 import { guardRequest, MAX_JSON_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, type GuardRequest } from "../lib/request-guard.ts";
+import type { OriginEnvironment } from "../lib/site-origin.ts";
 import { cspViolationSummary } from "../lib/csp-report.ts";
 import { stripImageMetadata } from "../lib/image-sanitize.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-const request = (method: string, headers: Record<string, string>, pathname = "/api/consumer/outfits"): GuardRequest => ({
-  method, pathname, headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
+// Production, as deployed: nothing configured beyond the built-in production address.
+const production: OriginEnvironment = { NODE_ENV: "production" };
+const request = (method: string, headers: Record<string, string>, pathname = "/api/consumer/outfits", environment: OriginEnvironment = production): GuardRequest => ({
+  method, pathname, headers: { get: (name: string) => headers[name.toLowerCase()] ?? null }, environment,
 });
 const site = { host: "main.d2iv0khybuuaeh.amplifyapp.com" };
 const ownOrigin = "https://main.d2iv0khybuuaeh.amplifyapp.com";
@@ -54,12 +57,22 @@ test("a state-changing request from another site is refused", () => {
 
 test("Racked's own pages, non-browser clients, and reads pass", () => {
   assert.equal(guardRequest(request("POST", { ...site, origin: ownOrigin, "content-length": "20" })).allowed, true);
-  assert.equal(guardRequest(request("POST", { host: "internal.lambda", "x-forwarded-host": site.host, origin: ownOrigin, "content-length": "2" })).allowed, true, "the forwarded host counts");
-  assert.equal(guardRequest({ ...request("POST", { host: "internal.lambda", origin: ownOrigin, "content-length": "2" }), siteUrl: ownOrigin }).allowed, true, "and so does the configured site address");
+  assert.equal(guardRequest(request("POST", { host: "internal.lambda", origin: ownOrigin, "content-length": "2" })).allowed, true, "the production origin is trusted whatever host the platform forwards under");
+  assert.equal(guardRequest(request("POST", { origin: "https://shop.racked.example", "content-length": "2" }, "/api/consumer/outfits", { NODE_ENV: "production", RACKED_ALLOWED_ORIGINS: "https://shop.racked.example" })).allowed, true, "a configured custom domain is trusted");
+  assert.equal(guardRequest(request("POST", { origin: "http://localhost:3000", "content-length": "2" }, "/api/consumer/outfits", { NODE_ENV: "development" })).allowed, true, "a local development server is trusted in development");
+  assert.equal(guardRequest(request("POST", { origin: "http://localhost:3000", "content-length": "2" })).allowed, false, "but never in production");
   assert.equal(guardRequest(request("POST", { ...site, "sec-fetch-site": "same-origin", "content-length": "2" })).allowed, true);
   assert.equal(guardRequest(request("POST", { ...site, "content-length": "2" })).allowed, true, "a client with no cookies to forge is not a forgery");
   assert.equal(guardRequest(request("GET", { ...site, origin: "https://evil.example" })).allowed, true, "reads change nothing");
   assert.equal(guardRequest(request("POST", { ...site, origin: "https://evil.example", "content-length": "200" }, "/api/security/csp-report")).allowed, true, "violation reports are exempt");
+});
+
+// REGRESSION: the guard used to trust whatever the request's own Host or X-Forwarded-Host said, so
+// a request that forged both the host and a matching Origin was accepted as Racked's own.
+test("REGRESSION: a forged Host or X-Forwarded-Host grants no trust", () => {
+  assert.equal(guardRequest(request("POST", { host: "evil.example", origin: "https://evil.example", "content-length": "2" })).allowed, false);
+  assert.equal(guardRequest(request("POST", { host: site.host, "x-forwarded-host": "evil.example", origin: "https://evil.example", "content-length": "2" })).allowed, false);
+  assert.equal(guardRequest(request("POST", { origin: "https://main.d2iv0khybuuaeh.amplifyapp.com.evil.example", "content-length": "2" })).allowed, false, "a lookalike host is not the host");
 });
 
 test("bodies are capped at what the app actually sends", () => {
@@ -75,7 +88,8 @@ test("bodies are capped at what the app actually sends", () => {
 
 test("the guard runs in front of every API route", () => {
   const middleware = read("middleware.ts");
-  assert.match(middleware, /guardRequest\(\{ method: request\.method, pathname: request\.nextUrl\.pathname, headers: request\.headers, siteUrl: process\.env\.NEXT_PUBLIC_SITE_URL \}\)/);
+  assert.match(middleware, /guardRequest\(\{\s*method: request\.method,\s*pathname: request\.nextUrl\.pathname,\s*headers: request\.headers,\s*environment: \{/);
+  assert.doesNotMatch(middleware, /siteUrl|x-forwarded-host/i, "trust comes from configuration only");
   assert.match(middleware, /matcher: \["\/api\/:path\*"\]/);
 });
 
