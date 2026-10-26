@@ -1,4 +1,5 @@
 import type { BrandProductRegistration, GarmentView, UploadDescriptor } from "./platform-types.ts";
+import { RequestRefused } from "./api-errors.ts";
 import { normalizeCommerceUrl } from "./commerce.ts";
 import { normalizeGarmentClassification } from "./garment-taxonomy.ts";
 
@@ -77,21 +78,21 @@ export function createBrandProductRegistration(input:{
   const productUrl=normalizeCommerceUrl(input.productUrl);
   const affiliateUrl=normalizeCommerceUrl(input.affiliateUrl);
   const price=input.price===""||input.price===undefined?undefined:Number(input.price);
-  if(price!==undefined&&(!Number.isFinite(price)||price<0||price>1_000_000))throw new Error("Price must be between 0 and 1,000,000.");
+  if(price!==undefined&&(!Number.isFinite(price)||price<0||price>1_000_000))throw new RequestRefused("Price must be between 0 and 1,000,000.");
   const currency=(input.currency??"USD").trim().toUpperCase();
-  if(price!==undefined&&!/^[A-Z]{3}$/.test(currency))throw new Error("Currency must use a three-letter code.");
+  if(price!==undefined&&!/^[A-Z]{3}$/.test(currency))throw new RequestRefused("Currency must use a three-letter code.");
   const availability=["available","unavailable","discontinued","unknown"].includes(input.availability??"")?input.availability as BrandProductRegistration["availability"]:"unknown";
-  if (!name || !brand || !sku) throw new Error("Name, brand, and SKU are required.");
-  if (!category) throw new Error("Choose the product's category.");
-  if (gtin && ![8,12,13,14].includes(gtin.length)) throw new Error("GTIN must contain 8, 12, 13, or 14 digits.");
-  if (gtin && !isValidGtin(gtin)) throw new Error("That GTIN's check digit does not match. Check the barcode number and try again.");
+  if (!name || !brand || !sku) throw new RequestRefused("Name, brand, and SKU are required.");
+  if (!category) throw new RequestRefused("Choose the product's category.");
+  if (gtin && ![8,12,13,14].includes(gtin.length)) throw new RequestRefused("GTIN must contain 8, 12, 13, or 14 digits.");
+  if (gtin && !isValidGtin(gtin)) throw new RequestRefused("That GTIN's check digit does not match. Check the barcode number and try again.");
   // One product photo is enough. Back and label photos are kept when a brand adds them, but no
   // match has ever read them: identity comes from the SKU and GTIN typed here, not a label photo.
   const byView=Object.fromEntries(views.map((view)=>[view,input.parts.find((part)=>part.view===view)]).filter(([,part])=>Boolean(part))) as Partial<Record<GarmentView,UploadDescriptor>>;
-  if (!byView.front) throw new Error("Add a product photo.");
+  if (!byView.front) throw new RequestRefused("Add a product photo.");
   const aliases=[...new Set([brand,...input.aliases.map((item)=>item.trim().slice(0,100)).filter(Boolean)])].slice(0,10);
   const conflict=conflictingAlias(aliases.slice(1),brand,input.otherBrandNames);
-  if (conflict) throw new Error(`The alias "${conflict}" names another brand. Aliases are for spellings of your own brand name.`);
+  if (conflict) throw new RequestRefused(`The alias "${conflict}" names another brand. Aliases are for spellings of your own brand name.`);
   return {
     id:`registry-${crypto.randomUUID()}`,ownerSubject:input.ownerSubject,name,brand,brandSlug:slugifyBrand(brand),aliases,sku,gtin,category,labelText,...appearance,
     views:byView as BrandProductRegistration["views"],enrolledAt:new Date().toISOString(),source:"brand-enrolled",
@@ -127,10 +128,10 @@ export function brandProductUpdate(existing:BrandProductRegistration, input:Bran
   const set=(key:string,value:unknown)=>{const current=(existing as unknown as Record<string,unknown>)[key];if(JSON.stringify(value??null)!==JSON.stringify(current??null))patch[key]=value;};
   const attribute=(value:string)=>{const cleaned=value.trim().toLowerCase().replace(/\s+/g," ").slice(0,40);return cleaned&&cleaned!=="unknown"?cleaned:null;};
 
-  if(input.name!==undefined){const name=input.name.trim().slice(0,120);if(!name)throw new Error("A product needs a name.");set("name",name);}
+  if(input.name!==undefined){const name=input.name.trim().slice(0,120);if(!name)throw new RequestRefused("A product needs a name.");set("name",name);}
   if(input.category!==undefined||input.subtype!==undefined){
     const classification=normalizeGarmentClassification((input.category??existing.category).trim().slice(0,60),(input.subtype??existing.subtype??"").trim().slice(0,60));
-    if(classification.category==="unknown")throw new Error("Choose the product's category.");
+    if(classification.category==="unknown")throw new RequestRefused("Choose the product's category.");
     set("category",classification.category);
     set("subtype",classification.subtype.startsWith("other-")?null:classification.subtype);
   }
@@ -143,7 +144,7 @@ export function brandProductUpdate(existing:BrandProductRegistration, input:Bran
   if(input.aliases!==undefined){
     const aliases=[...new Set([existing.brand,...(Array.isArray(input.aliases)?input.aliases:String(input.aliases).split(",")).map((entry)=>String(entry).trim().slice(0,100)).filter(Boolean)])].slice(0,10);
     const conflict=conflictingAlias(aliases.slice(1),existing.brand,otherBrandNames);
-    if(conflict)throw new Error(`The alias "${conflict}" names another brand. Aliases are for spellings of your own brand name.`);
+    if(conflict)throw new RequestRefused(`The alias "${conflict}" names another brand. Aliases are for spellings of your own brand name.`);
     set("aliases",aliases);
   }
   if(input.productUrl!==undefined)set("productUrl",normalizeCommerceUrl(input.productUrl)??null);
@@ -152,14 +153,14 @@ export function brandProductUpdate(existing:BrandProductRegistration, input:Bran
     if(input.price===null||input.price===""){set("price",null);set("currency",null);}
     else{
       const price=Number(input.price);
-      if(!Number.isFinite(price)||price<0||price>1_000_000)throw new Error("Price must be between 0 and 1,000,000.");
+      if(!Number.isFinite(price)||price<0||price>1_000_000)throw new RequestRefused("Price must be between 0 and 1,000,000.");
       const currency=(input.currency??existing.currency??"USD").trim().toUpperCase();
-      if(!/^[A-Z]{3}$/.test(currency))throw new Error("Currency must use a three-letter code.");
+      if(!/^[A-Z]{3}$/.test(currency))throw new RequestRefused("Currency must use a three-letter code.");
       set("price",price);set("currency",currency);
     }
   }
   if(input.availability!==undefined){
-    if(!["available","unavailable","discontinued","unknown"].includes(input.availability))throw new Error("Choose a listed availability.");
+    if(!["available","unavailable","discontinued","unknown"].includes(input.availability))throw new RequestRefused("Choose a listed availability.");
     set("availability",input.availability);
   }
   if(input.affiliateProvider!==undefined)set("affiliateProvider",input.affiliateProvider.trim().slice(0,80)||null);

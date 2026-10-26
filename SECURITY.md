@@ -26,6 +26,10 @@ Do not publish any password — including synthetic test-cohort credentials, whi
 - Request bodies are capped by declared length in middleware and by bytes actually read in the photo routes.
 - Public community responses are rebuilt from an explicit allowlist so owner account IDs, private S3 keys, and database key attributes never leave the server.
 - Uploads are private, type-allowlisted, size-limited, and decoded at no more than 64 megapixels. Brand product photos are re-encoded without location or camera metadata before storage. **There is no malware scanning**: decoding and re-encoding proves a file is an image, which is not the same thing.
+- Request bodies are validated at runtime (`lib/request-input.ts`): JSON objects only, read under the cap; IDs in Racked's own shapes; lists checked whole before any item is used; fields that name an owner, a role, or a verification state refused, not ignored. Identity and ownership always come from the session, and every referenced garment, outfit, and product is checked in the session's own partition.
+- Failures are answered one way (`lib/api-errors.ts`): a refusal's own words, or a generic message with a short reference. Logs carry that reference, the error's name, and its HTTP status — never its message, the request body, an email, or an IP address.
+- Wear recording is one DynamoDB transaction, idempotent on a client `requestId` and on the same pieces within ten minutes, so retries and double taps cannot inflate metrics and a partial failure leaves nothing half-counted.
+- Released brand aggregates withhold every figure that could describe fewer than five owners, release the latest wear as a day, and the enumeration budget is claimed atomically.
 - Logs must exclude tokens, raw images, credentials, and personal data.
 
 ## Still open
@@ -38,6 +42,8 @@ Racked is in use by real brands, so these are live gaps rather than pre-launch t
 - **Consent versions** are not persisted.
 - **CloudFormation changes** in `infra/template.yaml` must be applied and verified against the live stack; the template is not proof of live settings. In particular, **DynamoDB time-to-live on `ttl` has not been verified as enabled** on the live table; until it is, rate-limit windows, reset tokens, and activity entries do not expire on their own.
 - **Shared limits fail open for sign-in.** A DynamoDB outage leaves only the per-instance layer against password guessing.
-- **A focused authorization test against every write endpoint** with synthetic accounts.
+- **Consent history (decision needed).** Turning brand sharing on includes wear recorded *before* opting in; the in-app wording does not say so. Either say so in the app, or count only wear recorded while sharing is on (which needs an opt-in timestamp and per-event counting). Nothing has been changed silently.
+- **Differencing over time.** A brand that re-opens a released product can watch exact totals change; small cells are withheld, but no noise is added. Differential privacy would close this; it is not implemented.
+- **Authorization tests** run against a local production build with synthetic accounts and a local DynamoDB (`docs/security-verification.md`); they have not been run against the live site, which needs real sign-ins.
 
 Automated repository checks currently include production dependency auditing on every change, weekly Dependabot version updates, and CodeQL scanning on pushes, pull requests, and a weekly schedule. These checks complement rather than replace manual authorization and privacy review.

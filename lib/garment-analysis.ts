@@ -1,4 +1,5 @@
 import { BodyTooLargeError, MalformedBodyError } from "./request-body.ts";
+import { RequestRefused, type RefusalStatus } from "./api-errors.ts";
 import { matchBrandProduct, seedBrandProducts, suggestMajorBrand } from "./product-registry.ts";
 import type { BrandProductRegistration, GarmentAnalysis, GarmentView, UploadDescriptor } from "./platform-types.ts";
 import { BedrockRuntimeClient, ConverseCommand, type ConverseCommandInput } from "@aws-sdk/client-bedrock-runtime";
@@ -77,12 +78,11 @@ const visionOutputSchema = {
   required:["confidence","visibleLabelText","garment","evidence"], additionalProperties:false,
 } as const;
 
-export class UploadValidationError extends Error {
-  readonly status: number;
-
-  constructor(message:string, status = 400) {
-    super(message);
-    this.status = status;
+/** A photo that cannot be accepted, in words the person can act on; a refusal (lib/api-errors.ts). */
+export class UploadValidationError extends RequestRefused {
+  constructor(message:string, status:RefusalStatus = 400) {
+    super(message, status);
+    this.name = "UploadValidationError";
   }
 }
 

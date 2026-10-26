@@ -1,9 +1,9 @@
 import "server-only";
 
-import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost, DataClassification } from "@/lib/platform-types";
@@ -15,10 +15,11 @@ import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/out
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
 import { brandProductUpdate, isReservedBrandName, matchBrandProduct, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
-import { buildWearUsageAnalytics } from "@/lib/metrics";
+import { releaseWearAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
-import { enumerationBudgetState, exceedsEnumerationBudget, type AggregateQueryEvent } from "@/lib/privacy";
+import { ENUMERATION_WINDOW_MS, enumerationBudgetState, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "@/lib/privacy";
 import { findByPaginatedQuery } from "@/lib/community-lookup";
+import { RequestRefused } from "@/lib/api-errors";
 import { wornDaysAgo } from "@/lib/wear-recency";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
@@ -37,9 +38,9 @@ const bucketName = process.env.RACKED_UPLOAD_BUCKET;
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region }), { marshallOptions:{ removeUndefinedValues:true } });
 const s3 = new S3Client({ region });
 
-export class ProductionConfigurationError extends Error {}
-export class AccountConflictError extends Error {}
-export class EnumerationBudgetError extends Error {}
+export class ProductionConfigurationError extends RequestRefused {constructor(message:string){super(message,503);this.name="ProductionConfigurationError";}}
+export class AccountConflictError extends RequestRefused {constructor(message:string){super(message,409);this.name="AccountConflictError";}}
+export class EnumerationBudgetError extends RequestRefused {constructor(message:string){super(message,429);this.name="EnumerationBudgetError";}}
 
 function requireTable() {
   if (!tableName) throw new ProductionConfigurationError("Persistent account storage is not configured.");
@@ -168,7 +169,7 @@ export async function updateOwnAccount(ownerId:string,input:{displayName:string;
   const account=await getAccount(ownerId);
   if(!account||!await verifyAccountPassword(account,input.currentPassword))return null;
   const email=normalizeEmail(input.email),displayName=input.displayName.trim().slice(0,100);
-  if(!displayName||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Enter a valid name and email address.");
+  if(!displayName||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new RequestRefused("Enter a valid name and email address.");
   const conflict=await findAccountByEmail(email);
   if(conflict&&conflict.id!==ownerId)throw new AccountConflictError("That email is already connected to another account.");
   const names:Record<string,string>={"#email":"email"};
@@ -295,10 +296,10 @@ export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
 }
 
 export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null;labelText?:string|null;catalogProductId?:string|null}) {
-  if (!analysis.processedImage?.key) throw new Error("The processed garment image is missing.");
-  if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new Error("The garment confirmation expired or did not belong to this account.");
+  if (!analysis.processedImage?.key) throw new RequestRefused("The processed garment image is missing.");
+  if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new RequestRefused("The garment confirmation expired or did not belong to this account.");
   const evidenceImageKey=analysis.processedImage.evidenceKey??null;
-  if(evidenceImageKey&&!evidenceImageKey.startsWith(`wardrobe/${ownerId}/`))throw new Error("The evidence photo did not belong to this account.");
+  if(evidenceImageKey&&!evidenceImageKey.startsWith(`wardrobe/${ownerId}/`))throw new RequestRefused("The evidence photo did not belong to this account.");
   const name=(overrides?.name??analysis.garment.name).trim().slice(0,100)||"Unverified garment";
   // A label the person checked is checked again here, against the registry as it stands now. The
   // browser saying a label matched is not evidence; the label text is. Before this, a successful
@@ -353,18 +354,67 @@ export async function updateWardrobeItem(ownerId:string,itemId:string,edit:Garme
   return (await listWardrobe(ownerId)).find(item=>item.id===itemId)??null;
 }
 
-export async function recordRealWear(ownerId:string,itemIds:string[]) {
+/**
+ * Records one wear of up to ten pieces — and of the saved outfit they came from — exactly once.
+ *
+ * Every reference is checked inside this account first, and then every write happens in one
+ * DynamoDB transaction: the wear is counted on each piece, filed in each linked product's wear
+ * events, and added to the outfit's total, or none of it happens. Before, the writes ran one by
+ * one, so a piece deleted mid-request left the earlier pieces counted and the request failed — and
+ * the retry counted them again. Two guards make a repeat harmless instead of a second wear:
+ *
+ * - the client's `requestId`, kept for a day, so a retried request is recognised; and
+ * - the set of pieces itself, kept for ten minutes, so a double tap — two requests, two IDs — is
+ *   recognised too. Nobody wears the same outfit twice in ten minutes.
+ *
+ * A repeat answers with the current counts and `duplicate: true`, and writes nothing.
+ */
+export const WEAR_REPEAT_WINDOW_MS=10*60*1000;
+const WEAR_REQUEST_MEMORY_MS=24*60*60*1000;
+
+export function wearSetKey(itemIds:string[],outfitId:string|null){
+  return createHash("sha256").update(`${[...new Set(itemIds)].sort().join(",")}|${outfitId??""}`).digest("base64url").slice(0,32);
+}
+
+async function findOutfitRecord(ownerId:string,outfitId:string){
+  return findByPaginatedQuery<Record<string,unknown>>(item=>item.id===outfitId,async startKey=>{
+    const page=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"OUTFIT#"},ScanIndexForward:false,ExclusiveStartKey:startKey}));
+    return {items:page.Items??[],lastKey:page.LastEvaluatedKey};
+  });
+}
+
+export async function recordRealWear(ownerId:string,itemIds:string[],options:{requestId?:string|null;outfitId?:string|null}={}):Promise<{counts:Record<string,number>;outfitWears:number|null;duplicate:boolean}> {
   const unique=[...new Set(itemIds)];
-  if(unique.length<1||unique.length>10) throw new Error("Choose between 1 and 10 wardrobe pieces.");
-  const counts:Record<string,number>={};
-  for(const id of unique){
-    const occurredAt=new Date().toISOString();
-    const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`GARMENT#${id}`},UpdateExpression:"SET wearCount = if_not_exists(wearCount, :zero) + :one, lastWornAt = :now",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1,":now":occurredAt},ReturnValues:"ALL_NEW"}));
-    counts[id]=Number(result.Attributes?.wearCount??0);
-    const productKey=String(result.Attributes?.GSI1PK??"");
-    if(productKey.startsWith("PRODUCT#"))await db.send(new PutCommand({TableName:requireTable(),Item:{PK:productKey,SK:`WEAR#${occurredAt}#${crypto.randomUUID()}`,occurredAt,ownerPK:`USER#${ownerId}`,garmentId:id,eventType:"confirmed-wear"}}));
+  if(unique.length<1||unique.length>10) throw new RequestRefused("Choose between 1 and 10 wardrobe pieces.");
+  const table=requireTable(),ownerPK=`USER#${ownerId}`,outfitId=options.outfitId??null;
+  const found=await db.send(new BatchGetCommand({RequestItems:{[table]:{Keys:unique.map(id=>({PK:ownerPK,SK:`GARMENT#${id}`}))}}}));
+  if(Object.keys(found.UnprocessedKeys??{}).length)throw new Error("Wardrobe lookup was throttled.");
+  const garments=new Map((found.Responses?.[table]??[]).map(item=>[String(item.SK).slice("GARMENT#".length),item]));
+  if(unique.some(id=>!garments.has(id)))throw new RequestRefused("That piece is not in your wardrobe.",404);
+  const outfit=outfitId?await findOutfitRecord(ownerId,outfitId):null;
+  if(outfitId&&!outfit)throw new RequestRefused("Saved outfit not found for this account.",404);
+  const now=Date.now(),occurredAt=new Date(now).toISOString(),expiresInSecondsFrom=(ms:number)=>Math.ceil((now+ms)/1000)+3600;
+  const guards=[
+    {Put:{TableName:table,Item:{PK:ownerPK,SK:`WEARGUARD#${wearSetKey(unique,outfitId)}`,expiresAt:now+WEAR_REPEAT_WINDOW_MS,ttl:expiresInSecondsFrom(WEAR_REPEAT_WINDOW_MS)},ConditionExpression:"attribute_not_exists(PK) OR expiresAt < :now",ExpressionAttributeValues:{":now":now}}},
+    ...(options.requestId?[{Put:{TableName:table,Item:{PK:ownerPK,SK:`WEARREQUEST#${options.requestId}`,ttl:expiresInSecondsFrom(WEAR_REQUEST_MEMORY_MS)},ConditionExpression:"attribute_not_exists(PK)"}}]:[]),
+  ];
+  const writes=[
+    ...unique.map(id=>({Update:{TableName:table,Key:{PK:ownerPK,SK:`GARMENT#${id}`},UpdateExpression:"SET wearCount = if_not_exists(wearCount, :zero) + :one, lastWornAt = :now",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1,":now":occurredAt}}})),
+    ...unique.flatMap(id=>{const productKey=String(garments.get(id)?.GSI1PK??"");return productKey.startsWith("PRODUCT#")?[{Put:{TableName:table,Item:{PK:productKey,SK:`WEAR#${occurredAt}#${crypto.randomUUID()}`,occurredAt,ownerPK,garmentId:id,eventType:"confirmed-wear"}}}]:[];}),
+    ...(outfit?[{Update:{TableName:table,Key:{PK:ownerPK,SK:String(outfit.SK)},UpdateExpression:"SET wears = if_not_exists(wears, :zero) + :one",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1}}}]:[]),
+  ];
+  const before={counts:Object.fromEntries(unique.map(id=>[id,Number(garments.get(id)?.wearCount??0)])),outfitWears:outfit?Number(outfit.wears??0):null};
+  try{
+    await db.send(new TransactWriteCommand({TransactItems:[...guards,...writes]}));
+  }catch(error){
+    const reasons=(error as {CancellationReasons?:Array<{Code?:string}>}).CancellationReasons??[];
+    if(error instanceof Error&&error.name==="TransactionCanceledException"){
+      if(reasons.slice(0,guards.length).some(reason=>reason.Code==="ConditionalCheckFailed"))return {...before,duplicate:true};
+      if(reasons.some(reason=>reason.Code==="ConditionalCheckFailed"))throw new RequestRefused("A piece or outfit changed while the wear was being recorded. Try again.",409);
+    }
+    throw error;
   }
-  return counts;
+  return {counts:Object.fromEntries(unique.map(id=>[id,before.counts[id]+1])),outfitWears:before.outfitWears===null?null:before.outfitWears+1,duplicate:false};
 }
 
 export async function listOutfits(ownerId:string):Promise<SavedOutfit[]> {
@@ -391,11 +441,11 @@ export async function saveOutfit(ownerId:string,name:string,itemIds:string[]) {
 
 export async function updateOutfitItems(ownerId:string,outfitId:string,itemIds:string[]) {
   const unique=[...new Set(itemIds)];
-  if(unique.length<1||unique.length>10)throw new Error("Choose 1–10 wardrobe pieces.");
+  if(unique.length<1||unique.length>10)throw new RequestRefused("Choose 1–10 wardrobe pieces.");
   const [outfits,wardrobe]=await Promise.all([listOutfits(ownerId),listWardrobe(ownerId)]);
   const outfit=outfits.find(entry=>entry.id===outfitId);
   if(!outfit)return null;
-  if(unique.some(id=>!wardrobe.some(item=>item.id===id)))throw new Error("Every outfit piece must belong to your wardrobe.");
+  if(unique.some(id=>!wardrobe.some(item=>item.id===id)))throw new RequestRefused("Every outfit piece must belong to your wardrobe.");
   const byId=new Map(wardrobe.map(item=>[item.id,item]));
   const selected=unique.map(itemId=>byId.get(itemId)).filter((item):item is WardrobeItem=>Boolean(item));
   // A new object key prevents a signed URL or installed app from displaying the
@@ -437,14 +487,6 @@ export async function deleteOutfit(ownerId:string,outfitId:string) {
 // Fixes the dashboard "repeated wears" stat: outfit wear totals previously existed in the
 // data model but were never incremented. The outfit is looked up inside the owner's own
 // partition, so one account can never touch another account's outfits.
-export async function incrementOutfitWears(ownerId:string,outfitId:string) {
-  const outfits=await listOutfits(ownerId);
-  const outfit=outfits.find(entry=>entry.id===outfitId);
-  if(!outfit)throw new Error("Saved outfit not found for this account.");
-  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`},UpdateExpression:"SET wears = if_not_exists(wears, :zero) + :one",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"ALL_NEW"}));
-  return Number(result.Attributes?.wears??0);
-}
-
 // ─── Deletion ────────────────────────────────────────────────────────────────
 // Garment and account deletion are both ordered so nothing is ever left pointing at something
 // already gone: dependants first, photographs next, the owning record last. An interrupted
@@ -665,7 +707,7 @@ export async function setHomeCity(ownerId:string,place:Place|null) {
   const key={PK:`USER#${ownerId}`,SK:"PROFILE"};
   if(!place){await db.send(new UpdateCommand({TableName:requireTable(),Key:key,UpdateExpression:"REMOVE homeCity",ConditionExpression:"attribute_exists(PK)"}));return null;}
   const coordinates=validCoordinates(place.latitude,place.longitude);
-  if(!coordinates)throw new Error("Those coordinates are not a place on Earth.");
+  if(!coordinates)throw new RequestRefused("Those coordinates are not a place on Earth.");
   const homeCity={name:place.name.slice(0,80),region:place.region?.slice(0,80)??null,country:place.country?.slice(0,80)??null,...coordinates};
   await db.send(new UpdateCommand({TableName:requireTable(),Key:key,UpdateExpression:"SET homeCity = :city",ConditionExpression:"attribute_exists(PK)",ExpressionAttributeValues:{":city":homeCity}}));
   return homeCity;
@@ -677,14 +719,14 @@ type StoredPost=StoredCommunityPost&{ownerId:string;sourceOutfitId?:string;sourc
 export async function listCommunityPosts():Promise<OutfitPost[]>{const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60}));return (result.Items??[]).map(raw=>toPublicOutfitPost(raw as unknown as StoredPost));}
 export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;caption:string;outfitId:string}){
   const [account,wardrobe,outfits,registry]=await Promise.all([getAccount(ownerId),listWardrobe(ownerId),listOutfits(ownerId),listRegistryProducts()]);
-  if(!account)throw new Error("Account not found.");
+  if(!account)throw new RequestRefused("Account not found.", 404);
   const outfit=outfits.find(entry=>entry.id===input.outfitId);
-  if(!outfit)throw new Error("Select one of your saved outfits before publishing.");
+  if(!outfit)throw new RequestRefused("Select one of your saved outfits before publishing.");
   const byId=new Map(wardrobe.map(item=>[item.id,item]));
   const productsById=new Map(registry.map(product=>[product.id,product]));
   const publishedGarments:StoredPublishedGarment[]=outfit.itemIds.map(itemId=>{
     const item=byId.get(itemId);
-    if(!item)throw new Error("A saved outfit piece is no longer available in your wardrobe.");
+    if(!item)throw new RequestRefused("A saved outfit piece is no longer available in your wardrobe.");
     const resolution=wardrobeItemToOutfitPiece(item).resolution;
     return {
       publicGarmentId:crypto.randomUUID(),name:item.name,category:item.category,subtype:item.subtype,color:item.color,pattern:item.pattern,style:item.style,material:item.material,imageKey:item.imageKey,resolutionState:resolution.state,
@@ -715,11 +757,11 @@ async function findCommunityPostById(postId:string){
 
 export async function getPublishedCommunityImage(postId:string,publicGarmentId:string){
   const post=await findCommunityPostById(postId);
-  if(!post)throw new Error("Community post not found.");
+  if(!post)throw new RequestRefused("Community post not found.", 404);
   const key=publishedImageKey(post,publicGarmentId);
-  if(!key)throw new Error("Published garment image not found.");
+  if(!key)throw new RequestRefused("Published garment image not found.", 404);
   const object=await s3.send(new GetObjectCommand({Bucket:requireBucket(),Key:key}));
-  if(!object.Body)throw new Error("Published garment image not found.");
+  if(!object.Body)throw new RequestRefused("Published garment image not found.", 404);
   return {bytes:Buffer.from(await object.Body.transformToByteArray()),contentType:object.ContentType??"image/png"};
 }
 export async function getPublicCommunityPost(postId:string){
@@ -752,7 +794,7 @@ export async function recordPrivacySafeCommerceEvent(productId:string,sourcePost
 
 export async function getBrandCommunityMetrics(ownerId:string,productId:string){
   const owned=await listOwnedBrandProducts(ownerId);
-  if(!owned.some(product=>product.id===productId))throw new Error("Product not found for this brand account.");
+  if(!owned.some(product=>product.id===productId))throw new RequestRefused("Product not found for this brand account.", 404);
   const [posts,eventResult]=await Promise.all([
     listCommunityPosts(),
     db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"EVENT#"},ScanIndexForward:false,Limit:1000})),
@@ -768,7 +810,7 @@ export async function listBrandLooks(ownerId:string){
 
 export async function saveBrandLook(ownerId:string,input:{title:string;caption:string;productIds:string[];published:boolean}){
   const [account,products]=await Promise.all([getAccount(ownerId),listOwnedBrandProducts(ownerId)]);
-  if(!account?.brandName)throw new Error("This account has no brand profile.");
+  if(!account?.brandName)throw new RequestRefused("This account has no brand profile.");
   const look=createBrandLook({ownerSubject:ownerId,brand:account.brandName,brandSlug:slugify(account.brandName),...input},products);
   await db.send(new PutCommand({TableName:requireTable(),Item:{...look,PK:`USER#${ownerId}`,SK:`BRANDLOOK#${look.createdAt}#${look.id}`}}));
   let post:OutfitPost|undefined;
@@ -787,7 +829,7 @@ async function currentCommunityLikes(post:StoredPost) {
   return Number(result.Item?.likes??0);
 }
 
-export async function incrementCommunityLike(postId:string){const post=await findCommunityPostById(postId);if(!post)throw new Error("Community post not found.");const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
+export async function incrementCommunityLike(postId:string){const post=await findCommunityPostById(postId);if(!post)throw new RequestRefused("Community post not found.", 404);const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
 
 /**
  * Saves an intentional Community inspiration under the signed-in Consumer only.
@@ -796,7 +838,7 @@ export async function incrementCommunityLike(postId:string){const post=await fin
  */
 export async function saveConsumerInspiration(ownerId:string,postId:string) {
   const post=await findCommunityPostById(postId);
-  if(!post)throw new Error("Community post not found.");
+  if(!post)throw new RequestRefused("Community post not found.", 404);
   const publicPost=toPublicOutfitPost(post);
   const record=consumerInspirationRecord(publicPost);
   const inspirationKey={PK:`USER#${ownerId}`,SK:`INSPIRATION#${postId}`};
@@ -838,18 +880,37 @@ export async function getConsumerInspirationProfile(ownerId:string):Promise<Cons
 // on the production aggregate path shared by the Brand dashboard and Brand Hanger. The
 // per-subject query log persists in DynamoDB so the budget holds across serverless
 // instances. Re-querying an already-viewed product never consumes budget.
+/**
+ * At most six distinct products per brand account in five minutes, enforced atomically.
+ *
+ * The budget used to read the account's query log, check it, and then write — so twenty requests
+ * for twenty products sent at once all read the same short log and all passed. Now the budget is
+ * six slots, and opening a product claims one with a conditional write that succeeds only on an
+ * empty or expired slot. However requests interleave, at most six products hold a slot at a time.
+ * A product already holding a live slot can be revisited without spending another.
+ */
 async function enforceAggregateEnumerationBudget(ownerId:string,productId:string) {
-  const now=Date.now();
-  const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`AGGQ#${ownerId}`,":sk":"PRODUCT#"}}));
-  const log:AggregateQueryEvent[]=(result.Items??[]).map(item=>({subject:ownerId,productId:String(item.productId??""),at:Number(item.queriedAt)||0}));
-  if(exceedsEnumerationBudget(log,ownerId,productId,now))throw new EnumerationBudgetError("Aggregate release is limited to a few distinct products in a short window. Revisit a recently viewed product or try again in a few minutes.");
-  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`AGGQ#${ownerId}`,SK:`PRODUCT#${productId}`,productId,queriedAt:now}}));
-  return enumerationBudgetState([...log,{subject:ownerId,productId,at:now}],ownerId,now);
+  const now=Date.now(),cutoff=now-ENUMERATION_WINDOW_MS,PK=`AGGQ#${ownerId}`;
+  const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":PK,":sk":"SLOT#"},ConsistentRead:true}));
+  const live=(result.Items??[]).filter(slot=>Number(slot.queriedAt)>=cutoff);
+  const log:AggregateQueryEvent[]=live.map(slot=>({subject:ownerId,productId:String(slot.productId??""),at:Number(slot.queriedAt)||0}));
+  if(live.some(slot=>slot.productId===productId))return enumerationBudgetState(log,ownerId,now);
+  const liveSlots=new Set(live.map(slot=>String(slot.SK)));
+  for(let index=0;index<MAX_DISTINCT_PRODUCTS_PER_WINDOW;index++){
+    if(liveSlots.has(`SLOT#${index}`))continue;
+    try{
+      await db.send(new PutCommand({TableName:requireTable(),Item:{PK,SK:`SLOT#${index}`,productId,queriedAt:now,ttl:expiresInSeconds(now+ENUMERATION_WINDOW_MS)+3600},ConditionExpression:"attribute_not_exists(PK) OR queriedAt < :cutoff",ExpressionAttributeValues:{":cutoff":cutoff}}));
+      return enumerationBudgetState([...log,{subject:ownerId,productId,at:now}],ownerId,now);
+    }catch(error){
+      if(!(error instanceof Error&&error.name==="ConditionalCheckFailedException"))throw error;
+    }
+  }
+  throw new EnumerationBudgetError("Aggregate release is limited to a few distinct products in a short window. Revisit a recently viewed product or try again in a few minutes.");
 }
 
 export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owned=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));
-  if(!owned.Item)throw new Error("Product not found for this brand account.");
+  if(!owned.Item)throw new RequestRefused("Product not found for this brand account.", 404);
   const budget=await enforceAggregateEnumerationBudget(ownerId,productId);
   const [items,wearEvents]=await Promise.all([
     queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}}),
@@ -868,7 +929,7 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
   const countsByOwner=new Map<string,number>();
   for(const item of eligibleItems){const key=String(item.PK);countsByOwner.set(key,(countsByOwner.get(key)??0)+Number(item.wearCount??0));}
   const eligibleEventDates=wearEvents.filter(event=>optedInOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
-  const analytics=buildWearUsageAnalytics([...owners].map(owner=>countsByOwner.get(owner)??0),eligibleEventDates);
+  const analytics=releaseWearAnalytics([...owners].map(owner=>countsByOwner.get(owner)??0),eligibleEventDates);
   return {opportunity:null,gapPrevalence:null,duplicateRisk:null,...analytics,segmentSize,suppressed:false,minimumCohortSize,budget};
 }
 

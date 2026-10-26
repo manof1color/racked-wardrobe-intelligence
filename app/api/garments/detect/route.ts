@@ -103,7 +103,7 @@ export async function POST(request:Request) {
     if(error instanceof UploadValidationError)return NextResponse.json({error:error.message},{status:error.status});
     if(error instanceof ProductionConfigurationError)return NextResponse.json({error:error.message},{status:503});
     const failure=error instanceof Error?error.name:"UnknownError";
-    console.error("Multi-garment look scan failed",{stage,name:failure,message:error instanceof Error?error.message:"Unknown failure"});
+    console.error("Multi-garment look scan failed",{stage,name:failure});
     if(stage==="input")return NextResponse.json({error:"Racked could not read this image. Choose a valid JPG, PNG, or WebP file under 5 MB."},{status:400});
     if(stage==="storage")return NextResponse.json({error:"Racked recognized the upload but could not store the private wardrobe image. Your photo was not the problem — try again in a moment."},{status:503});
     return NextResponse.json({error:"Racked could not finish this scan. Your photo was not rejected — try again in a moment."},{status:502});

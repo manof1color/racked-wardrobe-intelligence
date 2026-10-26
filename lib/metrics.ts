@@ -19,8 +19,11 @@ export interface BrandMetrics {
   zeroWearOwners?: number | null;
   highFrequencyOwners?: number | null;
   lastWearAt?: string | null;
-  wearDistribution?: Array<{label:string;owners:number;percentage:number}>;
-  weeklyTrend?: Array<{label:string;wears:number;weekStart:string}>;
+  wearDistribution?: Array<{label:string;owners:number|null;percentage:number|null}>;
+  weeklyTrend?: Array<{label:string;wears:number|null;weekStart:string}>;
+  /** Figures withheld because they could single out fewer than `minimumCellSize` owners. */
+  withheld?: string[];
+  minimumCellSize?: number;
   /** How many more distinct products this brand account can open before the enumeration budget refuses. */
   budget?: { used:number; limit:number; remaining:number; resetsInSeconds:number };
 }
@@ -64,6 +67,66 @@ export function buildWearUsageAnalytics(ownerWearCounts:number[],eventDates:stri
     lastWearAt:validEvents[0]?.toISOString()??null,
     wearDistribution,
     weeklyTrend,
+  };
+}
+
+/** A released figure about fewer owners than this — or one that would reveal such a figure by subtraction — is withheld. */
+export const MINIMUM_CELL_SIZE = 5;
+
+const smallCell = (count:number,total:number)=>(count>0&&count<MINIMUM_CELL_SIZE)||(total-count>0&&total-count<MINIMUM_CELL_SIZE);
+
+/** The latest wear as a day: noon UTC, so it reads as the same date in every time zone. */
+export function wearDay(value:string|null){return value?`${value.slice(0,10)}T12:00:00.000Z`:null;}
+
+/**
+ * What a brand is shown for a cohort that has passed the 25-owner threshold.
+ *
+ * Passing the threshold protects the cohort; it does not protect a small group inside it. "6+ wears:
+ * 1 owner", or "1 wear this week", describes one person, and a brand that knows a customer owns
+ * the product could learn how often they wear it. So every owner count smaller than five is
+ * withheld, and so is any count whose complement is smaller than five — "23 of 25 active" says
+ * exactly as much about the other two. When one distribution bucket is withheld the next smallest
+ * is too, so the total cannot give it back. Weekly wear counts of one to four are withheld, the
+ * total and the average are withheld while the total is under five, and the latest wear is given as
+ * a day rather than an instant. Withheld figures are null and named in `withheld`; the dashboard
+ * says "withheld", never zero.
+ *
+ * `buildWearUsageAnalytics` stays the plain calculation (the README's seeded figures are recomputed
+ * with it); this is the only form that leaves the server.
+ */
+export function releaseWearAnalytics(ownerWearCounts:number[],eventDates:string[],now=new Date()) {
+  const analytics=buildWearUsageAnalytics(ownerWearCounts,eventDates,now);
+  const counts=ownerWearCounts.map(value=>Math.max(0,Number(value)||0));
+  const total=counts.length;
+  const withheld:string[]=[];
+  const release=<T,>(field:string,value:T,hide:boolean):T|null=>{if(hide){withheld.push(field);return null;}return value;};
+  const activeHidden=smallCell(analytics.activeOwners,total);
+  const totalHidden=analytics.actualWears>0&&analytics.actualWears<MINIMUM_CELL_SIZE;
+  const repeatHidden=smallCell(counts.filter(value=>value>=2).length,total);
+  const hiddenBuckets=new Set(analytics.wearDistribution.flatMap((bucket,index)=>bucket.owners>0&&bucket.owners<MINIMUM_CELL_SIZE||(index===0&&activeHidden)?[index]:[]));
+  if(hiddenBuckets.size===1){
+    const next=analytics.wearDistribution.map((bucket,index)=>({bucket,index})).filter(({bucket,index})=>bucket.owners>0&&!hiddenBuckets.has(index)).sort((a,b)=>a.bucket.owners-b.bucket.owners)[0];
+    if(next)hiddenBuckets.add(next.index);
+  }
+  const highFrequencyHidden=smallCell(analytics.highFrequencyOwners,total)||hiddenBuckets.has(analytics.wearDistribution.length-1);
+  const wearDistribution=analytics.wearDistribution.map((bucket,index)=>hiddenBuckets.has(index)?{label:bucket.label,owners:null,percentage:null}:bucket);
+  if(hiddenBuckets.size)withheld.push("wearDistribution");
+  const weeklyTrend=analytics.weeklyTrend.map(point=>point.wears>0&&point.wears<MINIMUM_CELL_SIZE?{...point,wears:null}:point);
+  if(weeklyTrend.some(point=>point.wears===null))withheld.push("weeklyTrend");
+  return {
+    actualWears:release("actualWears",analytics.actualWears,totalHidden),
+    activeOwners:release("activeOwners",analytics.activeOwners,activeHidden),
+    repeatWearRate:release("repeatWearRate",analytics.repeatWearRate,repeatHidden),
+    engagementRate:release("engagementRate",analytics.engagementRate,activeHidden),
+    averageWearsPerOwner:release("averageWearsPerOwner",analytics.averageWearsPerOwner,totalHidden),
+    medianWearsPerOwner:analytics.medianWearsPerOwner,
+    zeroWearOwners:release("zeroWearOwners",analytics.zeroWearOwners,activeHidden),
+    highFrequencyOwners:release("highFrequencyOwners",analytics.highFrequencyOwners,highFrequencyHidden),
+    lastWearAt:wearDay(analytics.lastWearAt),
+    wearDistribution,
+    weeklyTrend,
+    withheld,
+    minimumCellSize:MINIMUM_CELL_SIZE,
   };
 }
 

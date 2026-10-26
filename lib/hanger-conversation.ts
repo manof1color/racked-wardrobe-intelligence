@@ -285,6 +285,7 @@ function releasedBrandContext(product: BrandProductRegistration, metrics: BrandM
       highFrequencyOwners: metrics.highFrequencyOwners,
       wearDistribution: metrics.wearDistribution,
       weeklyTrend: metrics.weeklyTrend,
+      ...(metrics.withheld?.length ? { withheld: metrics.withheld, withheldRule: `A null figure was withheld because it would describe fewer than ${metrics.minimumCellSize ?? 5} owners. Never estimate, infer, or describe it.` } : {}),
     },
     ...(communityMetrics?{publicCommunityActivity:{publicOutfitAppearances:communityMetrics.publicOutfitAppearances,consumerOutfitAppearances:communityMetrics.consumerOutfitAppearances,brandLookAppearances:communityMetrics.brandLookAppearances,inspirationCount:communityMetrics.inspirationCount,recreateLookRequests:communityMetrics.recreateLookRequests,outboundProductClicks:communityMetrics.outboundProductClicks,pairedCategories:communityMetrics.pairedCategories,pairedVerifiedProducts:communityMetrics.pairedVerifiedProducts.map(({name,brand,appearances})=>({name,brand,appearances})),privacyBoundary:communityMetrics.privacyBoundary}}:{}),
   };
@@ -367,7 +368,7 @@ export async function bedrockHangerConverse(system: string, history: AgentChatTu
     } catch (error) {
       console.error("Hanger conversation failed", {
         name: error instanceof Error ? error.name : "UnknownError",
-        message: error instanceof Error ? error.message : "Unknown provider failure",
+        message: error instanceof Error ? error.message.slice(0, 300) : "Unknown provider failure",
         region,
         modelId,
         attempt: index + 1,
@@ -543,5 +544,7 @@ export async function generateBrandHangerReply(input: {
   const generated = await converseWithModel(system, [], prompt);
   if (generated && brandReplyPassesPrivacyReview(generated)) return { message: generated, usedModel: true };
   if (generated) console.warn("Hanger rejected a brand strategy response that crossed the aggregate-only boundary.");
-  return { message: `${input.product.name} currently has ${input.metrics.actualWears ?? 0} confirmed wears across ${input.metrics.activeOwners ?? 0} active owners, with ${input.metrics.repeatWearRate ?? 0}% repeat wear.\n\nA privacy-safe 30-day plan:\n• Days 1–7: publish public styling education built around several ways to wear the product.\n• Days 8–14: feature aggregate repeat-wear evidence in general product storytelling, clearly labeled as measured usage.\n• Days 15–21: improve product-page pairings and community outfit inspiration without identifying cohort members.\n• Days 22–30: compare the next thresholded aggregate trend with this baseline and decide which public content to continue.\n\nDo not contact or target people based on wear status; Racked does not reveal who belongs to any frequency group. Which public channel should we shape this plan for?`, usedModel: false };
+  // A withheld figure is null, and is said to be withheld — never reported as zero.
+  const figure = (value: number | null | undefined, unit: string) => (value === null || value === undefined ? `a withheld number of ${unit}` : `${value} ${unit}`);
+  return { message: `${input.product.name} currently has ${figure(input.metrics.actualWears, "confirmed wears")} across ${figure(input.metrics.activeOwners, "active owners")}, with ${input.metrics.repeatWearRate === null || input.metrics.repeatWearRate === undefined ? "a withheld" : `${input.metrics.repeatWearRate}%`} repeat-wear rate.\n\nA privacy-safe 30-day plan:\n• Days 1–7: publish public styling education built around several ways to wear the product.\n• Days 8–14: feature aggregate repeat-wear evidence in general product storytelling, clearly labeled as measured usage.\n• Days 15–21: improve product-page pairings and community outfit inspiration without identifying cohort members.\n• Days 22–30: compare the next thresholded aggregate trend with this baseline and decide which public content to continue.\n\nDo not contact or target people based on wear status; Racked does not reveal who belongs to any frequency group. Which public channel should we shape this plan for?`, usedModel: false };
 }

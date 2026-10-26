@@ -1,0 +1,218 @@
+// Integration checks against a local production build (next start) backed by local DynamoDB.
+// Synthetic accounts and products only; nothing here can reach AWS (every AWS endpoint is local).
+// See docs/security-verification.md. Run from the repository root:
+//   HARNESS_SESSION_SECRET=<the server's SESSION_SECRET> node scripts/security-harness/integration.mjs
+import { createHmac } from "node:crypto";
+import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(path.join(process.cwd(), "package.json"));
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
+const SECRET = process.env.HARNESS_SESSION_SECRET, TABLE = process.env.HARNESS_TABLE ?? "racked-harness";
+if (!SECRET) throw new Error("Set HARNESS_SESSION_SECRET to the local server's SESSION_SECRET.");
+const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-2", endpoint: "http://127.0.0.1:4568", credentials: { accessKeyId: "harness-local", secretAccessKey: "harness-local" } }));
+const BASE = process.env.HARNESS_BASE_URL ?? "http://localhost:3100", ORIGIN = BASE;
+if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) throw new Error("The harness only runs against a local server.");
+const run = Math.random().toString(36).slice(2, 8);
+// Every simulated client gets an address of its own each run, so a rerun never meets the last run's per-client counters.
+const net = 1 + Math.floor(Math.random() * 250);
+const address = (host) => `198.18.${net}.${host}`;
+const results = [];
+const check = (name, ok, detail = "") => { results.push({ name, ok }); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`); };
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** A browser: its own cookies and its own client address, as CloudFront would append it. */
+function browser(address) {
+  const jar = new Map();
+  return {
+    jar,
+    async request(method, route, body) {
+      const cookies = [...jar.values()].filter((cookie) => route.startsWith(cookie.path)).map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+      const response = await fetch(`${BASE}${route}`, { method, headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": address, ...(cookies ? { cookie: cookies } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+      for (const header of response.headers.getSetCookie()) {
+        const [pair, ...attributes] = header.split(";").map((part) => part.trim());
+        const [name, ...value] = pair.split("=");
+        const cookiePath = attributes.find((attribute) => attribute.toLowerCase().startsWith("path="))?.slice(5) ?? "/";
+        if (/max-age=0/i.test(header) || value.join("=") === "") jar.delete(name); else jar.set(name, { name, value: value.join("="), path: cookiePath });
+      }
+      const text = await response.text();
+      let json = null; try { json = JSON.parse(text); } catch { /* not JSON */ }
+      return { status: response.status, json, text };
+    },
+  };
+}
+
+const formToken = () => { const issuedAt = String(Date.now()); return `${issuedAt}.${createHmac("sha256", SECRET).update(`racked-form:${issuedAt}`).digest("base64url")}`; };
+const accountId = async (email) => {
+  const found = await db.send(new QueryCommand({ TableName: TABLE, IndexName: "GSI1", KeyConditionExpression: "GSI1PK = :pk", ExpressionAttributeValues: { ":pk": `EMAIL#${email}` } }));
+  return String(found.Items?.[0]?.PK ?? "").replace(/^USER#/, "");
+};
+const securityKey = (value) => createHmac("sha256", SECRET).update(`racked-security:${value}`).digest("base64url").slice(0, 32);
+const PASSWORD = `Harness-${run}-Pass1`;
+
+// ── Accounts ────────────────────────────────────────────────────────────────
+const a = browser(address(10)), b = browser(address(11)), x = browser(address(12)), y = browser(address(13));
+const emails = { a: `harness-a-${run}@example.test`, b: `harness-b-${run}@example.test`, x: `harness-x-${run}@example.test`, y: `harness-y-${run}@example.test` };
+const tokens = { a: formToken(), b: formToken(), x: formToken(), y: formToken() };
+await sleep(2_700);
+const registered = await Promise.all([
+  a.request("POST", "/api/auth/register", { email: emails.a, password: PASSWORD, role: "consumer", displayName: "Harness A", consent: true, formToken: tokens.a, website: "" }),
+  b.request("POST", "/api/auth/register", { email: emails.b, password: PASSWORD, role: "consumer", displayName: "Harness B", consent: true, formToken: tokens.b, website: "" }),
+  x.request("POST", "/api/auth/register", { email: emails.x, password: PASSWORD, role: "brand", displayName: "Harness X", brandName: `Harness Brand X ${run}`, formToken: tokens.x, website: "" }),
+  y.request("POST", "/api/auth/register", { email: emails.y, password: PASSWORD, role: "brand", displayName: "Harness Y", brandName: `Harness Brand Y ${run}`, formToken: tokens.y, website: "" }),
+]);
+check("four synthetic accounts register through the real bot trap", registered.every((response) => response.status === 201), registered.map((response) => response.status).join(","));
+check("registration marks the browser as a known device", a.jar.has("racked_known_device") && a.jar.get("racked_known_device").path === "/api/auth");
+const ids = { a: await accountId(emails.a), b: await accountId(emails.b), x: await accountId(emails.x), y: await accountId(emails.y) };
+const adminRole = await browser(address(14)).request("POST", "/api/auth/register", { email: `harness-admin-${run}@example.test`, password: PASSWORD, role: "admin", displayName: "Admin", consent: true, formToken: formToken(), website: "" });
+check("an unsupported role is refused at sign-up", adminRole.status === 400, String(adminRole.status));
+
+// ── Seed synthetic wardrobe and catalog records directly ────────────────────
+const put = (item) => db.send(new PutCommand({ TableName: TABLE, Item: item }));
+const garment = (owner, id, extra = {}) => put({ PK: `USER#${owner}`, SK: `GARMENT#${id}`, id, name: `Harness ${id}`, category: "top", subtype: "t-shirt", color: "navy", pattern: "solid", material: "cotton", style: ["casual"], season: "all-season", wearCount: 0, source: "ai-confirmed", art: "photo", createdAt: new Date().toISOString(), GSI1SK: `OWNER#${owner}`, ...extra });
+const product = (owner, id, brand) => put({ PK: `USER#${owner}`, SK: `PRODUCT#${id}`, GSI1PK: "BRAND_PRODUCTS", GSI1SK: `${brand.toLowerCase().replace(/\W+/g, "-")}#${id.toUpperCase()}`, id, ownerSubject: owner, name: `Harness ${id}`, brand, brandSlug: brand.toLowerCase().replace(/\W+/g, "-"), aliases: [], sku: id.toUpperCase(), category: "top", subtype: "t-shirt", color: "navy", parts: [], createdAt: new Date().toISOString() });
+const PX = `registry-px-${run}`;
+await product(ids.x, PX, `Harness Brand X ${run}`);
+for (let index = 0; index < 12; index++) await product(ids.y, `registry-py${index}-${run}`, `Harness Brand Y ${run}`);
+await garment(ids.a, "ga1", { GSI1PK: `PRODUCT#${PX}` });
+await garment(ids.a, "ga2");
+await garment(ids.a, "ga3");
+for (let index = 0; index < 20; index++) await garment(ids.a, `ga-extra-${index}`, { GSI1PK: `PRODUCT#${PX}`, wearCount: 0 });
+await garment(ids.b, "gb1", { GSI1PK: `PRODUCT#${PX}` });
+await garment(ids.b, "gb2");
+// 24 consenting owners and 6 who never opted in, all with the brand's product. Two consenting owners
+// wear it six or more times: a group small enough to single out.
+const cohortCounts = [...Array(8).fill(0), ...Array(8).fill(1), ...Array(6).fill(3), 9, 12];
+for (let index = 0; index < 24; index++) {
+  const owner = `harness-cohort-${run}-${index}`;
+  await put({ PK: `USER#${owner}`, SK: "PROFILE", id: owner, role: "consumer", brandDataSharing: true });
+  await garment(owner, `gc${index}`, { GSI1PK: `PRODUCT#${PX}`, wearCount: cohortCounts[index] });
+  if (cohortCounts[index]) await put({ PK: `PRODUCT#${PX}`, SK: `WEAR#2026-10-20T0${index % 10}:13:47.512Z#${index}`, occurredAt: `2026-10-20T0${index % 10}:13:47.512Z`, ownerPK: `USER#${owner}`, garmentId: `gc${index}`, eventType: "confirmed-wear" });
+}
+for (let index = 0; index < 6; index++) {
+  const owner = `harness-private-${run}-${index}`;
+  await put({ PK: `USER#${owner}`, SK: "PROFILE", id: owner, role: "consumer", brandDataSharing: false });
+  await garment(owner, `gn${index}`, { GSI1PK: `PRODUCT#${PX}`, wearCount: 40 });
+}
+
+// ── Sign-in lockout protection ──────────────────────────────────────────────
+const attacker = browser(address(66));
+const wrong = [];
+for (let attempt = 0; attempt < 9; attempt++) wrong.push((await attacker.request("POST", "/api/auth/login", { email: emails.a, password: "Wrong-password-1" })).status);
+check("eight wrong passwords are refused, the ninth pauses the email address", wrong.slice(0, 8).every((status) => status === 401) && wrong[8] === 429, wrong.join(","));
+const newDevice = await browser(address(20)).request("POST", "/api/auth/login", { email: emails.a, password: PASSWORD });
+check("without a known-device cookie the owner would be paused too (the lockout being prevented)", newDevice.status === 429, String(newDevice.status));
+const ownerLogin = await a.request("POST", "/api/auth/login", { email: emails.a, password: PASSWORD });
+check("REGRESSION: the owner's known device signs in through the attacker's pause", ownerLogin.status === 200, String(ownerLogin.status));
+const spoofStatuses = [];
+for (let attempt = 0; attempt < 12; attempt++) {
+  const response = await fetch(`${BASE}/api/auth/login`, { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json", "x-forwarded-for": `10.9.${attempt}.1, ${address(77)}` }, body: JSON.stringify({ email: `nobody-${run}-${attempt}@example.test`, password: "Wrong-password-1" }) });
+  spoofStatuses.push(response.status);
+}
+check("REGRESSION: rotating made-up X-Forwarded-For addresses does not reset the per-client limit", spoofStatuses.filter((status) => status === 429).length >= 2, spoofStatuses.join(","));
+
+// ── Activity is the owner's alone; signing out other devices keeps this one ──
+const activityA = await a.request("GET", "/api/account/activity");
+const activityB = await b.request("GET", "/api/account/activity");
+const typesA = (activityA.json?.activity ?? []).map((entry) => entry.type);
+check("the owner sees failed attempts on their email and their sign-ins", typesA.filter((type) => /fail/.test(type)).length >= 8 && typesA.some((type) => type === "sign-in"), typesA.slice(0, 12).join(","));
+check("another account's activity log shows none of them", !(activityB.json?.activity ?? []).some((entry) => /fail/.test(entry.type)) && JSON.stringify(activityB.json).indexOf(emails.a) < 0);
+check("activity entries carry a device label and no IP address", !/198\.51|203\.0|\b\d{1,3}(\.\d{1,3}){3}\b/.test(JSON.stringify(activityA.json?.activity ?? [])));
+const second = browser(address(21));
+second.jar.set("racked_known_device", a.jar.get("racked_known_device"));
+const secondLogin = await second.request("POST", "/api/auth/login", { email: emails.a, password: PASSWORD });
+const ended = await a.request("DELETE", "/api/account/sessions");
+const secondAfter = await second.request("GET", "/api/consumer/wardrobe");
+const firstAfter = await a.request("GET", "/api/consumer/wardrobe");
+check("signing out other devices ends the other session and keeps this one", secondLogin.status === 200 && ended.status === 200 && secondAfter.status === 403 && firstAfter.status === 200, [secondLogin.status, ended.status, secondAfter.status, firstAfter.status].join(","));
+
+// ── Outfits: ownership, validation, and no silent wear ──────────────────────
+const saved = await a.request("POST", "/api/consumer/outfits", { name: "Harness look", itemIds: ["ga1", "ga2"] });
+const outfitId = saved.json?.outfit?.id;
+check("an outfit of the person's own pieces saves", saved.status === 201 && Boolean(outfitId), String(saved.status));
+const mixed = await a.request("POST", "/api/consumer/outfits", { itemIds: ["ga1", "gb1"] });
+check("an outfit naming another account's piece is refused", mixed.status === 400, String(mixed.status));
+const privileged = await a.request("POST", "/api/consumer/outfits", { itemIds: ["ga1"], ownerId: ids.b });
+check("an ownerId in the body is refused, not obeyed", privileged.status === 400 && /does not accept/.test(privileged.json?.error ?? ""), privileged.json?.error);
+const flood = await a.request("POST", "/api/consumer/outfits", { itemIds: Array.from({ length: 40 }, (_, index) => `ga${index}`) });
+const wrongType = await a.request("POST", "/api/consumer/outfits", { itemIds: "ga1" });
+const badId = await a.request("POST", "/api/consumer/outfits", { itemIds: ["../../USER#x"] });
+check("oversized lists, wrong types, and malformed IDs are refused", [flood.status, wrongType.status, badId.status].every((status) => status === 400), [flood.status, wrongType.status, badId.status].join(","));
+const bPatch = await b.request("PATCH", "/api/consumer/outfits", { outfitId, itemIds: ["gb1"] });
+const bDelete = await b.request("DELETE", "/api/consumer/outfits", { outfitId });
+check("another consumer cannot edit or delete the outfit", bPatch.status === 404 && bDelete.status === 404, `${bPatch.status},${bDelete.status}`);
+const wardrobeAfterSave = await a.request("GET", "/api/consumer/wardrobe");
+const countOf = (response, id) => response.json?.items?.find((item) => item.id === id)?.wearCount;
+check("saving an outfit records no wear", countOf(wardrobeAfterSave, "ga1") === 0 && countOf(wardrobeAfterSave, "ga2") === 0);
+
+// ── Wear recording: exactly once, all or nothing, owner only ────────────────
+const wearEvents = async () => (await db.send(new QueryCommand({ TableName: TABLE, KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": `PRODUCT#${PX}`, ":sk": "WEAR#" } }))).Items.filter((event) => event.ownerPK === `USER#${ids.a}`).length;
+const first = await a.request("POST", "/api/wears", { itemIds: ["ga1", "ga2"], outfitId, requestId: "harness-request-1" });
+check("a wear records once on every piece and the outfit", first.status === 201 && first.json?.counts?.ga1 === 1 && first.json?.counts?.ga2 === 1 && first.json?.outfitWears === 1, JSON.stringify(first.json));
+const retry = await a.request("POST", "/api/wears", { itemIds: ["ga1", "ga2"], outfitId, requestId: "harness-request-1" });
+const doubleTap = await a.request("POST", "/api/wears", { itemIds: ["ga2", "ga1"], outfitId, requestId: "harness-request-2" });
+check("REGRESSION: a retried request and a double tap change nothing", retry.status === 200 && retry.json?.duplicate === true && doubleTap.status === 200 && doubleTap.json?.duplicate === true, `${retry.status}/${retry.json?.duplicate}, ${doubleTap.status}/${doubleTap.json?.duplicate}`);
+const partial = await a.request("POST", "/api/wears", { itemIds: ["ga3", "gb1"], requestId: "harness-request-3" });
+const afterPartial = await a.request("GET", "/api/consumer/wardrobe");
+check("REGRESSION: a wear naming another account's piece is refused whole — nothing is counted", partial.status === 404 && countOf(afterPartial, "ga3") === 0, `${partial.status}, ga3=${countOf(afterPartial, "ga3")}`);
+const ownerField = await a.request("POST", "/api/wears", { itemId: "ga3", ownerId: ids.b });
+check("a privileged field on a wear is refused", ownerField.status === 400, String(ownerField.status));
+const bOnA = await b.request("POST", "/api/wears", { itemIds: ["ga1"] });
+const bOnAOutfit = await b.request("POST", "/api/wears", { itemIds: ["gb1"], outfitId });
+check("another consumer cannot record a wear on A's piece or outfit", bOnA.status === 404 && bOnAOutfit.status === 404, `${bOnA.status},${bOnAOutfit.status}`);
+const afterAll = await a.request("GET", "/api/consumer/wardrobe");
+check("final counts match one recorded wear", countOf(afterAll, "ga1") === 1 && countOf(afterAll, "ga2") === 1 && afterAll.json?.outfits?.find((outfit) => outfit.id === outfitId)?.wears === 1);
+check("exactly one wear event reached the brand product's index", (await wearEvents()) === 1, String(await wearEvents()));
+
+// ── Consent input, roles, and brand isolation ───────────────────────────────
+const consentString = await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: "yes" });
+const consentExtra = await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: true, accountId: ids.b });
+check("consent accepts only a boolean, and nothing else", consentString.status === 400 && consentExtra.status === 400, `${consentString.status},${consentExtra.status}`);
+const consumerOnBrand = await a.request("POST", "/api/brand/metrics", { productId: PX });
+const brandOnWears = await x.request("POST", "/api/wears", { itemIds: ["ga1"] });
+check("roles hold in both directions", consumerOnBrand.status === 403 && brandOnWears.status === 403, `${consumerOnBrand.status},${brandOnWears.status}`);
+const xOnY = await x.request("POST", "/api/brand/metrics", { productId: `registry-py0-${run}` });
+const xLookOnY = await x.request("POST", "/api/brand/looks", { title: "Harness look", caption: "Harness caption", productIds: [`registry-py0-${run}`] });
+check("Brand X cannot read Brand Y's analytics or put Y's product in a Look", xOnY.status === 404 && xLookOnY.status >= 400 && xLookOnY.status < 500, `${xOnY.status},${xLookOnY.status}`);
+
+// ── The cohort threshold, distinct owners, consent, and small cells ─────────
+const before = await x.request("POST", "/api/brand/metrics", { productId: PX });
+check("24 consenting owners stay suppressed, the count withheld too", before.status === 200 && before.json?.metrics?.suppressed === true && before.json?.metrics?.segmentSize === 0, JSON.stringify({ suppressed: before.json?.metrics?.suppressed, size: before.json?.metrics?.segmentSize }));
+await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: true });
+const released = await x.request("POST", "/api/brand/metrics", { productId: PX });
+const metrics = released.json?.metrics ?? {};
+check("A opting in makes 25 distinct owners: released, and A's 21 linked garments count once", metrics.suppressed === false && metrics.segmentSize === 25, `size=${metrics.segmentSize}`);
+check("owners who never opted in are excluded (their 240 wears are absent)", metrics.actualWears === cohortCounts.reduce((sum, count) => sum + count, 0) + 1, `actualWears=${metrics.actualWears}`);
+check("CONSENT HISTORY: A's wear recorded before opting in is counted once A opts in", metrics.actualWears === cohortCounts.reduce((sum, count) => sum + count, 0) + 1);
+check("the latest wear is released as a day, not an instant", typeof metrics.lastWearAt === "string" && metrics.lastWearAt.endsWith("T12:00:00.000Z"), metrics.lastWearAt);
+check("a group of two heavy wearers is withheld", metrics.highFrequencyOwners === null && (metrics.withheld ?? []).includes("highFrequencyOwners"), JSON.stringify(metrics.withheld));
+check("no owner ID, email, or garment reaches the brand", !/USER#|harness-cohort|harness-private|@example\.test|"gc\d|"gn\d/.test(released.text));
+await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: false });
+const withdrawn = await x.request("POST", "/api/brand/metrics", { productId: PX });
+check("withdrawing consent drops the cohort below the threshold at once", withdrawn.json?.metrics?.suppressed === true, String(withdrawn.json?.metrics?.suppressed));
+
+// ── Concurrent enumeration ──────────────────────────────────────────────────
+const burst = await Promise.all(Array.from({ length: 12 }, (_, index) => y.request("POST", "/api/brand/metrics", { productId: `registry-py${index}-${run}` })));
+const statuses = burst.map((response) => response.status);
+check("REGRESSION: twelve products opened at once release at most six", statuses.filter((status) => status === 200).length <= 6 && statuses.filter((status) => status === 429).length >= 6, statuses.join(","));
+
+// ── AI budget: every model call is metered, and the ceiling stops the agent ─
+const replies = [];
+for (let turn = 0; turn < 3; turn++) replies.push(await a.request("POST", "/api/agents/consumer", { message: "What should I wear to dinner tonight?" }));
+const reasons = replies.map((response) => response.json?.reply?.degradedReason ?? `status ${response.status}`);
+check("Hanger keeps answering from the wardrobe while the model is unavailable", replies.every((response) => response.status === 200), reasons.join(" | "));
+check("the site ceiling (3 model calls here) stops further calls and says why", reasons.at(-1) === "the AI is paused to protect the service", reasons.at(-1));
+const day = Math.floor(Date.now() / 86_400_000) * 86_400_000;
+const siteCalls = await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `LIMIT#${securityKey("ai:site-calls")}`, SK: `WINDOW#${day}` } }));
+const accountRequests = await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `LIMIT#${securityKey(`ai:hanger:${ids.a}`)}`, SK: `WINDOW#${day}` } }));
+check("the site counter counts model calls, the account counter counts messages", Number(siteCalls.Item?.count) >= 4 && Number(accountRequests.Item?.count) === 3, `site calls attempted=${siteCalls.Item?.count}, account messages=${accountRequests.Item?.count}`);
+
+// ── Errors say nothing about the server ─────────────────────────────────────
+const malformed = await a.request("POST", "/api/consumer/outfits", { itemIds: [{ $ne: null }] });
+check("a malformed body gets a plain refusal", malformed.status === 400 && !/TypeError|stack|at \w+ \(/.test(malformed.text), malformed.json?.error);
+
+const failed = results.filter((result) => !result.ok);
+console.log(`\n${results.length - failed.length}/${results.length} checks passed${failed.length ? `; failed: ${failed.map((result) => result.name).join(" | ")}` : ""}`);
+console.log(JSON.stringify({ accounts: { a: ids.a, b: ids.b }, outfitId, run }));
+process.exit(failed.length ? 1 : 0);

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { listRegistryProducts, otherBrandNames, ProductionConfigurationError, updateBrandProduct } from "@/lib/server/production-store";
+import { failureResponse } from "@/lib/api-errors";
+import { listRegistryProducts, otherBrandNames, updateBrandProduct } from "@/lib/server/production-store";
 import type { BrandProductEdit } from "@/lib/product-registry";
 
 /**
@@ -36,8 +37,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ pr
     if (!product) return NextResponse.json({ error: "That product is not in your catalog." }, { status: 404 });
     return NextResponse.json({ product });
   } catch (error) {
-    if (error instanceof ProductionConfigurationError) return NextResponse.json({ error: error.message }, { status: 503 });
     if (error instanceof Error && error.name === "ConditionalCheckFailedException") return NextResponse.json({ error: "That product is not in your catalog." }, { status: 404 });
-    return NextResponse.json({ error: error instanceof Error ? error.message : "The product could not be updated." }, { status: 400 });
+    // A malformed field (a number where text belongs) fails inside the edit as a TypeError: that is
+    // the request's fault, not the server's, and it says nothing about the server.
+    if (error instanceof TypeError) return NextResponse.json({ error: "One of the fields was not in the expected format." }, { status: 400 });
+    return failureResponse(error, "Brand product update failed", "The product could not be updated.");
   }
 }

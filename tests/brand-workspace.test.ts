@@ -84,7 +84,7 @@ test("one number leads, the rest support it, and loading keeps the layout still"
   assert.match(dashboard, /<section className="wear-hero">/);
   assert.match(dashboard, /metric-row-secondary/);
   assert.match(dashboard, /className="metric-skeleton" role="status"/, "a skeleton, not a spinner that shifts the page");
-  assert.match(dashboard, /<figcaption>Confirmed wears per week, opted-in owners only\.<\/figcaption>/, "charts say what they count");
+  assert.match(dashboard, /<figcaption>Confirmed wears per week, opted-in owners only\. A week with one to four wears shows “&lt;5”\.<\/figcaption>/, "charts say what they count, and what they withhold");
 });
 
 // The banner used to sit at the top of every visit, including for brands whose data had released.

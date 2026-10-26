@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { failureResponse, RequestRefused } from "@/lib/api-errors";
 import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFirstUpload } from "@/lib/garment-analysis";
 import { readCappedFormData } from "@/lib/request-body";
 import { stripImageMetadata } from "@/lib/image-sanitize";
@@ -36,7 +37,7 @@ export async function POST(request:Request){
     // the image it claims to be. A file that is not fails here, with nothing written.
     const cleaned=await Promise.all(files.map(async({file})=>stripImageMetadata(Buffer.from(await file.arrayBuffer()))));
     const [account,registry]=await Promise.all([getAccount(session.subject),listRegistryProducts()]);
-    if(!account?.brandName)throw new Error("This account has no verified brand profile.");
+    if(!account?.brandName)throw new RequestRefused("This account has no verified brand profile.");
     const brandName=account.brandName;
     const details=(parts:UploadDescriptor[],others:string[])=>createBrandProductRegistration({ownerSubject:session.subject,name:String(form.get("name")??""),brand:brandName,sku:String(form.get("sku")??""),gtin:String(form.get("gtin")??""),category:String(form.get("category")??""),subtype:String(form.get("subtype")??""),color:String(form.get("color")??""),pattern:String(form.get("pattern")??""),material:String(form.get("material")??""),style:String(form.get("style")??""),labelText:String(form.get("labelText")??""),aliases:String(form.get("aliases")??"").split(","),productUrl:String(form.get("productUrl")??""),affiliateUrl:String(form.get("affiliateUrl")??""),price:String(form.get("price")??""),currency:String(form.get("currency")??"USD"),availability:String(form.get("availability")??"unknown"),affiliateProvider:String(form.get("affiliateProvider")??""),affiliateTrackingId:String(form.get("affiliateTrackingId")??""),parts,otherBrandNames:others});
     // Every check runs before anything is stored, so a rejected enrollment leaves no orphaned photos.
@@ -47,5 +48,5 @@ export async function POST(request:Request){
     const product=details(storedParts,others);
     await saveBrandProduct(session.subject,product);
     return NextResponse.json({product,retention:"Brand-authorized photos are re-encoded without location or camera metadata and encrypted in private S3."},{status:201});
-  } catch(error){if(error instanceof UploadValidationError)return NextResponse.json({error:error.message},{status:error.status});return NextResponse.json({error:error instanceof Error?error.message:"Product registration failed."},{status:400});}
+  } catch(error){return failureResponse(error,"Brand product enrollment failed","The product could not be enrolled. Try again.");}
 }
