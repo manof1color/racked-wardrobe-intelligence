@@ -39,7 +39,10 @@ export async function chargeAccountAllowance(increment: CounterIncrement, action
 export async function chargeSiteModelCall(increment: CounterIncrement, now = Date.now(), ceiling = aiDailyCeiling()): Promise<boolean> {
   try {
     const { count } = await increment("ai:site-calls", DAY_MS, now);
-    return siteModelCallAllowed(count, ceiling);
+    const allowed = siteModelCallAllowed(count, ceiling);
+    // An alarm signal (docs/security-verification.md): the line names no account.
+    if (!allowed) console.warn("AI site ceiling reached", { calls: count, ceiling });
+    return allowed;
   } catch (error) {
     budgetUnavailable("site model calls", error);
     return false;

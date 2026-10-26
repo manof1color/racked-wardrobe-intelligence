@@ -136,5 +136,7 @@ test("brand product photos are re-encoded before anything is stored", () => {
 test("REGRESSION: an unknown email takes as long to reject as a wrong password", () => {
   const store = read("lib/server/production-store.ts");
   const signIn = store.slice(store.indexOf("export async function authenticateAccount"), store.indexOf("export async function verifyAccountPassword"));
-  assert.match(signIn, /if \(!account\) \{\s*await passwordDigest\(password,TIMING_EQUALIZER_SALT\);\s*return null;\s*\}/);
+  // The same check runs whether or not the email has an account; password-hash.test.ts shows it does
+  // the same derivation work either way.
+  assert.match(signIn, /const account=await findAccountByEmail\(email\);\s*const checked=await checkPassword\(password,account\);\s*if\(!account\|\|!checked\.ok\)return null;/);
 });

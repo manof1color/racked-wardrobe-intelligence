@@ -12,6 +12,8 @@ Do not publish any password — including synthetic test-cohort credentials, whi
 
 - Secrets come from ignored runtime environment files or the deployment platform.
 - Sessions are signed, HTTP-only, SameSite, expiring cookies.
+- Passwords are hashed with scrypt at N = 2^17, r = 8, p = 1 (OWASP's minimum) and a unique 18-byte random salt (`lib/password-hash.ts`). Hashes stored earlier at Node's default N = 2^14 are accepted and replaced at the new cost on their owner's next sign-in. Every check does the same derivation work whether or not the email has an account.
+- A known-device cookie exempts its browser from the per-email sign-in pause, so a stranger's guesses cannot lock an owner out; each cookie has its own budget of eight wrong passwords per fifteen minutes, so a copied cookie cannot guess without limit.
 - Consumer/Brand pages enforce roles on the server.
 - Consumer analysis requires explicit consent.
 - Brand-safe aggregate helpers suppress cohorts below 25 and strip identity/raw-wardrobe fields.

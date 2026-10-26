@@ -1,7 +1,6 @@
 import "server-only";
 
-import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -19,6 +18,7 @@ import { releaseWearAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { ENUMERATION_WINDOW_MS, enumerationBudgetState, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "@/lib/privacy";
 import { findByPaginatedQuery } from "@/lib/community-lookup";
+import { checkPassword, hashPassword } from "@/lib/password-hash";
 import { RequestRefused } from "@/lib/api-errors";
 import { wornDaysAgo } from "@/lib/wear-recency";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
@@ -31,7 +31,6 @@ import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirat
 import { ACTIVITY_RETENTION_DAYS, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
 import sharp from "sharp";
 
-const scrypt = promisify(scryptCallback);
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
 const tableName = process.env.RACKED_TABLE_NAME;
 const bucketName = process.env.RACKED_UPLOAD_BUCKET;
@@ -61,6 +60,8 @@ export interface AccountRecord {
   brandSlug: string | null;
   passwordHash: string;
   passwordSalt: string;
+  /** lib/password-hash.ts; absent on hashes stored before October 2026. */
+  passwordScheme?: string;
   createdAt: string;
   brandDataSharing?: boolean;
   dataClassification?: DataClassification;
@@ -80,10 +81,6 @@ function confirmationPayload(ownerId:string,key:string,analysis:GarmentAnalysis)
 export function signGarmentConfirmation(ownerId:string,key:string,analysis:GarmentAnalysis){const secret=process.env.SESSION_SECRET;if(!secret)throw new ProductionConfigurationError("Session security is not configured.");return createHmac("sha256",secret).update(confirmationPayload(ownerId,key,analysis)).digest("base64url");}
 function verifyGarmentConfirmation(ownerId:string,analysis:GarmentAnalysis){const supplied=analysis.processedImage?.confirmationToken;if(!supplied)return false;const expected=signGarmentConfirmation(ownerId,analysis.processedImage!.key,analysis);const a=Buffer.from(supplied,"base64url");const b=Buffer.from(expected,"base64url");return a.length===b.length&&timingSafeEqual(a,b);}
 
-async function passwordDigest(password:string,salt:string) {
-  return Buffer.from(await scrypt(password,salt,64) as Buffer).toString("base64url");
-}
-
 export async function findAccountByEmail(email:string):Promise<AccountRecord|null> {
   const result=await db.send(new QueryCommand({TableName:requireTable(),IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`EMAIL#${normalizeEmail(email)}`},Limit:1}));
   return (result.Items?.[0] as AccountRecord|undefined) ?? null;
@@ -93,9 +90,8 @@ export async function createAccount(input:{email:string;password:string;role:Rol
   const email=normalizeEmail(input.email);
   if (await findAccountByEmail(email)) throw new AccountConflictError("An account already exists for that email.");
   const id=crypto.randomUUID();
-  const passwordSalt=randomBytes(18).toString("base64url");
-  const passwordHash=await passwordDigest(input.password,passwordSalt);
-  const account:AccountRecord={id,email,role:input.role,displayName:input.displayName.trim(),brandName:input.role==="brand"?(input.brandName?.trim()||input.displayName.trim()):null,brandSlug:input.role==="brand"?slugify(input.brandName?.trim()||input.displayName):null,passwordHash,passwordSalt,createdAt:new Date().toISOString(),dataClassification:"REGULAR"};
+  const {passwordHash,passwordSalt,passwordScheme}=await hashPassword(input.password);
+  const account:AccountRecord={id,email,role:input.role,displayName:input.displayName.trim(),brandName:input.role==="brand"?(input.brandName?.trim()||input.displayName.trim()):null,brandSlug:input.role==="brand"?slugify(input.brandName?.trim()||input.displayName):null,passwordHash,passwordSalt,passwordScheme,createdAt:new Date().toISOString(),dataClassification:"REGULAR"};
   if(account.role==="brand")await reserveBrandName(account.brandName??"",id);
   try {
     await db.send(new PutCommand({TableName:requireTable(),Item:{...account,PK:`USER#${id}`,SK:"PROFILE",GSI1PK:`EMAIL#${email}`,GSI1SK:"ACCOUNT"},ConditionExpression:"attribute_not_exists(PK)"}));
@@ -142,27 +138,30 @@ export async function otherBrandNames(ownerId:string,known?:BrandProductRegistra
 }
 
 /**
- * A salt for the password check run when no account matches. Without it an unknown email was
- * rejected at once while a known one paid for the full scrypt derivation, so response time alone
- * told an attacker which emails have accounts — the enumeration the reset flow already prevents.
+ * Signs in by email and password. An unknown email runs the same derivations as a known one
+ * (lib/password-hash.ts), so response time does not say which emails have accounts. A password
+ * that matches a hash stored at the old cost is re-hashed at the current cost on the way in.
  */
-const TIMING_EQUALIZER_SALT="racked-sign-in-timing-equalizer";
-
 export async function authenticateAccount(email:string,password:string) {
   const account=await findAccountByEmail(email);
-  if (!account) {
-    await passwordDigest(password,TIMING_EQUALIZER_SALT);
-    return null;
-  }
-  const supplied=Buffer.from(await passwordDigest(password,account.passwordSalt),"base64url");
-  const expected=Buffer.from(account.passwordHash,"base64url");
-  return supplied.length===expected.length&&timingSafeEqual(supplied,expected)?account:null;
+  const checked=await checkPassword(password,account);
+  if(!account||!checked.ok)return null;
+  if(checked.upgrade)await upgradePasswordHash(account,password).catch(error=>console.error("Password hash upgrade failed",{name:error instanceof Error?error.name:"UnknownError"}));
+  return account;
+}
+
+/**
+ * Replaces an old-cost hash with a current one for the same password. It changes nothing else:
+ * not the session version, and not passwordChangedAt, which outstanding reset links are checked
+ * against. The condition skips the write if the password changed in the meantime.
+ */
+async function upgradePasswordHash(account:AccountRecord,password:string){
+  const next=await hashPassword(password);
+  await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${account.id}`,SK:"PROFILE"},UpdateExpression:"SET passwordHash = :hash, passwordSalt = :salt, passwordScheme = :scheme",ConditionExpression:"passwordHash = :previous",ExpressionAttributeValues:{":hash":next.passwordHash,":salt":next.passwordSalt,":scheme":next.passwordScheme,":previous":account.passwordHash}}));
 }
 
 export async function verifyAccountPassword(account:AccountRecord,password:string) {
-  const supplied=Buffer.from(await passwordDigest(password,account.passwordSalt),"base64url");
-  const expected=Buffer.from(account.passwordHash,"base64url");
-  return supplied.length===expected.length&&timingSafeEqual(supplied,expected);
+  return (await checkPassword(password,account)).ok;
 }
 
 export async function updateOwnAccount(ownerId:string,input:{displayName:string;email:string;currentPassword:string;newPassword?:string}) {
@@ -176,9 +175,9 @@ export async function updateOwnAccount(ownerId:string,input:{displayName:string;
   const values:Record<string,unknown>={":displayName":displayName,":email":email,":emailPk":`EMAIL#${email}`};
   let update="SET displayName = :displayName, #email = :email, GSI1PK = :emailPk";
   if(input.newPassword){
-    const passwordSalt=randomBytes(18).toString("base64url"),passwordHash=await passwordDigest(input.newPassword,passwordSalt),changedAt=Date.now();
-    Object.assign(values,{":passwordSalt":passwordSalt,":passwordHash":passwordHash,":changedAt":changedAt,":zero":0,":one":1});
-    update+=", passwordSalt = :passwordSalt, passwordHash = :passwordHash, passwordChangedAt = :changedAt, sessionVersion = if_not_exists(sessionVersion, :zero) + :one";
+    const {passwordSalt,passwordHash,passwordScheme}=await hashPassword(input.newPassword),changedAt=Date.now();
+    Object.assign(values,{":passwordSalt":passwordSalt,":passwordHash":passwordHash,":passwordScheme":passwordScheme,":changedAt":changedAt,":zero":0,":one":1});
+    update+=", passwordSalt = :passwordSalt, passwordHash = :passwordHash, passwordScheme = :passwordScheme, passwordChangedAt = :changedAt, sessionVersion = if_not_exists(sessionVersion, :zero) + :one";
   }
   const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:update,ExpressionAttributeNames:names,ExpressionAttributeValues:values,ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
   return result.Attributes as AccountRecord;
@@ -201,8 +200,8 @@ export async function consumePasswordReset(token:string,newPassword:string) {
   const account=await getAccount(reset.accountId);
   if(!account||!passwordResetIsUsable(reset,account.passwordChangedAt??0,now))return null;
   try{await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:reset.PK,SK:reset.SK},UpdateExpression:"SET usedAt = :now",ConditionExpression:"attribute_not_exists(usedAt) AND expiresAt > :now",ExpressionAttributeValues:{":now":now}}));}catch{return null;}
-  const passwordSalt=randomBytes(18).toString("base64url"),passwordHash=await passwordDigest(newPassword,passwordSalt);
-  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${account.id}`,SK:"PROFILE"},UpdateExpression:"SET passwordSalt = :salt, passwordHash = :hash, passwordChangedAt = :now, sessionVersion = if_not_exists(sessionVersion, :zero) + :one",ExpressionAttributeValues:{":salt":passwordSalt,":hash":passwordHash,":now":now,":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
+  const {passwordSalt,passwordHash,passwordScheme}=await hashPassword(newPassword);
+  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${account.id}`,SK:"PROFILE"},UpdateExpression:"SET passwordSalt = :salt, passwordHash = :hash, passwordScheme = :scheme, passwordChangedAt = :now, sessionVersion = if_not_exists(sessionVersion, :zero) + :one",ExpressionAttributeValues:{":salt":passwordSalt,":hash":passwordHash,":scheme":passwordScheme,":now":now,":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
   return result.Attributes as AccountRecord;
 }
 

@@ -33,6 +33,30 @@ export async function signInPause(email: string, now = Date.now()): Promise<Rate
   }
 }
 
+/**
+ * A known-device cookie's own failure budget — the same eight wrong passwords per fifteen minutes,
+ * counted against the cookie rather than the email (the key is a keyed hash of the cookie). Past it,
+ * the cookie no longer exempts its holder from the email's pause.
+ */
+export async function knownDevicePause(deviceToken: string, now = Date.now()): Promise<RateLimitDecision> {
+  const rule = DURABLE_LIMITS.signInFailuresPerEmail;
+  try {
+    const { count, resetAt } = await readSecurityCounter(`sign-in-failures-device:${deviceToken}`, rule.windowMs, now);
+    return durableDecision(count + 1, rule.limit, resetAt, now);
+  } catch (error) {
+    failOpen("known-device pause", error);
+    return OPEN;
+  }
+}
+
+export async function countKnownDeviceFailure(deviceToken: string, now = Date.now()) {
+  try {
+    await incrementSecurityCounter(`sign-in-failures-device:${deviceToken}`, DURABLE_LIMITS.signInFailuresPerEmail.windowMs, now);
+  } catch (error) {
+    failOpen("known-device failure count", error);
+  }
+}
+
 /** Counts a wrong password against the email typed — the same write whether or not it has an account. */
 export async function countSignInFailure(email: string, now = Date.now()) {
   try {

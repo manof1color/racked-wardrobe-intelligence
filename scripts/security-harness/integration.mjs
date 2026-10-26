@@ -2,7 +2,7 @@
 // Synthetic accounts and products only; nothing here can reach AWS (every AWS endpoint is local).
 // See docs/security-verification.md. Run from the repository root:
 //   HARNESS_SESSION_SECRET=<the server's SESSION_SECRET> node scripts/security-harness/integration.mjs
-import { createHmac } from "node:crypto";
+import { createHmac, randomBytes, scryptSync } from "node:crypto";
 import path from "node:path";
 import { createRequire } from "node:module";
 
@@ -111,6 +111,43 @@ for (let attempt = 0; attempt < 12; attempt++) {
   spoofStatuses.push(response.status);
 }
 check("REGRESSION: rotating made-up X-Forwarded-For addresses does not reset the per-client limit", spoofStatuses.filter((status) => status === 429).length >= 2, spoofStatuses.join(","));
+
+// ── A copied known-device cookie has a failure budget of its own ────────────
+const stolen = x.jar.get("racked_known_device");
+const copyStatuses = [];
+for (let attempt = 0; attempt < 10; attempt++) {
+  const thief = browser(address(100 + attempt));
+  thief.jar.set("racked_known_device", stolen);
+  copyStatuses.push((await thief.request("POST", "/api/auth/login", { email: emails.x, password: "Wrong-password-1" })).status);
+}
+check("REGRESSION: a copied known-device cookie used from ten addresses is paused after eight wrong passwords", copyStatuses.slice(0, 8).every((status) => status === 401) && copyStatuses.slice(8).every((status) => status === 429), copyStatuses.join(","));
+
+// ── Passwords: an old-cost hash signs in and is upgraded; timing reveals nothing ──
+const legacyAccount = async (label) => {
+  const id = `harness-legacy-${label}-${run}`, email = `${id}@example.test`, salt = randomBytes(18).toString("base64url");
+  await put({ PK: `USER#${id}`, SK: "PROFILE", GSI1PK: `EMAIL#${email}`, GSI1SK: "ACCOUNT", id, email, role: "consumer", displayName: "Harness legacy", brandName: null, brandSlug: null, passwordHash: scryptSync(PASSWORD, salt, 64).toString("base64url"), passwordSalt: salt, createdAt: new Date().toISOString(), sessionVersion: 0 });
+  return { id, email };
+};
+const legacy = await legacyAccount("upgrade");
+const legacyBefore = (await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `USER#${legacy.id}`, SK: "PROFILE" } }))).Item;
+const legacyLogin = await browser(address(130)).request("POST", "/api/auth/login", { email: legacy.email, password: PASSWORD });
+const legacyAfter = (await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `USER#${legacy.id}`, SK: "PROFILE" } }))).Item;
+const againLogin = await browser(address(131)).request("POST", "/api/auth/login", { email: legacy.email, password: PASSWORD });
+const legacyWrong = await browser(address(132)).request("POST", "/api/auth/login", { email: legacy.email, password: "Wrong-password-1" });
+check("REGRESSION: an account hashed at the old scrypt cost signs in and is re-hashed at N = 2^17 with a new salt", legacyLogin.status === 200 && legacyBefore.passwordScheme === undefined && legacyAfter.passwordScheme === "scrypt-n17" && legacyAfter.passwordSalt !== legacyBefore.passwordSalt && legacyAfter.passwordHash !== legacyBefore.passwordHash && legacyAfter.sessionVersion === 0 && againLogin.status === 200 && legacyWrong.status === 401, `${legacyLogin.status},${legacyAfter.passwordScheme},${againLogin.status},${legacyWrong.status}`);
+const registeredRecord = (await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `USER#${ids.b}`, SK: "PROFILE" } }))).Item;
+check("a new account is hashed at the current cost with an 18-byte salt", registeredRecord.passwordScheme === "scrypt-n17" && Buffer.from(registeredRecord.passwordSalt, "base64url").length === 18);
+const slowLegacy = await legacyAccount("timing");
+const timed = async (email, host) => { const started = performance.now(); await browser(address(host)).request("POST", "/api/auth/login", { email, password: "Wrong-password-1" }); return performance.now() - started; };
+const median = (values) => values.sort((left, right) => left - right)[Math.floor(values.length / 2)];
+const timings = { unknown: [], legacy: [], current: [] };
+for (let round = 0; round < 5; round++) {
+  timings.unknown.push(await timed(`nobody-timing-${run}-${round}@example.test`, 140 + round));
+  timings.legacy.push(await timed(slowLegacy.email, 150 + round));
+  timings.current.push(await timed(emails.y, 160 + round));
+}
+const medians = Object.fromEntries(Object.entries(timings).map(([name, values]) => [name, Math.round(median(values))]));
+check("sign-in takes the same time for an unknown email, an old hash, and a new hash", Math.max(...Object.values(medians)) / Math.min(...Object.values(medians)) < 1.35, JSON.stringify(medians) + " ms (median of 5)");
 
 // ── Activity is the owner's alone; signing out other devices keeps this one ──
 const activityA = await a.request("GET", "/api/account/activity");
