@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { deleteOutfit, listOutfits, listWardrobe, saveOutfit, updateOutfitItems } from "@/lib/server/production-store";
+import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
 export async function GET() {
   const session = await getSession();
@@ -11,6 +12,8 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session || session.role !== "consumer") return NextResponse.json({ error: "Consumer account required." }, { status: 403 });
+  const limit = consumeRateLimit(`outfit-write:${session.subject}`, RATE_LIMIT_RULES.outfitWrite);
+  if (!limit.allowed) return NextResponse.json({ error: "Too many outfit changes at once. Try again in a few minutes." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const body = await request.json().catch(() => null) as { name?: string; itemIds?: string[] } | null;
   if (!Array.isArray(body?.itemIds) || body.itemIds.length < 1 || body.itemIds.length > 10) return NextResponse.json({ error: "Choose 1–10 wardrobe pieces." }, { status: 400 });
   const unique = [...new Set(body.itemIds)];
@@ -22,6 +25,8 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const session=await getSession();
   if(!session||session.role!=="consumer")return NextResponse.json({error:"Consumer account required."},{status:403});
+  const limit=consumeRateLimit(`outfit-write:${session.subject}`,RATE_LIMIT_RULES.outfitWrite);
+  if(!limit.allowed)return NextResponse.json({error:"Too many outfit changes at once. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const body=await request.json().catch(()=>null) as {outfitId?:string;itemIds?:string[]}|null;
   const outfitId=body?.outfitId?.trim();
   if(!outfitId||outfitId.length>128)return NextResponse.json({error:"Choose a valid saved outfit."},{status:400});
@@ -39,6 +44,8 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const session=await getSession();
   if(!session||session.role!=="consumer")return NextResponse.json({error:"Consumer account required."},{status:403});
+  const limit=consumeRateLimit(`outfit-write:${session.subject}`,RATE_LIMIT_RULES.outfitWrite);
+  if(!limit.allowed)return NextResponse.json({error:"Too many outfit changes at once. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const body=await request.json().catch(()=>null) as {outfitId?:string}|null;
   const outfitId=body?.outfitId?.trim();
   if(!outfitId||outfitId.length>128)return NextResponse.json({error:"Choose a valid saved outfit."},{status:400});

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { incrementOutfitWears, recordRealWear } from "@/lib/server/production-store";
+import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
 export async function GET() {
   const session=await getSession();
@@ -12,6 +13,8 @@ export async function POST(request:Request) {
   const session=await getSession();
   if (!session) return NextResponse.json({error:"Sign in is required."},{status:401});
   if (session.role!=="consumer") return NextResponse.json({error:"Consumer role required."},{status:403});
+  const limit=consumeRateLimit(`wear:${session.subject}`,RATE_LIMIT_RULES.wearRecord);
+  if(!limit.allowed)return NextResponse.json({error:"Too many wears recorded at once. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const body=await request.json().catch(()=>null) as {itemId?:string;itemIds?:string[];outfitId?:string}|null;
   try {
     const ids=Array.isArray(body?.itemIds)?body.itemIds:[body?.itemId??""];

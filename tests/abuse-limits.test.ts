@@ -2,11 +2,12 @@
  * Shared limits and the AI spending guard. The in-memory limiter lives in each server instance, so
  * these are counted in DynamoDB and hold across all of them; they are keyed on what an attack aims
  * at — an email address, an account, the site's AI budget — and stored only as keyed hashes.
+ * The budgets' behaviour is tested in ai-budget.test.ts; this file checks the rules and the wiring.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { AI_DAILY_ALLOWANCE, aiAllowance, aiDailyCeiling, DAY_MS, DEFAULT_AI_DAILY_CEILING, DURABLE_LIMITS, durableDecision, SITE_PAUSE_MESSAGE, signInPausedMessage, windowStart } from "../lib/abuse-limits.ts";
+import { AI_DAILY_ALLOWANCE, AI_UNAVAILABLE_MESSAGE, aiAllowance, aiDailyCeiling, aiUnavailable, DAY_MS, DEFAULT_AI_DAILY_CEILING, DURABLE_LIMITS, durableDecision, signInPausedMessage, siteModelCallAllowed, windowStart } from "../lib/abuse-limits.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const noon = Date.UTC(2026, 9, 21, 12, 0, 0);
@@ -25,22 +26,28 @@ test("the limits sit far above real use and well below an attack", () => {
   assert.deepEqual(AI_DAILY_ALLOWANCE, { scan: 40, hanger: 120, "brand-describe": 40, "brand-hanger": 60 });
 });
 
-test("an account past its AI allowance is told plainly, before the site ceiling is considered", () => {
-  const refused = aiAllowance("hanger", 121, 5, noon, 1000);
-  assert.equal(refused.allowed, false);
+test("an account past its AI allowance — counted in requests — is told plainly", () => {
+  const refused = aiAllowance("hanger", 121, noon);
   assert.ok(!refused.allowed && refused.scope === "account");
   assert.ok(!refused.allowed && /120 messages today/.test(refused.message));
   assert.ok(!refused.allowed && refused.retryAfterSeconds === 12 * 60 * 60, "it resets at midnight UTC");
-  assert.deepEqual(aiAllowance("scan", 40, 999, noon, 1000), { allowed: true }, "the 40th scan is still allowed");
+  assert.deepEqual(aiAllowance("scan", 40, noon), { allowed: true }, "the 40th scan is still allowed");
 });
 
-test("the site's daily AI ceiling pauses the AI for everyone, with its own message", () => {
-  const paused = aiAllowance("scan", 1, 1001, noon, 1000);
-  assert.ok(!paused.allowed && paused.scope === "site" && paused.message === SITE_PAUSE_MESSAGE);
+test("the site's ceiling counts model calls, and is configurable", () => {
+  assert.equal(DEFAULT_AI_DAILY_CEILING, 1_500);
+  assert.equal(siteModelCallAllowed(1_500, 1_500), true, "the 1,500th call is allowed");
+  assert.equal(siteModelCallAllowed(1_501, 1_500), false);
   assert.equal(aiDailyCeiling(undefined), DEFAULT_AI_DAILY_CEILING);
   assert.equal(aiDailyCeiling("250"), 250, "configurable with AI_DAILY_CEILING");
   assert.equal(aiDailyCeiling("-5"), DEFAULT_AI_DAILY_CEILING, "nonsense falls back to the default");
   assert.equal(aiDailyCeiling("abc"), DEFAULT_AI_DAILY_CEILING);
+});
+
+test("an unreadable budget refuses without blaming the person", () => {
+  const refused = aiUnavailable();
+  assert.ok(!refused.allowed && refused.scope === "unavailable" && refused.message === AI_UNAVAILABLE_MESSAGE);
+  assert.doesNotMatch(AI_UNAVAILABLE_MESSAGE, /you've|your/i);
 });
 
 test("a paused email is told how long, and pointed at password reset", () => {
@@ -56,32 +63,60 @@ test("counters and failed sign-ins are stored under keyed hashes, never a raw em
   assert.match(store, /PK:`SIGNIN#\$\{securityKey\(normalizeEmail\(email\)\)\}`/);
 });
 
-test("a storage failure never locks everyone out: the shared checks fail open", () => {
+test("sign-in checks fail open; AI budgets fail closed", () => {
   const guard = read("lib/server/abuse-guard.ts");
-  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 6, "every check, plus the helper");
-  assert.match(guard, /return \{ allowed: true \};\s*\}\s*\}\s*$/, "the AI allowance too");
+  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 5, "the four sign-in, sign-up and reset checks, plus the helper");
+  assert.match(guard, /return chargeAccountAllowance\(incrementSecurityCounter, action, accountId, now\);/, "the account allowance uses the fail-closed charge");
+  assert.match(guard, /return chargeSiteModelCall\(incrementSecurityCounter\);/, "and so does the site's ceiling");
 });
 
 test("sign-in checks the shared pause first, and counts every wrong password the same way", () => {
   const login = read("app/api/auth/login/route.ts");
-  assert.ok(login.indexOf("await signInPause(body.email)") < login.indexOf("await authenticateAccount("), "paused emails never reach the password check");
+  assert.ok(login.indexOf("await signInPause(email)") < login.indexOf("await authenticateAccount("), "paused emails never reach the password check");
   assert.match(login, /signInPausedMessage\(paused\.retryAfterSeconds\)/);
-  assert.match(login, /if\(!account\)\{[\s\S]*?await Promise\.all\(\[countSignInFailure\(body\.email\),recordFailedSignIn\(body\.email,device\)/, "unknown email and wrong password do the same work");
+  assert.match(login, /if\(!account\)\{[\s\S]*?await Promise\.all\(\[countSignInFailure\(email\),recordFailedSignIn\(email,device\)/, "unknown email and wrong password do the same work");
 });
 
-test("every model-backed route spends its allowance before calling a model", () => {
+test("a known device is exempt from the per-email pauses, and only those", () => {
+  const login = read("app/api/auth/login/route.ts");
+  assert.match(login, /const byClient=consumeRateLimit\(`login:\$\{clientIdentifier\(request\)\}`/, "the per-client limit always applies");
+  assert.match(login, /const byEmail=knownDevice\?byClient:consumeRateLimit\(`login-email:/);
+  assert.match(login, /if\(!knownDevice\)\{\s*const paused=await signInPause\(email\);/);
+  assert.match(login, /const known=knownDeviceCookie\(email,secret,production\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
+  assert.match(read("app/api/auth/password-reset/confirm/route.ts"), /knownDeviceCookie\(account\.email,secret,/, "and on a completed password reset, which proves the inbox");
+});
+
+test("every model-backed route spends its allowance first, and meters each model call", () => {
   const detect = read("app/api/garments/detect/route.ts");
   assert.ok(detect.indexOf('spendAiAllowance("scan",session.subject)') < detect.indexOf("await detectLookOrManualReview("));
+  assert.match(detect, /\{detect:metered\(spendSiteModelCall,detectGarmentsInLook\)\}/);
   const describe = read("app/api/brand/products/describe/route.ts");
   assert.ok(describe.indexOf('spendAiAllowance("brand-describe", session.subject)') < describe.indexOf("await detectLookOrManualReview("));
+  assert.match(describe, /\{ detect: metered\(spendSiteModelCall, detectGarmentsInLook\) \}/);
+  assert.match(describe, /if \(recognition\.aiPaused\) return/, "a paused budget is not described as an unreadable photo");
   const consumer = read("app/api/agents/consumer/route.ts");
   assert.ok(consumer.indexOf('spendAiAllowance("hanger", subject)') < consumer.indexOf("await runHangerAgent("));
-  assert.match(consumer, /const agentAttempted = isAgentEnabled\(\) && !aiPaused;/, "past the site ceiling no agent runs");
+  assert.match(consumer, /\}, metered\(spendSiteModelCall, bedrockAgentConverse\)\)\.catch\(\(\) => null\);/, "every agent round is metered");
+  assert.match(consumer, /\}, meteredOrNull\(spendSiteModelCall, bedrockHangerConverse\)\);/, "and the plain reply");
+  assert.match(consumer, /const agentAttempted = isAgentEnabled\(\) && !aiPaused;/, "an unreadable allowance runs no agent");
   assert.match(consumer, /allowModel: !aiPaused && /, "and no plain model call either");
-  assert.match(consumer, /aiPaused \? \{ degradedReason: SITE_PAUSE_REASON \}/, "and the reply says why");
+  assert.match(consumer, /aiPaused \? \{ degradedReason: AI_PAUSED_REASON \}/, "and the reply says why");
   const brand = read("app/api/agents/brand/route.ts");
   assert.match(brand, /metrics\.suppressed \? \{ allowed: true as const \} : await spendAiAllowance\("brand-hanger", session\.subject\)/, "below the privacy threshold no model is called, so nothing is spent");
-  assert.match(brand, /allowance\.allowed \? undefined : async \(\) => null\)/, "past the site ceiling, answered from released aggregates alone");
+  assert.match(brand, /allowance\.allowed \? meteredOrNull\(spendSiteModelCall, bedrockHangerConverse\) : async \(\) => null\)/, "a refused budget answers from released aggregates alone");
+});
+
+test("no route reaches a Bedrock runner without the meter", () => {
+  // The four runners that call a paid model in production. Anything else that calls Bedrock is
+  // reachable only from scripts and tests (bedrock-timeout.test.ts lists every call site).
+  for (const path of ["app/api/garments/detect/route.ts", "app/api/brand/products/describe/route.ts", "app/api/agents/consumer/route.ts", "app/api/agents/brand/route.ts"]) {
+    const code = read(path).split("\n").filter((line) => !line.startsWith("import ")).join("\n");
+    for (const runner of ["detectGarmentsInLook", "bedrockAgentConverse", "bedrockHangerConverse"]) {
+      const uses = code.match(new RegExp(`\\b${runner}\\b`, "g")) ?? [];
+      const metered = code.match(new RegExp(`metered(?:OrNull)?\\(spendSiteModelCall,\\s*${runner}\\)`, "g")) ?? [];
+      assert.equal(uses.length, metered.length, `${path}: every use of ${runner} is metered`);
+    }
+  }
 });
 
 test("sign-ups and reset emails are capped across every instance", () => {
@@ -90,6 +125,19 @@ test("sign-ups and reset emails are capped across every instance", () => {
   const reset = read("app/api/auth/password-reset/request/route.ts");
   assert.match(reset, /\(await claimPasswordResetEmail\(body\.email\)\)\.allowed/);
   assert.equal((reset.match(/GENERIC_RESET_RESPONSE\},\{status:202\}/g) ?? []).length, 2, "every outcome answers the same way");
+});
+
+test("every write endpoint that had no limit now has one, keyed on the account", () => {
+  const checks: Array<[string, RegExp]> = [
+    ["app/api/wears/route.ts", /consumeRateLimit\(`wear:\$\{session\.subject\}`,RATE_LIMIT_RULES\.wearRecord\)/],
+    ["app/api/consumer/consent/route.ts", /consumeRateLimit\(`consent:\$\{session\.subject\}`,RATE_LIMIT_RULES\.consentChange\)/],
+    ["app/api/brand/products/route.ts", /consumeRateLimit\(`brand-enroll:\$\{session\.subject\}`,RATE_LIMIT_RULES\.brandProductEnroll\)/],
+    ["app/api/brand/looks/route.ts", /consumeRateLimit\(`brand-look:\$\{session\.subject\}`,RATE_LIMIT_RULES\.brandLookPublish\)/],
+    ["app/api/consumer/wardrobe/route.ts", /consumeRateLimit\(`wardrobe-save:\$\{session\.subject\}`,RATE_LIMIT_RULES\.wardrobeWrite\)/],
+  ];
+  for (const [path, pattern] of checks) assert.match(read(path), pattern, path);
+  const outfits = read("app/api/consumer/outfits/route.ts");
+  assert.equal((outfits.match(/`outfit-write:\$\{session\.subject\}`/g) ?? []).length, 3, "saving, editing, and deleting outfits");
 });
 
 test("the table expires counters, activity, and reset tokens on its own", () => {

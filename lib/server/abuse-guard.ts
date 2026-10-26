@@ -1,12 +1,17 @@
 import "server-only";
-import { aiAllowance, DAY_MS, DURABLE_LIMITS, durableDecision, type AiAction, type AiAllowance } from "@/lib/abuse-limits";
+import { DURABLE_LIMITS, durableDecision, type AiAction, type AiAllowance } from "@/lib/abuse-limits";
+import { chargeAccountAllowance, chargeSiteModelCall } from "@/lib/ai-budget";
 import type { RateLimitDecision } from "@/lib/rate-limit";
 import { incrementSecurityCounter, readSecurityCounter } from "@/lib/server/production-store";
 
 /**
- * The shared limits, applied. If the counter store cannot be reached, a check fails open: the
- * per-instance limiter in rate-limit.ts still applies, and a storage hiccup must never lock every
- * person out of their account. Each failure is logged by name only.
+ * The shared limits, applied. The two kinds fail in opposite directions when the counter store
+ * cannot be reached, each logged by name only:
+ *
+ * - **Sign-in, sign-up and reset checks fail open.** The per-instance limiter in rate-limit.ts still
+ *   applies, and a storage hiccup must never lock every person out of their account.
+ * - **AI budgets fail closed** (lib/ai-budget.ts). A storage hiccup must never mean unmetered paid
+ *   model calls; the non-model fallback answers instead.
  */
 const OPEN: RateLimitDecision = { allowed: true, retryAfterSeconds: 0 };
 
@@ -59,19 +64,12 @@ export async function claimPasswordResetEmail(email: string, now = Date.now()): 
   }
 }
 
-/**
- * Spends one model-backed request from the account's daily allowance and the site's daily ceiling.
- * Call it once per request, before the model is called.
- */
-export async function spendAiAllowance(action: AiAction, accountId: string, now = Date.now()): Promise<AiAllowance> {
-  try {
-    const [account, site] = await Promise.all([
-      incrementSecurityCounter(`ai:${action}:${accountId}`, DAY_MS, now),
-      incrementSecurityCounter("ai:site", DAY_MS, now),
-    ]);
-    return aiAllowance(action, account.count, site.count, now);
-  } catch (error) {
-    failOpen(`ai allowance (${action})`, error);
-    return { allowed: true };
-  }
+/** Spends one request from the account's daily allowance. Call it once per request, before any model call. */
+export function spendAiAllowance(action: AiAction, accountId: string, now = Date.now()): Promise<AiAllowance> {
+  return chargeAccountAllowance(incrementSecurityCounter, action, accountId, now);
+}
+
+/** Spends one model call from the site's daily ceiling. Pass it to `metered` around each model runner. */
+export function spendSiteModelCall(): Promise<boolean> {
+  return chargeSiteModelCall(incrementSecurityCounter);
 }

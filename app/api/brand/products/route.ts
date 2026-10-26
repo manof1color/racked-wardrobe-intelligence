@@ -6,6 +6,7 @@ import { stripImageMetadata } from "@/lib/image-sanitize";
 import { createBrandProductRegistration, registryIdentityConflict } from "@/lib/product-registry";
 import { getAccount, listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
+import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
 export const runtime="nodejs";
 const views:GarmentView[]=["front","back","label"];
@@ -17,6 +18,8 @@ export async function POST(request:Request){
   const session=await getSession();
   if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
   if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});
+  const limit=consumeRateLimit(`brand-enroll:${session.subject}`,RATE_LIMIT_RULES.brandProductEnroll);
+  if(!limit.allowed)return NextResponse.json({error:"Too many products enrolled in the last hour. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const contentLength=Number(request.headers.get("content-length")??0);
   if(contentLength>(MAX_UPLOAD_BYTES*3)+1_000_000)return NextResponse.json({error:"The complete registration must be no more than 16 MB."},{status:413});
   try {

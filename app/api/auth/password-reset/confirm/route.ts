@@ -2,14 +2,22 @@ import { NextResponse } from "next/server";
 import { consumePasswordReset, recordAccountActivity } from "@/lib/server/production-store";
 import { deviceLabel } from "@/lib/device-label";
 import { passwordValidationError } from "@/lib/account-security";
+import { knownDeviceCookie } from "@/lib/known-device";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
 export async function POST(request:Request){
   const limit=consumeRateLimit(`password-reset-confirm:${clientIdentifier(request)}`,RATE_LIMIT_RULES.passwordResetConsume);if(!limit.allowed)return NextResponse.json({error:"Too many reset attempts. Try again later."},{status:429});
-  const body=await request.json().catch(()=>null) as {token?:string;password?:string}|null;
-  if(!body?.token||body.token.length>200)return NextResponse.json({error:"This reset link is invalid or expired."},{status:400});
-  const passwordError=passwordValidationError(body.password??"");if(passwordError)return NextResponse.json({error:passwordError},{status:400});
-  const account=await consumePasswordReset(body.token,body.password!);if(!account)return NextResponse.json({error:"This reset link is invalid, expired, or already used."},{status:400});
+  const body=await request.json().catch(()=>null) as {token?:unknown;password?:unknown}|null;
+  const token=typeof body?.token==="string"?body.token:"";
+  const password=typeof body?.password==="string"?body.password:"";
+  if(!token||token.length>200)return NextResponse.json({error:"This reset link is invalid or expired."},{status:400});
+  const passwordError=password.length>1_024?"Use a password of at most 1,024 characters.":passwordValidationError(password);if(passwordError)return NextResponse.json({error:passwordError},{status:400});
+  const account=await consumePasswordReset(token,password);if(!account)return NextResponse.json({error:"This reset link is invalid, expired, or already used."},{status:400});
   await recordAccountActivity(account.id,"password-reset",deviceLabel(request.headers.get("user-agent"))).catch(()=>undefined);
-  return NextResponse.json({message:"Password updated. Sign in with your new password."});
+  const response=NextResponse.json({message:"Password updated. Sign in with your new password."});
+  // Whoever opened the emailed link controls the inbox, so this browser is known to the account:
+  // someone pausing sign-ins for this email address cannot keep its owner out (lib/known-device.ts).
+  const secret=process.env.SESSION_SECRET;
+  if(secret&&account.email){const known=knownDeviceCookie(account.email,secret,process.env.NODE_ENV==="production");response.cookies.set(known.name,known.value,known.options);}
+  return response;
 }

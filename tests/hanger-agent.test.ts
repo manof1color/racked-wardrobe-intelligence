@@ -206,7 +206,7 @@ test("the route asks the agent first and falls back without a second model wait"
   assert.match(route, /allowModel: !aiPaused && \(!agentAttempted \|\| plainReplyWorthTrying\(agentOutcome\.failure\)\),/, "a slow agent failure — or the site's daily AI ceiling — is answered from the wardrobe at once");
   assert.match(route, /outfitCards\(agent\.outfits, agentActions\)/);
   assert.match(route, /rememberSuggestedItemIds\(nextState, agent\.offered\)/);
-  assert.match(read("lib/hanger-conversation.ts"), /input\.allowModel === false \? null : await converse\(/);
+  assert.match(read("lib/hanger-conversation.ts"), /input\.allowModel === false \? null : await converseWithModel\(/);
 });
 
 // REGRESSION: a set's buttons are "save-outfit-2", "record-outfit-3". The panel only recognised the

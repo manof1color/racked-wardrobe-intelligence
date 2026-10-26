@@ -29,10 +29,17 @@ export const DURABLE_LIMITS = {
 } as const satisfies Record<string, DurableRule>;
 
 /**
- * "Denial of wallet": every scan and Hanger message is a paid model call, so a flood of them
- * spends real money even when nothing breaks. Each account has a daily allowance per action, and
- * the whole site has a daily ceiling on model-backed requests. The allowances sit far above
- * anything a person uses in a day.
+ * "Denial of wallet": scans and Hanger messages call a paid model, so a flood of them spends real
+ * money even when nothing breaks. Two budgets, in two different units:
+ *
+ * - **Per account, per day, in requests** — 40 scans, 120 Hanger messages, and so on. A person can
+ *   understand "messages"; these sit far above a day's real use.
+ * - **Site-wide, per day, in model calls** (lib/ai-budget.ts) — the unit Bedrock bills. One Hanger
+ *   message can make up to five agent calls and a plain fallback reply, so counting requests would
+ *   understate spending several times over.
+ *
+ * Both fail closed: if the counter cannot be read, no model is called and the non-model fallback
+ * answers.
  */
 export type AiAction = "scan" | "hanger" | "brand-describe" | "brand-hanger";
 
@@ -43,8 +50,11 @@ export const AI_DAILY_ALLOWANCE: Record<AiAction, number> = {
   "brand-hanger": 60,
 };
 
-/** Model-backed requests per day across every account; `AI_DAILY_CEILING` overrides it. */
-export const DEFAULT_AI_DAILY_CEILING = 1_000;
+/**
+ * Model calls per day across every account; `AI_DAILY_CEILING` overrides it. At Nova Pro prices a
+ * call costs roughly half a cent to a cent and a half, so 1,500 bounds a worst day at about $8–20.
+ */
+export const DEFAULT_AI_DAILY_CEILING = 1_500;
 
 export function aiDailyCeiling(configured: string | undefined = process.env.AI_DAILY_CEILING) {
   const value = Number(configured);
@@ -64,7 +74,7 @@ export function windowStart(now: number, windowMs: number) {
 
 export type AiAllowance =
   | { allowed: true }
-  | { allowed: false; scope: "account" | "site"; retryAfterSeconds: number; message: string };
+  | { allowed: false; scope: "account" | "unavailable"; retryAfterSeconds: number; message: string };
 
 const ACCOUNT_MESSAGES: Record<AiAction, (limit: number) => string> = {
   scan: (limit) => `You've used today's ${limit} scans. More open at midnight UTC.`,
@@ -73,18 +83,29 @@ const ACCOUNT_MESSAGES: Record<AiAction, (limit: number) => string> = {
   "brand-hanger": (limit) => `You've asked Brand Hanger ${limit} questions today. More open at midnight UTC.`,
 };
 
-export const SITE_PAUSE_MESSAGE = "Racked's AI is paused for the rest of today to protect the service. It resumes at midnight UTC.";
-/** The same pause, as the reason on Hanger's "written without the stylist model" note. */
-export const SITE_PAUSE_REASON = "the AI is paused for the rest of today to protect the service, and resumes at midnight UTC";
+/** When the budget counter itself cannot be read: fail closed, without blaming the person. */
+export const AI_UNAVAILABLE_MESSAGE = "Racked's AI is briefly unavailable. Try again in a few minutes.";
+/**
+ * The reason on Hanger's "written without the stylist model" note when a budget stopped the model:
+ * the site's ceiling, or a counter that could not be read. True in both cases.
+ */
+export const AI_PAUSED_REASON = "the AI is paused to protect the service";
 
-/** Combines the account's allowance and the site's ceiling into one answer. */
-export function aiAllowance(action: AiAction, accountCount: number, siteCount: number, now = Date.now(), ceiling = aiDailyCeiling()): AiAllowance {
+export function aiUnavailable(): AiAllowance {
+  return { allowed: false, scope: "unavailable", retryAfterSeconds: 60, message: AI_UNAVAILABLE_MESSAGE };
+}
+
+/** The account's daily allowance, in requests. The site's ceiling is enforced per model call. */
+export function aiAllowance(action: AiAction, accountCount: number, now = Date.now()): AiAllowance {
   const resetAt = windowStart(now, DAY_MS) + DAY_MS;
   const account = durableDecision(accountCount, AI_DAILY_ALLOWANCE[action], resetAt, now);
   if (!account.allowed) return { allowed: false, scope: "account", retryAfterSeconds: account.retryAfterSeconds, message: ACCOUNT_MESSAGES[action](AI_DAILY_ALLOWANCE[action]) };
-  const site = durableDecision(siteCount, ceiling, resetAt, now);
-  if (!site.allowed) return { allowed: false, scope: "site", retryAfterSeconds: site.retryAfterSeconds, message: SITE_PAUSE_MESSAGE };
   return { allowed: true };
+}
+
+/** Whether one more model call fits under the site's daily ceiling. */
+export function siteModelCallAllowed(callCount: number, ceiling = aiDailyCeiling()) {
+  return callCount <= ceiling;
 }
 
 export function signInPausedMessage(retryAfterSeconds: number) {

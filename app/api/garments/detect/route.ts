@@ -3,10 +3,11 @@ import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
 import { MAX_INPUT_PIXELS, readCappedFormData, SINGLE_PHOTO_BODY_BYTES } from "@/lib/request-body";
-import { type NormalizedBounds } from "@/lib/look-garment-detection";
+import { detectGarmentsInLook, type NormalizedBounds } from "@/lib/look-garment-detection";
+import { metered } from "@/lib/ai-budget";
 import { detectLookOrManualReview, prepareSimpleLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { spendAiAllowance } from "@/lib/server/abuse-guard";
+import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
 import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
 export const runtime="nodejs";
@@ -50,7 +51,8 @@ export async function POST(request:Request) {
       .resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true})
       .jpeg({quality:84,mozjpeg:true})
       .toBuffer({resolveWithObject:true});
-    // Each scan is a paid model call: spent from the account's daily allowance and the site's ceiling.
+    // A scan is spent from the account's daily allowance, and its model call from the site's ceiling.
+    // When the ceiling refuses, the person gets an editable item to fill in instead of a recognition.
     const allowance=await spendAiAllowance("scan",session.subject);
     if(!allowance.allowed)return NextResponse.json({error:allowance.message},{status:allowance.scope==="account"?429:503,headers:{"retry-after":String(allowance.retryAfterSeconds)}});
     stage="recognition";
@@ -58,7 +60,7 @@ export async function POST(request:Request) {
       base64:prepared.data.toString("base64"),
       contentType:"image/jpeg",
       image:{width:prepared.info.width,height:prepared.info.height},
-    });
+    },{detect:metered(spendSiteModelCall,detectGarmentsInLook)});
     const detections=recognition.detections;
 
     stage="storage";
