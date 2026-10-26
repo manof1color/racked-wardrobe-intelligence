@@ -139,9 +139,19 @@ export async function otherBrandNames(ownerId:string,known?:BrandProductRegistra
   return [...names];
 }
 
+/**
+ * A salt for the password check run when no account matches. Without it an unknown email was
+ * rejected at once while a known one paid for the full scrypt derivation, so response time alone
+ * told an attacker which emails have accounts — the enumeration the reset flow already prevents.
+ */
+const TIMING_EQUALIZER_SALT="racked-sign-in-timing-equalizer";
+
 export async function authenticateAccount(email:string,password:string) {
   const account=await findAccountByEmail(email);
-  if (!account) return null;
+  if (!account) {
+    await passwordDigest(password,TIMING_EQUALIZER_SALT);
+    return null;
+  }
   const supplied=Buffer.from(await passwordDigest(password,account.passwordSalt),"base64url");
   const expected=Buffer.from(account.passwordHash,"base64url");
   return supplied.length===expected.length&&timingSafeEqual(supplied,expected)?account:null;

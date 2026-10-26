@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFirstUpload } from "@/lib/garment-analysis";
+import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFirstUpload } from "@/lib/garment-analysis";
+import { readCappedFormData } from "@/lib/request-body";
+import { stripImageMetadata } from "@/lib/image-sanitize";
 import { createBrandProductRegistration, registryIdentityConflict } from "@/lib/product-registry";
 import { getAccount, listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
@@ -18,7 +20,8 @@ export async function POST(request:Request){
   const contentLength=Number(request.headers.get("content-length")??0);
   if(contentLength>(MAX_UPLOAD_BYTES*3)+1_000_000)return NextResponse.json({error:"The complete registration must be no more than 16 MB."},{status:413});
   try {
-    const form=await request.formData();
+    // Up to three photos, read under the upload cap whatever Content-Length claimed.
+    const form=await readCappedFormData(request).catch((error:unknown)=>{throw asUploadError(error);});
     // A product photo is required; back and label photos are optional. Identity comes from the SKU
     // and GTIN typed below, and no match has ever read a label photo, so requiring one only slowed
     // enrollment down.
@@ -26,6 +29,9 @@ export async function POST(request:Request){
     if(!files.some(entry=>entry.view==="front"))throw new UploadValidationError("Add a product photo.");
     const basicParts=await Promise.all(files.map(async({view,file})=>{const bytes=await file.arrayBuffer();const hash=await crypto.subtle.digest("SHA-256",bytes);return {view,fileName:file.name,contentType:file.type,size:file.size,sha256:Buffer.from(hash).toString("hex")} as UploadDescriptor;}));
     validateFrontFirstUpload(basicParts);
+    // Re-encoded before anything is stored: drops GPS and camera metadata, and proves each file is
+    // the image it claims to be. A file that is not fails here, with nothing written.
+    const cleaned=await Promise.all(files.map(async({file})=>stripImageMetadata(Buffer.from(await file.arrayBuffer()))));
     const [account,registry]=await Promise.all([getAccount(session.subject),listRegistryProducts()]);
     if(!account?.brandName)throw new Error("This account has no verified brand profile.");
     const brandName=account.brandName;
@@ -34,9 +40,9 @@ export async function POST(request:Request){
     const others=await otherBrandNames(session.subject,registry);
     const conflict=registryIdentityConflict(details(basicParts,others),registry);
     if(conflict)return NextResponse.json({error:conflict},{status:409});
-    const storedParts=await Promise.all(files.map(async({file},index)=>({...basicParts[index],storageKey:await putPrivateImage(session.subject,"brand",Buffer.from(await file.arrayBuffer()),file.type)})));
+    const storedParts=await Promise.all(files.map(async(_,index)=>({...basicParts[index],contentType:cleaned[index].contentType,storageKey:await putPrivateImage(session.subject,"brand",cleaned[index].bytes,cleaned[index].contentType)})));
     const product=details(storedParts,others);
     await saveBrandProduct(session.subject,product);
-    return NextResponse.json({product,retention:"Brand-authorized originals are encrypted in private S3."},{status:201});
+    return NextResponse.json({product,retention:"Brand-authorized photos are re-encoded without location or camera metadata and encrypted in private S3."},{status:201});
   } catch(error){if(error instanceof UploadValidationError)return NextResponse.json({error:error.message},{status:error.status});return NextResponse.json({error:error instanceof Error?error.message:"Product registration failed."},{status:400});}
 }
