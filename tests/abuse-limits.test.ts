@@ -83,7 +83,7 @@ test("a known device is exempt from the per-email pauses, and only those", () =>
   assert.match(login, /const byEmail=knownDevice\?byClient:consumeRateLimit\(`login-email:/);
   assert.match(login, /if\(!knownDevice\)\{\s*const paused=await signInPause\(email\);/);
   assert.match(login, /const known=knownDeviceCookie\(email,secret,production\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
-  assert.match(read("app/api/auth/password-reset/confirm/route.ts"), /knownDeviceCookie\(account\.email,secret,/, "and on a completed password reset, which proves the inbox");
+  assert.match(read("app/api/auth/password-reset/confirm/route.ts"), /knownDeviceCookie\(email,secret,/, "and on a completed password reset, which proves the inbox");
 });
 
 test("every model-backed route spends its allowance first, and meters each model call", () => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { consumePasswordReset, recordAccountActivity } from "@/lib/server/production-store";
+import { consumePasswordReset, getAccount, recordAccountActivity } from "@/lib/server/production-store";
 import { deviceLabel } from "@/lib/device-label";
 import { passwordValidationError } from "@/lib/account-security";
 import { knownDeviceCookie } from "@/lib/known-device";
@@ -17,7 +17,10 @@ export async function POST(request:Request){
   const response=NextResponse.json({message:"Password updated. Sign in with your new password."});
   // Whoever opened the emailed link controls the inbox, so this browser is known to the account:
   // someone pausing sign-ins for this email address cannot keep its owner out (lib/known-device.ts).
+  // The address is read from the profile, not from the record the reset returned: that record also
+  // carries the new password hash, and nothing derived from it should be keyed into a cookie.
   const secret=process.env.SESSION_SECRET;
-  if(secret&&account.email){const known=knownDeviceCookie(account.email,secret,process.env.NODE_ENV==="production");response.cookies.set(known.name,known.value,known.options);}
+  const email=secret?(await getAccount(account.id).catch(()=>null))?.email:null;
+  if(secret&&email){const known=knownDeviceCookie(email,secret,process.env.NODE_ENV==="production");response.cookies.set(known.name,known.value,known.options);}
   return response;
 }
