@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { UploadValidationError } from "./garment-analysis.ts";
+import { MAX_INPUT_PIXELS } from "./request-body.ts";
 
 /**
  * Re-encodes an uploaded photograph before it is stored.
@@ -15,15 +16,15 @@ import { UploadValidationError } from "./garment-analysis.ts";
 const FORMATS = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" } as const;
 type Format = keyof typeof FORMATS;
 
-export async function stripImageMetadata(bytes: Buffer): Promise<{ bytes: Buffer; contentType: string }> {
+export async function stripImageMetadata(bytes: Buffer, maxPixels = MAX_INPUT_PIXELS): Promise<{ bytes: Buffer; contentType: string }> {
   let format: string | undefined;
   try {
-    format = (await sharp(bytes, { failOn: "error" }).metadata()).format;
+    format = (await sharp(bytes, { failOn: "error", limitInputPixels: maxPixels }).metadata()).format;
   } catch {
     throw new UploadValidationError("That file is not a readable image.");
   }
   if (!format || !(format in FORMATS)) throw new UploadValidationError("Photos must be JPG, PNG, or WebP.");
-  const pipeline = sharp(bytes, { failOn: "error" }).rotate();
+  const pipeline = sharp(bytes, { failOn: "error", limitInputPixels: maxPixels }).rotate();
   const output = format === "png" ? pipeline.png() : format === "webp" ? pipeline.webp({ quality: 90 }) : pipeline.jpeg({ quality: 90, mozjpeg: true });
   return { bytes: await output.toBuffer(), contentType: FORMATS[format as Format] };
 }

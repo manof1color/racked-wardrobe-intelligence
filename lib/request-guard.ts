@@ -1,3 +1,5 @@
+import { isTrustedOrigin, type OriginEnvironment } from "./site-origin.ts";
+
 /**
  * The first check every API request meets, before any route code runs.
  *
@@ -5,12 +7,15 @@
  *
  * - **Cross-site request forgery.** A page on another site can make a signed-in person's browser
  *   send a POST to Racked. Session cookies are already SameSite=Lax, which blocks most of these;
- *   this is the second lock. A state-changing request must come from Racked's own pages, judged by
- *   the Origin header browsers attach — and when a browser sends no Origin, by Sec-Fetch-Site.
- *   A client that is not a browser cannot carry anyone's cookies, so it gains nothing here.
+ *   this is the second lock. A state-changing request must carry an Origin on Racked's explicit
+ *   allowlist (lib/site-origin.ts) — never one that merely matches the request's own Host or
+ *   X-Forwarded-Host, which a client can influence. When a browser sends no Origin, it must not
+ *   mark the request cross-site. A client that is not a browser cannot carry anyone's cookies, so
+ *   it gains nothing here.
  * - **Oversized bodies.** A route that parses a request reads all of it into memory first, so an
- *   enormous body is a cheap way to exhaust a server. Bodies are capped by what the app actually
- *   sends: three 5 MB product photos at most, and a few kilobytes of JSON otherwise.
+ *   enormous body is a cheap way to exhaust a server. A declared length over the cap is refused
+ *   here; a body with no declared length must not be streamed; and the route-level readers in
+ *   lib/request-body.ts stop reading at the same cap whatever the headers claimed.
  *
  * Pure, with no Node APIs, so it runs in Next.js middleware and in plain unit tests alike.
  */
@@ -25,27 +30,13 @@ export interface GuardRequest {
   method: string;
   pathname: string;
   headers: { get(name: string): string | null };
-  /** The site's public address, in case the hosting layer forwards requests under an internal host. */
-  siteUrl?: string;
+  /** Where the trusted origins come from; never the request itself. */
+  environment?: OriginEnvironment;
 }
 
 export type GuardDecision = { allowed: true } | { allowed: false; status: 403 | 411 | 413; error: string };
 
-const firstHost = (value: string | null) => (value ? value.split(",")[0].trim().toLowerCase() : "");
-
-function originHost(origin: string) {
-  try {
-    return new URL(origin).host.toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-/** Hosts this request was addressed to, as the browser saw them. */
-function requestHosts(request: GuardRequest) {
-  const site = request.siteUrl ? originHost(request.siteUrl) : null;
-  return new Set([firstHost(request.headers.get("host")), firstHost(request.headers.get("x-forwarded-host")), site ?? ""].filter(Boolean));
-}
+const FORGED = { allowed: false, status: 403, error: "This request must come from Racked itself." } as const;
 
 export function guardRequest(request: GuardRequest): GuardDecision {
   const method = request.method.toUpperCase();
@@ -55,12 +46,9 @@ export function guardRequest(request: GuardRequest): GuardDecision {
   if (!ORIGIN_EXEMPT_PATHS.has(request.pathname)) {
     const origin = headers.get("origin");
     if (origin) {
-      const host = origin === "null" ? null : originHost(origin);
-      if (!host || !requestHosts(request).has(host)) {
-        return { allowed: false, status: 403, error: "This request must come from Racked itself." };
-      }
+      if (origin === "null" || !isTrustedOrigin(origin, request.environment)) return FORGED;
     } else if ((headers.get("sec-fetch-site") ?? "").toLowerCase() === "cross-site") {
-      return { allowed: false, status: 403, error: "This request must come from Racked itself." };
+      return FORGED;
     }
   }
 
@@ -71,10 +59,14 @@ export function guardRequest(request: GuardRequest): GuardDecision {
     return { allowed: true };
   }
   const length = Number(declared);
-  const upload = (headers.get("content-type") ?? "").toLowerCase().startsWith("multipart/form-data");
-  const limit = upload ? MAX_UPLOAD_BODY_BYTES : MAX_JSON_BODY_BYTES;
+  const limit = maxBodyBytes(headers.get("content-type"));
   if (!Number.isFinite(length) || length < 0 || length > limit) {
-    return { allowed: false, status: 413, error: upload ? "That upload is too large." : "That request is too large." };
+    return { allowed: false, status: 413, error: limit === MAX_UPLOAD_BODY_BYTES ? "That upload is too large." : "That request is too large." };
   }
   return { allowed: true };
+}
+
+/** The body cap for a content type: photo uploads, or everything else. */
+export function maxBodyBytes(contentType: string | null) {
+  return (contentType ?? "").toLowerCase().startsWith("multipart/form-data") ? MAX_UPLOAD_BODY_BYTES : MAX_JSON_BODY_BYTES;
 }

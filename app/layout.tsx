@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { PwaInstall } from "@/components/pwa-install";
 import { INSTALL_PROMPT_CAPTURE } from "@/lib/pwa-install";
+import { publicOrigin } from "@/lib/site-origin";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  // Production had no NEXT_PUBLIC_SITE_URL, so link previews pointed at localhost; the configured
+  // public origin falls back to the production address instead.
+  metadataBase: new URL(publicOrigin()),
   title: {
     default: "Racked — Wardrobe intelligence for better-fit products",
     template: "%s | Racked",

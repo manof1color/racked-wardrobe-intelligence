@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
-import { MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
+import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError } from "@/lib/garment-analysis";
+import { MAX_INPUT_PIXELS, readCappedFormData, SINGLE_PHOTO_BODY_BYTES } from "@/lib/request-body";
 import { type NormalizedBounds } from "@/lib/look-garment-detection";
 import { detectLookOrManualReview, prepareSimpleLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
@@ -35,14 +36,15 @@ export async function POST(request:Request) {
   if(Number(request.headers.get("content-length")??0)>MAX_UPLOAD_BYTES+1_000_000)return NextResponse.json({error:"The photo must be no more than 5 MB."},{status:413});
   let stage:"input"|"recognition"|"storage"="input";
   try {
-    const form=await request.formData();
+    // Read under a hard cap, whatever Content-Length claimed.
+    const form=await readCappedFormData(request,SINGLE_PHOTO_BODY_BYTES).catch((error:unknown)=>{throw asUploadError(error);});
     const file=form.get("photo");
     if(!(file instanceof File)||file.size===0)throw new UploadValidationError("Choose a photo containing the pieces you want to add.");
     if(!allowedTypes.has(file.type))throw new UploadValidationError("The look photo must be JPG, PNG, or WebP.");
     if(file.size>MAX_UPLOAD_BYTES)throw new UploadValidationError("The look photo must be no more than 5 MB.",413);
     if((process.env.AI_PROVIDER??"").toLowerCase()!=="bedrock")return NextResponse.json({error:"Multi-piece AI scanning is not configured. Add the private Amazon Bedrock provider configuration first."},{status:503});
 
-    const prepared=await sharp(Buffer.from(await file.arrayBuffer()))
+    const prepared=await sharp(Buffer.from(await file.arrayBuffer()),{limitInputPixels:MAX_INPUT_PIXELS})
       .rotate()
       .resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true})
       .jpeg({quality:84,mozjpeg:true})
