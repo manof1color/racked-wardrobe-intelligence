@@ -216,7 +216,15 @@ check("Brand X cannot read Brand Y's analytics or put Y's product in a Look", xO
 // ── The cohort threshold, distinct owners, consent, and small cells ─────────
 const before = await x.request("POST", "/api/brand/metrics", { productId: PX });
 check("24 consenting owners stay suppressed, the count withheld too", before.status === 200 && before.json?.metrics?.suppressed === true && before.json?.metrics?.segmentSize === 0, JSON.stringify({ suppressed: before.json?.metrics?.suppressed, size: before.json?.metrics?.segmentSize }));
+const consentRecords = async () => ((await db.send(new QueryCommand({ TableName: TABLE, KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": `USER#${ids.a}`, ":sk": "CONSENT#" } }))).Items ?? []);
+const neverAsked = await a.request("GET", "/api/consumer/consent");
+const offWhileOff = await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: false });
+check("turning sharing off when it was never on writes no record", neverAsked.json?.brandDataSharing === false && neverAsked.json?.terms === null && offWhileOff.status === 200 && (await consentRecords()).length === 0, JSON.stringify(neverAsked.json));
 await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: true });
+const onAgain = await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: true });
+const afterOn = await consentRecords();
+const sharingNow = await a.request("GET", "/api/consumer/consent");
+check("turning sharing on records it once, with the wording shown", onAgain.status === 200 && afterOn.length === 1 && afterOn[0].sharing === true && afterOn[0].terms === "2026-10-27" && afterOn[0].ttl === undefined && sharingNow.json?.brandDataSharing === true && sharingNow.json?.terms === "2026-10-27" && sharingNow.json?.currentTerms === "2026-10-27", JSON.stringify({ records: afterOn.length, terms: sharingNow.json?.terms }));
 const released = await x.request("POST", "/api/brand/metrics", { productId: PX });
 const metrics = released.json?.metrics ?? {};
 check("A opting in makes 25 distinct owners: released, and A's 21 linked garments count once", metrics.suppressed === false && metrics.segmentSize === 25, `size=${metrics.segmentSize}`);
@@ -228,6 +236,9 @@ check("no owner ID, email, or garment reaches the brand", !/USER#|harness-cohort
 await a.request("PATCH", "/api/consumer/consent", { brandDataSharing: false });
 const withdrawn = await x.request("POST", "/api/brand/metrics", { productId: PX });
 check("withdrawing consent drops the cohort below the threshold at once", withdrawn.json?.metrics?.suppressed === true, String(withdrawn.json?.metrics?.suppressed));
+const afterOff = (await consentRecords()).sort((left, right) => String(left.at).localeCompare(String(right.at)));
+const sharingTypes = ((await a.request("GET", "/api/account/activity")).json?.activity ?? []).map((entry) => entry.type).filter((type) => type.startsWith("brand-sharing"));
+check("the withdrawal is a second record; the owner sees each change once in their activity", afterOff.length === 2 && afterOff[1].sharing === false && sharingTypes.filter((type) => type === "brand-sharing-on").length === 1 && sharingTypes.filter((type) => type === "brand-sharing-off").length === 1, JSON.stringify({ records: afterOff.map((record) => record.sharing), sharingTypes }));
 
 // ── Concurrent enumeration ──────────────────────────────────────────────────
 const burst = await Promise.all(Array.from({ length: 12 }, (_, index) => y.request("POST", "/api/brand/metrics", { productId: `registry-py${index}-${run}` })));

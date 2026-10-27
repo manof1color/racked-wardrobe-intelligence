@@ -82,10 +82,10 @@ test("REGRESSION: a kept piece's record never points at a photo that is about to
 });
 
 test("the sharing switch says it includes wear recorded before it was turned on", () => {
-  const banner = read("components/consumer-dashboard.tsx");
+  // The switch renders the versioned text in lib/brand-sharing-consent.ts (tests/brand-sharing-consent.test.ts).
+  const banner = read("lib/brand-sharing-consent.ts");
   assert.match(banner, /including wear you recorded before turning it on/);
-  assert.match(banner, /Turn it off and your wear stops counting from then on, though figures a brand has already seen can&rsquo;t be taken back/);
-  assert.doesNotMatch(banner, /may contribute/, "the old wording left the earlier wear out");
+  assert.match(banner, /Turn it off and your wear stops counting from then on, though figures a brand has already seen can’t be taken back/);
   const privacy = read("app/privacy/page.tsx");
   assert.match(privacy, /turning it on includes wear you recorded earlier/);
   assert.match(privacy, /Photos from a scan that you don&rsquo;t keep are deleted automatically within two days/);
