@@ -14,7 +14,7 @@ is why most wardrobe apps are abandoned after a week of manual data entry.
 ## Solution
 
 Racked is a two-sided wardrobe-intelligence platform. A consumer photographs an outfit, a flat lay, or
-a whole rail; Amazon Bedrock Nova Pro finds every garment in that one photo and returns a controlled
+a whole rail; Amazon Bedrock Nova Pro proposes visible garments in that photo and returns a controlled
 category, type, colour, and material per piece. They confirm each card, build outfits, and record
 wear — and outfit building *is* wear tracking, which is why the data stays honest. A brand enrols a
 product from one photo plus its style code, and receives actual-wear intelligence for its own
@@ -37,8 +37,8 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **784 tests and a CI gate** — lint, type check, tests, production build, dependency audit, CodeQL —
-  on every pull request, with a build log through Phase 78 (verified 2026-10-13).
+- **806 tests and a CI gate** — lint, type check, tests, production build, dependency audit, CodeQL —
+  on every pull request, with a build log through Phase 86 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-10-27).
 
 ## Lessons learned
 

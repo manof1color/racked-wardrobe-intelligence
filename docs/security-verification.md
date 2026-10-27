@@ -178,14 +178,107 @@ commands only read, except where marked. Region `us-east-2`; Amplify app `d2iv0k
 | Staging separation | `aws amplify list-branches --app-id d2iv0khybuuaeh --query "branches[].branchName"`, and each branch's `RACKED_TABLE_NAME` | production alone on the production table and bucket | |
 | Alarms and destination | `aws cloudwatch describe-alarms`; `aws sns list-subscriptions` | alarms below exist; the email subscription is `Confirmed` | |
 
-**Alarms to add** (CloudWatch standard alarms are $0.10 each a month; metric filters and SNS email
-are free at this volume; two AWS Budgets are free):
+**Alerts prepared in the template, not applied:** see the owner-only
+[security-alert change-set runbook](aws-deployment.md#security-alerts--owner-applied-not-deployed).
+Amplify compute logging must be enabled; discover the actual Standard-class compute log group
+with `aws logs describe-log-groups --log-group-name-prefix /aws/amplify --region us-east-2`.
+Do not guess it. A blank group omits the six log alarms; an omitted alert email creates no
+subscription. Apply only a reviewed **change set**, preserve live parameters, and reject unexpected
+resource replacements or unrelated pending permission changes. No AWS operation was run for this work.
 
-1. 5xx spike — `AWS/AmplifyHosting` `5xxErrors` for the app.
-2. Sign-in abuse — metric filter on the compute log group for `Sign-in pause engaged`.
-3. AI spend — metric filter for `AI site ceiling reached`, plus an AWS Budget on Amazon Bedrock cost.
-4. Quota-store failure — metric filter for `AI budget unavailable; failing closed` and `Shared limit unavailable; failing open`.
-5. Storage — `AWS/DynamoDB` `ThrottledRequests` and `SystemErrors` on the table; `AWS/S3` `BucketSizeBytes` growth.
+After the owner's update, click **Confirm subscription** in the SNS email; privately verify that
+the topic subscription has an ARN rather than `PendingConfirmation`. Alarms send only aggregate
+signal names, not identity fields. The six filters match the exact app log phrases for sign-in
+pause, AI ceiling, unreadable AI budget, degraded shared limits, unexpiring scan photos, and a
+skipped account-deletion photo sweep. Filters are not retroactive. The other three alarms watch
+Amplify 5xx and DynamoDB ThrottledRequests/SystemErrors. The latter sum eight TableName + Operation
+series each; missing logs or metrics are not proof of health. Partial batch throttles are outside
+these two DynamoDB alarms.
+
+**Cost correction:** nine alarm resources watch 23 billed metrics at $0.10/metric-month = $2.30;
+six log-derived custom metrics at up to $0.30/month add $1.80. Full-month estimate **$4.10**
+before unused allowances/credits, plus existing logs, applicable APIs, and excess SNS usage.
+Metric-filter creation has no fee, but generated metrics are billable. SNS email is free only
+within its allowance. Notification-only Budgets are free (the first two action-enabled budgets
+are free too). The default $25 monthly Bedrock budget notifies at 80% and 100%; delayed billing
+alerts are not spending enforcement. Sources and the complete deployment commands are in the
+[runbook](aws-deployment.md#monthly-cost-estimate-usd-before-account-allowances-and-credits).
+
+### Legacy wardrobe photo audit — owner-run, not run against AWS
+
+`scripts/audit-unreferenced-photos.mjs` inventories objects under **wardrobe/** only. It does not
+download photos or write a report file. References are found by a paginated, strongly consistent
+scan of the **whole table**, without a field projection, filter or index: every string in every
+attribute, including nested maps/lists, string sets and attribute names, is checked for each key
+as a substring. Encoded URL references are conservatively recognised too. A reference in a kept
+piece, shared evidence photo, outfit board, Community post or future field protects the object.
+
+Only unreferenced objects **strictly older than seven days** are candidates. Recent, invalid-date,
+directory-marker and ambiguous-path objects are retained. No object outside `wardrobe/` can be
+a candidate or delete target: `brand/`, `temp/` and `demo/` are excluded.
+
+The owner runs this from AWS CloudShell, with their own session and an approved checkout:
+Node 22.13+ and the repository's locked dependencies installed (`pnpm install --frozen-lockfile`;
+if pnpm is unavailable, install the package.json-pinned pnpm version in that shell first).
+Set the actual production table and bucket privately at runtime; do not paste an entire Amplify
+environment map or commit these settings. This work did not run the script against AWS.
+
+```bash
+# In the reviewed repository checkout in your own AWS CloudShell:
+export AWS_REGION=us-east-2
+# Set RACKED_TABLE_NAME and RACKED_UPLOAD_BUCKET to your reviewed target names.
+node scripts/audit-unreferenced-photos.mjs
+```
+
+With no flags this is always a **dry run**, even if the cleanup environment variable is already
+set. Success prints a single JSON object of counts and bytes only:
+`objectsListed`, `totalBytes`, `referencedObjects`, `referencedBytes`, `candidates`,
+`candidateBytes`, `ownersWithCandidates`, `deletedObjects`, `deletedBytes`,
+`retainedOnRecheck`. The last three are zero in a dry run. No keys, owner IDs, addresses,
+credentials or signed URLs are printed, including on an SDK failure. A failure exits non-zero
+with a generic code, never the provider message/stack.
+
+**Permissions:** dry run needs `s3:ListBucket` restricted to prefix `wardrobe/` on the chosen
+bucket, plus `dynamodb:Scan` on the chosen table. Do not expand the application's runtime role
+for this owner tool. Cleanup additionally needs `s3:GetObject` for HeadObject and
+`s3:DeleteObject` restricted to `wardrobe/*` only. No table writes, GetObject downloads, bucket
+configuration writes, batch deletes or object-version deletes are used.
+
+**Only if the owner separately approves cleanup after reviewing the dry-run totals:** arrange
+an actual maintenance window that pauses **all writers** (app, seeds and background jobs),
+confirm the exact table/bucket pairing and backups, then run:
+
+```bash
+ALLOW_RACKED_PHOTO_CLEANUP=yes node scripts/audit-unreferenced-photos.mjs --delete
+# Re-run the read-only inventory afterward:
+node scripts/audit-unreferenced-photos.mjs
+```
+
+Both `--delete` and the exact environment value `ALLOW_RACKED_PHOTO_CLEANUP=yes` are required.
+A deletion flag without consent is refused **before any AWS call**. For each candidate, the tool
+checks current object metadata, re-scans every table page immediately before deletion, and sends
+a single conditional DeleteObject with the original ETag. A newly referenced or changed object
+is retained. An incomplete page sequence, read failure, missing object or conditional failure
+aborts rather than continuing on an assumption. Cleanup may already have partially completed if
+a later operation fails; keep writes paused and run a new dry run before deciding what to do.
+
+**Limits, not guarantees:** DynamoDB Scan is not a transactionally consistent snapshot across
+pages, even with ConsistentRead. S3 and DynamoDB do not share an atomic lock, and ETag matching
+cannot detect a same-byte overwrite after the metadata check. **Do not run deletion with active
+writers.** The command never deletes historical versions; on a versioned bucket it normally adds
+a delete marker, so `deletedBytes` is the logical size removed from the current view, not verified
+storage savings. A dry run is a conservative inventory at that time, not proof that old photos
+should all be deleted.
+
+Runtime is bounded by the inventory and table size, not a fixed request count: one complete table
+scan for a dry run, plus one complete scan per deletion candidate during cleanup. Metadata and a
+key-matching index stay in memory; table pages are processed and discarded. Large inventories may
+exceed CloudShell memory/time, and list/scan/head/delete calls consume normal AWS requests/read
+capacity. Confirm costs and run off-peak. No cleanup is scheduled or automated.
+
+Local tests in `tests/script-unreferenced-photos.test.ts` use injected transports and synthetic
+fixtures only. They cover pagination, nested/shared references, age and prefix boundaries, both
+opt-ins, fresh per-object checks, conditional deletes and safe CLI refusal.
 
 **Restore test (writes only to a new table; never overwrites production):**
 
