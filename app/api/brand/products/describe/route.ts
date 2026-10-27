@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
-import { getSession } from "@/lib/auth";
+import { brandAccess } from "@/lib/server/brand-access";
 import { MAX_UPLOAD_BYTES } from "@/lib/garment-analysis";
 import { BodyTooLargeError, MAX_INPUT_PIXELS, readCappedFormData, SINGLE_PHOTO_BODY_BYTES } from "@/lib/request-body";
 import { detectGarmentsInLook } from "@/lib/look-garment-detection";
@@ -22,9 +22,9 @@ const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
  * nothing is stored — enrollment stores it later, if the brand goes ahead.
  */
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
-  if (session.role !== "brand") return NextResponse.json({ error: "Brand account required." }, { status: 403 });
+  const access = await brandAccess();
+  if (!access.ok) return access.response;
+  const { session } = access;
   const limit = consumeRateLimit(`brand-describe:${session.subject}`, RATE_LIMIT_RULES.brandProductDescribe);
   if (!limit.allowed) return NextResponse.json({ error: "Too many photo readings. Try again in a few minutes." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   if (Number(request.headers.get("content-length") ?? 0) > MAX_UPLOAD_BYTES + 1_000_000) return NextResponse.json({ error: "The photo must be no more than 5 MB." }, { status: 413 });

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { brandAccess } from "@/lib/server/brand-access";
 import { bedrockHangerConverse, generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
 import { meteredOrNull } from "@/lib/ai-budget";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
@@ -9,9 +9,9 @@ import { getBrandCommunityMetrics, getRealProductMetrics, listOwnedBrandProducts
 import type { AgentReply } from "@/lib/platform-types";
 
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
-  if (session.role !== "brand") return NextResponse.json({ error: "Brand account required." }, { status: 403 });
+  const access = await brandAccess();
+  if (!access.ok) return access.response;
+  const { session } = access;
   const limit = consumeRateLimit(`brand-agent:${session.subject}`, RATE_LIMIT_RULES.brandAgent);
   if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const body = await request.json().catch(() => null) as { productId?: string; message?: string; history?: unknown } | null;

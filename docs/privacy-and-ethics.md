@@ -73,5 +73,5 @@ A Consumer may also delete an individual saved outfit. That owner-scoped action 
 
 - Transparent garment isolation and flat-lay composition are not a full body-aware virtual try-on system.
 - Crop quality is measured on seeded synthetic backdrops, not on a labelled corpus of real photographs. A strongly patterned backdrop still fuses with the garment and yields a loose crop; that limitation is carried forward from the previous pass and is recorded in `tests/garment-isolation.test.ts`.
-- Brand enrollment confirms control of an account and supplied catalog evidence; a later business-verification workflow should validate legal brand authority.
+- New brand accounts wait for the owner's approval before they can enroll products or see any insight (`docs/brand-approval.md`), but that approval is a manual check; an automated business-verification workflow should validate legal brand authority later.
 - K-anonymity reduces re-identification risk but does not replace broader governance, audit logging, rate limits, and legal review.

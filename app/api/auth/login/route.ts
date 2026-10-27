@@ -6,7 +6,7 @@ import { deviceLabel } from "@/lib/device-label";
 import { isKnownDevice, KNOWN_DEVICE_COOKIE, knownDeviceCookie } from "@/lib/known-device";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
-import { countKnownDeviceFailure, countSignInFailure, knownDevicePause, signInPause } from "@/lib/server/abuse-guard";
+import { claimAddressRequest, countKnownDeviceFailure, countSignInFailure, knownDevicePause, signInPause } from "@/lib/server/abuse-guard";
 import { authenticateAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
 import { createTwoStepChallenge, TWO_STEP_CHALLENGE_COOKIE, TWO_STEP_CHALLENGE_MS, TWO_STEP_CHALLENGE_PATH, twoStepEnabled } from "@/lib/two-step";
 
@@ -26,10 +26,13 @@ export async function POST(request:Request) {
   const knownDevice=deviceSigned&&(await knownDevicePause(deviceToken!)).allowed;
   // Both keys slow credential stuffing: one caller cycling emails, and many callers
   // converging on one account.
-  const byClient=consumeRateLimit(`login:${clientIdentifier(request)}`,RATE_LIMIT_RULES.login);
+  // The client's address is limited twice: on this instance, and across every instance.
+  const client=clientIdentifier(request);
+  const byClient=consumeRateLimit(`login:${client}`,RATE_LIMIT_RULES.login);
   const byEmail=knownDevice?byClient:consumeRateLimit(`login-email:${email.toLowerCase()}`,RATE_LIMIT_RULES.login);
-  if(!byClient.allowed||!byEmail.allowed){
-    const retryAfter=Math.max(byClient.retryAfterSeconds,byEmail.retryAfterSeconds);
+  const byAddress=byClient.allowed&&byEmail.allowed?await claimAddressRequest("sign-in",client):byClient;
+  if(!byClient.allowed||!byEmail.allowed||!byAddress.allowed){
+    const retryAfter=Math.max(byClient.retryAfterSeconds,byEmail.retryAfterSeconds,byAddress.retryAfterSeconds);
     return NextResponse.json({error:"Too many sign-in attempts. Try again in a few minutes."},{status:429,headers:{"retry-after":String(retryAfter)}});
   }
   // The shared pause holds across every server instance: after repeated wrong passwords an email

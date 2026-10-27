@@ -8,7 +8,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(path.join(process.cwd(), "package.json"));
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, DeleteCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const SECRET = process.env.HARNESS_SESSION_SECRET, TABLE = process.env.HARNESS_TABLE ?? "racked-harness";
 if (!SECRET) throw new Error("Set HARNESS_SESSION_SECRET to the local server's SESSION_SECRET.");
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-2", endpoint: "http://127.0.0.1:4568", credentials: { accessKeyId: "harness-local", secretAccessKey: "harness-local" } }));
@@ -67,6 +67,23 @@ check("registration marks the browser as a known device", a.jar.has("racked_know
 const ids = { a: await accountId(emails.a), b: await accountId(emails.b), x: await accountId(emails.x), y: await accountId(emails.y) };
 const adminRole = await browser(address(14)).request("POST", "/api/auth/register", { email: `harness-admin-${run}@example.test`, password: PASSWORD, role: "admin", displayName: "Admin", consent: true, formToken: formToken(), website: "" });
 check("an unsupported role is refused at sign-up", adminRole.status === 400, String(adminRole.status));
+
+// ── Brand approval ──────────────────────────────────────────────────────────
+// A brand registered now starts pending. The owner approves it in DynamoDB (docs/brand-approval.md);
+// the harness does the same write.
+const profileOf = async (id) => (await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `USER#${id}`, SK: "PROFILE" } }))).Item ?? {};
+const setBrandStatus = (id, status) => db.send(new UpdateCommand({ TableName: TABLE, Key: { PK: `USER#${id}`, SK: "PROFILE" }, UpdateExpression: "SET brandStatus = :status", ExpressionAttributeValues: { ":status": status } }));
+const pendingRoutes = await Promise.all([
+  x.request("GET", "/api/brand/products"),
+  x.request("POST", "/api/brand/metrics", { productId: "registry-none" }),
+  x.request("POST", "/api/brand/looks", { title: "Harness look", caption: "Harness caption", productIds: ["registry-none"], published: false }),
+  x.request("POST", "/api/agents/brand", { productId: "registry-none" }),
+]);
+check("a new brand starts pending, signed in, and every brand route refuses it with its status", (await profileOf(ids.x)).brandStatus === "pending" && pendingRoutes.every((response) => response.status === 403 && response.json?.brandStatus === "pending"), pendingRoutes.map((response) => response.status).join(","));
+await setBrandStatus(ids.x, "approved");
+await setBrandStatus(ids.y, "approved");
+const approvedRoute = await x.request("GET", "/api/brand/products");
+check("once the owner approves it, the same brand routes answer", approvedRoute.status === 200, String(approvedRoute.status));
 
 // ── Seed synthetic wardrobe and catalog records directly ────────────────────
 const put = (item) => db.send(new PutCommand({ TableName: TABLE, Item: item }));
@@ -313,6 +330,22 @@ const turnedOff = await t.request("DELETE", "/api/account/two-step", { currentPa
 const { device: plain, response: plainLogin } = await signInAs(emailT, 46);
 const twoStepTypes = new Set(((await t.request("GET", "/api/account/activity")).json?.activity ?? []).map((entry) => entry.type));
 check("turning it off needs the password and a code; then the password alone signs in", offRefused.status === 401 && turnedOff.status === 200 && plainLogin.json?.destination === "/brand" && plain.jar.has("racked_session") && ["two-step-on", "recovery-code-used", "recovery-codes-replaced", "two-step-off"].every((type) => twoStepTypes.has(type)), `${offRefused.status},${turnedOff.status},${JSON.stringify(plainLogin.json)}`);
+
+// ── A brand's catalog limit, and revoking a brand ───────────────────────────
+const xFirstEnrollment = await x.request("POST", "/api/brand/products", {});
+const xCount = (await profileOf(ids.x)).productCount;
+check("a brand from before the limit is counted from its real catalog the first time it enrolls", xCount === 1 && xFirstEnrollment.status >= 400 && xFirstEnrollment.status < 500 && xFirstEnrollment.status !== 409, `${xFirstEnrollment.status}, count=${xCount}`);
+await db.send(new UpdateCommand({ TableName: TABLE, Key: { PK: `USER#${ids.y}`, SK: "PROFILE" }, UpdateExpression: "SET productCount = :full", ExpressionAttributeValues: { ":full": 300 } }));
+const yFull = await y.request("POST", "/api/brand/products", {});
+await db.send(new UpdateCommand({ TableName: TABLE, Key: { PK: `USER#${ids.y}`, SK: "PROFILE" }, UpdateExpression: "REMOVE productCount" }));
+check("a catalog at 300 products is refused before any photo is read", yFull.status === 409 && /limit of 300 products/.test(yFull.json?.error ?? ""), `${yFull.status} ${yFull.json?.error ?? ""}`);
+const catalogSearch = () => a.request("GET", `/api/catalog?q=${encodeURIComponent(`Harness Brand X ${run}`)}`);
+const listedBefore = await catalogSearch();
+await setBrandStatus(ids.x, "revoked");
+const revokedMetrics = await x.request("POST", "/api/brand/metrics", { productId: PX });
+const listedAfter = await catalogSearch();
+check("a revoked brand is refused, and its products leave the public catalog", listedBefore.status === 200 && listedBefore.text.includes(PX) && revokedMetrics.status === 403 && revokedMetrics.json?.brandStatus === "revoked" && listedAfter.status === 200 && !listedAfter.text.includes(PX), `${listedBefore.status}/${listedBefore.text.includes(PX)},${revokedMetrics.status},${listedAfter.status}/${listedAfter.text.includes(PX)}`);
+await setBrandStatus(ids.x, "approved");
 
 // ── Errors say nothing about the server ─────────────────────────────────────
 const malformed = await a.request("POST", "/api/consumer/outfits", { itemIds: [{ $ne: null }] });

@@ -129,15 +129,18 @@ const ADDRESS = /^[0-9a-f:.]{2,45}$/i;
  * identity, never stored, never logged — and the limits that matter most are keyed on the email
  * address, the account, or the site instead (lib/abuse-limits.ts).
  */
+/** The key for a request whose client address cannot be read; never counted in shared limits. */
+export const UNIDENTIFIED_CLIENT = "unidentified-client";
+
 export function clientIdentifier(request: Request, configuredHops: string | undefined = process.env.RACKED_TRUSTED_PROXY_HOPS) {
   const entries = (request.headers.get("x-forwarded-for") ?? "").split(",").map((entry) => entry.trim()).filter(Boolean);
-  if (!entries.length || entries.length > 32) return "unidentified-client";
+  if (!entries.length || entries.length > 32) return UNIDENTIFIED_CLIENT;
   const configured = Number(configuredHops);
   let hops: number;
   if (Number.isInteger(configured) && configured > 0) hops = configured;
   else hops = platformHops = Math.min(platformHops, entries.length);
   const address = entries[entries.length - hops];
-  return address && ADDRESS.test(address) ? address : "unidentified-client";
+  return address && ADDRESS.test(address) ? address : UNIDENTIFIED_CLIENT;
 }
 
 /** For tests: forget the chain length this instance has learned. */

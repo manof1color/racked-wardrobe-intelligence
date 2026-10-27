@@ -32,6 +32,7 @@ import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/li
 import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
 import { ACTIVITY_RETENTION_DAYS, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
+import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
 import sharp from "sharp";
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -83,6 +84,10 @@ export interface AccountRecord {
   /** A secret waiting for its first code during setup, and when it stops waiting. */
   twoStepPendingSecret?: string;
   twoStepPendingExpiresAt?: number;
+  /** lib/brand-approval.ts: "pending" for brands registered since approval began; absent means approved. */
+  brandStatus?: BrandStatus;
+  /** Products this brand has enrolled, kept with each enrollment; absent until its first since the limit began. */
+  productCount?: number;
 }
 
 function requireAccountSecuritySecret(){const secret=process.env.SESSION_SECRET;if(!secret)throw new ProductionConfigurationError("Session security is not configured.");return secret;}
@@ -107,7 +112,8 @@ export async function createAccount(input:{email:string;password:string;role:Rol
   if (await findAccountByEmail(email)) throw new AccountConflictError("An account already exists for that email.");
   const id=crypto.randomUUID();
   const {passwordHash,passwordSalt,passwordScheme}=await hashPassword(input.password);
-  const account:AccountRecord={id,email,role:input.role,displayName:input.displayName.trim(),brandName:input.role==="brand"?(input.brandName?.trim()||input.displayName.trim()):null,brandSlug:input.role==="brand"?slugify(input.brandName?.trim()||input.displayName):null,passwordHash,passwordSalt,passwordScheme,createdAt:new Date().toISOString(),dataClassification:"REGULAR"};
+  // A new brand waits for the owner's approval before any brand capability opens (lib/brand-approval.ts).
+  const account:AccountRecord={...(input.role==="brand"?{brandStatus:"pending" as const}:{}),id,email,role:input.role,displayName:input.displayName.trim(),brandName:input.role==="brand"?(input.brandName?.trim()||input.displayName.trim()):null,brandSlug:input.role==="brand"?slugify(input.brandName?.trim()||input.displayName):null,passwordHash,passwordSalt,passwordScheme,createdAt:new Date().toISOString(),dataClassification:"REGULAR"};
   if(account.role==="brand")await reserveBrandName(account.brandName??"",id);
   try {
     await db.send(new PutCommand({TableName:requireTable(),Item:{...account,PK:`USER#${id}`,SK:"PROFILE",GSI1PK:`EMAIL#${email}`,GSI1SK:"ACCOUNT"},ConditionExpression:"attribute_not_exists(PK)"}));
@@ -705,7 +711,22 @@ export async function listOwnedBrandProducts(ownerId:string):Promise<BrandProduc
 }
 
 export async function listRegistryProducts():Promise<BrandProductRegistration[]> {
-  return (await queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_PRODUCTS"}})) as unknown as BrandProductRegistration[];
+  const products=(await queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_PRODUCTS"}})) as unknown as BrandProductRegistration[];
+  // A brand the owner has revoked (or set back to pending) leaves the public registry: its products
+  // stop answering searches, matches, labels and its public page. Pieces already linked keep their link.
+  const hidden=await unapprovedBrandOwners([...new Set(products.map(product=>product.ownerSubject).filter(Boolean))]);
+  return hidden.size?products.filter(product=>!hidden.has(product.ownerSubject)):products;
+}
+
+/** Which of these brand accounts are not approved. A missing profile is left visible, as before. */
+async function unapprovedBrandOwners(ownerIds:string[]){
+  const hidden=new Set<string>();
+  for(let index=0;index<ownerIds.length;index+=100){
+    const chunk=ownerIds.slice(index,index+100);
+    const result=await db.send(new BatchGetCommand({RequestItems:{[requireTable()]:{Keys:chunk.map(id=>({PK:`USER#${id}`,SK:"PROFILE"})),ProjectionExpression:"id, #role, brandStatus",ExpressionAttributeNames:{"#role":"role"}}}}));
+    for(const account of result.Responses?.[requireTable()]??[])if(!brandApproved(account))hidden.add(String(account.id));
+  }
+  return hidden;
 }
 /** A catalog product's photo, exactly as its public brand page already shows it. */
 export async function catalogImageUrl(product:BrandProductRegistration){return (isDemoStorefrontProduct(product)?demoProductImagePath(product.sku):undefined)??await privateImageUrl(product.views?.front?.storageKey);}
@@ -734,8 +755,40 @@ export async function updateBrandProduct(ownerId:string,productId:string,edit:Br
   return merged as unknown as BrandProductRegistration;
 }
 
+/**
+ * How many products this brand has enrolled. A brand that enrolled before the limit began has no
+ * count yet, so the first call counts its products once and stores that, only if no count exists.
+ * Call it before `saveBrandProduct`, which needs the count to be there.
+ */
+export async function brandProductCount(account:AccountRecord){
+  if(typeof account.productCount==="number")return account.productCount;
+  let count=0,startKey:Record<string,unknown>|undefined;
+  do{
+    const page=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${account.id}`,":sk":"PRODUCT#"},Select:"COUNT",ConsistentRead:true,...(startKey?{ExclusiveStartKey:startKey}:{})}));
+    count+=page.Count??0;
+    startKey=page.LastEvaluatedKey as Record<string,unknown>|undefined;
+  }while(startKey);
+  try{await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${account.id}`,SK:"PROFILE"},UpdateExpression:"SET productCount = :count",ConditionExpression:"attribute_exists(PK) AND attribute_not_exists(productCount)",ExpressionAttributeValues:{":count":count}}));}
+  catch(error){if(!(error instanceof Error&&error.name==="ConditionalCheckFailedException"))throw error;return (await getAccount(account.id))?.productCount??count;}
+  return count;
+}
+
+/**
+ * Saves an enrolled product and raises the brand's product count in one transaction, refused once
+ * the count reaches the limit (lib/brand-approval.ts), so requests sent at once cannot pass it.
+ */
 export async function saveBrandProduct(ownerId:string,product:BrandProductRegistration) {
-  await db.send(new PutCommand({TableName:requireTable(),Item:{...product,PK:`USER#${ownerId}`,SK:`PRODUCT#${product.id}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${product.brandSlug}#${product.sku}`},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}));
+  const limit=BRAND_PRODUCT_LIMIT;
+  try{
+    await db.send(new TransactWriteCommand({TransactItems:[
+      {Put:{TableName:requireTable(),Item:{...product,PK:`USER#${ownerId}`,SK:`PRODUCT#${product.id}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${product.brandSlug}#${product.sku}`},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}},
+      {Update:{TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:"SET productCount = productCount + :one",ConditionExpression:"productCount < :limit",ExpressionAttributeValues:{":one":1,":limit":limit}}},
+    ]}));
+  }catch(error){
+    const reasons=(error as {CancellationReasons?:Array<{Code?:string}>}|null)?.CancellationReasons??[];
+    if(error instanceof Error&&error.name==="TransactionCanceledException"&&reasons[1]?.Code==="ConditionalCheckFailed")throw new RequestRefused(productLimitMessage(limit),409);
+    throw error;
+  }
   return product;
 }
 

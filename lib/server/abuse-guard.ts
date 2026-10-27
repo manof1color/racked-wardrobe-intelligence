@@ -1,7 +1,7 @@
 import "server-only";
 import { DURABLE_LIMITS, durableDecision, type AiAction, type AiAllowance } from "@/lib/abuse-limits";
 import { chargeAccountAllowance, chargeSiteModelCall } from "@/lib/ai-budget";
-import type { RateLimitDecision } from "@/lib/rate-limit";
+import { UNIDENTIFIED_CLIENT, type RateLimitDecision } from "@/lib/rate-limit";
 import { incrementSecurityCounter, readSecurityCounter } from "@/lib/server/production-store";
 
 /**
@@ -84,6 +84,30 @@ export async function claimPasswordResetEmail(email: string, now = Date.now()): 
     return durableDecision(count, rule.limit, resetAt, now);
   } catch (error) {
     failOpen("password reset emails", error);
+    return OPEN;
+  }
+}
+
+const ADDRESS_RULES = {
+  "sign-in": DURABLE_LIMITS.signInsPerAddress,
+  "sign-up": DURABLE_LIMITS.signUpsPerAddress,
+  "reset-request": DURABLE_LIMITS.resetRequestsPerAddress,
+} as const;
+
+/**
+ * Counts one signed-out request against its client address across every server instance (the
+ * address `clientIdentifier` takes from the platform's own forwarding entry). Fails open like the
+ * other sign-in checks. A request with no usable address is not counted here: one shared key for
+ * all of them would let a single script lock everyone out.
+ */
+export async function claimAddressRequest(action: keyof typeof ADDRESS_RULES, address: string, now = Date.now()): Promise<RateLimitDecision> {
+  if (address === UNIDENTIFIED_CLIENT) return OPEN;
+  const rule = ADDRESS_RULES[action];
+  try {
+    const { count, resetAt } = await incrementSecurityCounter(`address:${action}:${address}`, rule.windowMs, now);
+    return durableDecision(count, rule.limit, resetAt, now);
+  } catch (error) {
+    failOpen(`${action} per address`, error);
     return OPEN;
   }
 }

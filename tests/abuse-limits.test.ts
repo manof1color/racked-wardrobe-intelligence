@@ -8,6 +8,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { AI_DAILY_ALLOWANCE, AI_UNAVAILABLE_MESSAGE, aiAllowance, aiDailyCeiling, aiUnavailable, DAY_MS, DEFAULT_AI_DAILY_CEILING, DURABLE_LIMITS, durableDecision, signInPausedMessage, siteModelCallAllowed, windowStart } from "../lib/abuse-limits.ts";
+import { RATE_LIMIT_RULES } from "../lib/rate-limit.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const noon = Date.UTC(2026, 9, 21, 12, 0, 0);
@@ -65,7 +66,7 @@ test("counters and failed sign-ins are stored under keyed hashes, never a raw em
 
 test("sign-in checks fail open; AI budgets fail closed", () => {
   const guard = read("lib/server/abuse-guard.ts");
-  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 7, "the six sign-in, known-device, sign-up and reset checks, plus the helper");
+  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 8, "the six sign-in, known-device, sign-up and reset checks, the per-address check, plus the helper");
   assert.match(guard, /return chargeAccountAllowance\(incrementSecurityCounter, action, accountId, now\);/, "the account allowance uses the fail-closed charge");
   assert.match(guard, /return chargeSiteModelCall\(incrementSecurityCounter\);/, "and so does the site's ceiling");
 });
@@ -88,7 +89,8 @@ test("REGRESSION: a known-device cookie has its own failure budget, so a copied 
 
 test("a known device is exempt from the per-email pauses, and only those", () => {
   const login = read("app/api/auth/login/route.ts");
-  assert.match(login, /const byClient=consumeRateLimit\(`login:\$\{clientIdentifier\(request\)\}`/, "the per-client limit always applies");
+  assert.match(login, /const client=clientIdentifier\(request\);\s*const byClient=consumeRateLimit\(`login:\$\{client\}`/, "the per-client limit always applies");
+  assert.match(login, /const byAddress=byClient\.allowed&&byEmail\.allowed\?await claimAddressRequest\("sign-in",client\):byClient;/, "and the same address across every instance");
   assert.match(login, /const byEmail=knownDevice\?byClient:consumeRateLimit\(`login-email:/);
   assert.match(login, /if\(!knownDevice\)\{\s*const paused=await signInPause\(email\);/);
   assert.match(login, /const known=knownDeviceCookie\(email,secret,production\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
@@ -151,4 +153,21 @@ test("every write endpoint that had no limit now has one, keyed on the account",
 
 test("the table expires counters, activity, and reset tokens on its own", () => {
   assert.match(read("infra/template.yaml"), /TimeToLiveSpecification:\s*\n\s*AttributeName: ttl\s*\n\s*Enabled: true/);
+});
+
+test("signed-out routes also limit each address across every instance, never a missing one", () => {
+  assert.deepEqual(DURABLE_LIMITS.signInsPerAddress, { limit: 30, windowMs: 5 * 60 * 1000 });
+  assert.deepEqual(DURABLE_LIMITS.signUpsPerAddress, { limit: 20, windowMs: 60 * 60 * 1000 });
+  assert.deepEqual(DURABLE_LIMITS.resetRequestsPerAddress, { limit: 10, windowMs: 60 * 60 * 1000 });
+  for (const [name, local] of [["signInsPerAddress", RATE_LIMIT_RULES.login], ["signUpsPerAddress", RATE_LIMIT_RULES.register], ["resetRequestsPerAddress", RATE_LIMIT_RULES.passwordResetRequest]] as const) {
+    const shared = DURABLE_LIMITS[name];
+    assert.ok(shared.limit / shared.windowMs >= local.limit / local.windowMs, `${name} never undercuts the per-instance limit, so a venue's shared Wi-Fi is not locked out by it`);
+  }
+  const guard = read("lib/server/abuse-guard.ts");
+  const claim = guard.slice(guard.indexOf("export async function claimAddressRequest"), guard.indexOf("export async function claimTwoStepAttempt"));
+  assert.match(claim, /if \(address === UNIDENTIFIED_CLIENT\) return OPEN;/, "one key for every unreadable address would let a script lock everyone out");
+  assert.match(claim, /incrementSecurityCounter\(`address:\$\{action\}:\$\{address\}`, rule\.windowMs, now\)/);
+  assert.match(claim, /failOpen\(/);
+  assert.match(read("app/api/auth/register/route.ts"), /const limit=local\.allowed\?await claimAddressRequest\("sign-up",client\):local;/);
+  assert.match(read("app/api/auth/password-reset/request/route.ts"), /const limit=local\.allowed\?await claimAddressRequest\("reset-request",client\):local;/);
 });

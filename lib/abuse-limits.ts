@@ -26,6 +26,15 @@ export const DURABLE_LIMITS = {
   signUpsSiteWide: { limit: 100, windowMs: 60 * 60 * 1000 },
   /** Reset emails to one address, so nobody can flood someone's inbox through Racked. */
   passwordResetsPerEmail: { limit: 3, windowMs: 60 * 60 * 1000 },
+  /**
+   * Requests from one client address, across every server instance, on the routes anyone can call
+   * signed out. Each sits above its per-instance limit in lib/rate-limit.ts, which stays the stricter
+   * first layer; these stop a script spreading across instances, and leave room for many people
+   * signing in from one venue's Wi-Fi.
+   */
+  signInsPerAddress: { limit: 30, windowMs: 5 * 60 * 1000 },
+  signUpsPerAddress: { limit: 20, windowMs: 60 * 60 * 1000 },
+  resetRequestsPerAddress: { limit: 10, windowMs: 60 * 60 * 1000 },
   /** Two-step codes tried on one account, right or wrong: few enough that guessing six digits is hopeless. */
   twoStepAttemptsPerAccount: { limit: 5, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, DurableRule>;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { GENERIC_RESET_RESPONSE, safeResetPath } from "@/lib/account-security";
 import { checkFormSubmission, HONEYPOT_FIELD } from "@/lib/bot-trap";
 import { issuePasswordReset } from "@/lib/server/production-store";
-import { claimPasswordResetEmail } from "@/lib/server/abuse-guard";
+import { claimAddressRequest, claimPasswordResetEmail } from "@/lib/server/abuse-guard";
 import { publicOrigin } from "@/lib/site-origin";
 import { sendPasswordResetEmail } from "@/lib/server/password-reset-email";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
@@ -11,7 +11,10 @@ import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate
 // response reveals nothing. What changes is whether an email actually goes out: not to a bot, and
 // at most a few an hour to any one address, so nobody can flood someone's inbox through Racked.
 export async function POST(request:Request){
-  const limit=consumeRateLimit(`password-reset:${clientIdentifier(request)}`,RATE_LIMIT_RULES.passwordResetRequest);
+  const client=clientIdentifier(request);
+  const local=consumeRateLimit(`password-reset:${client}`,RATE_LIMIT_RULES.passwordResetRequest);
+  // The same address is also limited across every server instance; the answer never changes.
+  const limit=local.allowed?await claimAddressRequest("reset-request",client):local;
   if(!limit.allowed)return NextResponse.json({message:GENERIC_RESET_RESPONSE},{status:202});
   const body=await request.json().catch(()=>null) as {email?:string;formToken?:string;[HONEYPOT_FIELD]?:string}|null;
   const secret=process.env.SESSION_SECRET;
