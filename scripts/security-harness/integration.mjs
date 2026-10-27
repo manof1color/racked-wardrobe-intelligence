@@ -272,8 +272,8 @@ const registeredT = await t.request("POST", "/api/auth/register", { email: email
 const idT = await accountId(emailT);
 const { device: earlier } = await signInAs(emailT, 41);
 const consumerSetup = await a.request("POST", "/api/account/two-step/setup", { currentPassword: PASSWORD });
-const wrongPasswordSetup = await t.request("POST", "/api/account/two-step/setup", { currentPassword: "Wrong-password-1" });
-check("two-step setup is for brand accounts, and needs the password", registeredT.status === 201 && consumerSetup.status === 403 && wrongPasswordSetup.status === 401, `${registeredT.status},${consumerSetup.status},${wrongPasswordSetup.status}`);
+const refusedSetup = await t.request("POST", "/api/account/two-step/setup", { currentPassword: "Wrong-password-1" });
+check("two-step setup is for brand accounts, and needs the password", registeredT.status === 201 && consumerSetup.status === 403 && refusedSetup.status === 401, `${registeredT.status},${consumerSetup.status},${refusedSetup.status}`);
 const setup = await t.request("POST", "/api/account/two-step/setup", { currentPassword: PASSWORD });
 const key = base32Decode(setup.json?.secret ?? "");
 const confirmWrong = await t.request("POST", "/api/account/two-step/confirm", { code: wrongCode(key) });
@@ -285,9 +285,9 @@ const storedT = JSON.stringify(profileT, (_, value) => value instanceof Set ? [.
 check("the table holds the secret sealed and recovery codes only as hashes", String(profileT.twoStepSecret).startsWith("v1.") && !storedT.includes(setup.json?.secret) && recovery.every((code) => !storedT.includes(code) && !storedT.includes(code.replaceAll("-", ""))) && profileT.twoStepPendingSecret === undefined && profileT.twoStepRecovery?.size === 10);
 const earlierAfter = await earlier.request("GET", "/api/account"), tAfter = await t.request("GET", "/api/account");
 check("turning it on signs every other device out, and keeps this one", earlierAfter.status === 401 && tAfter.status === 200, `${earlierAfter.status},${tAfter.status}`);
-const { device: pending, response: passwordOnly } = await signInAs(emailT, 42);
+const { device: pending, response: firstStepOnly } = await signInAs(emailT, 42);
 const pendingAccount = await pending.request("GET", "/api/account");
-check("the right password alone gets a five-minute challenge, not a session", passwordOnly.status === 200 && passwordOnly.json?.twoStep === true && !pending.jar.has("racked_session") && pending.jar.get("racked_two_step")?.path === "/api/auth/two-step" && pendingAccount.status === 401, JSON.stringify(passwordOnly.json));
+check("the right password alone gets a five-minute challenge, not a session", firstStepOnly.status === 200 && firstStepOnly.json?.twoStep === true && !pending.jar.has("racked_session") && pending.jar.get("racked_two_step")?.path === "/api/auth/two-step" && pendingAccount.status === 401, JSON.stringify(firstStepOnly.json));
 const wrongAtSignIn = await pending.request("POST", "/api/auth/two-step", { code: wrongCode(key) });
 const sawWrong = ((await t.request("GET", "/api/account/activity")).json?.activity ?? []).some((entry) => entry.type === "two-step-failed");
 check("a wrong code is refused, and the owner sees that someone has their password", wrongAtSignIn.status === 401 && sawWrong, `${wrongAtSignIn.status},${sawWrong}`);
@@ -308,11 +308,11 @@ await db.send(new DeleteCommand({ TableName: TABLE, Key: { PK: `LIMIT#${security
 const replaced = await t.request("POST", "/api/account/two-step/recovery-codes", { code: await freshCode(key) });
 const offWithOld = await t.request("DELETE", "/api/account/two-step", { currentPassword: PASSWORD, recoveryCode: recovery[1] });
 check("new recovery codes replace every unused old one", replaced.status === 200 && replaced.json?.recoveryCodes?.length === 10 && offWithOld.status === 401, `${replaced.status},${offWithOld.status}`);
-const offWrongPassword = await t.request("DELETE", "/api/account/two-step", { currentPassword: "Wrong-password-1", recoveryCode: replaced.json?.recoveryCodes?.[0] });
+const offRefused = await t.request("DELETE", "/api/account/two-step", { currentPassword: "Wrong-password-1", recoveryCode: replaced.json?.recoveryCodes?.[0] });
 const turnedOff = await t.request("DELETE", "/api/account/two-step", { currentPassword: PASSWORD, recoveryCode: replaced.json?.recoveryCodes?.[0] });
 const { device: plain, response: plainLogin } = await signInAs(emailT, 46);
 const twoStepTypes = new Set(((await t.request("GET", "/api/account/activity")).json?.activity ?? []).map((entry) => entry.type));
-check("turning it off needs the password and a code; then the password alone signs in", offWrongPassword.status === 401 && turnedOff.status === 200 && plainLogin.json?.destination === "/brand" && plain.jar.has("racked_session") && ["two-step-on", "recovery-code-used", "recovery-codes-replaced", "two-step-off"].every((type) => twoStepTypes.has(type)), `${offWrongPassword.status},${turnedOff.status},${JSON.stringify(plainLogin.json)}`);
+check("turning it off needs the password and a code; then the password alone signs in", offRefused.status === 401 && turnedOff.status === 200 && plainLogin.json?.destination === "/brand" && plain.jar.has("racked_session") && ["two-step-on", "recovery-code-used", "recovery-codes-replaced", "two-step-off"].every((type) => twoStepTypes.has(type)), `${offRefused.status},${turnedOff.status},${JSON.stringify(plainLogin.json)}`);
 
 // ── Errors say nothing about the server ─────────────────────────────────────
 const malformed = await a.request("POST", "/api/consumer/outfits", { itemIds: [{ $ne: null }] });
