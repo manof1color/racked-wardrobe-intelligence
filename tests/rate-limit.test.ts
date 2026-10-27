@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES, resetClientCalibration, resetRateLimits } from "../lib/rate-limit.ts";
+import { readFileSync } from "node:fs";
+import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES, resetClientCalibration, resetRateLimits, trackedRateLimitKeys } from "../lib/rate-limit.ts";
 
 const rule = { limit: 3, windowMs: 60_000 };
 
@@ -73,4 +74,35 @@ test("with one platform hop, the last entry is the client; a configured hop coun
   resetClientCalibration();
   assert.equal(clientIdentifier(from("6.6.6.6, 198.51.100.7, 130.176.1.1"), "2"), "198.51.100.7", "RACKED_TRUSTED_PROXY_HOPS=2");
   assert.equal(clientIdentifier(from("130.176.1.1"), "2"), "unidentified-client", "fewer entries than the platform adds");
+});
+
+test("REGRESSION: a flood of new keys never resets the counter of a key in use", () => {
+  // The limiter used to clear every counter once it tracked 10,000 keys, so an attacker guessing
+  // passwords could reset their own budget by sending requests under thousands of new keys.
+  resetRateLimits();
+  const now = 1_000_000;
+  for (let index = 0; index < rule.limit; index++) consumeRateLimit("guessing", rule, now);
+  for (let index = 0; index < 15_000; index++) {
+    consumeRateLimit(`flood-${index}`, rule, now + 1);
+    if (index % 100 === 0) assert.equal(consumeRateLimit("guessing", rule, now + 1).allowed, false, `still limited after ${index} new keys`);
+    assert.ok(trackedRateLimitKeys() <= 10_000, "memory stays bounded");
+  }
+});
+
+test("when room is needed, only the least recently used key is dropped", () => {
+  resetRateLimits();
+  const now = 1_000_000;
+  for (let index = 0; index < 10_000; index++) consumeRateLimit(`key-${index}`, rule, now);
+  for (let index = 0; index < rule.limit - 1; index++) consumeRateLimit("key-0", rule, now);
+  consumeRateLimit("newcomer", rule, now);
+  assert.equal(trackedRateLimitKeys(), 10_000);
+  assert.equal(consumeRateLimit("key-0", rule, now).allowed, false, "key-0 was used most recently, so it keeps its count");
+  for (let index = 0; index < rule.limit - 1; index++) assert.equal(consumeRateLimit("key-1", rule, now).allowed, true, "key-1 was dropped and starts again");
+});
+
+test("account changes are limited per account, not per account and address", () => {
+  const route = readFileSync(new URL("../app/api/account/route.ts", import.meta.url), "utf8");
+  assert.match(route, /consumeRateLimit\(`account:\$\{session\.subject\}`,RATE_LIMIT_RULES\.accountSettings\)/);
+  assert.match(route, /consumeRateLimit\(`account-delete:\$\{session\.subject\}`,RATE_LIMIT_RULES\.accountDeletion\)/);
+  assert.doesNotMatch(route, /clientIdentifier/, "a new address must not mean a new budget");
 });
