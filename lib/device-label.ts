@@ -34,7 +34,9 @@ export type AccountActivityType =
   | "password-changed"
   | "password-reset"
   | "details-updated"
-  | "signed-out-everywhere";
+  | "signed-out-everywhere"
+  | "brand-sharing-on"
+  | "brand-sharing-off";
 
 export interface AccountActivity {
   type: AccountActivityType;
@@ -51,6 +53,8 @@ export const ACTIVITY_LABELS: Record<AccountActivityType, string> = {
   "password-reset": "Password reset by email link",
   "details-updated": "Name or email changed",
   "signed-out-everywhere": "Signed out of all other devices",
+  "brand-sharing-on": "Anonymous brand insights turned on",
+  "brand-sharing-off": "Anonymous brand insights turned off",
 };
 
 /** Activity is kept for 90 days, then expires. */

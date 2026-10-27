@@ -21,6 +21,7 @@ import { findByPaginatedQuery } from "@/lib/community-lookup";
 import { checkPassword, hashPassword } from "@/lib/password-hash";
 import { RequestRefused } from "@/lib/api-errors";
 import { keepScanImages, keptScanImage, PENDING_SCAN_PREFIX } from "@/lib/scan-storage";
+import { brandSharingChange, brandSharingTermsOf, brandSharingUnchanged } from "@/lib/brand-sharing-consent";
 import { wornDaysAgo } from "@/lib/wear-recency";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
@@ -65,6 +66,9 @@ export interface AccountRecord {
   passwordScheme?: string;
   createdAt: string;
   brandDataSharing?: boolean;
+  /** When brand sharing last changed, and the version of its wording then; absent before October 2026. */
+  brandDataSharingChangedAt?: string;
+  brandDataSharingTerms?: string;
   dataClassification?: DataClassification;
   sessionVersion?: number;
   passwordChangedAt?: number;
@@ -712,8 +716,26 @@ export async function saveBrandProduct(ownerId:string,product:BrandProductRegist
   return product;
 }
 
-export async function getBrandDataSharing(ownerId:string){const account=await getAccount(ownerId);return account?.brandDataSharing===true;}
-export async function setBrandDataSharing(ownerId:string,value:boolean){await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:"SET brandDataSharing = :value",ExpressionAttributeValues:{":value":value}}));return value;}
+/** Whether brand sharing is on, when it last changed, and which version of its wording that was under. */
+export async function getBrandDataSharing(ownerId:string){
+  const account=await getAccount(ownerId);
+  const sharing=account?.brandDataSharing===true;
+  return {brandDataSharing:sharing,changedAt:account?.brandDataSharingChangedAt??null,terms:sharing||account?.brandDataSharingTerms?brandSharingTermsOf(account?.brandDataSharingTerms):null};
+}
+
+/**
+ * Turns brand sharing on or off and records the change in the same write (lib/brand-sharing-consent.ts).
+ * Asking for the state the account is already in records nothing and reports `changed: false`.
+ */
+export async function setBrandDataSharing(ownerId:string,value:boolean,now=Date.now()){
+  try {
+    await db.send(new TransactWriteCommand({TransactItems:brandSharingChange(requireTable(),ownerId,value,now,crypto.randomUUID())}));
+    return {brandDataSharing:value,changed:true};
+  } catch(error) {
+    if(!brandSharingUnchanged(error))throw error;
+    return {brandDataSharing:(await getBrandDataSharing(ownerId)).brandDataSharing,changed:false};
+  }
+}
 
 /**
  * The home city Hanger checks the weather for. It lives on the person's own profile, is read only by

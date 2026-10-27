@@ -12,6 +12,7 @@ import { OutfitPieceCarousel } from "./outfit-carousel";
 import { LooksBuilder } from "./looks-builder";
 import { WorkspaceMobileNav, type ConsumerWorkspaceView } from "./workspace-mobile-nav";
 import { costPerWearLine } from "@/lib/cost-per-wear";
+import { BRAND_SHARING_TERMS } from "@/lib/brand-sharing-consent";
 import type { SavedOutfit, WardrobeItem } from "@/lib/types";
 
 export function ConsumerDashboard({initialView="home",openAddInitially=false}:{initialView?:ConsumerWorkspaceView;openAddInitially?:boolean}) {
@@ -53,7 +54,7 @@ export function ConsumerDashboard({initialView="home",openAddInitially=false}:{i
   const tabs:Array<{id:ConsumerWorkspaceView;label:string;icon:string}>=[{id:"home",label:"Today",icon:"⌂"},{id:"looks",label:"Looks",icon:"◇"},{id:"closet",label:"Closet",icon:"▦"},{id:"outfits",label:"Outfits",icon:"◫"}];
   return <AppShell role="consumer"><main className="workspace consumer-workspace">
     <section className="workspace-heading"><div><div className="eyebrow">YOUR PRIVATE WARDROBE</div><h1>Your wardrobe is<br/><em>working smarter.</em></h1><p>Upload what you own, build outfits, and track what you actually wear.</p></div><button className="button button-accent" onClick={openAdd}>+ Add clothing</button></section>
-    <div className="privacy-banner"><span>◉</span><div><strong>Anonymous brand insights</strong><p>When on, wear on your brand-verified pieces counts toward anonymous totals for groups of at least 25 people, including wear you recorded before turning it on. Turn it off and your wear stops counting from then on, though figures a brand has already seen can&rsquo;t be taken back. Brands never receive your identity, photos, or raw wardrobe.</p></div><button type="button" className="button button-light" onClick={toggleBrandDataSharing}>{brandDataSharing?"ON — turn off":"OFF — turn on"}</button></div>
+    <div className="privacy-banner"><span>◉</span><div><strong>Anonymous brand insights</strong><p>{BRAND_SHARING_TERMS.text}</p></div><button type="button" className="button button-light" onClick={toggleBrandDataSharing}>{brandDataSharing?"ON — turn off":"OFF — turn on"}</button></div>
     <nav className="consumer-view-tabs" aria-label="Consumer app views">{tabs.map(tab=><button key={tab.id} className={activeView===tab.id?"active":""} onClick={()=>setActiveView(tab.id)}><span>{tab.icon}</span>{tab.label}</button>)}<Link href="/community"><span>◎</span>Community</Link></nav>
     {notice&&<div className="success-banner" role="status"><span>✓</span>{notice}<button aria-label="Dismiss notification" onClick={()=>setNotice("")}>×</button></div>}
     {loadError&&<div className="form-error" role="alert">{loadError}</div>}
