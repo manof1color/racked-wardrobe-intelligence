@@ -4,7 +4,8 @@ import { bedrockHangerConverse, generateBrandHangerReply, sanitizeAgentHistory }
 import { meteredOrNull } from "@/lib/ai-budget";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
-import { EnumerationBudgetError, getBrandCommunityMetrics, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
+import { failureResponse, RequestRefused } from "@/lib/api-errors";
+import { getBrandCommunityMetrics, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
 
 export async function POST(request: Request) {
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
       getBrandCommunityMetrics(session.subject, productId),
     ]);
     const product = products.find((item) => item.id === productId);
-    if (!product) throw new Error("Product not found.");
+    if (!product) throw new RequestRefused("Product not found for this brand account.", 404);
     // Below the privacy threshold no model is called, so nothing is spent. Above it, a question is
     // spent from the brand's daily allowance, and its model call from the site's ceiling; when the
     // ceiling or the counter refuses, the answer comes from the released aggregates alone.
@@ -57,16 +58,14 @@ export async function POST(request: Request) {
         "General strategy only until the threshold is reached",
       ] : [
         `${metrics.segmentSize} eligible opted-in owners`,
-        `${metrics.actualWears ?? 0} confirmed wears`,
-        `${metrics.repeatWearRate ?? 0}% repeat-wear rate`,
+        metrics.actualWears === null ? "Confirmed wears withheld (small group)" : `${metrics.actualWears ?? 0} confirmed wears`,
+        metrics.repeatWearRate === null ? "Repeat-wear rate withheld (small group)" : `${metrics.repeatWearRate ?? 0}% repeat-wear rate`,
         `${communityMetrics.publicOutfitAppearances} public outfit appearances`,
         "No names, photos, identifiers, or individual wardrobes sent to AI",
       ],
     };
     return NextResponse.json({ reply, retention: null });
   } catch (error) {
-    if (error instanceof EnumerationBudgetError) return NextResponse.json({ error: error.message }, { status: 429 });
-    console.error("Brand Hanger conversation failed", error);
-    return NextResponse.json({ error: "Wear intelligence could not run." }, { status: 500 });
+    return failureResponse(error, "Brand Hanger conversation failed", "Wear intelligence could not run.");
   }
 }

@@ -6,7 +6,7 @@ import { deviceLabel } from "@/lib/device-label";
 import { isKnownDevice, KNOWN_DEVICE_COOKIE, knownDeviceCookie } from "@/lib/known-device";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
-import { countSignInFailure, signInPause } from "@/lib/server/abuse-guard";
+import { countKnownDeviceFailure, countSignInFailure, knownDevicePause, signInPause } from "@/lib/server/abuse-guard";
 import { authenticateAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
 
 export async function POST(request:Request) {
@@ -17,8 +17,12 @@ export async function POST(request:Request) {
   const secret=process.env.SESSION_SECRET;
   // A browser that has signed in to this account before carries a signed cookie saying so, and the
   // per-email pauses below do not apply to it: an attacker typing wrong passwords for someone
-  // else's email can pause their own attempts, never the owner's (lib/known-device.ts).
-  const knownDevice=Boolean(secret)&&isKnownDevice((await cookies()).get(KNOWN_DEVICE_COOKIE)?.value,email,secret!);
+  // else's email can pause their own attempts, never the owner's (lib/known-device.ts). The cookie
+  // has a failure budget of its own, so a copied cookie cannot be used to guess from many
+  // addresses: past eight wrong passwords it is an unknown device again.
+  const deviceToken=(await cookies()).get(KNOWN_DEVICE_COOKIE)?.value;
+  const deviceSigned=Boolean(secret)&&isKnownDevice(deviceToken,email,secret!);
+  const knownDevice=deviceSigned&&(await knownDevicePause(deviceToken!)).allowed;
   // Both keys slow credential stuffing: one caller cycling emails, and many callers
   // converging on one account.
   const byClient=consumeRateLimit(`login:${clientIdentifier(request)}`,RATE_LIMIT_RULES.login);
@@ -32,7 +36,8 @@ export async function POST(request:Request) {
   // answer reveals nothing about which emails do.
   if(!knownDevice){
     const paused=await signInPause(email);
-    if(!paused.allowed)return NextResponse.json({error:signInPausedMessage(paused.retryAfterSeconds)},{status:429,headers:{"retry-after":String(paused.retryAfterSeconds)}});
+    // An alarm signal for password guessing; the line carries no email address or client address.
+    if(!paused.allowed){console.warn("Sign-in pause engaged");return NextResponse.json({error:signInPausedMessage(paused.retryAfterSeconds)},{status:429,headers:{"retry-after":String(paused.retryAfterSeconds)}});}
   }
   const device=deviceLabel(request.headers.get("user-agent"));
   try {
@@ -40,7 +45,7 @@ export async function POST(request:Request) {
     if(!account){
       // The same two writes for every wrong password, account or not: count it, and file it where
       // the owner of that email — if there is one — will see it in their activity log.
-      await Promise.all([countSignInFailure(email),recordFailedSignIn(email,device).catch(()=>undefined)]);
+      await Promise.all([countSignInFailure(email),...(deviceSigned?[countKnownDeviceFailure(deviceToken!)]:[]),recordFailedSignIn(email,device).catch(()=>undefined)]);
       return NextResponse.json({error:"Email or password was incorrect."},{status:401});
     }
     if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});

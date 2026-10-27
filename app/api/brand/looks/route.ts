@@ -1,18 +1,25 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { failureResponse } from "@/lib/api-errors";
 import { listBrandLooks, saveBrandLook } from "@/lib/server/production-store";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { onlyFields, readBoolean, readIdList, readJsonObject, readText } from "@/lib/request-input";
 
 export async function GET(){const session=await getSession();if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
   if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});return NextResponse.json({looks:await listBrandLooks(session.subject)});}
 
+// Every product in a Look must be this brand's own; saveBrandLook checks each one against the
+// session's catalog before anything is saved.
 export async function POST(request:Request){
   const session=await getSession();if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
   if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});
   const limit=consumeRateLimit(`brand-look:${session.subject}`,RATE_LIMIT_RULES.brandLookPublish);
   if(!limit.allowed)return NextResponse.json({error:"Too many Looks at once. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
-  const body=await request.json().catch(()=>null) as {title?:string;caption?:string;productIds?:string[];published?:boolean}|null;
-  if(!Array.isArray(body?.productIds))return NextResponse.json({error:"Choose brand-owned products for the Look."},{status:400});
-  try{return NextResponse.json(await saveBrandLook(session.subject,{title:body?.title??"",caption:body?.caption??"",productIds:body.productIds,published:body?.published===true}),{status:201});}
-  catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Brand Look could not be saved."},{status:400});}
+  try{
+    const body=await readJsonObject(request);
+    onlyFields(body,["title","caption","productIds","published"]);
+    const look={title:readText(body.title,{label:"a title",max:80,min:3}),caption:readText(body.caption,{label:"a caption",max:280,min:3}),productIds:readIdList(body.productIds,{label:"brand products",min:1,max:10}),published:body.published===undefined?false:readBoolean(body.published,"published")};
+    return NextResponse.json(await saveBrandLook(session.subject,look),{status:201});
+  }
+  catch(error){return failureResponse(error,"Brand Look save failed","The Look could not be saved. Try again.");}
 }

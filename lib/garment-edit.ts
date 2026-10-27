@@ -14,6 +14,7 @@
  * A catalog product chosen here is the person's own pick — shown to them alone, never verified,
  * and never joined to the brand's owner index — exactly as it is when chosen during a scan.
  */
+import { RequestRefused } from "./api-errors.ts";
 import { normalizeGarmentClassification } from "./garment-taxonomy.ts";
 import type { BrandProductRegistration } from "./platform-types.ts";
 import type { Season, WardrobeItem } from "./types.ts";
@@ -41,14 +42,10 @@ export interface GarmentEdit {
  * Why an edit was refused, in words the person can act on. 409 means the request was well formed
  * but conflicts with what the piece is — a verified brand link — rather than being malformed.
  */
-export class GarmentEditRefused extends Error {
-  // A plain field, not a constructor parameter property: the test runner strips types without
-  // compiling, and parameter properties need compiling.
-  readonly status: 400 | 409;
+export class GarmentEditRefused extends RequestRefused {
   constructor(message: string, status: 400 | 409 = 400) {
-    super(message);
+    super(message, status);
     this.name = "GarmentEditRefused";
-    this.status = status;
   }
 }
 

@@ -27,9 +27,10 @@ function counter() {
 }
 const broken: CounterIncrement = async () => { throw Object.assign(new Error("connect ETIMEDOUT"), { name: "TimeoutError" }); };
 const quietly = async <T>(work: () => Promise<T>) => {
-  const original = console.error;
+  const [error, warn] = [console.error, console.warn];
   console.error = () => undefined;
-  try { return await work(); } finally { console.error = original; }
+  console.warn = () => undefined;
+  try { return await work(); } finally { [console.error, console.warn] = [error, warn]; }
 };
 
 test("an account's allowance counts requests and refuses the one past it", async () => {
@@ -49,7 +50,7 @@ test("REGRESSION: an unreadable counter refuses paid AI instead of allowing it",
 
 test("concurrent model calls cannot overshoot the site's ceiling", async () => {
   const { increment } = counter();
-  const results = await Promise.all(Array.from({ length: 50 }, () => chargeSiteModelCall(increment, noon, 10)));
+  const results = await quietly(() => Promise.all(Array.from({ length: 50 }, () => chargeSiteModelCall(increment, noon, 10))));
   assert.equal(results.filter(Boolean).length, 10, "exactly the ceiling, however the calls interleave");
 });
 

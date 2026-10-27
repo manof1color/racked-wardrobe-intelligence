@@ -224,7 +224,7 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
         throw new Error("Hanger's visible outfit changed before saving. Ask Hanger to create the outfit again so every photo and label stays matched.");
       }
       if (kind === "record-outfit") {
-        const response = await fetch("/api/wears", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemIds }) });
+        const response = await fetch("/api/wears", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemIds, requestId: crypto.randomUUID() }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "The outfit could not be recorded.");
         onWearRecorded?.(data.counts);

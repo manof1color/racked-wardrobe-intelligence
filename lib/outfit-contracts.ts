@@ -1,4 +1,5 @@
 import { slugifyBrand } from "./product-registry.ts";
+import { RequestRefused } from "./api-errors.ts";
 import type { OutfitPieceReference, WardrobeItem } from "./types.ts";
 
 // The registry's slug rule, not a local copy. A separate rule dropped accented letters
@@ -40,7 +41,7 @@ export function buildOutfitPieceReferences(itemIds: string[], wardrobe: Wardrobe
   const byId = new Map(wardrobe.map((item) => [item.id, item]));
   return [...new Set(itemIds)].map((id) => {
     const item = byId.get(id);
-    if (!item) throw new Error("Every outfit piece must belong to the selected wardrobe.");
+    if (!item) throw new RequestRefused("Every outfit piece must belong to the selected wardrobe.");
     return wardrobeItemToOutfitPiece(item);
   });
 }

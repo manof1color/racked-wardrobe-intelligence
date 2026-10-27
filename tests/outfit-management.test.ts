@@ -12,7 +12,7 @@ const consumerAgentRoute=read("app/api/agents/consumer/route.ts");
 
 test("saved outfit deletion is scoped to the authenticated consumer",()=>{assert.match(route,/session\.role\s*!==\s*"consumer"/);assert.match(route,/deleteOutfit\(session\.subject,outfitId\)/);assert.doesNotMatch(route,/body\?\.(ownerId|accountId|subject)/);});
 
-test("deletion removes the owned outfit and private board without erasing wear history",()=>{const start=store.indexOf("export async function deleteOutfit");const end=store.indexOf("export async function incrementOutfitWears",start);const implementation=store.slice(start,end);assert.match(implementation,/PK:`USER#\$\{ownerId\}`/);assert.match(implementation,/DeleteCommand/);assert.match(implementation,/boardImageKey\?\.startsWith\(`wardrobe\/\$\{ownerId\}\/outfits\//);assert.match(implementation,/DeleteObjectCommand/);assert.doesNotMatch(implementation,/WEAR#|COMMUNITY#|GARMENT#/);});
+test("deletion removes the owned outfit and private board without erasing wear history",()=>{const start=store.indexOf("export async function deleteOutfit");const end=store.indexOf("// ─── Deletion",start);assert.ok(end>start);const implementation=store.slice(start,end);assert.match(implementation,/PK:`USER#\$\{ownerId\}`/);assert.match(implementation,/DeleteCommand/);assert.match(implementation,/boardImageKey\?\.startsWith\(`wardrobe\/\$\{ownerId\}\/outfits\//);assert.match(implementation,/DeleteObjectCommand/);assert.doesNotMatch(implementation,/WEAR#|COMMUNITY#|GARMENT#/);});
 
 test("the outfit screen requires an explicit second delete confirmation",()=>{assert.match(dashboard,/confirmDeleteId!==outfit\.id/);assert.match(dashboard,/Confirm delete/);assert.match(dashboard,/method:"DELETE"/);assert.match(dashboard,/Historical wear records were kept/);});
 
@@ -34,7 +34,7 @@ test("the client blocks saving when visible cards and action ids do not match",(
 
 test("the saved board preserves Hanger's selected piece order",()=>{const start=store.indexOf("export async function saveOutfit");const end=store.indexOf("export async function updateOutfitItems",start);const implementation=store.slice(start,end);assert.match(implementation,/unique\.map\(itemId=>byId\.get\(itemId\)\)/);assert.doesNotMatch(implementation,/wardrobe\.filter\(item=>unique\.includes\(item\.id\)\)/);});
 
-test("piece-level outfit updates remain scoped to the signed-in consumer",()=>{assert.match(route,/export async function PATCH/);assert.match(route,/updateOutfitItems\(session\.subject,outfitId,unique\)/);assert.doesNotMatch(route,/body\?\.(ownerId|accountId|subject)/);});
+test("piece-level outfit updates remain scoped to the signed-in consumer",()=>{assert.match(route,/export async function PATCH/);assert.match(route,/updateOutfitItems\(session\.subject,outfitId,itemIds\)/);assert.doesNotMatch(route,/body\?\.(ownerId|accountId|subject)/);});
 
 test("removing a piece regenerates the board and preserves the wardrobe garment",()=>{const start=store.indexOf("export async function updateOutfitItems");const end=store.indexOf("export async function deleteOutfit",start);const implementation=store.slice(start,end);assert.match(implementation,/generateOutfitBoard\(ownerId,`\$\{outfit\.id\}-\$\{crypto\.randomUUID\(\)\}`/);assert.match(implementation,/SET itemIds = :itemIds, pieces = :pieces/);assert.match(implementation,/DeleteObjectCommand/);assert.doesNotMatch(implementation,/GARMENT#|WEAR#|COMMUNITY#/);});
 

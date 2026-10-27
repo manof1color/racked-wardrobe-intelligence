@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { addWardrobeItem, deleteWardrobeItem, listOutfits, listWardrobe, ProductionConfigurationError, updateWardrobeItem } from "@/lib/server/production-store";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { failureResponse } from "@/lib/api-errors";
 import { GarmentEditRefused, readGarmentEdit } from "@/lib/garment-edit";
 import type { GarmentAnalysis } from "@/lib/platform-types";
 
@@ -16,7 +17,7 @@ export async function POST(request:Request) {
   if(!limit.allowed)return NextResponse.json({error:"Too many saves at once. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const body=await request.json().catch(()=>null) as {analysis?:GarmentAnalysis;overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null;labelText?:string|null;catalogProductId?:string|null}}|null;
   if(!body?.analysis||!body.analysis.garment||!body.analysis.processedImage)return NextResponse.json({error:"A completed image analysis is required."},{status:400});
-  try {return NextResponse.json({item:await addWardrobeItem(session.subject,body.analysis,body.overrides)},{status:201});}catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Garment could not be saved."},{status:400});}
+  try {return NextResponse.json({item:await addWardrobeItem(session.subject,body.analysis,body.overrides)},{status:201});}catch(error){if(error instanceof TypeError)return NextResponse.json({error:"The garment details were not in the expected format."},{status:400});return failureResponse(error,"Garment save failed","Garment could not be saved. Try again.");}
 }
 
 // Editing a piece. The owner is always the session and the item comes from the body, so an edit

@@ -14,7 +14,10 @@ import { brandOnboardingComplete, brandOnboardingProgress, brandOnboardingSteps 
 import type { BrandCommunityMetrics, BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
 
-function readableDate(value?:string|null){return value?new Date(value).toLocaleString([], {month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}):"No recorded event";}
+// The latest wear is released as a day (noon UTC), so it is shown as a date, never a time.
+function readableDay(value?:string|null){return value?new Date(value).toLocaleDateString([], {month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}):"No recorded event";}
+// A figure withheld to protect a small group is null: it reads "withheld", never zero.
+function shown(value:number|null|undefined,suffix=""){return value===null||value===undefined?"withheld":`${value}${suffix}`;}
 
 /** Finds a product the way a person looks for one: by name, style code, or category. */
 function matchesQuery(product:BrandProductRegistration,query:string){
@@ -175,21 +178,22 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
     const rows=[
       ["Racked privacy-safe product wear export",product.name],
       ["Brand",product.brand],["SKU",product.sku],["Eligible opted-in owners",metrics.segmentSize],
-      ["Confirmed wear events",metrics.actualWears??0],["Active owners",metrics.activeOwners??0],
-      ["Engagement rate",`${metrics.engagementRate??0}%`],["Repeat-wear rate",`${metrics.repeatWearRate??0}%`],
-      ["Average wears per owner",metrics.averageWearsPerOwner??0],["Median wears per owner",metrics.medianWearsPerOwner??0],
-      ["Zero-wear owners",metrics.zeroWearOwners??0],["6+ wear owners",metrics.highFrequencyOwners??0],
-      ["Last aggregate event",metrics.lastWearAt??"none"],[],["8-week trend","wears"],
-      ...(metrics.weeklyTrend??[]).map(point=>[point.weekStart,point.wears]),[],["Wear frequency","owners","percentage"],
-      ...(metrics.wearDistribution??[]).map(point=>[point.label,point.owners,`${point.percentage}%`]),
+      ["Confirmed wear events",shown(metrics.actualWears)],["Active owners",shown(metrics.activeOwners)],
+      ["Engagement rate",shown(metrics.engagementRate,"%")],["Repeat-wear rate",shown(metrics.repeatWearRate,"%")],
+      ["Average wears per owner",shown(metrics.averageWearsPerOwner)],["Median wears per owner",shown(metrics.medianWearsPerOwner)],
+      ["Zero-wear owners",shown(metrics.zeroWearOwners)],["6+ wear owners",shown(metrics.highFrequencyOwners)],
+      ["Last wear (day)",metrics.lastWearAt?.slice(0,10)??"none"],[],["8-week trend","wears"],
+      ...(metrics.weeklyTrend??[]).map(point=>[point.weekStart,point.wears===null?"fewer than 5":point.wears]),[],["Wear frequency","owners","percentage"],
+      ...(metrics.wearDistribution??[]).map(point=>[point.label,shown(point.owners),shown(point.percentage,"%")]),
+      [],["Withheld figures",`Any figure that could single out fewer than ${metrics.minimumCellSize??5} owners`],
     ];
     const csv=rows.map(row=>row.map(value=>`"${String(value??"").replaceAll('"','""')}"`).join(",")).join("\n");
     const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
     const link=document.createElement("a");link.href=url;link.download=`racked-${product.sku.toLowerCase()}-wear-aggregate.csv`;link.click();URL.revokeObjectURL(url);
   }
 
-  const maxTrend=Math.max(1,...(metrics?.weeklyTrend??[]).map(point=>point.wears));
-  const maxDistribution=Math.max(1,...(metrics?.wearDistribution??[]).map(point=>point.owners));
+  const maxTrend=Math.max(1,...(metrics?.weeklyTrend??[]).map(point=>point.wears??0));
+  const maxDistribution=Math.max(1,...(metrics?.wearDistribution??[]).map(point=>point.owners??0));
   const tabs:Array<{id:BrandWorkspaceView;label:string}>=[{id:"overview",label:"Overview"},{id:"catalog",label:"Catalog"},{id:"looks",label:"Brand Looks"}];
   // The skeleton shows while an opened product has neither an answer nor an error yet.
   const calculating=view==="product"&&Boolean(productId)&&!justEnrolled.includes(productId)&&!metrics&&!error;
@@ -275,11 +279,11 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
 
       {justEnrolled.includes(product.id)?<div className="empty-match"><h3>Nothing has been linked to this yet.</h3><p>You enrolled it a moment ago. Wear intelligence opens once 25 opted-in owners have linked it, and Racked will not spend one of your aggregate requests asking about a product that cannot have owners yet.</p></div>:calculating?<div className="metric-skeleton" role="status" aria-live="polite"><strong>Calculating the privacy-safe wear cohort</strong><span/><span/><span/></div>:metrics?.suppressed?<div className="empty-match suppressed-match"><span>🔒</span><h3>{wearHeadline(metrics).statement}</h3><p>{wearHeadline(metrics).support}</p><p><b>Fewer than {metrics.minimumCohortSize} qualifying owners</b> are connected so far. Below the threshold Racked withholds even the count, because a small number can single people out. Suppression here is the control working, not a missing feature.</p></div>:metrics&&<>
         <section className="wear-hero">
-          <div><span className="card-label">CONFIRMED WEARS</span><strong>{metrics.actualWears}</strong><p>{wearHeadline(metrics).statement}</p><small>{wearHeadline(metrics).support}</small></div>
+          <div><span className="card-label">CONFIRMED WEARS</span><strong>{shown(metrics.actualWears)}</strong><p>{wearHeadline(metrics).statement}</p><small>{wearHeadline(metrics).support}</small></div>
         </section>
-        <div className="metric-row metric-row-secondary"><article><small>ACTIVE OWNERS</small><strong>{metrics.activeOwners}<i> / {metrics.segmentSize}</i></strong><p>{metrics.engagementRate}% recorded a wear</p></article><article><small>REPEAT WEAR RATE</small><strong>{metrics.repeatWearRate}%</strong><p>Owners with two or more wears</p></article><article><small>AVERAGE FREQUENCY</small><strong>{metrics.averageWearsPerOwner}</strong><p>Wears per eligible owner</p></article><article><small>MEDIAN FREQUENCY</small><strong>{metrics.medianWearsPerOwner}</strong><p>Middle owner wear count</p></article><article><small>HIGH FREQUENCY</small><strong>{metrics.highFrequencyOwners}</strong><p>Owners with six or more wears</p></article></div>
-        <div className="wear-chart-grid"><section className="wear-chart-card"><header><div><span className="card-label">ACTUAL DATAPOINTS</span><h3>Eight-week wear activity</h3></div><small>Last event<br/><b>{readableDate(metrics.lastWearAt)}</b></small></header><div className="weekly-bars" role="img" aria-label="Confirmed wears by week">{metrics.weeklyTrend?.map(point=><div key={point.weekStart}><span style={{height:`${Math.max(5,point.wears/maxTrend*100)}%`}}><b>{point.wears}</b></span><small>{point.label}</small></div>)}</div><figcaption>Confirmed wears per week, opted-in owners only.</figcaption></section>
-          <section className="wear-chart-card"><header><div><span className="card-label">OWNER FREQUENCY</span><h3>Wear distribution</h3></div><small>Anonymous aggregate<br/><b>{metrics.segmentSize} eligible owners</b></small></header><div className="distribution-bars">{metrics.wearDistribution?.map(point=><div key={point.label}><label><span>{point.label}</span><b>{point.owners} · {point.percentage}%</b></label><i><span style={{width:`${point.owners/maxDistribution*100}%`}}/></i></div>)}</div><figcaption>How many owners wore it how often. No individual rows, ever.</figcaption></section></div>
+        <div className="metric-row metric-row-secondary"><article><small>ACTIVE OWNERS</small><strong>{shown(metrics.activeOwners)}<i> / {metrics.segmentSize}</i></strong><p>{shown(metrics.engagementRate,"%")} recorded a wear</p></article><article><small>REPEAT WEAR RATE</small><strong>{shown(metrics.repeatWearRate,"%")}</strong><p>Owners with two or more wears</p></article><article><small>AVERAGE FREQUENCY</small><strong>{shown(metrics.averageWearsPerOwner)}</strong><p>Wears per eligible owner</p></article><article><small>MEDIAN FREQUENCY</small><strong>{metrics.medianWearsPerOwner}</strong><p>Middle owner wear count</p></article><article><small>HIGH FREQUENCY</small><strong>{shown(metrics.highFrequencyOwners)}</strong><p>Owners with six or more wears</p></article></div>
+        <div className="wear-chart-grid"><section className="wear-chart-card"><header><div><span className="card-label">ACTUAL DATAPOINTS</span><h3>Eight-week wear activity</h3></div><small>Last event<br/><b>{readableDay(metrics.lastWearAt)}</b></small></header><div className="weekly-bars" role="img" aria-label="Confirmed wears by week">{metrics.weeklyTrend?.map(point=><div key={point.weekStart}><span style={{height:`${Math.max(5,(point.wears??0)/maxTrend*100)}%`}}><b>{point.wears??"<5"}</b></span><small>{point.label}</small></div>)}</div><figcaption>Confirmed wears per week, opted-in owners only. A week with one to four wears shows “&lt;5”.</figcaption></section>
+          <section className="wear-chart-card"><header><div><span className="card-label">OWNER FREQUENCY</span><h3>Wear distribution</h3></div><small>Anonymous aggregate<br/><b>{metrics.segmentSize} eligible owners</b></small></header><div className="distribution-bars">{metrics.wearDistribution?.map(point=><div key={point.label}><label><span>{point.label}</span><b>{point.owners===null?"withheld":`${point.owners} · ${point.percentage}%`}</b></label><i><span style={{width:`${(point.owners??0)/maxDistribution*100}%`}}/></i></div>)}</div><figcaption>How many owners wore it how often. No individual rows, ever — and a group small enough to single people out is withheld.</figcaption></section></div>
         <section className="business-read"><div className="section-title"><div><span className="card-label">WHAT THIS MEANS</span><h3>Your questions, answered from confirmed wear</h3></div></div><div className="readout-grid">{wearReadouts(metrics).map(readout=><article key={readout.question} className={`readout tone-${readout.tone}`}><h4>{readout.question}</h4><strong>{readout.value}</strong><p>{readout.detail}</p></article>)}</div><p className="readout-footnote">Every figure is observed usage from opted-in owners after the {metrics.minimumCohortSize}-owner threshold. Racked reports what was worn — never sales, revenue, or why someone bought.</p></section>
       </>}
       {error&&<div className="form-error" role="alert">{error}</div>}

@@ -41,7 +41,7 @@ test("aggregate release stays behind the cohort threshold and the enumeration bu
   // Ownership is verified against the brand's own partition before any aggregate is built.
   assert.ok(store.includes("Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}"),
     "an aggregate must be gated on a product read from the brand's own partition");
-  assert.ok(store.includes('if(!owned.Item)throw new Error("Product not found for this brand account.");'),
+  assert.ok(store.includes('if(!owned.Item)throw new RequestRefused("Product not found for this brand account.", 404);'),
     "a product outside the account must be refused before any aggregate work");
   assert.ok(store.includes("await enforceAggregateEnumerationBudget(ownerId,productId);"),
     "the enumeration budget must run before the aggregate is built");

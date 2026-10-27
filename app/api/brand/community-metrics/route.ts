@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { failureResponse } from "@/lib/api-errors";
+import { onlyFields, readId, readJsonObject } from "@/lib/request-input";
 import { getBrandCommunityMetrics } from "@/lib/server/production-store";
 
 export async function POST(request:Request){
@@ -9,8 +11,6 @@ export async function POST(request:Request){
   if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});
   const limit=consumeRateLimit(`brand-community:${session.subject}`,RATE_LIMIT_RULES.brandMetrics);
   if(!limit.allowed)return NextResponse.json({error:"Too many metric requests. Try again shortly."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
-  const body=await request.json().catch(()=>null) as {productId?:string}|null;
-  if(!body?.productId||body.productId.length>80)return NextResponse.json({error:"Choose a valid product."},{status:400});
-  try{return NextResponse.json({metrics:await getBrandCommunityMetrics(session.subject,body.productId)});}
-  catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Community metrics could not be loaded."},{status:400});}
+  try{const body=await readJsonObject(request);onlyFields(body,["productId"]);return NextResponse.json({metrics:await getBrandCommunityMetrics(session.subject,readId(body.productId,"product"))});}
+  catch(error){return failureResponse(error,"Brand community metrics failed","Community metrics could not be loaded.");}
 }

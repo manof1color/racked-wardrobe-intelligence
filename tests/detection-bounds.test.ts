@@ -128,3 +128,16 @@ test("every AI model override the code reads is copied into the runtime environm
   const missing = [...read].filter((name) => !allowlisted.has(name)).sort();
   assert.deepEqual(missing, [], `read in code but never reaches production: ${missing.join(", ")}`);
 });
+
+// REGRESSION: RACKED_ALLOWED_ORIGINS and RACKED_TRUSTED_PROXY_HOPS were read by the code but never
+// copied into the runtime, so setting either in Amplify would have done nothing.
+test("REGRESSION: every RACKED_* runtime setting the code reads is copied into the runtime environment", () => {
+  const sources = [...["lib", "app"].flatMap((dir) => walk(new URL(`../${dir}/`, import.meta.url))), new URL("../middleware.ts", import.meta.url)];
+  const read = new Set(sources.flatMap((file) => [...readFileSync(file, "utf8").matchAll(/process\.env\.(RACKED_[A-Z_]+)/g)].map((match) => match[1])));
+  const script = readFileSync(new URL("../scripts/write-amplify-env.mjs", import.meta.url), "utf8");
+  const allowlisted = new Set([...script.matchAll(/"(RACKED_[A-Z_]+)"/g)].map((match) => match[1]));
+  // Written by the script itself from the build, not copied from configuration.
+  const builtIn = new Set(["RACKED_BUILD_COMMIT", "RACKED_BUILD_TIME"]);
+  const missing = [...read].filter((name) => !allowlisted.has(name) && !builtIn.has(name)).sort();
+  assert.deepEqual(missing, [], `read in code but never reaches production: ${missing.join(", ")}`);
+});

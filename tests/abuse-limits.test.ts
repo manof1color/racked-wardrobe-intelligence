@@ -65,7 +65,7 @@ test("counters and failed sign-ins are stored under keyed hashes, never a raw em
 
 test("sign-in checks fail open; AI budgets fail closed", () => {
   const guard = read("lib/server/abuse-guard.ts");
-  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 5, "the four sign-in, sign-up and reset checks, plus the helper");
+  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 7, "the six sign-in, known-device, sign-up and reset checks, plus the helper");
   assert.match(guard, /return chargeAccountAllowance\(incrementSecurityCounter, action, accountId, now\);/, "the account allowance uses the fail-closed charge");
   assert.match(guard, /return chargeSiteModelCall\(incrementSecurityCounter\);/, "and so does the site's ceiling");
 });
@@ -74,7 +74,16 @@ test("sign-in checks the shared pause first, and counts every wrong password the
   const login = read("app/api/auth/login/route.ts");
   assert.ok(login.indexOf("await signInPause(email)") < login.indexOf("await authenticateAccount("), "paused emails never reach the password check");
   assert.match(login, /signInPausedMessage\(paused\.retryAfterSeconds\)/);
-  assert.match(login, /if\(!account\)\{[\s\S]*?await Promise\.all\(\[countSignInFailure\(email\),recordFailedSignIn\(email,device\)/, "unknown email and wrong password do the same work");
+  assert.match(login, /if\(!account\)\{[\s\S]*?await Promise\.all\(\[countSignInFailure\(email\),\.\.\.\(deviceSigned\?\[countKnownDeviceFailure\(deviceToken!\)\]:\[\]\),recordFailedSignIn\(email,device\)/, "unknown email and wrong password do the same work");
+});
+
+test("REGRESSION: a known-device cookie has its own failure budget, so a copied cookie cannot guess without limit", () => {
+  const login = read("app/api/auth/login/route.ts");
+  assert.match(login, /const knownDevice=deviceSigned&&\(await knownDevicePause\(deviceToken!\)\)\.allowed;/, "past its budget the cookie exempts nothing");
+  assert.match(login, /deviceSigned\?\[countKnownDeviceFailure\(deviceToken!\)\]:\[\]/, "every wrong password with a signed cookie is counted against the cookie");
+  const guard = read("lib/server/abuse-guard.ts");
+  assert.match(guard, /readSecurityCounter\(`sign-in-failures-device:\$\{deviceToken\}`, rule\.windowMs, now\)/);
+  assert.match(guard, /incrementSecurityCounter\(`sign-in-failures-device:\$\{deviceToken\}`, DURABLE_LIMITS\.signInFailuresPerEmail\.windowMs, now\)/);
 });
 
 test("a known device is exempt from the per-email pauses, and only those", () => {

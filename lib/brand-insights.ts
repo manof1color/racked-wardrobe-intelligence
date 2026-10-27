@@ -25,6 +25,12 @@ export function wearHeadline(metrics: BrandMetrics): { statement: string; suppor
       support: `Racked releases product wear only once at least ${metrics.minimumCohortSize} eligible owners have opted in. Until then no wear figure is shown, invented, or estimated.`,
     };
   }
+  if (metrics.engagementRate === null || metrics.repeatWearRate === null) {
+    return {
+      statement: "Racked withholds the exact wear split for this product.",
+      support: `One side of it is a group of fewer than ${metrics.minimumCellSize ?? 5} of the ${metrics.segmentSize} eligible owners, and a figure that small could single people out. Observed usage only — this says nothing about sales or intent.`,
+    };
+  }
   const engagement = Number(metrics.engagementRate ?? 0);
   const repeat = Number(metrics.repeatWearRate ?? 0);
   const statement = engagement >= 70 && repeat >= 50
@@ -43,17 +49,22 @@ export function wearHeadline(metrics: BrandMetrics): { statement: string; suppor
 /** The private, consent-filtered wear questions, released only above the threshold. */
 export function wearReadouts(metrics: BrandMetrics): BusinessReadout[] {
   if (metrics.suppressed) return [];
-  const engagement = Number(metrics.engagementRate ?? 0);
-  const repeat = Number(metrics.repeatWearRate ?? 0);
-  const zero = Number(metrics.zeroWearOwners ?? 0);
-  const staple = Number(metrics.highFrequencyOwners ?? 0);
+  // A null figure was withheld to protect a small group (lib/metrics.ts releaseWearAnalytics). It
+  // is said so, in words — never read as zero, and never turned into a tone.
+  const WITHHELD = "Withheld";
+  const why = `Withheld: it would describe fewer than ${metrics.minimumCellSize ?? 5} owners, or reveal such a group by subtraction.`;
+  const owners = (value: number | null | undefined) => value === null || value === undefined ? WITHHELD : `${value} owner${value === 1 ? "" : "s"}`;
+  const engagement = metrics.engagementRate ?? null;
+  const repeat = metrics.repeatWearRate ?? null;
+  const zero = metrics.zeroWearOwners ?? null;
+  const staple = metrics.highFrequencyOwners ?? null;
   return [
-    { question: "Are people actually wearing it?", value: pct(engagement), detail: `${metrics.activeOwners} of ${metrics.segmentSize} eligible owners recorded at least one confirmed wear.`, tone: engagement >= 70 ? "strong" : engagement >= 40 ? "neutral" : "watch" },
-    { question: "Do they wear it more than once?", value: pct(repeat), detail: "Share of owners with two or more confirmed wears.", tone: repeat >= 50 ? "strong" : repeat >= 25 ? "neutral" : "watch" },
-    { question: "Is it becoming a wardrobe staple?", value: `${staple} owner${staple === 1 ? "" : "s"}`, detail: "Owners with six or more confirmed wears.", tone: staple > 0 ? "strong" : "neutral" },
-    { question: "How often does a typical owner reach for it?", value: `${metrics.medianWearsPerOwner ?? 0}×`, detail: `Median wears per eligible owner; the average is ${metrics.averageWearsPerOwner ?? 0}×.`, tone: "neutral" },
-    { question: "Who bought it but never wore it?", value: `${zero} owner${zero === 1 ? "" : "s"}`, detail: "An education or styling opportunity. Racked cannot tell you who they are, and you cannot contact them.", tone: zero > 0 ? "watch" : "strong" },
-    { question: "When was it last worn?", value: metrics.lastWearAt ? new Date(metrics.lastWearAt).toLocaleDateString() : "No events yet", detail: "Most recent confirmed wear event in the eligible cohort.", tone: "neutral" },
+    { question: "Are people actually wearing it?", value: engagement === null ? WITHHELD : pct(engagement), detail: engagement === null ? why : `${metrics.activeOwners} of ${metrics.segmentSize} eligible owners recorded at least one confirmed wear.`, tone: engagement === null ? "neutral" : engagement >= 70 ? "strong" : engagement >= 40 ? "neutral" : "watch" },
+    { question: "Do they wear it more than once?", value: repeat === null ? WITHHELD : pct(repeat), detail: repeat === null ? why : "Share of owners with two or more confirmed wears.", tone: repeat === null ? "neutral" : repeat >= 50 ? "strong" : repeat >= 25 ? "neutral" : "watch" },
+    { question: "Is it becoming a wardrobe staple?", value: owners(staple), detail: staple === null ? why : "Owners with six or more confirmed wears.", tone: staple === null ? "neutral" : staple > 0 ? "strong" : "neutral" },
+    { question: "How often does a typical owner reach for it?", value: `${metrics.medianWearsPerOwner ?? 0}×`, detail: metrics.averageWearsPerOwner === null ? "Median wears per eligible owner; the average is withheld while total wear is very small." : `Median wears per eligible owner; the average is ${metrics.averageWearsPerOwner ?? 0}×.`, tone: "neutral" },
+    { question: "Who bought it but never wore it?", value: owners(zero), detail: zero === null ? why : "An education or styling opportunity. Racked cannot tell you who they are, and you cannot contact them.", tone: zero === null ? "neutral" : zero > 0 ? "watch" : "strong" },
+    { question: "When was it last worn?", value: metrics.lastWearAt ? new Date(metrics.lastWearAt).toLocaleDateString([], { timeZone: "UTC" }) : "No events yet", detail: "The day of the most recent confirmed wear in the eligible cohort — a day, never a time.", tone: "neutral" },
   ];
 }
 

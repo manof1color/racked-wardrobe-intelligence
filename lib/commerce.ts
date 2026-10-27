@@ -1,4 +1,5 @@
 import type { BrandProductRegistration, CommerceDestinationState } from "./platform-types.ts";
+import { RequestRefused } from "./api-errors.ts";
 
 function isPrivateIpv4(hostname:string){
   const parts=hostname.split(".").map(Number);
@@ -10,10 +11,10 @@ export function normalizeCommerceUrl(value:string|undefined){
   const raw=value?.trim();
   if(!raw)return undefined;
   let parsed:URL;
-  try{parsed=new URL(raw);}catch{throw new Error("Product destinations must be valid HTTPS URLs.");}
+  try{parsed=new URL(raw);}catch{throw new RequestRefused("Product destinations must be valid HTTPS URLs.");}
   const hostname=parsed.hostname.toLowerCase();
-  if(parsed.protocol!=="https:"||parsed.username||parsed.password||(parsed.port&&parsed.port!=="443"))throw new Error("Product destinations must use public HTTPS without credentials or custom ports.");
-  if(hostname==="localhost"||hostname.endsWith(".local")||hostname.endsWith(".internal")||hostname.includes(":")||isPrivateIpv4(hostname))throw new Error("Product destinations must use a public website host.");
+  if(parsed.protocol!=="https:"||parsed.username||parsed.password||(parsed.port&&parsed.port!=="443"))throw new RequestRefused("Product destinations must use public HTTPS without credentials or custom ports.");
+  if(hostname==="localhost"||hostname.endsWith(".local")||hostname.endsWith(".internal")||hostname.includes(":")||isPrivateIpv4(hostname))throw new RequestRefused("Product destinations must use a public website host.");
   parsed.hash="";
   return parsed.toString().slice(0,2_000);
 }
