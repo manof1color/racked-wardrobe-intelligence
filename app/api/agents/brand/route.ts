@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
+import { bedrockHangerConverse, generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
+import { meteredOrNull } from "@/lib/ai-budget";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
 import { EnumerationBudgetError, getBrandCommunityMetrics, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
 
@@ -24,6 +26,11 @@ export async function POST(request: Request) {
     ]);
     const product = products.find((item) => item.id === productId);
     if (!product) throw new Error("Product not found.");
+    // Below the privacy threshold no model is called, so nothing is spent. Above it, a question is
+    // spent from the brand's daily allowance, and its model call from the site's ceiling; when the
+    // ceiling or the counter refuses, the answer comes from the released aggregates alone.
+    const allowance = metrics.suppressed ? { allowed: true as const } : await spendAiAllowance("brand-hanger", session.subject);
+    if (!allowance.allowed && allowance.scope === "account") return NextResponse.json({ error: allowance.message }, { status: 429, headers: { "retry-after": String(allowance.retryAfterSeconds) } });
     const generated = await generateBrandHangerReply({
       message,
       // Prior questions retain conversational intent, but browser-supplied assistant prose can
@@ -32,7 +39,7 @@ export async function POST(request: Request) {
       product,
       metrics,
       communityMetrics,
-    });
+    }, allowance.allowed ? meteredOrNull(spendSiteModelCall, bedrockHangerConverse) : async () => null);
     const reply: AgentReply = {
       agent: "brand-wear-intelligence",
       provider: metrics.suppressed ? "privacy-threshold" : generated.usedModel ? "amazon-bedrock" : "grounded-aggregate",

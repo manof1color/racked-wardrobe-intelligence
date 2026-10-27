@@ -915,3 +915,15 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .look-owner-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .look-owner-actions small{flex-basis:100%;color:var(--muted);font-size:.78rem;line-height:1.45}
 .look-owner-actions .confirm-unpublish{background:#5d1712;border-color:#5d1712;color:#fff}
+/* Bot trap: a field kept off-screen and out of the tab order, so only a form-filling bot fills it. */
+.form-trap{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+/* Account activity: the account's own security log in Settings. */
+.account-activity-intro{color:var(--muted);margin:0 0 18px}
+.account-activity-empty{color:var(--muted)}
+.account-activity-list{list-style:none;padding:0;margin:0 0 20px;display:grid;gap:8px}
+.account-activity-list li{display:grid;grid-template-columns:1fr auto;gap:2px 14px;border:1px solid var(--line);padding:10px 12px;font-size:.86rem}
+.account-activity-list li span{color:var(--muted);grid-column:1}
+.account-activity-list li time{grid-column:2;grid-row:1/span 2;align-self:center;color:var(--muted);font-size:.8rem;white-space:nowrap}
+.account-activity-list li.account-activity-warning{border-color:#e94f30;background:#fff3ef}
+.account-activity-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.account-activity-actions .confirm-sign-out{background:#5d1712;border-color:#5d1712;color:#fff}

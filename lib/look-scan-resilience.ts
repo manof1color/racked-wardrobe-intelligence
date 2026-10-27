@@ -5,6 +5,7 @@ import { type GarmentIsolation } from "./garment-isolation.ts";
 import { activeSegmenter } from "./garment-segmenter.ts";
 import { WHOLE_FRAME } from "./detection-bounds.ts";
 import { detectGarmentsInLook, type DetectedLookGarment } from "./look-garment-detection.ts";
+import { AiBudgetExhausted } from "./ai-budget.ts";
 
 type DisplayResult = AiBackgroundRemoval | GarmentIsolation | GarmentCutout;
 
@@ -171,12 +172,13 @@ export function manualReviewLookCandidate(reason:"no-detection"|"provider-failur
 }
 
 /** A provider outage or malformed model response becomes an honest editable item. */
-export async function detectLookOrManualReview(input:DetectionInput,dependencies:DetectionDependencies={}):Promise<{detections:DetectedLookGarment[];providerFailed:boolean}> {
+export async function detectLookOrManualReview(input:DetectionInput,dependencies:DetectionDependencies={}):Promise<{detections:DetectedLookGarment[];providerFailed:boolean;aiPaused:boolean}> {
   try {
     const detections=await (dependencies.detect??detectGarmentsInLook)(input);
-    return {detections:detections.length?detections:[manualReviewLookCandidate()],providerFailed:false};
+    return {detections:detections.length?detections:[manualReviewLookCandidate()],providerFailed:false,aiPaused:false};
   } catch(error) {
-    console.error("Whole-look recognition unavailable",{name:error instanceof Error?error.name:"UnknownError",message:error instanceof Error?error.message:"Unknown provider failure"});
-    return {detections:[manualReviewLookCandidate("provider-failure")],providerFailed:true};
+    // The error's name only: a provider message can quote the request it rejected.
+    console.error("Whole-look recognition unavailable",{name:error instanceof Error?error.name:"UnknownError"});
+    return {detections:[manualReviewLookCandidate("provider-failure")],providerFailed:true,aiPaused:error instanceof AiBudgetExhausted};
   }
 }

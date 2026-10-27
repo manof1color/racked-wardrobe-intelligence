@@ -6,7 +6,8 @@ import type { Role } from "@/lib/types";
 
 type AuthMode="signin"|"create";
 
-export function LoginPanel() {
+// formToken: a signed, timestamped token from the page, part of the sign-up bot trap (lib/bot-trap.ts).
+export function LoginPanel({formToken}:{formToken:string|null}) {
   const [mode,setMode]=useState<AuthMode>("signin");
   const [role,setRole]=useState<Role>("consumer");
   const [email,setEmail]=useState("");
@@ -16,12 +17,14 @@ export function LoginPanel() {
   const [consent,setConsent]=useState(false);
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
+  // The honeypot: a field no person sees or reaches; a form-filling bot fills it.
+  const [trap,setTrap]=useState("");
 
   async function submit() {
     setBusy(true);setError("");
     try {
       const endpoint=mode==="create"?"/api/auth/register":"/api/auth/login";
-      const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,role,displayName,brandName,consent})});
+      const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,role,displayName,brandName,consent,formToken,website:trap})});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error??"Account access failed.");
       window.location.assign(data.destination);
@@ -43,6 +46,7 @@ export function LoginPanel() {
         <button className={role==="brand"?"active":""} onClick={()=>setRole("brand")}>Brand</button>
       </div>}
       <div className="auth-fields">
+        <div className="form-trap" aria-hidden="true"><label>Website<input tabIndex={-1} autoComplete="off" name="website" value={trap} onChange={event=>setTrap(event.target.value)}/></label></div>
         {mode==="create"&&<label><span>Your name</span><input autoComplete="name" value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="Alex Morgan"/></label>}
         {mode==="create"&&role==="brand"&&<label><span>Brand name</span><input autoComplete="organization" value={brandName} onChange={event=>setBrandName(event.target.value)} placeholder="Your registered brand"/></label>}
         <label><span>Email</span><input type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="you@example.com"/></label>

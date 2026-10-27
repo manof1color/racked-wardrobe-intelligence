@@ -18,6 +18,7 @@
  */
 import { BedrockRuntimeClient, ConverseCommand, type ContentBlock, type Message, type Tool } from "@aws-sdk/client-bedrock-runtime";
 import { BEDROCK_CHAT_TIMEOUT_MS, bedrockRequestOptions } from "./bedrock-timeout.ts";
+import { AI_PAUSED_REASON } from "./abuse-limits.ts";
 import { garmentFormality } from "./garment-knowledge.ts";
 import { formatHangerText, hangerModelCandidates, mayTryAnotherHangerModel, normalizeProviderHistory, replyInventsOutfits } from "./hanger-conversation.ts";
 import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, readOutfitIntent, type OutfitIntent } from "./outfit-ranking.ts";
@@ -62,7 +63,7 @@ export interface AgentInput {
  * or anything the person wrote), which is what identifies a live misconfiguration.
  */
 export interface AgentFailure {
-  kind: "model-error" | "no-response" | "out-of-time" | "too-many-rounds" | "invented-outfits" | "empty-reply";
+  kind: "model-error" | "no-response" | "out-of-time" | "too-many-rounds" | "invented-outfits" | "empty-reply" | "budget";
   errorName?: string;
   elapsedMs: number;
 }
@@ -75,6 +76,7 @@ export function describeAgentFailure(failure: AgentFailure) {
     case "too-many-rounds": return "it needed too many steps";
     case "invented-outfits": return "it kept writing outfits it had not built";
     case "empty-reply": return "it returned an empty reply";
+    case "budget": return AI_PAUSED_REASON;
     default: return "it returned nothing";
   }
 }
@@ -312,6 +314,8 @@ export async function runHangerAgent(input: AgentInput, call: AgentConverse = be
     let errorName = "";
     const response = await call({ system, messages, tools: AGENT_TOOLS, timeoutMs: Math.min(BEDROCK_CHAT_TIMEOUT_MS, remaining) })
       .catch((error: unknown) => { errorName = error instanceof Error ? error.name : "UnknownError"; return null; });
+    // A refused budget stops the loop where it is: rounds already run were spent, none more are.
+    if (errorName === "AiBudgetExhausted") return fallBack("budget");
     if (errorName) return fallBack(SLOW_FAILURES.has(errorName) ? "out-of-time" : "model-error", errorName);
     if (!response || !response.content.length) return fallBack("no-response");
     messages.push({ role: "assistant", content: response.content });

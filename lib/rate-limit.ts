@@ -40,6 +40,8 @@ export const RATE_LIMIT_RULES = {
   communityUnpublish: { limit: 20, windowMs: 60 * 60 * 1000 },
   // Browsers send one report per violation; enough to learn from, too few to flood the logs.
   cspReport: { limit: 30, windowMs: 10 * 60 * 1000 },
+  accountActivity: { limit: 30, windowMs: 5 * 60 * 1000 },
+  endSessions: { limit: 5, windowMs: 15 * 60 * 1000 },
   communityLike: { limit: 40, windowMs: 5 * 60 * 1000 },
   outboundClick: { limit: 30, windowMs: 5 * 60 * 1000 },
   demoPurchase: { limit: 20, windowMs: 5 * 60 * 1000 },
@@ -50,6 +52,14 @@ export const RATE_LIMIT_RULES = {
   catalogMatch: { limit: 40, windowMs: 5 * 60 * 1000 },
   brandProductDescribe: { limit: 20, windowMs: 10 * 60 * 1000 },
   brandProductEdit: { limit: 40, windowMs: 10 * 60 * 1000 },
+  // Writes that had no limit of their own. Each is keyed on the signed-in account and sits well
+  // above real use: a brand enrolling a catalogue, a person tidying their outfits.
+  brandProductEnroll: { limit: 60, windowMs: 60 * 60 * 1000 },
+  brandLookPublish: { limit: 20, windowMs: 60 * 60 * 1000 },
+  outfitWrite: { limit: 60, windowMs: 10 * 60 * 1000 },
+  wearRecord: { limit: 30, windowMs: 10 * 60 * 1000 },
+  consentChange: { limit: 20, windowMs: 15 * 60 * 1000 },
+  wardrobeWrite: { limit: 60, windowMs: 10 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 // Bound total tracked keys so hostile clients cannot grow instance memory by
@@ -86,12 +96,38 @@ export function resetRateLimits() {
 }
 
 /**
- * Extracts a stable caller identifier for unauthenticated endpoints. Amplify/CloudFront
- * append the connecting address to x-forwarded-for; the first entry is the client.
- * The value is used only as an in-memory counter key and is never persisted or logged.
+ * The fewest X-Forwarded-For entries this instance has seen. CloudFront *appends* the address it
+ * received the request from to whatever X-Forwarded-For the client sent, and any proxy behind it
+ * appends again. So the entries a client writes always sit to the left of the ones the platform
+ * adds — and a browser writes none. The shortest chain an instance sees is therefore the number of
+ * entries the platform adds, and a client can only make a chain longer, never shorter.
  */
-export function clientIdentifier(request: Request) {
-  const forwarded = request.headers.get("x-forwarded-for") ?? "";
-  const first = forwarded.split(",")[0]?.trim();
-  return first && first.length <= 64 ? first : "unidentified-client";
+let platformHops = Number.POSITIVE_INFINITY;
+
+const ADDRESS = /^[0-9a-f:.]{2,45}$/i;
+
+/**
+ * A caller identifier for per-client limits: the address CloudFront saw, never one the client wrote.
+ *
+ * The first entry of X-Forwarded-For is whatever the client put there, so keying limits on it let a
+ * script rotate made-up addresses for a fresh budget each time. Instead this counts the platform's
+ * entries from the right: `RACKED_TRUSTED_PROXY_HOPS` when it is configured, and otherwise the
+ * shortest chain seen (above). It remains a best-effort key for an in-memory counter — never an
+ * identity, never stored, never logged — and the limits that matter most are keyed on the email
+ * address, the account, or the site instead (lib/abuse-limits.ts).
+ */
+export function clientIdentifier(request: Request, configuredHops: string | undefined = process.env.RACKED_TRUSTED_PROXY_HOPS) {
+  const entries = (request.headers.get("x-forwarded-for") ?? "").split(",").map((entry) => entry.trim()).filter(Boolean);
+  if (!entries.length || entries.length > 32) return "unidentified-client";
+  const configured = Number(configuredHops);
+  let hops: number;
+  if (Number.isInteger(configured) && configured > 0) hops = configured;
+  else hops = platformHops = Math.min(platformHops, entries.length);
+  const address = entries[entries.length - hops];
+  return address && ADDRESS.test(address) ? address : "unidentified-client";
+}
+
+/** For tests: forget the chain length this instance has learned. */
+export function resetClientCalibration() {
+  platformHops = Number.POSITIVE_INFINITY;
 }

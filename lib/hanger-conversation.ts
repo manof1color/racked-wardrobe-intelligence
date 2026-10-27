@@ -338,7 +338,12 @@ export function mayTryAnotherHangerModel(error: unknown) {
   return ["ValidationException", "AccessDeniedException", "ResourceNotFoundException", "ModelNotReadyException"].includes(error.name);
 }
 
-async function converse(system: string, history: AgentChatTurn[], prompt: string) {
+/**
+ * The real reply model: one Bedrock call, or a second only when the first model id was rejected
+ * before inference (which Bedrock does not bill). Routes wrap it with `meteredOrNull` so each reply
+ * spends one model call from the site's daily ceiling.
+ */
+export async function bedrockHangerConverse(system: string, history: AgentChatTurn[], prompt: string) {
   if ((process.env.AI_PROVIDER ?? "").toLowerCase() !== "bedrock") return null;
   const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
   const messages: Message[] = [
@@ -456,7 +461,7 @@ export async function generateConsumerHangerReply(input: {
   forecast?: Forecast | null;
   /** False when the agent already tried the model this turn. */
   allowModel?: boolean;
-}) {
+}, converseWithModel: HangerConversationRunner = bedrockHangerConverse) {
   if (input.turnMode === "clarify") return { message: input.clarification ?? "Please tell me which owned piece to use before I build another outfit.", usedModel: false };
   if (input.turnMode === "advice" && /\b(?:do not|don['’]?t|never)\s+save\b/i.test(input.message)) {
     return { message: "Understood—I will not save that outfit. Nothing was saved by this message. Your current wardrobe and saved outfits are unchanged.", usedModel: false };
@@ -471,7 +476,7 @@ export async function generateConsumerHangerReply(input: {
   const system = "You are Hanger, a working wardrobe stylist talking with a customer about clothes they own. Talk like a person: warm, direct, specific, and brief. Open by responding to what they actually said rather than describing your own process — never begin with a stock line such as 'Here is what your closet can do' or 'I pulled your latest wardrobe', and never open two consecutive replies the same way. Give the answer first, in the first sentence. Say why a piece works in concrete terms a person would use — the colour, the cut, the weather it suits, how often it has been worn. Never ask for something the customer has already told you, and never ask a question in place of the outfit they asked for: answer, then ask at most one short question if it would genuinely change what you suggest. If they ask for a number of outfits, that number has already been built for them and is shown beneath your reply, so introduce it in one sentence and do not list, invent, number, or re-describe the outfits yourself. The server has already classified this turn; obey turnMode. Only create or revise modes introduce a newly ranked outfit. Explain, save-confirm, and wear-confirm refer to the unchanged candidateOutfit. Advice answers the question and must not pretend a new outfit was created. If the customer says not to save or record, never suggest that disallowed action. Use only the supplied current wardrobe as owned inventory. When candidateOutfit is present, those are the exact pieces: discuss those pieces only and do not substitute, add, rename, or claim ownership of another garment. A candidate marked directlyRequested was explicitly required by the customer; acknowledge that and never claim it was chosen because it was underused. Use the supplied reasons to explain choices accurately. savedInspiration contains bounded style signals from public Looks this Consumer intentionally saved; use it only when it actually shaped the supplied outfit and never overrule the current message. rememberedPreferences are standing instructions from earlier messages: follow them unless the current message clearly overrides one. earlierConversation means older messages are no longer quoted; never invent what they said. Refer to garments by their exact supplied names. If the person asks a general styling question — which colours go together, what pairs with what, how something should fit — answer it directly from fashion knowledge with a clear opinion and the reason, without building or listing outfits. If they ask which of two options is better, pick one, say why in a sentence or two, and only then mention when the other would win; never answer with 'either'. If they say you missed their question, find the question they asked earlier in the conversation and answer that one. Never close two replies in a row with the same question, and never repeat a question the conversation has already answered — if there is nothing worth asking, end on the clothes instead. Style, for illustration only and never as a source of garments: not \"I pulled your latest wardrobe and prioritized lower-wear pieces to bring more of your closet into rotation\", which describes your own machinery; rather \"Cold and casual, then — the heavier jacket over the tee, and the boots rather than the sneakers since it is wet\", which answers the person. Sound like someone who has looked at their clothes and has an opinion about them. Never infer body shape, gender, age, ethnicity, income, health, or sensitive preferences. weatherForecast, when supplied, is a real forecast for the person's area from Open-Meteo: use it when it affects what to wear — layers, rain, footwear — and mention it in a few words. When it is not supplied, never state or guess the weather; if the weather matters, say you can check it once they set a home city in Settings. Never claim access to Pinterest, news, or other outside sources. Clearly label general shopping ideas as not currently owned. Do not expose internal IDs or raw JSON. Write plain text with short paragraphs or simple bullets; no Markdown headings, bold markers, tables, or code fences.";
   // After the agent has already spent its time budget on the model, the fallback must not wait on
   // the model again: it answers from the wardrobe straight away.
-  const generated = input.allowModel === false ? null : await converse(system, input.history, buildConsumerHangerPrompt(input));
+  const generated = input.allowModel === false ? null : await converseWithModel(system, input.history, buildConsumerHangerPrompt(input));
   const groundedSelection = groundedSelectionText(input.suggested);
   // Advice used to skip this review on the grounds that it proposes no selection. That is exactly
   // when a reply must be checked: with nothing ranked, anything it names came from the model.
@@ -518,7 +523,7 @@ export async function generateConsumerHangerReply(input: {
   return { message: `${groundedOpening(input.suggested)} ${selectionReason}\n\n${groundedSelection}\n\n${closing}`, usedModel: false };
 }
 
-type HangerConversationRunner = (system: string, history: AgentChatTurn[], prompt: string) => Promise<string | null>;
+export type HangerConversationRunner = (system: string, history: AgentChatTurn[], prompt: string) => Promise<string | null>;
 
 export async function generateBrandHangerReply(input: {
   message: string;
@@ -526,7 +531,7 @@ export async function generateBrandHangerReply(input: {
   product: BrandProductRegistration;
   metrics: BrandMetrics;
   communityMetrics?: BrandCommunityMetrics;
-}, converseWithModel: HangerConversationRunner = converse) {
+}, converseWithModel: HangerConversationRunner = bedrockHangerConverse) {
   // Suppressed metrics never share a provider call with browser-supplied history. Besides
   // preventing today's small cohort from reaching the model, this stops an older released
   // answer in the browser history from being replayed after the cohort drops below k >= 25.

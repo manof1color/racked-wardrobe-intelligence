@@ -27,6 +27,7 @@ import { accountDeletionInventory, communityPostChangeForDeletedImage, outfitCha
 import { readHangerConversation, type HangerConversationState } from "@/lib/hanger-memory";
 import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
 import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
+import { ACTIVITY_RETENTION_DAYS, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
 import sharp from "sharp";
 
 const scrypt = promisify(scryptCallback);
@@ -201,6 +202,73 @@ export async function consumePasswordReset(token:string,newPassword:string) {
   try{await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:reset.PK,SK:reset.SK},UpdateExpression:"SET usedAt = :now",ConditionExpression:"attribute_not_exists(usedAt) AND expiresAt > :now",ExpressionAttributeValues:{":now":now}}));}catch{return null;}
   const passwordSalt=randomBytes(18).toString("base64url"),passwordHash=await passwordDigest(newPassword,passwordSalt);
   const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${account.id}`,SK:"PROFILE"},UpdateExpression:"SET passwordSalt = :salt, passwordHash = :hash, passwordChangedAt = :now, sessionVersion = if_not_exists(sessionVersion, :zero) + :one",ExpressionAttributeValues:{":salt":passwordSalt,":hash":passwordHash,":now":now,":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
+  return result.Attributes as AccountRecord;
+}
+
+/**
+ * A keyed hash of an email address, account, or counter name. Counters and failed sign-ins are
+ * stored under it, so the table never holds an email or address in a key it does not need.
+ */
+function securityKey(value:string){return createHmac("sha256",requireAccountSecuritySecret()).update(`racked-security:${value}`).digest("base64url").slice(0,32);}
+
+/** Seconds since the epoch at which DynamoDB's time-to-live removes an item. */
+const expiresInSeconds=(at:number)=>Math.ceil(at/1000);
+
+/**
+ * Adds one to a counter shared by every server instance, in an aligned window, and returns the new
+ * count. Each window is its own item that expires on its own, so nothing needs resetting.
+ */
+export async function incrementSecurityCounter(name:string,windowMs:number,now=Date.now()){
+  const start=Math.floor(now/windowMs)*windowMs,resetAt=start+windowMs;
+  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`LIMIT#${securityKey(name)}`,SK:`WINDOW#${start}`},UpdateExpression:"ADD #count :one SET #ttl = if_not_exists(#ttl, :ttl)",ExpressionAttributeNames:{"#count":"count","#ttl":"ttl"},ExpressionAttributeValues:{":one":1,":ttl":expiresInSeconds(resetAt)+3600},ReturnValues:"UPDATED_NEW"}));
+  return {count:Number(result.Attributes?.count??1),resetAt};
+}
+
+/** Reads a shared counter without adding to it. */
+export async function readSecurityCounter(name:string,windowMs:number,now=Date.now()){
+  const start=Math.floor(now/windowMs)*windowMs;
+  const found=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`LIMIT#${securityKey(name)}`,SK:`WINDOW#${start}`},ProjectionExpression:"#count",ExpressionAttributeNames:{"#count":"count"}}));
+  return {count:Number(found.Item?.count??0),resetAt:start+windowMs};
+}
+
+const ACTIVITY_TTL_MS=ACTIVITY_RETENTION_DAYS*24*60*60*1000;
+
+/** One entry in the account's own security activity log. Device only — never an IP address. */
+export async function recordAccountActivity(accountId:string,type:AccountActivityType,device:string,now=Date.now()){
+  const at=new Date(now).toISOString();
+  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`USER#${accountId}`,SK:`ACTIVITY#${at}#${crypto.randomUUID()}`,type,at,device:device.slice(0,60),ttl:expiresInSeconds(now+ACTIVITY_TTL_MS)}}));
+}
+
+/**
+ * A failed sign-in, filed under a keyed hash of the email typed rather than an account. The same
+ * write happens whether or not that email has an account, so neither timing nor storage reveals
+ * which emails do; the owner sees these attempts in their own activity log.
+ */
+export async function recordFailedSignIn(email:string,device:string,now=Date.now()){
+  const at=new Date(now).toISOString();
+  await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`SIGNIN#${securityKey(normalizeEmail(email))}`,SK:`FAILED#${at}#${crypto.randomUUID()}`,type:"sign-in-failed",at,device:device.slice(0,60),ttl:expiresInSeconds(now+ACTIVITY_TTL_MS)}}));
+}
+
+/** The 20 most recent security events on the signed-in account, failed sign-ins included. */
+export async function listAccountActivity(accountId:string):Promise<AccountActivity[]>{
+  const account=await getAccount(accountId);
+  if(!account)return [];
+  const [own,failed]=await Promise.all([
+    db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${accountId}`,":sk":"ACTIVITY#"},ScanIndexForward:false,Limit:20})),
+    db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`SIGNIN#${securityKey(account.email)}`,":sk":"FAILED#"},ScanIndexForward:false,Limit:20})),
+  ]);
+  return [...(own.Items??[]),...(failed.Items??[])]
+    .map((item)=>({type:item.type as AccountActivityType,at:String(item.at),device:String(item.device??"Unknown device")}))
+    .sort((a,b)=>b.at.localeCompare(a.at))
+    .slice(0,20);
+}
+
+/**
+ * Signs out every other device. Sessions carry the account's session version, so raising it
+ * invalidates all of them at once; the caller re-issues the current device's cookie.
+ */
+export async function endOtherSessions(accountId:string){
+  const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${accountId}`,SK:"PROFILE"},UpdateExpression:"SET sessionVersion = if_not_exists(sessionVersion, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
   return result.Attributes as AccountRecord;
 }
 

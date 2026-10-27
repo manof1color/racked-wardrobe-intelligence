@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { GARMENT_TAXONOMY } from "@/lib/garment-taxonomy";
-import { consumerOutfitContract, generateConsumerHangerReply, hangerOutfitName, outfitCards, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
-import { describeAgentFailure, isAgentEnabled, plainReplyWorthTrying, runHangerAgent, summarizeCommunityTrends, type AgentFailure } from "@/lib/hanger-agent";
+import { bedrockHangerConverse, consumerOutfitContract, generateConsumerHangerReply, hangerOutfitName, outfitCards, ownedSuggestionItemIds } from "@/lib/hanger-conversation";
+import { bedrockAgentConverse, describeAgentFailure, isAgentEnabled, plainReplyWorthTrying, runHangerAgent, summarizeCommunityTrends, type AgentFailure } from "@/lib/hanger-agent";
 import { appendTurns, avoidedItemIds, conversationForPrompt, earlierConversationNote, extractPreferences, mergePreferences, preferenceSummary, rememberActiveOutfit, rememberPendingRequest, rememberSuggestedItemIds } from "@/lib/hanger-memory";
 import { allowedOutfitActions, planHangerTurn, replyAsksBack } from "@/lib/hanger-turn";
 import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, readOutfitIntent, repeatedPiecesInSet, scoreOwnedPieces, STYLE_VOCABULARY } from "@/lib/outfit-ranking";
+import { AI_PAUSED_REASON } from "@/lib/abuse-limits";
+import { metered, meteredOrNull } from "@/lib/ai-budget";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
 import { clearHangerConversation, getConsumerInspirationProfile, getHomeCity, listCommunityPosts, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
 import { fetchForecast, validCoordinates, type Forecast } from "@/lib/weather";
 import type { AgentReply } from "@/lib/platform-types";
@@ -58,6 +61,8 @@ export async function GET() {
 export async function DELETE() {
   const { session, error } = await consumerSession();
   if (error) return error;
+  const limit = consumeRateLimit(`consumer-agent-clear:${session!.subject}`, RATE_LIMIT_RULES.consumerAgent);
+  if (!limit.allowed) return NextResponse.json({ error: "Too many requests. Try again in a few minutes." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   try {
     await clearHangerConversation(session!.subject);
     return NextResponse.json({ cleared: true });
@@ -80,6 +85,13 @@ export async function POST(request: Request) {
   const legacyMessage = `Build an outfit for ${occasion || "my plans"}${weather ? ` in ${weather}` : ""}.`;
   const message = (typeof body.message === "string" ? body.message.trim() : legacyMessage).slice(0, 1_000);
   if (!message) return NextResponse.json({ error: "Tell Hanger what you would like help with." }, { status: 400 });
+  // Each message is spent from the account's daily allowance, and every model call it makes — up to
+  // five agent rounds and a plain reply — from the site's ceiling. Past the account's allowance the
+  // person is told; when the site's ceiling or the counter itself refuses, Hanger keeps answering —
+  // from the wardrobe, without the model, saying why.
+  const allowance = isAgentEnabled() ? await spendAiAllowance("hanger", subject) : { allowed: true as const };
+  if (!allowance.allowed && allowance.scope === "account") return NextResponse.json({ error: allowance.message }, { status: 429, headers: { "retry-after": String(allowance.retryAfterSeconds) } });
+  const aiPaused = !allowance.allowed;
 
   const [wardrobe, outfits, inspiration, stored, homeCity] = await Promise.all([listWardrobe(subject), listOutfits(subject), getConsumerInspirationProfile(subject), loadHangerConversation(subject), getHomeCity(subject).catch(() => null)]);
   // The phone's location, when the person chose to share it, wins for this one message and is never
@@ -99,7 +111,7 @@ export async function POST(request: Request) {
   // Hanger as an agent first: the model reads the message and calls the tools it needs — wardrobe
   // search, the outfit builder, the forecast, Racked trends. If it cannot answer inside its time
   // budget, or the model is unavailable, the grounded pipeline below answers instead.
-  const agentAttempted = isAgentEnabled();
+  const agentAttempted = isAgentEnabled() && !aiPaused;
   // Why the agent did not answer, when it did not — shown with the reply so a live failure names itself.
   const agentOutcome: { failure: AgentFailure | null } = { failure: null };
   if (agentAttempted) {
@@ -115,7 +127,7 @@ export async function POST(request: Request) {
       },
       loadTrends: async () => summarizeCommunityTrends(await listCommunityPosts()),
       onFallback: (failure) => { agentOutcome.failure = failure; },
-    }).catch(() => null);
+    }, metered(spendSiteModelCall, bedrockAgentConverse)).catch(() => null);
     if (agent) {
       const agentActions = allowedOutfitActions("create", message);
       const first = agent.outfits[0] ?? [];
@@ -193,7 +205,7 @@ export async function POST(request: Request) {
     message: requestText,
     // After a fast rejection of the tool-using call, the plain model reply still gets its turn;
     // after a slow or throttled one it does not, so the wait never doubles.
-    allowModel: !agentAttempted || plainReplyWorthTrying(agentOutcome.failure),
+    allowModel: !aiPaused && (!agentAttempted || plainReplyWorthTrying(agentOutcome.failure)),
     outfitCount: set.length || (ranked ? 1 : 0),
     alsoShown: set.slice(1).flatMap(({ outfit }) => outfit.pieces.map((piece) => piece.item)),
     history,
@@ -210,7 +222,7 @@ export async function POST(request: Request) {
     styleSource: ranked?.intent.styleSource ?? plan.intent.styleSource,
     forecast,
     clarification: plan.clarification,
-  });
+  }, meteredOrNull(spendSiteModelCall, bedrockHangerConverse));
   const outfitSet: AgentReply["outfits"] = set.length > 1 ? set.map(({ index, outfit }): NonNullable<AgentReply["outfits"]>[number] => {
     const pieces = outfit.pieces.map((piece) => ({
       id: piece.item.id,
@@ -237,7 +249,7 @@ export async function POST(request: Request) {
     actions,
     selection,
     ...(outfitSet ? { outfits: outfitSet } : {}),
-    ...(agentOutcome.failure ? { degradedReason: describeAgentFailure(agentOutcome.failure) } : {}),
+    ...(aiPaused ? { degradedReason: AI_PAUSED_REASON } : agentOutcome.failure ? { degradedReason: describeAgentFailure(agentOutcome.failure) } : {}),
     evidence: [
       `${wardrobe.length} owned garments checked this turn`,
       ...(forecast ? [`Forecast for ${forecast.place} from Open-Meteo${turnIntent.weather && !plan.intent.weather ? ` — dressed for ${turnIntent.weather} weather` : ""}`] : []),

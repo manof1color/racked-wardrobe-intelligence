@@ -40,6 +40,11 @@ Resources:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
+      # Items that carry a `ttl` (epoch seconds) expire on their own: password-reset tokens, shared
+      # rate-limit windows, and the 90-day account activity log. Nothing personal outlives its use.
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
       DeletionProtectionEnabled: true
       Tags:
         - Key: Project
