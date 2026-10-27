@@ -13,7 +13,7 @@ The `racked-production` CloudFormation stack is deployed in `us-east-2` and prov
 
 The DynamoDB policy covers both the table ARN and `${tableArn}/index/*`. The index resource is required because registration and sign-in query the `GSI1` email lookup index; table-only `Query` permission is insufficient.
 
-Amplify is configured with the table and bucket names, the compute role, `AI_PROVIDER=bedrock`, and `AI_MODEL=amazon.nova-lite-v1:0`. Routine garment analysis and Hanger therefore stay on Nova Lite. Whole-look instance detection defaults in code to the US Nova Pro geographic inference profile (`us.amazon.nova-pro-v1:0`), and `AI_LOOK_DETECTION_MODEL` can override only that task. The compute role permits the Nova foundation-model and account inference-profile resources required by this split. Synchronous whole-look intake uses local crop isolation rather than invoking the configured Stable Image helper per piece. Secret values are not printed or stored in GitHub.
+The app expects the table and bucket names, compute role, and `AI_PROVIDER=bedrock` in Amplify. Code defaults whole-look detection and Hanger to the US Nova Pro inference profile (`us.amazon.nova-pro-v1:0`), with Nova Lite as fallback; three-view benchmark analysis uses Nova Lite. `AI_LOOK_DETECTION_MODEL` overrides scan detection and `AI_HANGER_MODEL` overrides Hanger independently of `AI_MODEL`. The compute role permits the required Nova foundation-model and account inference-profile resources. Synchronous intake stores bounded crops without a per-piece Stable Image call. Live settings were not inspected for this work; secret values are never printed or stored in GitHub.
 
 ## Deployment path
 
@@ -33,9 +33,9 @@ RACKED_PASSWORD_RESET_FROM
 RACKED_PUBLIC_ORIGIN
 AI_PROVIDER=bedrock
 AI_MODEL=amazon.nova-lite-v1:0
-# Whole-look detection only. Omission uses the same code default; setting it explicitly
-# makes the deployed model policy visible in Amplify without changing routine AI calls.
+# Whole-look detection only; these are code-default examples, not verified live settings.
 AI_LOOK_DETECTION_MODEL=us.amazon.nova-pro-v1:0
+AI_HANGER_MODEL=us.amazon.nova-pro-v1:0
 AI_BRAND_MODEL=amazon.nova-lite-v1:0
 AI_BACKGROUND_REMOVAL_MODEL=us.stability.stable-image-remove-background-v1:0
 # Optional: site-wide daily ceiling on Bedrock model calls (default 1500).
@@ -88,6 +88,111 @@ During the first mobile registration test, DynamoDB rejected the email-index que
 - `RACKED_TRUSTED_PROXY_HOPS` (optional) is how many `X-Forwarded-For` entries the platform appends. Leave it unset and each instance learns it from the shortest chain it sees, which a client can lengthen but never shorten.
 - **DynamoDB time-to-live must be on** for the `ttl` attribute (`infra/template.yaml` declares it). It expires password-reset tokens, shared rate-limit windows, and the 90-day account activity log. If the stack predates this, turn it on in the console: DynamoDB → Tables → the Racked table → Additional settings → Time to Live → attribute `ttl`.
 - Never place access keys, session secrets, account identifiers, or private image URLs in GitHub issues or logs.
+
+## Security alerts — owner-applied, not deployed
+
+The template now declares nine alarms, six log metric filters, one SNS topic, an optional email
+subscription, and a notification-only monthly Amazon Bedrock budget. This is **not deployed** by
+a Git push, an Amplify build, or these tests. The owner reviews and applies the stack change.
+
+### Find the real compute log group first
+
+Amplify **compute logging must be enabled** (Amplify → Monitoring → Hosting compute logs), and
+the existing group must use the CloudWatch Logs Standard class. Do not guess its name:
+
+```bash
+aws logs describe-log-groups --log-group-name-prefix /aws/amplify --region us-east-2 \
+  --query 'logGroups[].{Name:logGroupName,Class:logGroupClass}' --output table
+```
+
+Select the production branch's actual compute group. This template neither creates that group
+nor changes Amplify's logging role. Metric filters only observe new events after installation,
+not historical logs. A blank `ComputeLogGroupName` deliberately omits all six log filters/alarms;
+the three service alarms and budget still exist. Missing data is not treated as a breach, so
+silence is **not proof** that logging works.
+
+### Reviewed change set, owner only
+
+From a checkout containing this reviewed template, use the existing stack in `us-east-2`.
+Supply the private destination email and discovered group at runtime, not in committed files.
+The example assumes the existing `Environment` parameter; preserve any other live parameters.
+
+```bash
+# Set ALERT_EMAIL and COMPUTE_LOG_GROUP privately in your own shell first.
+aws cloudformation create-change-set --stack-name racked-production \
+  --change-set-name racked-security-alarms-YYYYMMDD --change-set-type UPDATE \
+  --template-body file://infra/template.yaml --capabilities CAPABILITY_IAM --region us-east-2 \
+  --parameters ParameterKey=Environment,UsePreviousValue=true \
+    ParameterKey=AlertEmail,ParameterValue="$ALERT_EMAIL" \
+    ParameterKey=AmplifyAppId,ParameterValue=d2iv0khybuuaeh \
+    ParameterKey=ComputeLogGroupName,ParameterValue="$COMPUTE_LOG_GROUP" \
+    ParameterKey=BedrockMonthlyBudgetUSD,ParameterValue=25
+aws cloudformation wait change-set-create-complete --stack-name racked-production \
+  --change-set-name racked-security-alarms-YYYYMMDD --region us-east-2
+aws cloudformation describe-change-set --stack-name racked-production \
+  --change-set-name racked-security-alarms-YYYYMMDD --region us-east-2
+# STOP: owner reviews all changes, including existing IAM/TTL/lifecycle drift.
+# No replacement or deletion of table/bucket/identity resources is expected.
+# Only after owner approval:
+aws cloudformation execute-change-set --stack-name racked-production \
+  --change-set-name racked-security-alarms-YYYYMMDD --region us-east-2
+aws cloudformation wait stack-update-complete --stack-name racked-production --region us-east-2
+```
+
+Do not blindly apply unrelated pending template changes. Reject an unexpected replacement,
+deletion, or permission expansion and have it reviewed separately. The existing data resources
+are not disposable. No application runtime permissions are added by this alert work.
+
+Retrieve `SecurityAlertTopicArn` from stack outputs and use the email's **Confirm subscription**
+link. Then check privately:
+
+```bash
+aws sns list-subscriptions-by-topic --topic-arn "$TOPIC_ARN" --region us-east-2 \
+  --query 'Subscriptions[].{Protocol:Protocol,State:SubscriptionArn}'
+aws cloudwatch describe-alarms --alarm-name-prefix racked-production- --region us-east-2 \
+  --query 'MetricAlarms[].{Name:AlarmName,State:StateValue}'
+```
+
+An email subscription must show an ARN, not `PendingConfirmation`; blank `AlertEmail` creates no
+subscription and therefore delivers no email. The owner can test SNS delivery separately without
+triggering application attacks or writing fake events to production. Treat notifications and logs
+as private operational information.
+
+### What triggers
+
+- Each of the six literal phrases listed in `tests/infra-alarms.test.ts`: one occurrence in five
+  minutes. Tests also read the emitting source files, so renaming a phrase breaks the build.
+- Amplify: five `AWS/AmplifyHosting` `5xxErrors` in five minutes, dimension `App` = app ID.
+- DynamoDB: any `ThrottledRequests` or `SystemErrors` in five minutes for this table, summed across
+  GetItem, BatchGetItem, PutItem, UpdateItem, DeleteItem, Query, Scan and TransactWriteItems.
+  Both metrics require **TableName + Operation**. Each alarm sums eight metric series; a table-only
+  SystemErrors alarm would never observe data. New access operations require extending the alarms.
+  Partial batch throttles may only appear in Read/WriteThrottleEvents, which these alarms do not cover.
+- Budget: actual monthly cost for the **Amazon Bedrock** service exceeds 80% or 100% of
+  `BedrockMonthlyBudgetUSD` (default $25). It sends to the same account-scoped topic. Billing data
+  is delayed: this is not a hard stop and does not replace the app's model-call budgets.
+
+### Monthly cost estimate (USD, before account allowances and credits)
+
+Nine alarm resources monitor **23 billable alarm metrics**: six log metrics, one Amplify metric,
+and eight operation series in each of two DynamoDB metric-math alarms. At $0.10 per standard
+alarm metric-month, alarms total **$2.30/month**, not nine times $0.10.
+The six log-derived **custom metrics** can add 6 × $0.30 = **$1.80/month**.
+Conservative full-month total: **$4.10/month**, plus existing log ingestion/storage, any applicable
+API charges, and SNS usage beyond free allowances. Custom metrics are prorated by publication;
+eligible unused free allowances/credits may reduce the actual bill.
+
+There is no separate filter-creation fee, but its generated metrics are not universally free.
+Low-volume SNS email may fit the free allowance; it is not unlimited free email.
+This notification-only AWS Budget is free; the first two **action-enabled** budgets are also free
+under current AWS pricing, but this template creates no budget actions.
+
+Sources: [CloudWatch pricing](https://aws.amazon.com/cloudwatch/pricing/),
+[CloudWatch metric-filter billing](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_billing.html),
+[SNS pricing](https://aws.amazon.com/sns/pricing/),
+[Budgets pricing](https://aws.amazon.com/aws-cost-management/aws-budgets/pricing/),
+[Amplify dimensions](https://docs.aws.amazon.com/amplify/latest/userguide/monitoring-with-cloudwatch.html),
+[DynamoDB dimensions](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html).
 
 ## Rollback
 
