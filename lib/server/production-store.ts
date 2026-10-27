@@ -31,6 +31,7 @@ import { readHangerConversation, type HangerConversationState } from "@/lib/hang
 import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
 import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
 import { ACTIVITY_RETENTION_DAYS, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
+import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import sharp from "sharp";
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -72,6 +73,16 @@ export interface AccountRecord {
   dataClassification?: DataClassification;
   sessionVersion?: number;
   passwordChangedAt?: number;
+  /** Two-step sign-in (lib/two-step.ts): the sealed authenticator secret, present only while it is on. */
+  twoStepSecret?: string;
+  twoStepEnabledAt?: string;
+  /** The last time step a code was accepted for, so no code works twice. */
+  twoStepLastStep?: number;
+  /** Hashes of the unused recovery codes. */
+  twoStepRecovery?: Set<string>;
+  /** A secret waiting for its first code during setup, and when it stops waiting. */
+  twoStepPendingSecret?: string;
+  twoStepPendingExpiresAt?: number;
 }
 
 function requireAccountSecuritySecret(){const secret=process.env.SESSION_SECRET;if(!secret)throw new ProductionConfigurationError("Session security is not configured.");return secret;}
@@ -996,4 +1007,75 @@ export async function saveHangerConversation(ownerId:string,state:HangerConversa
 
 export async function clearHangerConversation(ownerId:string) {
   await db.send(new DeleteCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"HANGER_CHAT"}}));
+}
+
+const conditionFailed=(error:unknown)=>error instanceof Error&&error.name==="ConditionalCheckFailedException";
+const profileKey=(accountId:string)=>({PK:`USER#${accountId}`,SK:"PROFILE"});
+
+/**
+ * Starts two-step setup: a new authenticator secret, sealed and held pending on the profile until a
+ * code from it is confirmed. Refused while two-step sign-in is on, so a second setup can never
+ * quietly replace the authenticator in use.
+ */
+export async function beginTwoStepSetup(accountId:string,now=Date.now()){
+  const secret=createAuthenticatorSecret();
+  try{await db.send(new UpdateCommand({TableName:requireTable(),Key:profileKey(accountId),UpdateExpression:"SET twoStepPendingSecret = :sealed, twoStepPendingExpiresAt = :expires",ConditionExpression:"attribute_exists(PK) AND attribute_not_exists(twoStepSecret)",ExpressionAttributeValues:{":sealed":sealSecret(secret,requireAccountSecuritySecret(),accountId),":expires":now+TWO_STEP_SETUP_MS}}));}
+  catch(error){if(conditionFailed(error))throw new RequestRefused("Two-step sign-in is already on.",409);throw error;}
+  return secret;
+}
+
+/**
+ * Turns two-step sign-in on, if the code comes from the pending secret. It also raises the session
+ * version, so every other session — including one someone else may hold — ends now; the caller
+ * re-issues this device's cookie. Returns the recovery codes, which exist in plain form only in this
+ * response, or null when the code is wrong or setup expired.
+ */
+export async function confirmTwoStepSetup(accountId:string,code:string,now=Date.now()){
+  const account=await getAccount(accountId);
+  if(!account||twoStepEnabled(account)||typeof account.twoStepPendingSecret!=="string"||(account.twoStepPendingExpiresAt??0)<=now)return null;
+  const secret=openSecret(account.twoStepPendingSecret,requireAccountSecuritySecret(),accountId);
+  const step=secret?acceptedStep(secret,code,now):null;
+  if(step===null)return null;
+  const recoveryCodes=createRecoveryCodes();
+  try{
+    const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:profileKey(accountId),UpdateExpression:"SET twoStepSecret = :sealed, twoStepEnabledAt = :at, twoStepLastStep = :step, twoStepRecovery = :codes, sessionVersion = if_not_exists(sessionVersion, :zero) + :one REMOVE twoStepPendingSecret, twoStepPendingExpiresAt",ConditionExpression:"twoStepPendingSecret = :sealed AND attribute_not_exists(twoStepSecret)",ExpressionAttributeValues:{":sealed":account.twoStepPendingSecret,":at":new Date(now).toISOString(),":step":step,":codes":new Set(recoveryCodes.map(value=>recoveryCodeHash(accountId,value))),":zero":0,":one":1},ReturnValues:"ALL_NEW"}));
+    return {account:result.Attributes as AccountRecord,recoveryCodes};
+  }catch(error){if(conditionFailed(error))return null;throw error;}
+}
+
+/**
+ * Spends one second factor — a code from the authenticator app, or a recovery code — on an account
+ * with two-step sign-in on. An app code is accepted only for a time step later than the last one
+ * accepted, and a recovery code is removed as it is used. Both are conditional writes, so two
+ * requests sent at once cannot spend the same code. Returns which kind was spent, or null.
+ */
+export async function spendSecondFactor(account:AccountRecord,input:{code?:string;recoveryCode?:string},now=Date.now()):Promise<"code"|"recovery"|null>{
+  if(!twoStepEnabled(account))return null;
+  try{
+    if(input.recoveryCode){
+      if(!isRecoveryCodeShape(input.recoveryCode))return null;
+      const hash=recoveryCodeHash(account.id,input.recoveryCode);
+      await db.send(new UpdateCommand({TableName:requireTable(),Key:profileKey(account.id),UpdateExpression:"DELETE twoStepRecovery :spent",ConditionExpression:"twoStepSecret = :sealed AND contains(twoStepRecovery, :hash)",ExpressionAttributeValues:{":spent":new Set([hash]),":hash":hash,":sealed":account.twoStepSecret}}));
+      return "recovery";
+    }
+    const secret=openSecret(account.twoStepSecret,requireAccountSecuritySecret(),account.id);
+    // Unreadable only if SESSION_SECRET changed after setup: the owner signs in with a recovery code and sets up again.
+    if(!secret){console.error("Two-step secret could not be opened",{name:"TwoStepSecretUnreadable"});return null;}
+    const step=acceptedStep(secret,input.code,now,account.twoStepLastStep);
+    if(step===null)return null;
+    await db.send(new UpdateCommand({TableName:requireTable(),Key:profileKey(account.id),UpdateExpression:"SET twoStepLastStep = :step",ConditionExpression:"twoStepSecret = :sealed AND (attribute_not_exists(twoStepLastStep) OR twoStepLastStep < :step)",ExpressionAttributeValues:{":step":step,":sealed":account.twoStepSecret}}));
+    return "code";
+  }catch(error){if(conditionFailed(error))return null;throw error;}
+}
+
+/** A new set of recovery codes, replacing every unused one. */
+export async function replaceRecoveryCodes(account:AccountRecord){
+  const recoveryCodes=createRecoveryCodes();
+  await db.send(new UpdateCommand({TableName:requireTable(),Key:profileKey(account.id),UpdateExpression:"SET twoStepRecovery = :codes",ConditionExpression:"twoStepSecret = :sealed",ExpressionAttributeValues:{":codes":new Set(recoveryCodes.map(value=>recoveryCodeHash(account.id,value))),":sealed":account.twoStepSecret}}));
+  return recoveryCodes;
+}
+
+/** Turns two-step sign-in off: the secret and every recovery code are removed. */
+export async function turnOffTwoStep(account:AccountRecord){
+  await db.send(new UpdateCommand({TableName:requireTable(),Key:profileKey(account.id),UpdateExpression:"REMOVE twoStepSecret, twoStepEnabledAt, twoStepLastStep, twoStepRecovery, twoStepPendingSecret, twoStepPendingExpiresAt",ConditionExpression:"twoStepSecret = :sealed",ExpressionAttributeValues:{":sealed":account.twoStepSecret}}));
 }

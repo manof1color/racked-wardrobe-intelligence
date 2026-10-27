@@ -13,6 +13,12 @@ Account recovery and settings use separate rate-limit buckets in addition to log
 - `DELETE /api/account` — authenticated consumer; requires `currentPassword` and `confirmation` set to `DELETE`, is rate limited, and accepts no account ID. Removes the account's Community posts, the wear events it recorded under brand products, every private photo its records reference, then every record under the account with the profile last, and clears the session cookie. Where the runtime role has `s3:ListBucket` on `wardrobe/<account>/`, a sweep also removes scan photos that were never saved. Brand accounts receive `409`.
 - `GET /api/account/activity` — authenticated; the session's own account's last 20 security events from 90 days (sign-ins, failed attempts on its email, password and detail changes, sign-outs), each with a coarse device label and never an IP address. The handler takes no request input. Rate limited.
 - `DELETE /api/account/sessions` — authenticated; signs out every other device by raising the account's session version, then re-issues this device's session at the new version. Rate limited.
+- `GET /api/account/two-step` — authenticated; whether two-step sign-in is offered (brand accounts), on, since when, and how many recovery codes are left. Never the secret or the code hashes.
+- `POST /api/account/two-step/setup` — authenticated brand; requires `currentPassword`; returns a new authenticator secret once (base32 and an `otpauth://` link for the QR code) and keeps it sealed and pending for ten minutes. Refused while two-step sign-in is on.
+- `POST /api/account/two-step/confirm` — authenticated brand; `code` from the new authenticator turns two-step sign-in on, signs out every other device, re-issues this device's session, and returns ten recovery codes, shown only in this response.
+- `POST /api/account/two-step/recovery-codes` — authenticated; a current app `code` replaces every unused recovery code with ten new ones.
+- `DELETE /api/account/two-step` — authenticated; requires `currentPassword` and a current `code` or `recoveryCode`. Each code tried here, at sign-in, and for new recovery codes counts against the account's five attempts per fifteen minutes, before it is checked.
+- `POST /api/auth/two-step` — the second step of signing in when two-step sign-in is on: the five-minute challenge cookie from `/api/auth/login` plus a `code` or one `recoveryCode`. A right code starts the session; a wrong one is refused and appears in the owner's activity. A password change or sign-out-everywhere ends a pending challenge.
 - `POST /api/auth/password-reset/request` — public and enumeration-resistant. Known/unknown/malformed email requests receive the same `202` message. For a real account, Racked stores only a hash of a random reset token and attempts SES delivery.
 - `POST /api/auth/password-reset/confirm` — public, rate-limited; consumes a valid token once, within 30 minutes, applies the normal password policy, re-hashes, and invalidates sessions and older reset links.
 
@@ -23,7 +29,7 @@ Endpoints that create accounts, invoke Amazon Bedrock, release aggregates, accep
 | Route | Access | Production behavior |
 | --- | --- | --- |
 | `POST /api/auth/register` | Public | Creates a real Consumer or Brand account, salts and scrypt-hashes the password, then starts a 7-day session |
-| `POST /api/auth/login` | Public | Verifies the password using constant-time comparison and starts the role session |
+| `POST /api/auth/login` | Public | Verifies the password using constant-time comparison and starts the role session, or, with two-step sign-in on, a five-minute challenge for `/api/auth/two-step` |
 | `POST /api/auth/logout` | Signed in | Expires the session cookie |
 | `GET /api/consumer/wardrobe` | Consumer | Returns only that account’s garments and outfits with one-hour private image links |
 | `POST /api/garments/verify` | Consumer | Checks label text against the brand registry for one garment. Returns a match or nothing; writes nothing. Verification still requires a GTIN, or a brand alias together with that brand's SKU — a brand name alone matches nothing. Rate limited. |

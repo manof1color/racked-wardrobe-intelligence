@@ -56,7 +56,7 @@ it snapshots each target item, applies each conditional write in order, and rest
 on the first failed condition, answering with DynamoDB's `TransactionCanceledException`. Production
 uses DynamoDB's native transactions.
 
-**Result on 2026-10-27: 47 of 47 checks passed, and the leak check passed.**
+**Result on 2026-10-27: 58 of 58 checks passed, and the leak check passed.** The 11 two-step checks compute codes as an authenticator app does (RFC 6238) and wait for a fresh 30-second step whenever a code must be new, so they add up to about a minute and a half.
 
 - **Sign-in.** Eight wrong passwords → 401 each; the ninth pauses the email (429). A browser without
   a known-device cookie is paused too — the lockout an attacker could otherwise cause — while the
@@ -212,7 +212,8 @@ Merges follow `CONTRIBUTING.md`: GitHub validation and CodeQL pass, then merge, 
 | #170 | `9f8dbd5` | headers, origin guard, body caps, clean photos — verified live |
 | #171 | `8035621` | shared limits, AI budgets, activity log, bot trap — verified live |
 | #172 | `075a2f6` | input checks, wears counted once, small groups withheld, password schemes — verified live |
-| #173 | — | sharing wording; unkept scan photos expire. Rolling back is safe: a scan made before the rollback and kept after it is refused and must be scanned again |
+| #173 | `9798ee1` | sharing wording; unkept scan photos expire. Rolling back is safe: a scan made before the rollback and kept after it is refused and must be scanned again |
+| #179 | — | two-step sign-in for brand accounts. Rolling back is safe but quietly weaker: an older release ignores the `twoStep*` attributes, so the password alone signs in until this release is back, when every enrolled authenticator works again unchanged |
 
 **Rollback.** Fastest: in the Amplify console, redeploy the previous successful build of `main`.
 Durable: `git revert -m 1 <merge commit>` in a pull request. The new records these changes write —

@@ -47,7 +47,7 @@ Open-Meteo's free service is licensed for non-commercial use, which covers the c
 
 ## Account security activity
 
-Each account keeps its own security log for 90 days, then it expires: sign-ins, failed sign-in attempts on its email address, password and detail changes, and sign-outs from other devices. Each entry carries a coarse device label — "Safari on iPhone" — and **never an IP address or location**. Failed attempts are filed under a keyed hash of the email typed, written the same way whether or not that email has an account, so neither storage nor response time reveals which emails do; only the account's owner sees them. Shared rate-limit counters are likewise stored under keyed hashes, never an email or account id, and expire with their window.
+Each account keeps its own security log for 90 days, then it expires: sign-ins, failed sign-in attempts on its email address, password and detail changes, sign-outs from other devices, and, for a brand using two-step sign-in, turning it on or off, new recovery codes, sign-ins with a recovery code, and wrong codes entered after a correct password. Each entry carries a coarse device label — "Safari on iPhone" — and **never an IP address or location**. Failed attempts are filed under a keyed hash of the email typed, written the same way whether or not that email has an account, so neither storage nor response time reveals which emails do; only the account's owner sees them. Shared rate-limit counters are likewise stored under keyed hashes, never an email or account id, and expire with their window.
 
 ## Data minimization
 

@@ -927,3 +927,17 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .account-activity-list li.account-activity-warning{border-color:#e94f30;background:#fff3ef}
 .account-activity-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .account-activity-actions .confirm-sign-out{background:#5d1712;border-color:#5d1712;color:#fff}
+/* Two-step sign-in: the code step when signing in, and setup in a brand account's Settings. */
+.auth-alt-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-top:14px}
+.auth-alt-actions .text-button{font-size:.72rem;color:var(--coral-dark);font-weight:800}
+.two-step-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 18px;font-size:.86rem}
+.two-step-pill{font-size:.6rem;font-weight:900;letter-spacing:.12em;padding:5px 8px;background:#eeebe3}
+.two-step-pill.on{background:#e0f0d9;color:#2f5f2c}
+.two-step-setup{display:grid;grid-template-columns:auto 1fr;gap:18px 22px;align-items:start;margin:10px 0 18px}
+.two-step-qr{width:184px;height:184px;background:#fff;border:1px solid var(--line);padding:6px}
+.two-step-qr svg{display:block;width:100%;height:100%}
+.two-step-key{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem;word-break:break-all;background:#eeebe3;padding:8px 10px;margin:6px 0 12px;user-select:all}
+.two-step-codes{list-style:none;padding:14px;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;background:#eeebe3;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9rem}
+.two-step-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:6px}
+.two-step-actions .confirm-turn-off{background:#5d1712;border-color:#5d1712;color:#fff}
+@media (max-width:600px){.two-step-setup{grid-template-columns:1fr}.two-step-qr{width:min(100%,220px);height:auto;aspect-ratio:1}.two-step-codes{grid-template-columns:1fr}}

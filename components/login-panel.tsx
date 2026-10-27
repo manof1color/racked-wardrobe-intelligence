@@ -19,6 +19,10 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
   const [busy,setBusy]=useState(false);
   // The honeypot: a field no person sees or reaches; a form-filling bot fills it.
   const [trap,setTrap]=useState("");
+  // Two-step sign-in: after the right password, the code from the authenticator app (or a recovery code).
+  const [codeStep,setCodeStep]=useState(false);
+  const [code,setCode]=useState("");
+  const [useRecovery,setUseRecovery]=useState(false);
 
   async function submit() {
     setBusy(true);setError("");
@@ -27,9 +31,41 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,role,displayName,brandName,consent,formToken,website:trap})});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error??"Account access failed.");
+      if(data.twoStep){setCodeStep(true);setCode("");setUseRecovery(false);setBusy(false);return;}
       window.location.assign(data.destination);
     } catch(reason){setError(reason instanceof Error?reason.message:"Account access failed.");setBusy(false);}
   }
+
+  async function submitCode() {
+    setBusy(true);setError("");
+    try {
+      const response=await fetch("/api/auth/two-step",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(useRecovery?{recoveryCode:code}:{code})});
+      const data=await response.json();
+      if(data.restart){setCodeStep(false);setPassword("");}
+      if(!response.ok)throw new Error(data.error??"That code didn't work.");
+      window.location.assign(data.destination);
+    } catch(reason){setError(reason instanceof Error?reason.message:"That code didn't work.");setBusy(false);}
+  }
+
+  if(codeStep)return <main className="auth-shell">
+    <Link className="wordmark auth-logo" href="/">RACKED<span>.</span></Link>
+    <section className="auth-card" aria-labelledby="auth-title">
+      <div className="eyebrow">TWO-STEP SIGN-IN</div>
+      <h1 id="auth-title">{useRecovery?"Enter a recovery code.":"Enter your code."}</h1>
+      <p>{useRecovery?"Use one of the recovery codes you saved when you turned on two-step sign-in. Each works once.":"Open your authenticator app and enter the 6-digit code it shows for Racked."}</p>
+      <div className="auth-fields">
+        <label><span>{useRecovery?"Recovery code":"6-digit code"}</span>{useRecovery
+          ?<input autoComplete="off" autoCapitalize="none" spellCheck={false} value={code} onChange={event=>setCode(event.target.value)} placeholder="abcd-efgh-ijkl-mnop"/>
+          :<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={7} value={code} onChange={event=>setCode(event.target.value.replace(/[^0-9 ]/g,""))} placeholder="123456"/>}</label>
+      </div>
+      {error&&<div className="form-error" role="alert">{error}</div>}
+      <button className="button button-accent button-full" disabled={busy||!code.trim()} onClick={submitCode}>{busy?"Checking…":"Sign in →"}</button>
+      <div className="auth-alt-actions">
+        <button type="button" className="text-button" onClick={()=>{setUseRecovery(!useRecovery);setCode("");setError("");}}>{useRecovery?"Use the code from my app instead":"Lost your phone? Use a recovery code"}</button>
+        <button type="button" className="text-button" onClick={()=>{setCodeStep(false);setPassword("");setError("");}}>← Back to sign in</button>
+      </div>
+    </section>
+  </main>;
 
   return <main className="auth-shell">
     <Link className="wordmark auth-logo" href="/">RACKED<span>.</span></Link>

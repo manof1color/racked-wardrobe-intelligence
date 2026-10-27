@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ACTIVITY_LABELS, type AccountActivity } from "@/lib/device-label";
+import { ACTIVITY_LABELS, WARNING_ACTIVITY, type AccountActivity } from "@/lib/device-label";
 
 /**
  * The account's recent security activity, and the control to end every other session. A person can
@@ -70,7 +70,7 @@ export function AccountSecurityActivity() {
         ? <p className="account-activity-empty" role="status">Loading…</p>
         : activity.length === 0
           ? <p className="account-activity-empty">No activity recorded yet.</p>
-          : <ul className="account-activity-list">{activity.map((entry, index) => <li key={`${entry.at}-${index}`} className={entry.type === "sign-in-failed" ? "account-activity-warning" : undefined}>
+          : <ul className="account-activity-list">{activity.map((entry, index) => <li key={`${entry.at}-${index}`} className={WARNING_ACTIVITY.has(entry.type) ? "account-activity-warning" : undefined}>
               <strong>{ACTIVITY_LABELS[entry.type] ?? entry.type}</strong>
               <span>{entry.device}</span>
               <time dateTime={entry.at}>{when(entry.at)}</time>
