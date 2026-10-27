@@ -25,8 +25,8 @@ Every scoring category, what Racked does for it, and where to check it yourself.
 | --- | ---: | --- | --- |
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear — consented, and released only at 25 or more qualifying owners. Synthetic seed hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app with real accounts. **A person:** photograph clothes → confirm the pieces → get an outfit recommendation. **A brand:** an anonymous, consented cohort → wear evidence released only at `k ≥ 25` → a campaign brief. Everything else built is on the [roadmap](#roadmap) | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [The demo path](#five-minute-judge-path) · [Feature highlights](#feature-highlights) · [Judge accounts](docs/judge-accounts.md) |
-| **AI integration & innovation** | 20% | Nova Pro finds every garment in a photo; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **756 tests** in 106 files; CI runs audit, lint, type check, tests, build, and CodeQL; **156 merged PRs** counted on 2026-10-21; build log through Phase 81 | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
+| **AI integration & innovation** | 20% | Nova Pro proposes visible garments for human review; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
+| **Code, docs & GitHub** | 15% | **756 tests** in 106 files; CI runs audit, lint, type check, tests, build, and CodeQL; **160 merged PRs** counted on 2026-10-27 before this documentation merge; build log through Phase 81 | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece garment previews, and honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Looks builder](components/looks-builder.tsx) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Business model](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) · [Proof point](#competition-proof-point) |
 | **Bonus** | — | Explicit consent, `k ≥ 25` plus an enumeration budget, private encrypted storage, rate limits, owner-scoped deletion | [Privacy boundaries](#security-and-privacy-boundaries) · [`privacy.ts`](lib/privacy.ts) · [Privacy and ethics](docs/privacy-and-ethics.md) |
@@ -56,7 +56,7 @@ The demo is two flows and nothing else. Everything outside them is built and wor
 
 **A person: scan → confirm → recommendation** (2½ minutes) — `judge.consumer@racked.local`
 
-1. **Scan.** Tap **+** and photograph a garment — the one you are wearing works. Amazon Bedrock (Nova Pro) finds each piece in the photo and proposes its category and type.
+1. **Scan.** Tap **+** and photograph a garment — the one you are wearing works. Amazon Bedrock (Nova Pro) looks for visible pieces in the photo and proposes their categories and types.
 2. **Confirm.** Check each card and save. When the AI is unsure, the **Type** field asks instead of guessing; nothing reaches the wardrobe until the person confirms.
 3. **Recommendation.** Open **Hanger** (the button at the bottom) and ask *"What should I wear with this today?"* or *"I need a more formal outfit."* Hanger builds the outfit from pieces this account owns — the new one included — as photo cards with Save and Record. The **Looks** tab opens on the same outfit builder's pick for today.
 
@@ -147,12 +147,14 @@ These run on the live app and are tested, but the demo does not spend time on th
 
 | Task | Model | Behaviour when it fails |
 | --- | --- | --- |
-| Finding every garment in a photo — consumer scans and brand **Fill in from photo** | Amazon Nova Pro (US profile) | Nova Lite is tried once for a configuration error, never after a timeout; an unreadable result becomes one editable "needs your label" card |
+| Detecting visible garments in a photo — consumer scans and brand **Fill in from photo** | Amazon Nova Pro (US profile) | Nova Lite is tried once for a configuration error, never after a timeout; an unreadable result becomes one editable "needs your label" card |
 | Hanger, consumer and brand | Amazon Nova Pro (US profile), Nova Lite as fallback | A reply written without the model is built from the wardrobe and **says so on screen, with the reason** |
 | Three-view garment analysis | Amazon Nova Lite | Kept as the independent [evaluation benchmark](#independent-evaluation-dataset) path, not a live intake step |
 | Weather | Open-Meteo — not AI | Coordinates rounded to two decimal places (about 1 km); no location, no forecast, and Hanger never guesses |
 
 All models run through Amazon Bedrock from the app's own AWS account; no AI key ever reaches the browser.
+
+Recognition can miss obscured, overlapping, tiny, or blurred items. Detections are proposals for human confirmation, not a guarantee of completeness.
 
 ### Hanger is an agent, not a script
 
@@ -203,7 +205,7 @@ The outfit builder ranks with a curated dataset rather than a black box. [`lib/g
 
 ### Coverage, measured
 
-`node --experimental-strip-types --test --experimental-test-coverage tests/*.test.ts` over the whole suite (2026-10-13): **97.00% of lines, 86.07% of branches, 94.76% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%, `recreate-look.ts` 98.85%, `matching.ts` 97.67%, `similar-products.ts` 96.67%, `outfit-ranking.ts` 93.72%, `garment-knowledge.ts` 93.62%, and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. `hanger-agent.ts` is at 79.45%; its provider boundary is tested with a scripted model, not a live Bedrock call. Coverage shows what the tests execute, not that the scoring is *right*; the per-band, tie-break, and uncertainty numbers in [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) and the stylist evaluation set are the part that argues for correctness.
+`node --experimental-strip-types --test --experimental-test-coverage tests/*.test.ts` over the whole suite (2026-10-27): **97.09% of lines, 86.53% of branches, 94.65% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%, `recreate-look.ts` 98.85%, `matching.ts` 97.67%, `similar-products.ts` 96.67%, `outfit-ranking.ts` 93.72%, `garment-knowledge.ts` 93.62%, and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. `hanger-agent.ts` is at 81.21%; its provider boundary is tested with a scripted model, not a live Bedrock call. This is a Node 24.19.0 snapshot; timing-sensitive provider-deadline tests can slightly change exercised branches between runs. Coverage shows what the tests execute, not that the scoring is *right*; the per-band, tie-break, and uncertainty numbers in [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) and the stylist evaluation set are the part that argues for correctness.
 
 ---
 
@@ -389,7 +391,7 @@ The main cohort seed deterministically defines **each of three hero products 76 
 | Step | What the person sees | What happens underneath |
 | --- | --- | --- |
 | **1. Photograph** | **Take photo** (one) or **Choose images** (up to six) | JPEG, PNG, WebP, HEIC, HEIF, or AVIF up to 25 MB each, compressed in the browser before private upload |
-| **2. Recognise** | One card per piece, showing the **whole** piece | Nova Pro finds every garment, shoe pair, bag, and accessory and names its **category** and **type** |
+| **2. Recognise** | One card per piece, showing the **whole** piece | Nova Pro proposes visible garments, shoe pairs, bags, and accessories, with suggested **category** and **type** |
 | **3. Check the type** | A filled-in **Type** field — or one that asks | Low confidence or an unknown type highlights the field and shows a short note *beneath* it, never over the photo |
 | **4. Link a brand** *(optional)* | "Is this a brand product?" — with a suggested brand when one was read | A barcode, or brand plus style code, is checked against the enrolled brand registry |
 | **5. Save** | Tick the pieces to keep | Nothing reaches the wardrobe until the person confirms |
@@ -515,7 +517,7 @@ The first reproducible label-coverage audit sampled 1,000 records in ten evenly 
 4. **Tests** — `node --test` across `tests/`
 5. **Production build** — `next build`
 
-**756 passing tests** in 106 files (verified 2026-10-26). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return. Numerical documentation checks recompute the synthetic wear metrics with the app's analytics, reconcile the label-audit percentages, and compare test-file counts, limits, progress, and proposed prices with their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**756 passing tests** in 106 files (verified 2026-10-27). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return. Numerical documentation checks recompute the synthetic wear metrics with the app's analytics, reconcile the label-audit percentages, and compare test-file counts, limits, progress, and proposed prices with their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
 | What is protected | Where to read the tests |
 | --- | --- |
@@ -639,6 +641,6 @@ Racked does **not** claim garment recognition accuracy, sales lift, purchase int
 
 ---
 
-**Last updated:** 13 October 2026 — numerical evidence checked against main `9425733` plus this architecture-only change
+**Last updated:** 2026-10-27 — numerical evidence rechecked against main `075a2f6` plus this documentation-only refresh
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026

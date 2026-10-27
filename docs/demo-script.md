@@ -109,7 +109,7 @@ Judges score here. Answer in two sentences, then stop.
 | **"What is your accuracy?"** | I don't claim one. I ran a reproducible crop benchmark at 86% mean IoU, and recognition accuracy needs an independent labelled benchmark I have not run — so I don't report a number I cannot defend. |
 | **"What would you do differently?"** | I built background removal before I had evidence it worked on real phone photos, and it erased white garments against pale walls. The fix was to stop cutting pieces out and show an honest bounded crop. |
 | **"Who pays, and how much?"** | Brands. $25 per SKU to enrol, $149 a month once a product crosses the privacy threshold, $29 before it does — priced low deliberately, because a brand under the threshold gets benchmarks, not customer data. |
-| **"What breaks first at scale?"** | The per-instance rate limiter, which is a first layer and not a WAF, and the Bedrock cost curve on scan and Hanger volume. Both are named in the README rather than left for someone to find. |
+| **"What breaks first at scale?"** | Per-instance limits are only a first layer: shared DynamoDB counters and fail-closed model-call budgets now bound abuse and AI usage. Edge rate limiting and production-scale validation remain follow-ups, not claims. |
 
 ## Failure handling
 
@@ -121,7 +121,7 @@ Judges score here. Answer in two sentences, then stop.
 | The podium laptop cannot sign in | Use the judge credentials delivered privately before demo day; they are seeded and verified beforehand. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-10-26):** 756 tests in 98 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-10-27):** 756 tests in 106 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 
