@@ -56,7 +56,7 @@ it snapshots each target item, applies each conditional write in order, and rest
 on the first failed condition, answering with DynamoDB's `TransactionCanceledException`. Production
 uses DynamoDB's native transactions.
 
-**Result on 2026-10-26: 44 of 44 checks passed, and the leak check passed.**
+**Result on 2026-10-27: 47 of 47 checks passed, and the leak check passed.**
 
 - **Sign-in.** Eight wrong passwords → 401 each; the ninth pauses the email (429). A browser without
   a known-device cookie is paused too — the lockout an attacker could otherwise cause — while the

@@ -22,7 +22,7 @@ test("a device is described plainly, not fingerprinted", () => {
 });
 
 test("every kind of event reads plainly in Settings, and is kept for 90 days", () => {
-  const types: AccountActivityType[] = ["sign-in", "sign-in-failed", "account-created", "password-changed", "password-reset", "details-updated", "signed-out-everywhere"];
+  const types: AccountActivityType[] = ["sign-in", "sign-in-failed", "account-created", "password-changed", "password-reset", "details-updated", "signed-out-everywhere", "brand-sharing-on", "brand-sharing-off"];
   for (const type of types) assert.ok(ACTIVITY_LABELS[type], type);
   assert.equal(ACTIVITY_RETENTION_DAYS, 90);
 });
