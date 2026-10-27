@@ -2,7 +2,7 @@
 // Synthetic accounts and products only; nothing here can reach AWS (every AWS endpoint is local).
 // See docs/security-verification.md. Run from the repository root:
 //   HARNESS_SESSION_SECRET=<the server's SESSION_SECRET> node scripts/security-harness/integration.mjs
-import { createHmac, randomBytes, scryptSync } from "node:crypto";
+import { createHmac, randomBytes, randomInt, scryptSync } from "node:crypto";
 import path from "node:path";
 import { createRequire } from "node:module";
 
@@ -14,9 +14,9 @@ if (!SECRET) throw new Error("Set HARNESS_SESSION_SECRET to the local server's S
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-2", endpoint: "http://127.0.0.1:4568", credentials: { accessKeyId: "harness-local", secretAccessKey: "harness-local" } }));
 const BASE = process.env.HARNESS_BASE_URL ?? "http://localhost:3100", ORIGIN = BASE;
 if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) throw new Error("The harness only runs against a local server.");
-const run = Math.random().toString(36).slice(2, 8);
+const run = randomBytes(6).toString("hex").slice(0, 6);
 // Every simulated client gets an address of its own each run, so a rerun never meets the last run's per-client counters.
-const net = 1 + Math.floor(Math.random() * 250);
+const net = 1 + randomInt(250);
 const address = (host) => `198.18.${net}.${host}`;
 const results = [];
 const check = (name, ok, detail = "") => { results.push({ name, ok }); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`); };
@@ -134,7 +134,7 @@ const legacyLogin = await browser(address(130)).request("POST", "/api/auth/login
 const legacyAfter = (await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `USER#${legacy.id}`, SK: "PROFILE" } }))).Item;
 const againLogin = await browser(address(131)).request("POST", "/api/auth/login", { email: legacy.email, password: PASSWORD });
 const legacyWrong = await browser(address(132)).request("POST", "/api/auth/login", { email: legacy.email, password: "Wrong-password-1" });
-check("REGRESSION: an account hashed at the old scrypt cost signs in and is re-hashed at N = 2^17 with a new salt", legacyLogin.status === 200 && legacyBefore.passwordScheme === undefined && legacyAfter.passwordScheme === "scrypt-n17" && legacyAfter.passwordSalt !== legacyBefore.passwordSalt && legacyAfter.passwordHash !== legacyBefore.passwordHash && legacyAfter.sessionVersion === 0 && againLogin.status === 200 && legacyWrong.status === 401, `${legacyLogin.status},${legacyAfter.passwordScheme},${againLogin.status},${legacyWrong.status}`);
+check("REGRESSION: an account hashed at the old scrypt cost signs in and is re-hashed at N = 2^17 with a new salt", legacyLogin.status === 200 && legacyBefore.passwordScheme === undefined && legacyAfter.passwordScheme === "scrypt-n17" && legacyAfter.passwordSalt !== legacyBefore.passwordSalt && legacyAfter.passwordHash !== legacyBefore.passwordHash && legacyAfter.sessionVersion === 0 && againLogin.status === 200 && legacyWrong.status === 401, `${legacyLogin.status},${againLogin.status},${legacyWrong.status}`);
 const registeredRecord = (await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `USER#${ids.b}`, SK: "PROFILE" } }))).Item;
 check("a new account is hashed at the current cost with an 18-byte salt", registeredRecord.passwordScheme === "scrypt-n17" && Buffer.from(registeredRecord.passwordSalt, "base64url").length === 18);
 const slowLegacy = await legacyAccount("timing");

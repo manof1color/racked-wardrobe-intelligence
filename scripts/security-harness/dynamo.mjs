@@ -15,7 +15,7 @@ const require = createRequire(path.join(envDir, "package.json"));
 const dynalite = require("dynalite");
 
 const UPSTREAM = 4567, PROXY = 4568;
-await new Promise((resolve, reject) => dynalite({ createTableMs: 0, deleteTableMs: 0, updateTableMs: 0 }).listen(UPSTREAM, (error) => (error ? reject(error) : resolve())));
+await new Promise((resolve, reject) => dynalite({ createTableMs: 0, deleteTableMs: 0, updateTableMs: 0 }).listen(UPSTREAM, "127.0.0.1", (error) => (error ? reject(error) : resolve())));
 
 const auth = { "Authorization": "AWS4-HMAC-SHA256 Credential=harness/20260101/us-east-2/dynamodb/aws4_request, SignedHeaders=host;x-amz-date, Signature=0", "X-Amz-Date": "20260101T000000Z" };
 async function upstream(action, body) {
@@ -76,11 +76,14 @@ http.createServer(async (request, response) => {
       response.end(JSON.stringify(result.json));
       return;
     }
-    const forwarded = await fetch(`http://127.0.0.1:${UPSTREAM}${request.url}`, { method: request.method, headers: Object.fromEntries(Object.entries(request.headers).filter(([name]) => !["host", "content-length", "connection"].includes(name))), body: body.length ? body : undefined });
+    // The DynamoDB API is a POST to "/": the caller's path is never forwarded.
+    const forwarded = await fetch(`http://127.0.0.1:${UPSTREAM}/`, { method: request.method, headers: Object.fromEntries(Object.entries(request.headers).filter(([name]) => !["host", "content-length", "connection"].includes(name))), body: body.length ? body : undefined });
     response.writeHead(forwarded.status, { "Content-Type": forwarded.headers.get("content-type") ?? "application/x-amz-json-1.0" });
     response.end(Buffer.from(await forwarded.arrayBuffer()));
   } catch (error) {
     response.writeHead(500, { "Content-Type": "application/x-amz-json-1.0" });
-    response.end(JSON.stringify({ __type: "InternalServerError", message: String(error) }));
+    console.error("Harness proxy failure", error instanceof Error ? error.name : "UnknownError");
+    response.end(JSON.stringify({ __type: "InternalServerError", message: "The harness proxy failed." }));
   }
-}).listen(PROXY, () => console.log(`dynamo proxy ready on ${PROXY} (table ${tableName})`));
+// Both servers listen on loopback only: nothing else on the network can reach the harness.
+}).listen(PROXY, "127.0.0.1", () => console.log(`dynamo proxy ready on 127.0.0.1:${PROXY} (table ${tableName})`));
