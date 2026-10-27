@@ -10,13 +10,20 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 const readme = read("README.md");
 
 test("README test counts agree with the other current judge documents and test-file inventory", () => {
-  const count = readme.match(/\*\*(\d+) passing tests\*\* in (\d+) files/);
+  const count = readme.match(/\*\*(\d+) passing tests\*\* in (\d+) files \(verified (\d{4}-\d{2}-\d{2})\)/);
   assert.ok(count, "the measured total and file count must be stated");
   assert.equal(Number(count[2]), readdirSync(new URL("../tests/", import.meta.url)).filter(name => name.endsWith(".test.ts")).length);
   assert.ok(readme.includes(`**${count[1]} tests** in ${count[2]} files`));
   assert.ok(readme.includes(`${count[2]} test files, ${count[1]} tests`));
   assert.ok(read("docs/one-page-summary.md").includes(`**${count[1]} tests`));
-  assert.ok(read("docs/demo-script.md").includes(`${count[1]} tests`));
+  assert.ok(read("docs/demo-script.md").includes(`${count[1]} tests in ${count[2]} files`));
+  assert.ok(read("docs/demo-script.md").includes(`Verification snapshot (${count[3]})`));
+  assert.ok(read("docs/competition-checklist.md").includes(`re-verified ${count[3]}`));
+  assert.ok(read("docs/competition-checklist.md").includes(`Measured coverage (${count[3]})`));
+  assert.ok(readme.includes(`over the whole suite (${count[3]})`));
+  assert.ok(readme.includes(`**Last updated:** ${count[3]}`));
+  assert.match(readme, /\*\*\d+ merged PRs\*\* counted on \d{4}-\d{2}-\d{2} before this documentation merge/);
+  assert.doesNotMatch(readme, /\b(?:finds|finding) every garment\b/i);
   assert.ok(read("docs/competition-checklist.md").includes(`${count[1]} automated tests`));
 });
 
