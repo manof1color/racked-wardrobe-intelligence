@@ -187,6 +187,82 @@ are free at this volume; two AWS Budgets are free):
 4. Quota-store failure — metric filter for `AI budget unavailable; failing closed` and `Shared limit unavailable; failing open`.
 5. Storage — `AWS/DynamoDB` `ThrottledRequests` and `SystemErrors` on the table; `AWS/S3` `BucketSizeBytes` growth.
 
+### Legacy wardrobe photo audit — owner-run, not run against AWS
+
+`scripts/audit-unreferenced-photos.mjs` inventories objects under **wardrobe/** only. It does not
+download photos or write a report file. References are found by a paginated, strongly consistent
+scan of the **whole table**, without a field projection, filter or index: every string in every
+attribute, including nested maps/lists, string sets and attribute names, is checked for each key
+as a substring. Encoded URL references are conservatively recognised too. A reference in a kept
+piece, shared evidence photo, outfit board, Community post or future field protects the object.
+
+Only unreferenced objects **strictly older than seven days** are candidates. Recent, invalid-date,
+directory-marker and ambiguous-path objects are retained. No object outside `wardrobe/` can be
+a candidate or delete target: `brand/`, `temp/` and `demo/` are excluded.
+
+The owner runs this from AWS CloudShell, with their own session and an approved checkout:
+Node 22.13+ and the repository's locked dependencies installed (`pnpm install --frozen-lockfile`;
+if pnpm is unavailable, install the package.json-pinned pnpm version in that shell first).
+Set the actual production table and bucket privately at runtime; do not paste an entire Amplify
+environment map or commit these settings. This work did not run the script against AWS.
+
+```bash
+# In the reviewed repository checkout in your own AWS CloudShell:
+export AWS_REGION=us-east-2
+# Set RACKED_TABLE_NAME and RACKED_UPLOAD_BUCKET to your reviewed target names.
+node scripts/audit-unreferenced-photos.mjs
+```
+
+With no flags this is always a **dry run**, even if the cleanup environment variable is already
+set. Success prints a single JSON object of counts and bytes only:
+`objectsListed`, `totalBytes`, `referencedObjects`, `referencedBytes`, `candidates`,
+`candidateBytes`, `ownersWithCandidates`, `deletedObjects`, `deletedBytes`,
+`retainedOnRecheck`. The last three are zero in a dry run. No keys, owner IDs, addresses,
+credentials or signed URLs are printed, including on an SDK failure. A failure exits non-zero
+with a generic code, never the provider message/stack.
+
+**Permissions:** dry run needs `s3:ListBucket` restricted to prefix `wardrobe/` on the chosen
+bucket, plus `dynamodb:Scan` on the chosen table. Do not expand the application's runtime role
+for this owner tool. Cleanup additionally needs `s3:GetObject` for HeadObject and
+`s3:DeleteObject` restricted to `wardrobe/*` only. No table writes, GetObject downloads, bucket
+configuration writes, batch deletes or object-version deletes are used.
+
+**Only if the owner separately approves cleanup after reviewing the dry-run totals:** arrange
+an actual maintenance window that pauses **all writers** (app, seeds and background jobs),
+confirm the exact table/bucket pairing and backups, then run:
+
+```bash
+ALLOW_RACKED_PHOTO_CLEANUP=yes node scripts/audit-unreferenced-photos.mjs --delete
+# Re-run the read-only inventory afterward:
+node scripts/audit-unreferenced-photos.mjs
+```
+
+Both `--delete` and the exact environment value `ALLOW_RACKED_PHOTO_CLEANUP=yes` are required.
+A deletion flag without consent is refused **before any AWS call**. For each candidate, the tool
+checks current object metadata, re-scans every table page immediately before deletion, and sends
+a single conditional DeleteObject with the original ETag. A newly referenced or changed object
+is retained. An incomplete page sequence, read failure, missing object or conditional failure
+aborts rather than continuing on an assumption. Cleanup may already have partially completed if
+a later operation fails; keep writes paused and run a new dry run before deciding what to do.
+
+**Limits, not guarantees:** DynamoDB Scan is not a transactionally consistent snapshot across
+pages, even with ConsistentRead. S3 and DynamoDB do not share an atomic lock, and ETag matching
+cannot detect a same-byte overwrite after the metadata check. **Do not run deletion with active
+writers.** The command never deletes historical versions; on a versioned bucket it normally adds
+a delete marker, so `deletedBytes` is the logical size removed from the current view, not verified
+storage savings. A dry run is a conservative inventory at that time, not proof that old photos
+should all be deleted.
+
+Runtime is bounded by the inventory and table size, not a fixed request count: one complete table
+scan for a dry run, plus one complete scan per deletion candidate during cleanup. Metadata and a
+key-matching index stay in memory; table pages are processed and discarded. Large inventories may
+exceed CloudShell memory/time, and list/scan/head/delete calls consume normal AWS requests/read
+capacity. Confirm costs and run off-peak. No cleanup is scheduled or automated.
+
+Local tests in `tests/script-unreferenced-photos.test.ts` use injected transports and synthetic
+fixtures only. They cover pagination, nested/shared references, age and prefix boundaries, both
+opt-ins, fresh per-object checks, conditional deletes and safe CLI refusal.
+
 **Restore test (writes only to a new table; never overwrites production):**
 
 ```bash
