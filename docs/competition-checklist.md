@@ -65,13 +65,13 @@ This is the judge’s index for the CUA rubric.
 - [x] 763 automated tests and lint pass (re-verified 2026-10-27); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 - [x] Synthetic demo images are generated from one offline, deterministic illustrator shared by both seeds: distinct category silhouettes, subtype-specific pants/shoes/accessories, visible `SYNTHETIC DEMO` marking, no embedded photographs, and a raster-size regression test. Existing hosted images require a seed rerun to receive the new pixels; no product or wear records change.
 
-- [x] Measured coverage (2026-10-13), not asserted rigour: 97.00% of lines, 86.07% of branches, and 94.76% of functions across the suite. Recreate reaches 98.85% branch coverage, sessions 97.56%, and outfit ranking 93.72%. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
+- [x] Measured coverage (2026-10-27), not asserted rigour: 97.10% of lines, 86.62% of branches, and 94.67% of functions across the suite. Recreate reaches 98.85% branch coverage, sessions 97.56%, and outfit ranking 93.72%. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
 
 - [x] Hanger is a continuing conversation, not a stateless prompt: turns, controlled preferences, previously suggested pieces, and the latest active outfit are stored on the account, resumable across devices, and clearable by the person. The context window is budgeted explicitly — newest complete turns that fit, with older ones counted and declared rather than invented — and a remembered preference can only be a term the taxonomy and that wardrobe already use.
 
 ## 3. AI integration / innovation — 20%
 
-- [x] Amazon Bedrock uses Nova Lite for routine garment analysis/Hanger and reserves the US Nova Pro geographic profile for the harder whole-look instance-detection task; an immediate model-selection error may fall back once, while a timeout never doubles the mobile wait.
+- [x] Amazon Bedrock uses the US Nova Pro profile for whole-look detection and both Hanger roles, with Nova Lite as fallback; three-view benchmark analysis uses Nova Lite. An immediate scan model-selection error may fall back once, while a timeout never doubles the mobile wait.
 - [x] Garment Recognition V2: controlled category/subtype taxonomy, uncertainty alternatives, first-photo hypothesis carried into confirm-or-revise multi-view reasoning, manual correction, and honest fallback; verification evidence is unchanged. The multi-view path is now the evaluation benchmark rather than a live intake step.
 - [x] Prompt excludes person and protected-demographic inference.
 - [x] Brand identity requires registry evidence; image appearance alone is insufficient.
