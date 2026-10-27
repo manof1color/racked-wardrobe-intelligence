@@ -173,7 +173,7 @@ commands only read, except where marked. Region `us-east-2`; Amplify app `d2iv0k
 | Runtime role | `aws amplify get-app --app-id d2iv0khybuuaeh --query app.computeRoleArn`, then `aws iam list-attached-role-policies` and `get-role-policy` on it | only the inline `RackedRuntimeDataAccess` actions | Wear transactions need only `PutItem` and `UpdateItem`; flag any `*FullAccess` or `AdministratorAccess` |
 | Bucket exposure | `aws s3api get-public-access-block --bucket $B`; `get-bucket-policy-status`; `get-bucket-encryption`; `get-bucket-ownership-controls` | all four blocks true; not public; AES256; `BucketOwnerEnforced` | |
 | Private links | (code) | 1 hour | `privateImageUrl` signs for 3,600 s |
-| Retention vs prefixes | `aws s3api get-bucket-lifecycle-configuration --bucket $B` | — | **Mismatch:** the only rule expires `temp/`, which the app never writes. It writes `wardrobe/<owner>/` (scans, evidence, boards) and `brand/<owner>/`. Scan crops never saved stay until account deletion sweeps `wardrobe/<owner>/`; brand photos stay indefinitely. Decide a policy (for example, tag pending uploads and expire tagged objects after 7 days) |
+| Unkept scan photos expire | `aws s3api get-bucket-lifecycle-configuration --bucket $B` | an enabled rule expiring prefix `temp/` after 1 day | Scans write under `temp/wardrobe/<owner>/`; keeping a piece copies it to `wardrobe/<owner>/`. **If the rule is missing and no other rules exist (write, free):** `aws s3api put-bucket-lifecycle-configuration --bucket $B --lifecycle-configuration '{"Rules":[{"ID":"DeleteTemporaryUploads","Status":"Enabled","Filter":{"Prefix":"temp/"},"Expiration":{"Days":1}}]}'`. This replaces every rule on the bucket, so if others exist, include them too. Never use a prefix other than `temp/`: kept photos live under `wardrobe/` and `brand/`. Photos left by scans before #173 stay under `wardrobe/<owner>/` until account deletion; brand photos stay while the product exists |
 | Image backup | `aws s3api get-bucket-versioning --bucket $B` | — | Not in the template. Versioning with noncurrent versions expiring after 30 days would let a deleted photo be restored; cost is the size of deleted/overwritten photos for 30 days |
 | Staging separation | `aws amplify list-branches --app-id d2iv0khybuuaeh --query "branches[].branchName"`, and each branch's `RACKED_TABLE_NAME` | production alone on the production table and bucket | |
 | Alarms and destination | `aws cloudwatch describe-alarms`; `aws sns list-subscriptions` | alarms below exist; the email subscription is `Confirmed` | |
@@ -210,6 +210,9 @@ Merges follow `CONTRIBUTING.md`: GitHub validation and CodeQL pass, then merge, 
 | Before #169 | `cd9aa2a` | Next.js 15.5.27 (vulnerable) |
 | #169 | `e96ca5b` | Next.js 15.5.28 |
 | #170 | `9f8dbd5` | headers, origin guard, body caps, clean photos — verified live |
+| #171 | `8035621` | shared limits, AI budgets, activity log, bot trap — verified live |
+| #172 | `075a2f6` | input checks, wears counted once, small groups withheld, password schemes — verified live |
+| #173 | — | sharing wording; unkept scan photos expire. Rolling back is safe: a scan made before the rollback and kept after it is refused and must be scanned again |
 
 **Rollback.** Fastest: in the Amplify console, redeploy the previous successful build of `main`.
 Durable: `git revert -m 1 <merge commit>` in a pull request. The new records these changes write —
@@ -227,8 +230,9 @@ answers.
 
 ## Open decisions
 
-- **Consent history.** Opting in includes wear recorded before opting in; the in-app wording does not
-  say so. Either say so in the app, or count only wear recorded while sharing is on.
-- **Retention.** The lifecycle rule above matches no prefix the app writes.
+- **Consent history — decided.** Opting in includes wear recorded before opting in; the owner kept
+  it, and the app now says so (#173).
+- **Retention — decided.** Unkept scan photos expire under `temp/` within two days (#173), once the
+  live rule above is confirmed.
 - **Differencing over time.** Exact totals can be watched as they change; no noise is added.
 - **CSP** is report-only; **WAF** is not in place; there is **no malware scanning** of uploads.

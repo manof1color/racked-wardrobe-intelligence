@@ -87,9 +87,9 @@ test("every piece shows whether it is brand-linked or simply the person's own", 
   }
 });
 
-test("brand sharing is still described as separate from linking a product", () => {
-  assert.match(intake, /only if you turn on brand data sharing in Settings/);
-  assert.match(verifyRoute, /only if you separately enable brand data sharing/);
+test("brand sharing is still described as separate from linking a product, earlier wear included", () => {
+  assert.match(intake, /only while Anonymous brand insights is on, and turning that on includes wear you recorded before/);
+  assert.match(verifyRoute, /only while you separately have brand data sharing on, and turning sharing on includes wear recorded before you did/);
 });
 
 // A transparency checkerboard behind an opaque photograph claims a cut-out that is not

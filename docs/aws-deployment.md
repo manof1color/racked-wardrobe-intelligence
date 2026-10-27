@@ -81,7 +81,7 @@ During the first mobile registration test, DynamoDB rejected the email-index que
 ## Cost and safety
 
 - DynamoDB uses on-demand billing.
-- S3 is private and temporary objects under `temp/` expire after one day.
+- S3 is private and objects under `temp/` expire after one day. Scan photos wait there until a piece is kept, so photos nobody keeps are deleted within two days; the app relies on the `DeleteTemporaryUploads` rule for this.
 - Bedrock is usage-billed; uploads are limited to control request size. Nova Pro handles the complex whole-look scan and Hanger's conversation, where Nova Lite lost the thread of longer exchanges; routine analysis stays on lower-cost Nova Lite. Hanger's model is chosen by `AI_HANGER_MODEL` alone — it no longer inherits `AI_MODEL` — and falls back to Nova Lite if Nova Pro is unavailable.
 - Create an AWS Budget alert and monitor Amplify, S3, DynamoDB, and Bedrock usage.
 - AI spending is capped twice (`lib/abuse-limits.ts`, `lib/ai-budget.ts`): per account per day in requests, and across the site per day in **model calls** — every Bedrock call a scan or Hanger message makes. The ceiling defaults to 1,500 model calls a day; at Nova Pro prices of roughly half a cent to a cent and a half a call, that bounds a worst day at about $8–20. Set `AI_DAILY_CEILING` in Amplify to change it. Both budgets fail closed: if DynamoDB cannot be reached, no model is called and the non-model fallback answers.
