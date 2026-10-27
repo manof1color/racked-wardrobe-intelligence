@@ -3,7 +3,7 @@ import "server-only";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { GarmentAnalysis, BrandProductRegistration, OutfitPost, DataClassification } from "@/lib/platform-types";
 import type { Role, SavedOutfit, WardrobeItem } from "@/lib/types";
@@ -20,6 +20,7 @@ import { ENUMERATION_WINDOW_MS, enumerationBudgetState, MAX_DISTINCT_PRODUCTS_PE
 import { findByPaginatedQuery } from "@/lib/community-lookup";
 import { checkPassword, hashPassword } from "@/lib/password-hash";
 import { RequestRefused } from "@/lib/api-errors";
+import { keepScanImages, keptScanImage, PENDING_SCAN_PREFIX } from "@/lib/scan-storage";
 import { wornDaysAgo } from "@/lib/wear-recency";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
@@ -277,11 +278,32 @@ export async function getAccount(id:string) {
   return (result.Item as AccountRecord|undefined) ?? null;
 }
 
-export async function putPrivateImage(ownerId:string,kind:"wardrobe"|"brand",bytes:Buffer,contentType:string,subfolder?:"evidence") {
+export async function putPrivateImage(ownerId:string,kind:"wardrobe"|"brand",bytes:Buffer,contentType:string,subfolder?:"evidence",pending=false) {
   const extension=contentType==="image/png"?"png":contentType==="image/webp"?"webp":"jpg";
-  const key=`${kind}/${ownerId}/${subfolder?`${subfolder}/`:""}${crypto.randomUUID()}.${extension}`;
+  const key=`${pending?PENDING_SCAN_PREFIX:""}${kind}/${ownerId}/${subfolder?`${subfolder}/`:""}${crypto.randomUUID()}.${extension}`;
   await s3.send(new PutObjectCommand({Bucket:requireBucket(),Key:key,Body:bytes,ContentType:contentType,ServerSideEncryption:"AES256",Metadata:{owner:ownerId}}));
   return key;
+}
+
+/**
+ * Stores a scan photo where it waits to be kept, and expires if it never is (lib/scan-storage.ts).
+ * A deployment whose role may not write under temp/ stores it with the wardrobe instead, as before:
+ * a scan must never fail over where its photo waits. That gap is logged by name.
+ */
+export async function putScanImage(ownerId:string,bytes:Buffer,contentType:string,subfolder?:"evidence") {
+  try {
+    return await putPrivateImage(ownerId,"wardrobe",bytes,contentType,subfolder,true);
+  } catch(error) {
+    const name=error instanceof Error?error.name:"UnknownError";
+    if(name!=="AccessDenied"&&name!=="AccessDeniedException")throw error;
+    console.warn("Scan photo stored without expiry: s3:PutObject is not granted under temp/",{name});
+    return putPrivateImage(ownerId,"wardrobe",bytes,contentType,subfolder);
+  }
+}
+
+function copyPrivateImage(from:string,to:string) {
+  const bucket=requireBucket();
+  return s3.send(new CopyObjectCommand({Bucket:bucket,Key:to,CopySource:encodeURI(`${bucket}/${from}`),MetadataDirective:"COPY",ServerSideEncryption:"AES256"}));
 }
 
 export async function privateImageUrl(key?:string) {
@@ -296,9 +318,11 @@ export async function listWardrobe(ownerId:string):Promise<WardrobeItem[]> {
 
 export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,overrides?:{name?:string;brand?:string;sku?:string;category?:string;subtype?:string;customType?:string|null;labelText?:string|null;catalogProductId?:string|null}) {
   if (!analysis.processedImage?.key) throw new RequestRefused("The processed garment image is missing.");
-  if(!analysis.processedImage.key.startsWith(`wardrobe/${ownerId}/`)||!verifyGarmentConfirmation(ownerId,analysis))throw new RequestRefused("The garment confirmation expired or did not belong to this account.");
-  const evidenceImageKey=analysis.processedImage.evidenceKey??null;
-  if(evidenceImageKey&&!evidenceImageKey.startsWith(`wardrobe/${ownerId}/`))throw new RequestRefused("The evidence photo did not belong to this account.");
+  const image=keptScanImage(analysis.processedImage.key,ownerId);
+  if(!image||!verifyGarmentConfirmation(ownerId,analysis))throw new RequestRefused("The garment confirmation expired or did not belong to this account.");
+  const evidence=analysis.processedImage.evidenceKey?keptScanImage(analysis.processedImage.evidenceKey,ownerId):null;
+  if(analysis.processedImage.evidenceKey&&!evidence)throw new RequestRefused("The evidence photo did not belong to this account.");
+  const evidenceImageKey=evidence?.key??null;
   const name=(overrides?.name??analysis.garment.name).trim().slice(0,100)||"Unverified garment";
   // A label the person checked is checked again here, against the registry as it stands now. The
   // browser saying a label matched is not evidence; the label text is. Before this, a successful
@@ -323,7 +347,9 @@ export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,ov
   // controlled value is the record, and a stray custom label would contradict it.
   const typedType=typeof overrides?.customType==="string"?overrides.customType.replace(/[\u0000-\u001f\u007f]/g,"").replace(/\s+/g," ").trim().slice(0,60):"";
   const customType=typedType&&classification.subtype.startsWith("other-")?typedType:null;
-  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:analysis.processedImage.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(analysis.processedImage.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId,identityStatus,selectedProductId:selectedProduct?.id??null,listedPrice:catalogProduct?.price??null,listedCurrency:catalogProduct?.price!==undefined?(catalogProduct.currency??"USD"):null,createdAt:new Date().toISOString()};
+  const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:image.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(image.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId,identityStatus,selectedProductId:selectedProduct?.id??null,listedPrice:catalogProduct?.price??null,listedCurrency:catalogProduct?.price!==undefined?(catalogProduct.currency??"USD"):null,createdAt:new Date().toISOString()};
+  // The photos are kept before the record that points at them is written.
+  await keepScanImages(copyPrivateImage,[image,evidence]);
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:registryProductId?`PRODUCT#${registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
   return item;
 }

@@ -8,7 +8,7 @@ import { metered } from "@/lib/ai-budget";
 import { detectLookOrManualReview, prepareSimpleLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
-import { privateImageUrl, ProductionConfigurationError, putPrivateImage, signGarmentConfirmation } from "@/lib/server/production-store";
+import { privateImageUrl, ProductionConfigurationError, putScanImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
 export const runtime="nodejs";
 
@@ -64,7 +64,9 @@ export async function POST(request:Request) {
     const detections=recognition.detections;
 
     stage="storage";
-    const evidenceKey=await putPrivateImage(session.subject,"wardrobe",prepared.data,"image/jpeg","evidence");
+    // Nothing is kept yet: these photos wait under temp/ and expire unless a piece is kept
+    // (lib/scan-storage.ts).
+    const evidenceKey=await putScanImage(session.subject,prepared.data,"image/jpeg","evidence");
     // A small batch keeps a full 16-piece look responsive without sending an
     // uncontrolled burst of image-model and S3 requests.
     for(let offset=0;offset<detections.length;offset+=4)await Promise.all(detections.slice(offset,offset+4).map(async detection=>{
@@ -79,7 +81,7 @@ export async function POST(request:Request) {
         // garment is always more useful than a cut-out that may erase it. Recognition is
         // still the only remote vision call on this synchronous path.
         const display=await prepareSimpleLookDisplay(cropBytes);
-        const key=await putPrivateImage(session.subject,"wardrobe",display.buffer,"image/png");
+        const key=await putScanImage(session.subject,display.buffer,"image/png");
         detection.analysis.processedImage={
           key,
           url:(await privateImageUrl(key))!,
@@ -96,7 +98,7 @@ export async function POST(request:Request) {
     return NextResponse.json({
       detections,
       recognition:recognition.providerFailed?"manual-review-fallback":"ai-complete",
-      retention:"The source image and each isolated display cutout are private, encrypted at rest, and returned only through expiring links.",
+      retention:"The source image and each isolated display cutout are private, encrypted at rest, and returned only through expiring links. Anything from this scan that is not kept is deleted automatically within two days.",
       verification:"Detected brand text is editable suggestion evidence only; it never creates verified product identity.",
     });
   } catch(error) {

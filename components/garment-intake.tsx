@@ -425,7 +425,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
             {piece.link.status === "verified"
               ? <div className="intake-link-verified">
                   <strong>{piece.link.product.brand} · {piece.link.product.name}</strong>
-                  <small>Matched an enrolled product on {piece.link.matchMethod === "gtin" ? "its barcode number" : "brand and style code"}. Wear you record can join this brand&rsquo;s anonymous totals only if you turn on brand data sharing in Settings.</small>
+                  <small>Matched an enrolled product on {piece.link.matchMethod === "gtin" ? "its barcode number" : "brand and style code"}. Its wear counts toward this brand&rsquo;s anonymous totals only while Anonymous brand insights is on, and turning that on includes wear you recorded before.</small>
                 </div>
               : <>
                   <button type="button" className="intake-link-toggle" disabled={!piece.selected}
@@ -491,7 +491,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
           <small>
             {selectedCount} {selectedCount === 1 ? "piece" : "pieces"} will be added
             {verifiedCount > 0 ? `, ${verifiedCount} verified as an enrolled brand product` : ""}
-            {pickedCount > 0 ? `, ${pickedCount} linked to a brand product you picked` : ""}. The source photo stays private.
+            {pickedCount > 0 ? `, ${pickedCount} linked to a brand product you picked` : ""}. The source photo stays private, and anything from this scan you don&rsquo;t keep is deleted automatically within two days.
           </small>
         </span>
       </label>

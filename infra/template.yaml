@@ -66,6 +66,8 @@ Resources:
         RestrictPublicBuckets: true
       LifecycleConfiguration:
         Rules:
+          # Scan photos wait under temp/ until a piece is kept (lib/scan-storage.ts); this rule is
+          # what deletes the ones nobody keeps. Keeping a piece copies it out of temp/.
           - Id: DeleteTemporaryUploads
             Status: Enabled
             ExpirationInDays: 1

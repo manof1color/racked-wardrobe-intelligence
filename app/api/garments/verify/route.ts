@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         sku: match.product.sku,
         category: match.product.category,
       },
-      boundary: "This product is enrolled by its brand and matched on registry evidence. Wear you record can contribute to that brand's anonymous aggregates only if you separately enable brand data sharing.",
+      boundary: "This product is enrolled by its brand and matched on registry evidence. Wear you record on it counts toward that brand's anonymous aggregates only while you separately have brand data sharing on, and turning sharing on includes wear recorded before you did.",
     });
   } catch (error) {
     if (error instanceof ProductionConfigurationError) return NextResponse.json({ error: error.message }, { status: 503 });
