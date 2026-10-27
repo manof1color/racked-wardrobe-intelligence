@@ -44,7 +44,7 @@ npm run build
 SESSION_SECRET=... RACKED_TABLE_NAME=racked-harness RACKED_UPLOAD_BUCKET=racked-harness-bucket \
 AWS_REGION=us-east-2 AWS_ACCESS_KEY_ID=harness-local AWS_SECRET_ACCESS_KEY=harness-local \
 AWS_ENDPOINT_URL=http://127.0.0.1:9 AWS_ENDPOINT_URL_DYNAMODB=http://127.0.0.1:4568 \
-AI_PROVIDER=bedrock AI_DAILY_CEILING=3 RACKED_ALLOWED_ORIGINS=http://localhost:3100 \
+AI_PROVIDER=bedrock AI_DAILY_CEILING=3 RACKED_ALLOWED_ORIGINS=http://localhost:3100 RACKED_PASSWORD_SCHEME=scrypt-n17 \
 npx next start -p 3100
 # 3. The checks
 HARNESS_SESSION_SECRET=... node scripts/security-harness/integration.mjs
@@ -128,11 +128,12 @@ Reviewing the alert properly also meant checking the two things it gestures at:
 - **Password storage.** Every write — sign-up, password change, reset, and both seed scripts — uses
   scrypt with a fresh 18-byte `randomBytes` salt, and comparisons are constant-time. But every hash
   used Node's default cost, **N = 2^14, r = 8, p = 1 — an eighth of OWASP's minimum (N = 2^17)**.
-  That was a real weakness: new hashes now use N = 2^17 (`lib/password-hash.ts`), each hash records
-  its scheme, an old hash is accepted and replaced at the new cost on its owner's next sign-in, every
-  check does one derivation at each cost so timing reveals neither account existence nor scheme, and
-  at most two derivations run at once (≤ 256 MiB). Measured locally: 76 ms at the old cost, 297 ms at
-  the new.
+  That was a real weakness. Every check now reads both costs (`lib/password-hash.ts`), doing one
+  derivation at each so timing reveals neither account existence nor scheme; each hash records its
+  scheme; at most two derivations run at once (≤ 256 MiB). The strong cost is switched on separately
+  with `RACKED_PASSWORD_SCHEME=scrypt-n17`, because a release writing N = 2^17 hashes must never be
+  rolled back to one that cannot read them; once on, old hashes are replaced at the strong cost on
+  their owner's next sign-in. Measured locally: 76 ms at the old cost, 297 ms at the new.
 - **The known-device cookie.** Issued on sign-up, sign-in, and a completed reset; HMAC-signed over
   its issue time and a keyed hash of the address, compared in constant time, refused if altered, for
   another address, from the future, or older than 180 days; `HttpOnly`, `Secure` in production,
@@ -214,7 +215,10 @@ Merges follow `CONTRIBUTING.md`: GitHub validation and CodeQL pass, then merge, 
 Durable: `git revert -m 1 <merge commit>` in a pull request. The new records these changes write —
 budget slots, wear guards, request IDs, AI call counters — are additive and expire through `ttl`;
 rolled-back code ignores them. The old `AGGQ#…/PRODUCT#…` budget log is left in place, so a rollback
-resumes using it.
+resumes using it. **Passwords:** until `RACKED_PASSWORD_SCHEME=scrypt-n17` is set, every hash is one
+the previous release can read. Once it is set, accounts that sign in are re-hashed at N = 2^17, which
+releases before this one cannot verify: from then on, roll back to this release (or later), never
+earlier — or unset the variable first, which stops further upgrades but cannot undo those already made.
 
 **Live checks that need a real sign-in** (synthetic accounts, after each deploy): sign-in and reset;
 a scan; garment save and edit; outfit save; record a wear and tap it twice quickly — one wear;

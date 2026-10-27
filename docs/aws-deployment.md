@@ -38,9 +38,16 @@ AI_MODEL=amazon.nova-lite-v1:0
 AI_LOOK_DETECTION_MODEL=us.amazon.nova-pro-v1:0
 AI_BRAND_MODEL=amazon.nova-lite-v1:0
 AI_BACKGROUND_REMOVAL_MODEL=us.stability.stable-image-remove-background-v1:0
-# Optional: site-wide daily ceiling on model-backed requests (default 1000).
+# Optional: site-wide daily ceiling on Bedrock model calls (default 1500).
 AI_DAILY_CEILING
 NEXT_PUBLIC_SITE_URL
+# Optional: more origins trusted for state-changing requests, comma-separated (for example a custom domain).
+RACKED_ALLOWED_ORIGINS
+# Optional: X-Forwarded-For entries the platform appends; unset, each instance learns it.
+RACKED_TRUSTED_PROXY_HOPS
+# Set to scrypt-n17, after the release that reads both schemes is verified live, to hash passwords at
+# OWASP's scrypt cost. From then on, roll back no further than that release.
+RACKED_PASSWORD_SCHEME
 ```
 
 `RACKED_PASSWORD_RESET_FROM` must be a verified Amazon SES identity. If SES remains in sandbox mode, reset email works only for recipient addresses that are also verified. Before public recovery can be claimed, request SES production access and verify SPF/DKIM for the sender domain. The committed template describes only `ses:SendEmail`, but the 2026-08-28 Stable Image-only stack update deliberately did not deploy that unrelated permission. No SMTP/API credential is committed.

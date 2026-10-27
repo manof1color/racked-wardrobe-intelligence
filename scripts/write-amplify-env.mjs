@@ -18,6 +18,12 @@ const allowlist = [
   "RACKED_UPLOAD_BUCKET",
   "RACKED_PASSWORD_RESET_FROM",
   "RACKED_PUBLIC_ORIGIN",
+  // Optional: more origins trusted for state-changing requests, such as a custom domain (lib/site-origin.ts).
+  "RACKED_ALLOWED_ORIGINS",
+  // Optional: how many X-Forwarded-For entries the platform appends (lib/rate-limit.ts).
+  "RACKED_TRUSTED_PROXY_HOPS",
+  // Set to "scrypt-n17" to write passwords at OWASP's scrypt cost (lib/password-hash.ts).
+  "RACKED_PASSWORD_SCHEME",
 ];
 
 // The commit this artifact was built from. Amplify sets AWS_COMMIT_ID in the build container; it
