@@ -16,6 +16,7 @@ Do not publish any password — including synthetic test-cohort credentials, whi
 - A known-device cookie exempts its browser from the per-email sign-in pause, so a stranger's guesses cannot lock an owner out; each cookie has its own budget of eight wrong passwords per fifteen minutes, so a copied cookie cannot guess without limit.
 - Consumer/Brand pages enforce roles on the server.
 - Consumer analysis requires explicit consent.
+- Every change to brand sharing is written together with a permanent record of it — on or off, when, and the version of the wording on screen — in one DynamoDB transaction, so the setting never changes without its record (`lib/brand-sharing-consent.ts`). Each wording is pinned to its version by test. The record is deleted with the account.
 - Brand-safe aggregate helpers suppress cohorts below 25 and strip identity/raw-wardrobe fields.
 - A DynamoDB-backed enumeration budget caps how many distinct products one brand account can pull aggregates for in a rolling window, on the production dashboard and Hanger paths.
 - Sliding-window rate limits protect sign-in, registration, garment analysis, both Hanger agents, brand metrics, community publishing/likes, and every account write — wears, outfits, garments, consent, brand enrollment and Looks — with 429 responses. Counters are in-memory per compute instance — a deliberate zero-cost first layer, not a WAF replacement. Their per-client key is the `X-Forwarded-For` entry the platform appended, never one the client wrote.
@@ -41,7 +42,7 @@ Racked is in use by real brands, so these are live gaps rather than pre-launch t
 - **Enforce the Content Security Policy.** It is report-only. Enforcing it needs nonce-based script loading (Next.js hydration and the install-prompt capture are inline scripts) and a period of clean reports from `/api/security/csp-report`.
 - **Edge rate limiting (AWS WAF).** Per-address limits belong at the edge, where the real client address is known.
 - **Upload malware scanning** is not implemented.
-- **Consent versions** are not persisted.
+- **Choices made under the earlier sharing wording.** Every change since 2026-10-27 is recorded with the wording version shown, but an account that turned sharing on before then has no record and reads as the earlier wording (`before-2026-10-27`), which did not say earlier wear is included. Whether to ask those accounts to confirm again is an owner decision.
 - **CloudFormation changes** in `infra/template.yaml` must be applied and verified against the live stack; the template is not proof of live settings. In particular, **DynamoDB time-to-live on `ttl` has not been verified as enabled** on the live table; until it is, rate-limit windows, reset tokens, and activity entries do not expire on their own.
 - **Switch on the strong password cost.** After this release is verified live, set `RACKED_PASSWORD_SCHEME=scrypt-n17` in Amplify and redeploy. From then on, roll back no further than a release that reads both schemes.
 - **Shared limits fail open for sign-in.** A DynamoDB outage leaves only the per-instance layer against password guessing.

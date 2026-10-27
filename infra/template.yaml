@@ -7,6 +7,31 @@ Parameters:
     Default: production
     AllowedPattern: "[a-z0-9-]+"
 
+  AlertEmail:
+    Type: String
+    Default: ""
+    NoEcho: true
+    AllowedPattern: '^$|^[^\s@]+@[^\s@]+\.[^\s@]+$'
+    Description: Optional owner email. Blank creates no email subscription.
+  AmplifyAppId:
+    Type: String
+    Default: d2iv0khybuuaeh
+    AllowedPattern: "[a-z0-9]+"
+  ComputeLogGroupName:
+    Type: String
+    Default: ""
+    AllowedPattern: '^$|^[.\-_/#A-Za-z0-9]+$'
+    Description: Existing Standard-class Amplify compute log group; blank disables the six log alerts.
+  BedrockMonthlyBudgetUSD:
+    Type: Number
+    Default: 25
+    MinValue: 1
+    Description: Monthly Bedrock notification budget in USD; not a spending stop.
+
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+  HasComputeLogGroup: !Not [!Equals [!Ref ComputeLogGroupName, ""]]
+
 Resources:
   RackedTable:
     Type: AWS::DynamoDB::Table
@@ -179,7 +204,533 @@ Resources:
                   - ses:SendEmail
                 Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
 
+  SecurityAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Racked operational alerts
+
+  SecurityAlertEmail:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      TopicArn: !Ref SecurityAlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  SecurityAlertTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SecurityAlertTopic
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudWatchAlarmPublish
+            Effect: Allow
+            Principal:
+              Service: cloudwatch.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref SecurityAlertTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${AWS::StackName}-*"
+          - Sid: BudgetPublish
+            Effect: Allow
+            Principal:
+              Service: budgets.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref SecurityAlertTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:budgets::${AWS::AccountId}:*"
+
+  SignInPauseFilter:
+    Type: AWS::Logs::MetricFilter
+    Condition: HasComputeLogGroup
+    Properties:
+      LogGroupName: !Ref ComputeLogGroupName
+      FilterPattern: '"Sign-in pause engaged"'
+      MetricTransformations:
+        - MetricNamespace: !Sub "Racked/${Environment}/Security"
+          MetricName: SignInPause
+          MetricValue: "1"
+          DefaultValue: 0
+          Unit: Count
+
+  SignInPauseAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasComputeLogGroup
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-SignInPause"
+      AlarmDescription: "Sign-in pause engaged; inspect private compute logs, never forward user data."
+      Namespace: !Sub "Racked/${Environment}/Security"
+      MetricName: SignInPause
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+
+  AISiteCeilingFilter:
+    Type: AWS::Logs::MetricFilter
+    Condition: HasComputeLogGroup
+    Properties:
+      LogGroupName: !Ref ComputeLogGroupName
+      FilterPattern: '"AI site ceiling reached"'
+      MetricTransformations:
+        - MetricNamespace: !Sub "Racked/${Environment}/Security"
+          MetricName: AISiteCeiling
+          MetricValue: "1"
+          DefaultValue: 0
+          Unit: Count
+
+  AISiteCeilingAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasComputeLogGroup
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-AISiteCeiling"
+      AlarmDescription: "AI site ceiling reached; inspect private compute logs, never forward user data."
+      Namespace: !Sub "Racked/${Environment}/Security"
+      MetricName: AISiteCeiling
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+
+  AIBudgetUnavailableFilter:
+    Type: AWS::Logs::MetricFilter
+    Condition: HasComputeLogGroup
+    Properties:
+      LogGroupName: !Ref ComputeLogGroupName
+      FilterPattern: '"AI budget unavailable; failing closed"'
+      MetricTransformations:
+        - MetricNamespace: !Sub "Racked/${Environment}/Security"
+          MetricName: AIBudgetUnavailable
+          MetricValue: "1"
+          DefaultValue: 0
+          Unit: Count
+
+  AIBudgetUnavailableAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasComputeLogGroup
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-AIBudgetUnavailable"
+      AlarmDescription: "AI budget unavailable; failing closed; inspect private compute logs, never forward user data."
+      Namespace: !Sub "Racked/${Environment}/Security"
+      MetricName: AIBudgetUnavailable
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+
+  SharedLimitUnavailableFilter:
+    Type: AWS::Logs::MetricFilter
+    Condition: HasComputeLogGroup
+    Properties:
+      LogGroupName: !Ref ComputeLogGroupName
+      FilterPattern: '"Shared limit unavailable; failing open"'
+      MetricTransformations:
+        - MetricNamespace: !Sub "Racked/${Environment}/Security"
+          MetricName: SharedLimitUnavailable
+          MetricValue: "1"
+          DefaultValue: 0
+          Unit: Count
+
+  SharedLimitUnavailableAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasComputeLogGroup
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-SharedLimitUnavailable"
+      AlarmDescription: "Shared limit unavailable; failing open; inspect private compute logs, never forward user data."
+      Namespace: !Sub "Racked/${Environment}/Security"
+      MetricName: SharedLimitUnavailable
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+
+  ScanPhotoWithoutExpiryFilter:
+    Type: AWS::Logs::MetricFilter
+    Condition: HasComputeLogGroup
+    Properties:
+      LogGroupName: !Ref ComputeLogGroupName
+      FilterPattern: '"Scan photo stored without expiry"'
+      MetricTransformations:
+        - MetricNamespace: !Sub "Racked/${Environment}/Security"
+          MetricName: ScanPhotoWithoutExpiry
+          MetricValue: "1"
+          DefaultValue: 0
+          Unit: Count
+
+  ScanPhotoWithoutExpiryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasComputeLogGroup
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-ScanPhotoWithoutExpiry"
+      AlarmDescription: "Scan photo stored without expiry; inspect private compute logs, never forward user data."
+      Namespace: !Sub "Racked/${Environment}/Security"
+      MetricName: ScanPhotoWithoutExpiry
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+
+  DeletionSweepSkippedFilter:
+    Type: AWS::Logs::MetricFilter
+    Condition: HasComputeLogGroup
+    Properties:
+      LogGroupName: !Ref ComputeLogGroupName
+      FilterPattern: '"Account deletion storage sweep skipped"'
+      MetricTransformations:
+        - MetricNamespace: !Sub "Racked/${Environment}/Security"
+          MetricName: DeletionSweepSkipped
+          MetricValue: "1"
+          DefaultValue: 0
+          Unit: Count
+
+  DeletionSweepSkippedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasComputeLogGroup
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-DeletionSweepSkipped"
+      AlarmDescription: "Account deletion storage sweep skipped; inspect private compute logs, never forward user data."
+      Namespace: !Sub "Racked/${Environment}/Security"
+      MetricName: DeletionSweepSkipped
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+
+  Amplify5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-Amplify5xx"
+      AlarmDescription: At least five 5xx responses in five minutes across the Amplify app.
+      Namespace: AWS/AmplifyHosting
+      MetricName: 5xxErrors
+      Dimensions:
+        - Name: App
+          Value: !Ref AmplifyAppId
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+
+  DynamoDBThrottledRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-DynamoDBThrottledRequests"
+      AlarmDescription: At least one ThrottledRequests event in five minutes across the eight documented table operations.
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+      Metrics:
+        - Id: total
+          Expression: "SUM([m0,m1,m2,m3,m4,m5,m6,m7])"
+          ReturnData: true
+        - Id: m0
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: GetItem
+            Period: 300
+            Stat: Sum
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: BatchGetItem
+            Period: 300
+            Stat: Sum
+        - Id: m2
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: PutItem
+            Period: 300
+            Stat: Sum
+        - Id: m3
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: UpdateItem
+            Period: 300
+            Stat: Sum
+        - Id: m4
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: DeleteItem
+            Period: 300
+            Stat: Sum
+        - Id: m5
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: Query
+            Period: 300
+            Stat: Sum
+        - Id: m6
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: Scan
+            Period: 300
+            Stat: Sum
+        - Id: m7
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ThrottledRequests
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: TransactWriteItems
+            Period: 300
+            Stat: Sum
+
+  DynamoDBSystemErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-DynamoDBSystemErrors"
+      AlarmDescription: At least one SystemErrors event in five minutes across the eight documented table operations.
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref SecurityAlertTopic
+      Metrics:
+        - Id: total
+          Expression: "SUM([m0,m1,m2,m3,m4,m5,m6,m7])"
+          ReturnData: true
+        - Id: m0
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: GetItem
+            Period: 300
+            Stat: Sum
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: BatchGetItem
+            Period: 300
+            Stat: Sum
+        - Id: m2
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: PutItem
+            Period: 300
+            Stat: Sum
+        - Id: m3
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: UpdateItem
+            Period: 300
+            Stat: Sum
+        - Id: m4
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: DeleteItem
+            Period: 300
+            Stat: Sum
+        - Id: m5
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: Query
+            Period: 300
+            Stat: Sum
+        - Id: m6
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: Scan
+            Period: 300
+            Stat: Sum
+        - Id: m7
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: SystemErrors
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref RackedTable
+                - Name: Operation
+                  Value: TransactWriteItems
+            Period: 300
+            Stat: Sum
+
+  BedrockMonthlyBudget:
+    Type: AWS::Budgets::Budget
+    DependsOn: SecurityAlertTopicPolicy
+    Properties:
+      Budget:
+        BudgetName: !Sub "${AWS::StackName}-bedrock-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref BedrockMonthlyBudgetUSD
+          Unit: USD
+        CostFilters:
+          Service:
+            - Amazon Bedrock
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: SNS
+              Address: !Ref SecurityAlertTopic
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: SNS
+              Address: !Ref SecurityAlertTopic
+
 Outputs:
+  SecurityAlertTopicArn:
+    Value: !Ref SecurityAlertTopic
   TableName:
     Value: !Ref RackedTable
   UploadBucketName:

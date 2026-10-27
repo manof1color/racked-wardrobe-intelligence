@@ -2,6 +2,8 @@
 
 Keep every change easy for judges to follow: one focused branch, one coherent change, one reviewable pull request.
 
+AI agents working here (Codex and Claude Code, in parallel) also follow [AGENTS.md](AGENTS.md): who owns which files, how shared documents are merged, and what may never be done against production.
+
 ## Workflow
 
 1. Confirm a clean working tree and pull the latest `main`.

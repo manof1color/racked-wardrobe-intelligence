@@ -56,7 +56,7 @@ it snapshots each target item, applies each conditional write in order, and rest
 on the first failed condition, answering with DynamoDB's `TransactionCanceledException`. Production
 uses DynamoDB's native transactions.
 
-**Result on 2026-10-26: 44 of 44 checks passed, and the leak check passed.**
+**Result on 2026-10-27: 47 of 47 checks passed, and the leak check passed.**
 
 - **Sign-in.** Eight wrong passwords → 401 each; the ninth pauses the email (429). A browser without
   a known-device cookie is paused too — the lockout an attacker could otherwise cause — while the
@@ -178,14 +178,31 @@ commands only read, except where marked. Region `us-east-2`; Amplify app `d2iv0k
 | Staging separation | `aws amplify list-branches --app-id d2iv0khybuuaeh --query "branches[].branchName"`, and each branch's `RACKED_TABLE_NAME` | production alone on the production table and bucket | |
 | Alarms and destination | `aws cloudwatch describe-alarms`; `aws sns list-subscriptions` | alarms below exist; the email subscription is `Confirmed` | |
 
-**Alarms to add** (CloudWatch standard alarms are $0.10 each a month; metric filters and SNS email
-are free at this volume; two AWS Budgets are free):
+**Alerts prepared in the template, not applied:** see the owner-only
+[security-alert change-set runbook](aws-deployment.md#security-alerts--owner-applied-not-deployed).
+Amplify compute logging must be enabled; discover the actual Standard-class compute log group
+with `aws logs describe-log-groups --log-group-name-prefix /aws/amplify --region us-east-2`.
+Do not guess it. A blank group omits the six log alarms; an omitted alert email creates no
+subscription. Apply only a reviewed **change set**, preserve live parameters, and reject unexpected
+resource replacements or unrelated pending permission changes. No AWS operation was run for this work.
 
-1. 5xx spike — `AWS/AmplifyHosting` `5xxErrors` for the app.
-2. Sign-in abuse — metric filter on the compute log group for `Sign-in pause engaged`.
-3. AI spend — metric filter for `AI site ceiling reached`, plus an AWS Budget on Amazon Bedrock cost.
-4. Quota-store failure — metric filter for `AI budget unavailable; failing closed` and `Shared limit unavailable; failing open`.
-5. Storage — `AWS/DynamoDB` `ThrottledRequests` and `SystemErrors` on the table; `AWS/S3` `BucketSizeBytes` growth.
+After the owner's update, click **Confirm subscription** in the SNS email; privately verify that
+the topic subscription has an ARN rather than `PendingConfirmation`. Alarms send only aggregate
+signal names, not identity fields. The six filters match the exact app log phrases for sign-in
+pause, AI ceiling, unreadable AI budget, degraded shared limits, unexpiring scan photos, and a
+skipped account-deletion photo sweep. Filters are not retroactive. The other three alarms watch
+Amplify 5xx and DynamoDB ThrottledRequests/SystemErrors. The latter sum eight TableName + Operation
+series each; missing logs or metrics are not proof of health. Partial batch throttles are outside
+these two DynamoDB alarms.
+
+**Cost correction:** nine alarm resources watch 23 billed metrics at $0.10/metric-month = $2.30;
+six log-derived custom metrics at up to $0.30/month add $1.80. Full-month estimate **$4.10**
+before unused allowances/credits, plus existing logs, applicable APIs, and excess SNS usage.
+Metric-filter creation has no fee, but generated metrics are billable. SNS email is free only
+within its allowance. Notification-only Budgets are free (the first two action-enabled budgets
+are free too). The default $25 monthly Bedrock budget notifies at 80% and 100%; delayed billing
+alerts are not spending enforcement. Sources and the complete deployment commands are in the
+[runbook](aws-deployment.md#monthly-cost-estimate-usd-before-account-allowances-and-credits).
 
 ### Legacy wardrobe photo audit — owner-run, not run against AWS
 
