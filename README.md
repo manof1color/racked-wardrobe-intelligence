@@ -39,6 +39,7 @@ A per-criterion evidence checklist is in [docs/competition-checklist.md](docs/co
 | --- | --- |
 | What will the demo show? | One consumer flow and one brand flow — the [five-minute path](#five-minute-judge-path). Everything else is on the [roadmap](#roadmap) |
 | How do I sign in as a judge? | [Demo access](#demo-access) and the [three-minute tour](docs/judge-accounts.md) |
+| How do the parts fit together? | [Architecture overview](#architecture-overview) — one diagram: browser, Amplify, the privacy gate, Bedrock, DynamoDB and S3 |
 | Which "agent" actions call an AI model, and which are plain code? | [What calls a model, and what does not](#what-calls-a-model-and-what-does-not) — one row per action |
 | How does Hanger choose what to wear? | [`lib/hanger-agent.ts`](lib/hanger-agent.ts) calls [`lib/outfit-ranking.ts`](lib/outfit-ranking.ts), which ranks with [`lib/garment-knowledge.ts`](lib/garment-knowledge.ts) |
 | Where is privacy enforced? | [`lib/privacy.ts`](lib/privacy.ts) (`k ≥ 25`, enumeration budget) and [`lib/server/production-store.ts`](lib/server/production-store.ts) (every read is owner-scoped) |
@@ -97,6 +98,42 @@ Racked closes that gap with two connected products:
 3. **Optional public discovery** — an outfit someone deliberately publishes becomes a Community look others can recreate from their own closets, without the wardrobe behind it ever becoming public.
 
 The core question: **what happens to a garment after checkout, and how can a brand learn from that without ever seeing someone's closet?**
+
+---
+
+## Architecture Overview
+
+![Racked architecture: a phone or desktop browser connects over HTTPS to AWS Amplify Hosting, where a session and role check routes requests to photo intake, the Hanger agents, and the privacy gate; intake and Hanger call Amazon Bedrock, Hanger reads the Open-Meteo forecast, an owner-scoped store reads and writes DynamoDB and private S3, and only the privacy gate reaches the brand dashboard, with released aggregates only.](docs/architecture.svg)
+
+<details>
+<summary><strong>The same diagram as text — expand</strong></summary>
+
+```mermaid
+flowchart TB
+  phone["Phone or desktop browser<br/>installable PWA"] -->|"HTTPS · signed HTTP-only session cookie"| auth
+  subgraph app["AWS Amplify Hosting — Next.js 15 server rendering and API routes"]
+    auth["Session and role check<br/>rate limits"]
+    intake["Photo intake<br/>one bounded crop per piece"]
+    hanger["Hanger agents<br/>tool use"]
+    builder["Outfit builder<br/>+ stylist knowledge"]
+    gate["Consent filter → k ≥ 25<br/>→ enumeration budget"]
+    store["Owner-scoped store<br/>every read checks the account"]
+    auth --> intake & hanger & gate
+    hanger --> builder
+    intake & hanger & gate --> store
+  end
+  intake & hanger --> bedrock["Amazon Bedrock<br/>Nova Pro, Nova Lite fallback"]
+  hanger --> weather["Open-Meteo forecast<br/>rounded coordinates"]
+  store --> dynamo["DynamoDB<br/>single table"]
+  store --> s3["Private encrypted S3<br/>1-hour links"]
+  gate --> brand["Brand dashboard<br/>released aggregates only"]
+```
+
+</details>
+
+Brands receive released aggregates only — never names, emails, photos, raw wardrobes, or owner IDs.
+
+**Infrastructure:** AWS Amplify Hosting (SSR) deployed automatically from `main` · DynamoDB single table, on demand · private encrypted S3 with public access blocked · Amazon Bedrock from `us-east-2`. Whole-look detection and both Hanger agents use the US Nova Pro geographic profile with Nova Lite as fallback. The synchronous scan stores a bounded crop per piece and makes no per-piece segmentation request. The Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions ([`infra/template.yaml`](infra/template.yaml)). The template also describes narrowly scoped SES sending for password recovery, but that permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
 
 ---
 
@@ -206,42 +243,6 @@ The outfit builder ranks with a curated dataset rather than a black box. [`lib/g
 ### Coverage, measured
 
 `node --experimental-strip-types --test --experimental-test-coverage tests/*.test.ts` over the whole suite (2026-10-27): **97.21% of lines, 87.02% of branches, 94.56% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%, `recreate-look.ts` 98.85%, `matching.ts` 97.67%, `similar-products.ts` 96.67%, `outfit-ranking.ts` 93.72%, `garment-knowledge.ts` 93.62%, and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. `hanger-agent.ts` is at 82.31%; its provider boundary is tested with a scripted model, not a live Bedrock call. This is a Node 24.19.0 snapshot; timing-sensitive provider-deadline tests can slightly change exercised branches between runs. Coverage shows what the tests execute, not that the scoring is *right*; the per-band, tie-break, and uncertainty numbers in [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) and the stylist evaluation set are the part that argues for correctness.
-
----
-
-## Architecture Overview
-
-![Racked architecture: a phone or desktop browser connects over HTTPS to AWS Amplify Hosting, where a session and role check routes requests to photo intake, the Hanger agents, and the privacy gate; intake and Hanger call Amazon Bedrock, Hanger reads the Open-Meteo forecast, an owner-scoped store reads and writes DynamoDB and private S3, and only the privacy gate reaches the brand dashboard, with released aggregates only.](docs/architecture.svg)
-
-<details>
-<summary><strong>The same diagram as text — expand</strong></summary>
-
-```mermaid
-flowchart TB
-  phone["Phone or desktop browser<br/>installable PWA"] -->|"HTTPS · signed HTTP-only session cookie"| auth
-  subgraph app["AWS Amplify Hosting — Next.js 15 server rendering and API routes"]
-    auth["Session and role check<br/>rate limits"]
-    intake["Photo intake<br/>one bounded crop per piece"]
-    hanger["Hanger agents<br/>tool use"]
-    builder["Outfit builder<br/>+ stylist knowledge"]
-    gate["Consent filter → k ≥ 25<br/>→ enumeration budget"]
-    store["Owner-scoped store<br/>every read checks the account"]
-    auth --> intake & hanger & gate
-    hanger --> builder
-    intake & hanger & gate --> store
-  end
-  intake & hanger --> bedrock["Amazon Bedrock<br/>Nova Pro, Nova Lite fallback"]
-  hanger --> weather["Open-Meteo forecast<br/>rounded coordinates"]
-  store --> dynamo["DynamoDB<br/>single table"]
-  store --> s3["Private encrypted S3<br/>1-hour links"]
-  gate --> brand["Brand dashboard<br/>released aggregates only"]
-```
-
-</details>
-
-Brands receive released aggregates only — never names, emails, photos, raw wardrobes, or owner IDs.
-
-**Infrastructure:** AWS Amplify Hosting (SSR) deployed automatically from `main` · DynamoDB single table, on demand · private encrypted S3 with public access blocked · Amazon Bedrock from `us-east-2`. Whole-look detection and both Hanger agents use the US Nova Pro geographic profile with Nova Lite as fallback. The synchronous scan stores a bounded crop per piece and makes no per-piece segmentation request. The Amplify compute role has scoped DynamoDB, private S3-object, and Bedrock permissions ([`infra/template.yaml`](infra/template.yaml)). The template also describes narrowly scoped SES sending for password recovery, but that permission and SES sender readiness are not claimed as deployed. No AWS credentials or secrets are committed to GitHub.
 
 ---
 
