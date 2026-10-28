@@ -65,24 +65,30 @@ export const RATE_LIMIT_RULES = {
 } as const satisfies Record<string, RateLimitRule>;
 
 // Bound total tracked keys so hostile clients cannot grow instance memory by
-// rotating spoofed identifiers.
+// rotating identifiers. The map is kept in least-recently-used order: every use
+// moves its key to the end.
 const MAX_TRACKED_KEYS = 10_000;
 const buckets = new Map<string, number[]>();
 
-function pruneExpired(now: number) {
+/**
+ * Makes room for one new key. Keys idle for an hour (the longest window) go first; if that is not
+ * enough, only the least recently used key is dropped. Clearing every counter here would let a
+ * flood of new keys reset the budget of a key being used to guess passwords right now.
+ */
+function makeRoom(now: number) {
   for (const [key, timestamps] of buckets) {
     if (timestamps.every((at) => at <= now - 60 * 60 * 1000)) buckets.delete(key);
-    if (buckets.size <= MAX_TRACKED_KEYS) break;
+    if (buckets.size < MAX_TRACKED_KEYS) return;
   }
-  // Last resort under sustained key-rotation abuse: fail open by starting fresh
-  // rather than letting the map grow without bound.
-  if (buckets.size > MAX_TRACKED_KEYS) buckets.clear();
+  const leastRecent = buckets.keys().next().value;
+  if (leastRecent !== undefined) buckets.delete(leastRecent);
 }
 
 export function consumeRateLimit(key: string, rule: RateLimitRule, now = Date.now()): RateLimitDecision {
-  if (buckets.size >= MAX_TRACKED_KEYS && !buckets.has(key)) pruneExpired(now);
+  if (buckets.size >= MAX_TRACKED_KEYS && !buckets.has(key)) makeRoom(now);
   const cutoff = now - rule.windowMs;
   const recent = (buckets.get(key) ?? []).filter((at) => at > cutoff);
+  buckets.delete(key);
   if (recent.length >= rule.limit) {
     buckets.set(key, recent);
     const oldest = recent[0];
@@ -91,6 +97,11 @@ export function consumeRateLimit(key: string, rule: RateLimitRule, now = Date.no
   recent.push(now);
   buckets.set(key, recent);
   return { allowed: true, retryAfterSeconds: 0 };
+}
+
+/** How many keys this instance is tracking; for tests. */
+export function trackedRateLimitKeys() {
+  return buckets.size;
 }
 
 export function resetRateLimits() {

@@ -5,7 +5,7 @@ import { deviceLabel } from "@/lib/device-label";
 import { ACCOUNT_DELETION_CONFIRMATION, accountDeletionConfirmed } from "@/lib/deletion-plan";
 import { passwordValidationError } from "@/lib/account-security";
 import { createSessionToken } from "@/lib/session";
-import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
+import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
 export async function GET(){
   const session=await getSession();if(!session)return NextResponse.json({error:"Sign in required."},{status:401});
@@ -15,7 +15,8 @@ export async function GET(){
 
 export async function PATCH(request:Request){
   const session=await getSession();if(!session)return NextResponse.json({error:"Sign in required."},{status:401});
-  const limit=consumeRateLimit(`account:${session.subject}:${clientIdentifier(request)}`,RATE_LIMIT_RULES.accountSettings);if(!limit.allowed)return NextResponse.json({error:"Too many account changes. Try again later."},{status:429});
+  // Keyed on the account alone: a key that also named the client address gave each new address a fresh budget.
+  const limit=consumeRateLimit(`account:${session.subject}`,RATE_LIMIT_RULES.accountSettings);if(!limit.allowed)return NextResponse.json({error:"Too many account changes. Try again later."},{status:429});
   const body=await request.json().catch(()=>null) as {displayName?:string;email?:string;currentPassword?:string;newPassword?:string}|null;
   if(!body?.displayName||!body.email||!body.currentPassword)return NextResponse.json({error:"Name, email, and current password are required."},{status:400});
   if(body.newPassword){const passwordError=passwordValidationError(body.newPassword);if(passwordError)return NextResponse.json({error:passwordError},{status:400});}
@@ -33,7 +34,7 @@ export async function PATCH(request:Request){
 // limited. The account is always the session's own; no ID is accepted from the body.
 export async function DELETE(request:Request){
   const session=await getSession();if(!session)return NextResponse.json({error:"Sign in required."},{status:401});
-  const limit=consumeRateLimit(`account-delete:${session.subject}:${clientIdentifier(request)}`,RATE_LIMIT_RULES.accountDeletion);if(!limit.allowed)return NextResponse.json({error:"Too many deletion attempts. Try again later."},{status:429});
+  const limit=consumeRateLimit(`account-delete:${session.subject}`,RATE_LIMIT_RULES.accountDeletion);if(!limit.allowed)return NextResponse.json({error:"Too many deletion attempts. Try again later."},{status:429});
   const body=await request.json().catch(()=>null) as {currentPassword?:unknown;confirmation?:unknown}|null;
   if(typeof body?.currentPassword!=="string"||!body.currentPassword)return NextResponse.json({error:"Enter your current password to delete your account."},{status:400});
   if(!accountDeletionConfirmed(body.confirmation))return NextResponse.json({error:`Type ${ACCOUNT_DELETION_CONFIRMATION} to confirm.`},{status:400});

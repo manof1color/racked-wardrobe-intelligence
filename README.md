@@ -26,7 +26,7 @@ Every scoring category, what Racked does for it, and where to check it yourself.
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear — consented, and released only at 25 or more qualifying owners. Synthetic seed hero product: **76 wears · 25 owners · 88% engagement · 76% repeat use** | [What this is](#what-this-is) · [Proof point](#competition-proof-point) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app with real accounts. **A person:** photograph clothes → confirm the pieces → get an outfit recommendation. **A brand:** an anonymous, consented cohort → wear evidence released only at `k ≥ 25` → a campaign brief. Everything else built is on the [roadmap](#roadmap) | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [The demo path](#five-minute-judge-path) · [Feature highlights](#feature-highlights) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes visible garments for human review; Hanger is a **tool-using agent** that searches the wardrobe, builds outfits, checks the forecast, and reads trends; a written **stylist knowledge dataset** with its own evaluation set; Brand Hanger sees only privacy-released aggregates | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [`garment-knowledge.ts`](lib/garment-knowledge.ts) · [Stylist evaluation](tests/stylist-eval.test.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **806 tests** in 111 files; CI runs audit, lint, type check, tests, build, and CodeQL; **165 merged PRs** counted on 2026-10-27 before this documentation merge; build log through Phase 86 (the Phase 85 photo audit is owner-run and has not been executed against AWS) | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
+| **Code, docs & GitHub** | 15% | **811 tests** in 111 files; CI runs audit, lint, type check, tests, build, and CodeQL; **165 merged PRs** counted on 2026-10-27 before this documentation merge; build log through Phase 87 (the Phase 85 photo audit is owner-run and has not been executed against AWS) | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](#testing-and-ci) · [Repository map](#repository-map) · [PROGRESS.md](PROGRESS.md) · [Merged PRs](https://github.com/manof1color/racked-wardrobe-intelligence/pulls?q=is%3Apr+is%3Amerged) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece garment previews, and honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Looks builder](components/looks-builder.tsx) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Business model](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) · [Proof point](#competition-proof-point) |
 | **Bonus** | — | Explicit consent, `k ≥ 25` plus an enumeration budget, private encrypted storage, rate limits, owner-scoped deletion | [Privacy boundaries](#security-and-privacy-boundaries) · [`privacy.ts`](lib/privacy.ts) · [Privacy and ethics](docs/privacy-and-ethics.md) |
@@ -205,7 +205,7 @@ The outfit builder ranks with a curated dataset rather than a black box. [`lib/g
 
 ### Coverage, measured
 
-`node --experimental-strip-types --test --experimental-test-coverage tests/*.test.ts` over the whole suite (2026-10-27): **97.09% of lines, 86.88% of branches, 94.44% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%, `recreate-look.ts` 98.85%, `matching.ts` 97.67%, `similar-products.ts` 96.67%, `outfit-ranking.ts` 93.72%, `garment-knowledge.ts` 93.62%, and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. `hanger-agent.ts` is at 82.31%; its provider boundary is tested with a scripted model, not a live Bedrock call. This is a Node 24.19.0 snapshot; timing-sensitive provider-deadline tests can slightly change exercised branches between runs. Coverage shows what the tests execute, not that the scoring is *right*; the per-band, tie-break, and uncertainty numbers in [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) and the stylist evaluation set are the part that argues for correctness.
+`node --experimental-strip-types --test --experimental-test-coverage tests/*.test.ts` over the whole suite (2026-10-27): **97.20% of lines, 86.98% of branches, 94.54% of functions**. The decision engines, by branch coverage: `privacy.ts` 100%, `recreate-look.ts` 98.85%, `matching.ts` 97.67%, `similar-products.ts` 96.67%, `outfit-ranking.ts` 93.72%, `garment-knowledge.ts` 93.62%, and `session.ts` — the guard behind every ownership and privacy boundary — **97.56%**. `hanger-agent.ts` is at 82.31%; its provider boundary is tested with a scripted model, not a live Bedrock call. This is a Node 24.19.0 snapshot; timing-sensitive provider-deadline tests can slightly change exercised branches between runs. Coverage shows what the tests execute, not that the scoring is *right*; the per-band, tie-break, and uncertainty numbers in [`tests/recreate-look-scoring.test.ts`](tests/recreate-look-scoring.test.ts) and the stylist evaluation set are the part that argues for correctness.
 
 ---
 
@@ -252,7 +252,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: consumer dashboard, photo intake, Looks builder, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry, weather
 lib/server/     Application DynamoDB/S3 access, with every ownership check
-tests/          111 test files, 806 tests (node --test)
+tests/          111 test files, 811 tests (node --test)
 scripts/        Judge/demo seeds, verification, evaluation, owner-run photo audit (dry run by default)
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -518,7 +518,7 @@ The first reproducible label-coverage audit sampled 1,000 records in ten evenly 
 4. **Tests** — `node --test` across `tests/`
 5. **Production build** — `next build`
 
-**806 passing tests** in 111 files (verified 2026-10-27). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return. Numerical documentation checks recompute the synthetic wear metrics with the app's analytics, reconcile the label-audit percentages, and compare test-file counts, limits, progress, and proposed prices with their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**811 passing tests** in 111 files (verified 2026-10-27). Tests named `REGRESSION:` reproduce a bug found in real use, so it cannot return. Numerical documentation checks recompute the synthetic wear metrics with the app's analytics, reconcile the label-audit percentages, and compare test-file counts, limits, progress, and proposed prices with their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
 | What is protected | Where to read the tests |
 | --- | --- |
@@ -642,6 +642,6 @@ Racked does **not** claim garment recognition accuracy, sales lift, purchase int
 
 ---
 
-**Last updated:** 2026-10-27 — test totals rechecked against main `4a03cc3` plus the brand two-step sign-in change
+**Last updated:** 2026-10-27 — test totals rechecked against main `4a03cc3` plus the brand two-step sign-in change and the security-scan follow-ups
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026

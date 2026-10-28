@@ -5,7 +5,7 @@ import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFi
 import { readCappedFormData } from "@/lib/request-body";
 import { stripImageMetadata } from "@/lib/image-sanitize";
 import { createBrandProductRegistration, registryIdentityConflict } from "@/lib/product-registry";
-import { getAccount, listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
+import { discardBrandImages, getAccount, listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
@@ -44,9 +44,16 @@ export async function POST(request:Request){
     const others=await otherBrandNames(session.subject,registry);
     const conflict=registryIdentityConflict(details(basicParts,others),registry);
     if(conflict)return NextResponse.json({error:conflict},{status:409});
-    const storedParts=await Promise.all(files.map(async(_,index)=>({...basicParts[index],contentType:cleaned[index].contentType,storageKey:await putPrivateImage(session.subject,"brand",cleaned[index].bytes,cleaned[index].contentType)})));
+    // Every photo is stored, or none is kept: if one upload or the record write fails, the photos
+    // already stored are deleted before the error is answered.
+    const uploads=await Promise.allSettled(cleaned.map(image=>putPrivateImage(session.subject,"brand",image.bytes,image.contentType)));
+    const storedKeys=uploads.flatMap(upload=>upload.status==="fulfilled"?[upload.value]:[]);
+    const failedUpload=uploads.find(upload=>upload.status==="rejected");
+    if(failedUpload){await discardBrandImages(session.subject,storedKeys);throw failedUpload.reason;}
+    const storedParts=basicParts.map((part,index)=>({...part,contentType:cleaned[index].contentType,storageKey:storedKeys[index]}));
     const product=details(storedParts,others);
-    await saveBrandProduct(session.subject,product);
+    try{await saveBrandProduct(session.subject,product);}
+    catch(error){await discardBrandImages(session.subject,storedKeys);throw error;}
     return NextResponse.json({product,retention:"Brand-authorized photos are re-encoded without location or camera metadata and encrypted in private S3."},{status:201});
   } catch(error){return failureResponse(error,"Brand product enrollment failed","The product could not be enrolled. Try again.");}
 }

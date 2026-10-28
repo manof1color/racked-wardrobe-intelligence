@@ -289,7 +289,10 @@ export async function endOtherSessions(accountId:string){
 }
 
 export async function getAccount(id:string) {
-  const result=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${id}`,SK:"PROFILE"}}));
+  // Every session check, role check, and two-step check reads this record, so it is read strongly
+  // consistent: a session signed out everywhere, or an account just deleted, must not be accepted
+  // from a replica that has not caught up. It costs one read unit instead of half of one.
+  const result=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${id}`,SK:"PROFILE"},ConsistentRead:true}));
   return (result.Item as AccountRecord|undefined) ?? null;
 }
 
@@ -305,6 +308,15 @@ export async function putPrivateImage(ownerId:string,kind:"wardrobe"|"brand",byt
  * A deployment whose role may not write under temp/ stores it with the wardrobe instead, as before:
  * a scan must never fail over where its photo waits. That gap is logged by name.
  */
+/**
+ * Deletes the photos a failed brand enrollment had already stored, so it leaves nothing behind.
+ * Only keys under this brand's own prefix are touched. A cleanup failure is logged by name and does
+ * not hide the original error.
+ */
+export async function discardBrandImages(ownerId:string,keys:string[]){
+  await Promise.all(keys.filter(key=>key.startsWith(`brand/${ownerId}/`)&&!key.includes("..")).map(key=>s3.send(new DeleteObjectCommand({Bucket:requireBucket(),Key:key})).catch(error=>console.error("Failed enrollment photo cleanup failed",{name:error instanceof Error?error.name:"UnknownError"}))));
+}
+
 export async function putScanImage(ownerId:string,bytes:Buffer,contentType:string,subfolder?:"evidence") {
   try {
     return await putPrivateImage(ownerId,"wardrobe",bytes,contentType,subfolder,true);
@@ -975,7 +987,9 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
     queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"}}),
   ]);
   const ownerKeys=[...new Set(items.map(item=>String(item.PK)))];
-  const accountResults=await Promise.all(Array.from({length:Math.ceil(ownerKeys.length/100)},(_,index)=>ownerKeys.slice(index*100,(index+1)*100)).filter(chunk=>chunk.length).map(chunk=>db.send(new BatchGetCommand({RequestItems:{[requireTable()]:{Keys:chunk.map(PK=>({PK,SK:"PROFILE"}))}}}))));
+  // Consent is decided when the aggregate is built, from strongly consistent reads, so a person who
+  // has just turned sharing off is never counted from a replica that still says on.
+  const accountResults=await Promise.all(Array.from({length:Math.ceil(ownerKeys.length/100)},(_,index)=>ownerKeys.slice(index*100,(index+1)*100)).filter(chunk=>chunk.length).map(chunk=>db.send(new BatchGetCommand({RequestItems:{[requireTable()]:{Keys:chunk.map(PK=>({PK,SK:"PROFILE"})),ConsistentRead:true}}}))));
   const optedInOwners=new Set(accountResults.flatMap(response=>response.Responses?.[requireTable()]??[]).filter(account=>account.brandDataSharing===true).map(account=>String(account.PK)));
   const eligibleItems=items.filter(item=>optedInOwners.has(String(item.PK)));
   const owners=new Set(eligibleItems.map(item=>String(item.PK)));
