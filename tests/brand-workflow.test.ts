@@ -74,7 +74,7 @@ test("retiring stops new links without touching what owners already have", () =>
 
 test("editing is owner-scoped by key, rate limited, and brand-only", () => {
   const route = read("app/api/brand/products/[productId]/route.ts");
-  assert.match(route, /session\.role !== "brand"/);
+  assert.match(route, /const access = await brandAccess\(\);\s*if \(!access\.ok\) return access\.response;/, "approved brands only");
   assert.match(route, /RATE_LIMIT_RULES\.brandProductEdit/);
   assert.match(route, /status: 404/, "another brand's product is simply not found");
   const store = read("lib/server/production-store.ts");

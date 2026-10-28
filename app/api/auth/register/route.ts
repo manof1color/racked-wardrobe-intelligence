@@ -3,7 +3,7 @@ import { SESSION_COOKIE } from "@/lib/auth";
 import { checkFormSubmission, formCheckMessage, HONEYPOT_FIELD } from "@/lib/bot-trap";
 import { deviceLabel } from "@/lib/device-label";
 import { knownDeviceCookie } from "@/lib/known-device";
-import { claimSignUp } from "@/lib/server/abuse-guard";
+import { claimAddressRequest, claimSignUp } from "@/lib/server/abuse-guard";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
 import { failureResponse } from "@/lib/api-errors";
@@ -12,7 +12,10 @@ import type { Role } from "@/lib/types";
 import { passwordValidationError } from "@/lib/account-security";
 
 export async function POST(request:Request) {
-  const limit=consumeRateLimit(`register:${clientIdentifier(request)}`,RATE_LIMIT_RULES.register);
+  const client=clientIdentifier(request);
+  const local=consumeRateLimit(`register:${client}`,RATE_LIMIT_RULES.register);
+  // The same address is also limited across every server instance.
+  const limit=local.allowed?await claimAddressRequest("sign-up",client):local;
   if(!limit.allowed)return NextResponse.json({error:"Too many account requests. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const raw=await request.json().catch(()=>null) as Record<string,unknown>|null;
   // Strings are checked as strings, and every value is bounded, before anything reads them. The

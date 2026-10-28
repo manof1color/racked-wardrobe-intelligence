@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { brandAccess } from "@/lib/server/brand-access";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { failureResponse } from "@/lib/api-errors";
 import { listRegistryProducts, otherBrandNames, updateBrandProduct } from "@/lib/server/production-store";
@@ -18,9 +18,9 @@ import type { BrandProductEdit } from "@/lib/product-registry";
  * stops answering labels, searches, suggestions, and its public brand page.
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ productId: string }> }) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
-  if (session.role !== "brand") return NextResponse.json({ error: "Brand account required." }, { status: 403 });
+  const access = await brandAccess();
+  if (!access.ok) return access.response;
+  const { session } = access;
   const limit = consumeRateLimit(`brand-product-edit:${session.subject}`, RATE_LIMIT_RULES.brandProductEdit);
   if (!limit.allowed) return NextResponse.json({ error: "Too many product edits. Try again in a few minutes." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
 

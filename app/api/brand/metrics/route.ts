@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { brandAccess } from "@/lib/server/brand-access";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { failureResponse } from "@/lib/api-errors";
 import { onlyFields, readId, readJsonObject } from "@/lib/request-input";
 import { getRealProductMetrics } from "@/lib/server/production-store";
 
 export async function POST(request:Request){
-  const session=await getSession();
-  if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
-  if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});
+  const access=await brandAccess();if(!access.ok)return access.response;const {session}=access;
   const limit=consumeRateLimit(`brand-metrics:${session.subject}`,RATE_LIMIT_RULES.brandMetrics);
   if(!limit.allowed)return NextResponse.json({error:"Too many metric requests. Try again shortly."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   // The product must be this brand's own (getRealProductMetrics checks it against the session's

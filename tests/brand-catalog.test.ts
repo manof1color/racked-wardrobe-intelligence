@@ -158,7 +158,7 @@ test("Fill in from photo describes the largest recognised piece and stores nothi
   assert.equal(describeProductFromDetections([detection("x", 1, {}, "manual-review")]), null, "a manual-review stand-in describes nothing");
 
   const route = read("app/api/brand/products/describe/route.ts");
-  assert.match(route, /session\.role !== "brand"/);
+  assert.match(route, /const access = await brandAccess\(\);\s*if \(!access\.ok\) return access\.response;/, "approved brands only");
   assert.match(route, /RATE_LIMIT_RULES\.brandProductDescribe/);
   for (const write of ["putPrivateImage", "saveBrandProduct", "PutCommand"]) assert.ok(!route.includes(write), `reading a photo must not ${write}`);
 });

@@ -56,7 +56,7 @@ it snapshots each target item, applies each conditional write in order, and rest
 on the first failed condition, answering with DynamoDB's `TransactionCanceledException`. Production
 uses DynamoDB's native transactions.
 
-**Result on 2026-10-27: 58 of 58 checks passed, and the leak check passed.** The 11 two-step checks compute codes as an authenticator app does (RFC 6238) and wait for a fresh 30-second step whenever a code must be new, so they add up to about a minute and a half.
+**Result on 2026-10-27: 63 of 63 checks passed, and the leak check passed.** The 11 two-step checks compute codes as an authenticator app does (RFC 6238) and wait for a fresh 30-second step whenever a code must be new, so they add up to about a minute and a half.
 
 - **Sign-in.** Eight wrong passwords → 401 each; the ninth pauses the email (429). A browser without
   a known-device cookie is paused too — the lockout an attacker could otherwise cause — while the

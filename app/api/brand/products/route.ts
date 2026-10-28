@@ -1,29 +1,31 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { brandAccess } from "@/lib/server/brand-access";
 import { failureResponse, RequestRefused } from "@/lib/api-errors";
 import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFirstUpload } from "@/lib/garment-analysis";
 import { readCappedFormData } from "@/lib/request-body";
 import { stripImageMetadata } from "@/lib/image-sanitize";
 import { createBrandProductRegistration, registryIdentityConflict } from "@/lib/product-registry";
-import { discardBrandImages, getAccount, listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
+import { BRAND_PRODUCT_LIMIT, productLimitMessage } from "@/lib/brand-approval";
+import { brandProductCount, discardBrandImages, getAccount,listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
 export const runtime="nodejs";
 const views:GarmentView[]=["front","back","label"];
 
-export async function GET(){const session=await getSession();if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
-  if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});return NextResponse.json({products:await listOwnedBrandProducts(session.subject)});}
+export async function GET(){const access=await brandAccess();if(!access.ok)return access.response;const {session}=access;
+  return NextResponse.json({products:await listOwnedBrandProducts(session.subject)});}
 
 export async function POST(request:Request){
-  const session=await getSession();
-  if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
-  if(session.role!=="brand")return NextResponse.json({error:"Brand account required."},{status:403});
+  const access=await brandAccess();if(!access.ok)return access.response;const {session}=access;
   const limit=consumeRateLimit(`brand-enroll:${session.subject}`,RATE_LIMIT_RULES.brandProductEnroll);
   if(!limit.allowed)return NextResponse.json({error:"Too many products enrolled in the last hour. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const contentLength=Number(request.headers.get("content-length")??0);
   if(contentLength>(MAX_UPLOAD_BYTES*3)+1_000_000)return NextResponse.json({error:"The complete registration must be no more than 16 MB."},{status:413});
   try {
+    // A full catalog is refused before any photo is read; saveBrandProduct enforces the same limit
+    // in its transaction, so requests sent at once cannot pass it either.
+    if(await brandProductCount(access.account)>=BRAND_PRODUCT_LIMIT)throw new RequestRefused(productLimitMessage(BRAND_PRODUCT_LIMIT),409);
     // Up to three photos, read under the upload cap whatever Content-Length claimed.
     const form=await readCappedFormData(request).catch((error:unknown)=>{throw asUploadError(error);});
     // A product photo is required; back and label photos are optional. Identity comes from the SKU
