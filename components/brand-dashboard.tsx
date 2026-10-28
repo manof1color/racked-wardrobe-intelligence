@@ -10,6 +10,7 @@ import { HangerDock } from "./hanger-dock";
 import { WorkspaceMobileNav, type BrandWorkspaceView } from "./workspace-mobile-nav";
 import { communityIsEmpty, communityReadouts, pairingSummary, wearHeadline, wearReadouts } from "@/lib/brand-insights";
 import { catalogAttention } from "@/lib/brand-catalog-health";
+import { budgetWait } from "@/lib/privacy";
 import { brandOnboardingComplete, brandOnboardingProgress, brandOnboardingSteps } from "@/lib/brand-onboarding";
 import type { BrandCommunityMetrics, BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
@@ -30,9 +31,8 @@ function matchesQuery(product:BrandProductRegistration,query:string){
 /** Says what is left of the enumeration budget, so a refusal is never a surprise. */
 function budgetNote(budget?:{remaining:number;limit:number;resetsInSeconds:number}){
   if(!budget)return null;
-  const minutes=Math.ceil(budget.resetsInSeconds/60);
-  if(budget.remaining>0)return `You can open ${budget.remaining} more product${budget.remaining===1?"":"s"} in the next few minutes. Products you have already opened stay free to revisit.`;
-  return `You have opened ${budget.limit} products in the last few minutes, the most Racked releases at once. Revisit one of those now, or open a new one in about ${minutes} minute${minutes===1?"":"s"}. This limit protects owners from being identified by comparison across products.`;
+  if(budget.remaining>0)return `You can open ${budget.remaining} more product${budget.remaining===1?"":"s"} today. Products you have already opened stay free to revisit.`;
+  return `You have opened ${budget.limit} products in the last 24 hours, the most Racked releases in a day. Revisit one of those now, or open a new one in about ${budgetWait(budget.resetsInSeconds)}. This limit protects owners from being identified by comparison across products.`;
 }
 
 /** The state of one product at a glance, before any private data is involved. */
