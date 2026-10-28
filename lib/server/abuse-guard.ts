@@ -88,6 +88,22 @@ export async function claimPasswordResetEmail(email: string, now = Date.now()): 
   }
 }
 
+/**
+ * Counts a two-step code against its account before the code is checked, so requests sent at once
+ * cannot each try a code before any is counted. Unlike the sign-in pause this fails **closed**: an
+ * unreadable counter must never mean unlimited guesses at a six-digit code.
+ */
+export async function claimTwoStepAttempt(accountId: string, now = Date.now()): Promise<RateLimitDecision> {
+  const rule = DURABLE_LIMITS.twoStepAttemptsPerAccount;
+  try {
+    const { count, resetAt } = await incrementSecurityCounter(`two-step-attempts:${accountId}`, rule.windowMs, now);
+    return durableDecision(count, rule.limit, resetAt, now);
+  } catch (error) {
+    console.error("Two-step limit unavailable; failing closed", { name: error instanceof Error ? error.name : "UnknownError" });
+    return { allowed: false, retryAfterSeconds: 60 };
+  }
+}
+
 /** Spends one request from the account's daily allowance. Call it once per request, before any model call. */
 export function spendAiAllowance(action: AiAction, accountId: string, now = Date.now()): Promise<AiAllowance> {
   return chargeAccountAllowance(incrementSecurityCounter, action, accountId, now);

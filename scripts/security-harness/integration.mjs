@@ -8,7 +8,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(path.join(process.cwd(), "package.json"));
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, DeleteCommand } = require("@aws-sdk/lib-dynamodb");
 const SECRET = process.env.HARNESS_SESSION_SECRET, TABLE = process.env.HARNESS_TABLE ?? "racked-harness";
 if (!SECRET) throw new Error("Set HARNESS_SESSION_SECRET to the local server's SESSION_SECRET.");
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-2", endpoint: "http://127.0.0.1:4568", credentials: { accessKeyId: "harness-local", secretAccessKey: "harness-local" } }));
@@ -255,6 +255,64 @@ const day = Math.floor(Date.now() / 86_400_000) * 86_400_000;
 const siteCalls = await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `LIMIT#${securityKey("ai:site-calls")}`, SK: `WINDOW#${day}` } }));
 const accountRequests = await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `LIMIT#${securityKey(`ai:hanger:${ids.a}`)}`, SK: `WINDOW#${day}` } }));
 check("the site counter counts model calls, the account counter counts messages", Number(siteCalls.Item?.count) >= 4 && Number(accountRequests.Item?.count) === 3, `site calls attempted=${siteCalls.Item?.count}, account messages=${accountRequests.Item?.count}`);
+
+// ── Two-step sign-in (brand accounts) ───────────────────────────────────────
+// The harness computes codes the way an authenticator app does (RFC 6238), from the key setup shows.
+const base32Decode = (text) => { let bits = 0, value = 0; const out = []; for (const char of text) { value = ((value << 5) | "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".indexOf(char)) & 0xffff; bits += 5; if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; } } return Buffer.from(out); };
+const stepNow = () => Math.floor(Date.now() / 30_000);
+const codeAt = (key, step) => { const message = Buffer.alloc(8); message.writeBigUInt64BE(BigInt(step)); const digest = createHmac("sha1", key).update(message).digest(); return String((digest.readUInt32BE(digest[19] & 15) & 0x7fffffff) % 1_000_000).padStart(6, "0"); };
+const wrongCode = (key) => { const valid = [-1, 0, 1].map((offset) => codeAt(key, stepNow() + offset)); let guess = 0; while (valid.includes(String(guess).padStart(6, "0"))) guess++; return String(guess).padStart(6, "0"); };
+// A code is accepted once, so each new one waits for the next 30-second step.
+let usedStep = -1;
+const freshCode = async (key) => { while (stepNow() <= usedStep) await sleep(1_000); usedStep = stepNow(); return codeAt(key, usedStep); };
+const signInAs = async (email, host) => { const device = browser(address(host)); const response = await device.request("POST", "/api/auth/login", { email, password: PASSWORD }); return { device, response }; };
+const emailT = `harness-t-${run}@example.test`, t = browser(address(40)), tokenT = formToken();
+await sleep(2_700);
+const registeredT = await t.request("POST", "/api/auth/register", { email: emailT, password: PASSWORD, role: "brand", displayName: "Harness T", brandName: `Harness Brand T ${run}`, formToken: tokenT, website: "" });
+const idT = await accountId(emailT);
+const { device: earlier } = await signInAs(emailT, 41);
+const consumerSetup = await a.request("POST", "/api/account/two-step/setup", { currentPassword: PASSWORD });
+const refusedSetup = await t.request("POST", "/api/account/two-step/setup", { currentPassword: "Wrong-password-1" });
+check("two-step setup is for brand accounts, and needs the password", registeredT.status === 201 && consumerSetup.status === 403 && refusedSetup.status === 401, `${registeredT.status},${consumerSetup.status},${refusedSetup.status}`);
+const setup = await t.request("POST", "/api/account/two-step/setup", { currentPassword: PASSWORD });
+const key = base32Decode(setup.json?.secret ?? "");
+const confirmWrong = await t.request("POST", "/api/account/two-step/confirm", { code: wrongCode(key) });
+const confirmed = await t.request("POST", "/api/account/two-step/confirm", { code: await freshCode(key) });
+const recovery = confirmed.json?.recoveryCodes ?? [];
+check("a wrong first code is refused; the right one turns it on with ten recovery codes", setup.status === 200 && setup.json?.uri?.startsWith("otpauth://totp/Racked:") && confirmWrong.status === 400 && confirmed.status === 200 && recovery.length === 10, `${setup.status},${confirmWrong.status},${confirmed.status},${recovery.length}`);
+const profileT = (await db.send(new GetCommand({ TableName: TABLE, Key: { PK: `USER#${idT}`, SK: "PROFILE" } }))).Item ?? {};
+const storedT = JSON.stringify(profileT, (_, value) => value instanceof Set ? [...value] : value);
+check("the table holds the secret sealed and recovery codes only as hashes", String(profileT.twoStepSecret).startsWith("v1.") && !storedT.includes(setup.json?.secret) && recovery.every((code) => !storedT.includes(code) && !storedT.includes(code.replaceAll("-", ""))) && profileT.twoStepPendingSecret === undefined && profileT.twoStepRecovery?.size === 10);
+const earlierAfter = await earlier.request("GET", "/api/account"), tAfter = await t.request("GET", "/api/account");
+check("turning it on signs every other device out, and keeps this one", earlierAfter.status === 401 && tAfter.status === 200, `${earlierAfter.status},${tAfter.status}`);
+const { device: pending, response: firstStepOnly } = await signInAs(emailT, 42);
+const pendingAccount = await pending.request("GET", "/api/account");
+check("the right password alone gets a five-minute challenge, not a session", firstStepOnly.status === 200 && firstStepOnly.json?.twoStep === true && !pending.jar.has("racked_session") && pending.jar.get("racked_two_step")?.path === "/api/auth/two-step" && pendingAccount.status === 401, JSON.stringify(firstStepOnly.json));
+const wrongAtSignIn = await pending.request("POST", "/api/auth/two-step", { code: wrongCode(key) });
+const sawWrong = ((await t.request("GET", "/api/account/activity")).json?.activity ?? []).some((entry) => entry.type === "two-step-failed");
+check("a wrong code is refused, and the owner sees that someone has their password", wrongAtSignIn.status === 401 && sawWrong, `${wrongAtSignIn.status},${sawWrong}`);
+const goodCode = await freshCode(key);
+const signedIn = await pending.request("POST", "/api/auth/two-step", { code: goodCode });
+const inside = await pending.request("GET", "/api/account");
+const { device: replayer } = await signInAs(emailT, 43);
+const replay = await replayer.request("POST", "/api/auth/two-step", { code: goodCode });
+check("the right code signs in; the same code cannot sign in again", signedIn.status === 200 && signedIn.json?.destination === "/brand" && inside.status === 200 && !pending.jar.has("racked_two_step") && replay.status === 401 && !replayer.jar.has("racked_session"), `${signedIn.status},${inside.status},${replay.status}`);
+const { device: recovering } = await signInAs(emailT, 44);
+const withRecovery = await recovering.request("POST", "/api/auth/two-step", { recoveryCode: recovery[0].toUpperCase() });
+const { device: again } = await signInAs(emailT, 45);
+const reused = await again.request("POST", "/api/auth/two-step", { recoveryCode: recovery[0] });
+check("a recovery code signs in once, and only once", withRecovery.status === 200 && withRecovery.json?.recoveryCodesLeft === 9 && reused.status === 401, `${withRecovery.status},${withRecovery.json?.recoveryCodesLeft},${reused.status}`);
+const limited = await again.request("POST", "/api/auth/two-step", { recoveryCode: recovery[1] });
+check("a sixth code in fifteen minutes waits, even a right one", limited.status === 429, String(limited.status));
+await db.send(new DeleteCommand({ TableName: TABLE, Key: { PK: `LIMIT#${securityKey(`two-step-attempts:${idT}`)}`, SK: `WINDOW#${Math.floor(Date.now() / 900_000) * 900_000}` } }));
+const replaced = await t.request("POST", "/api/account/two-step/recovery-codes", { code: await freshCode(key) });
+const offWithOld = await t.request("DELETE", "/api/account/two-step", { currentPassword: PASSWORD, recoveryCode: recovery[1] });
+check("new recovery codes replace every unused old one", replaced.status === 200 && replaced.json?.recoveryCodes?.length === 10 && offWithOld.status === 401, `${replaced.status},${offWithOld.status}`);
+const offRefused = await t.request("DELETE", "/api/account/two-step", { currentPassword: "Wrong-password-1", recoveryCode: replaced.json?.recoveryCodes?.[0] });
+const turnedOff = await t.request("DELETE", "/api/account/two-step", { currentPassword: PASSWORD, recoveryCode: replaced.json?.recoveryCodes?.[0] });
+const { device: plain, response: plainLogin } = await signInAs(emailT, 46);
+const twoStepTypes = new Set(((await t.request("GET", "/api/account/activity")).json?.activity ?? []).map((entry) => entry.type));
+check("turning it off needs the password and a code; then the password alone signs in", offRefused.status === 401 && turnedOff.status === 200 && plainLogin.json?.destination === "/brand" && plain.jar.has("racked_session") && ["two-step-on", "recovery-code-used", "recovery-codes-replaced", "two-step-off"].every((type) => twoStepTypes.has(type)), `${offRefused.status},${turnedOff.status},${JSON.stringify(plainLogin.json)}`);
 
 // ── Errors say nothing about the server ─────────────────────────────────────
 const malformed = await a.request("POST", "/api/consumer/outfits", { itemIds: [{ $ne: null }] });

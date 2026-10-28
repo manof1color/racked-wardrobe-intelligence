@@ -36,7 +36,12 @@ export type AccountActivityType =
   | "details-updated"
   | "signed-out-everywhere"
   | "brand-sharing-on"
-  | "brand-sharing-off";
+  | "brand-sharing-off"
+  | "two-step-on"
+  | "two-step-off"
+  | "two-step-failed"
+  | "recovery-code-used"
+  | "recovery-codes-replaced";
 
 export interface AccountActivity {
   type: AccountActivityType;
@@ -55,7 +60,15 @@ export const ACTIVITY_LABELS: Record<AccountActivityType, string> = {
   "signed-out-everywhere": "Signed out of all other devices",
   "brand-sharing-on": "Anonymous brand insights turned on",
   "brand-sharing-off": "Anonymous brand insights turned off",
+  "two-step-on": "Two-step sign-in turned on",
+  "two-step-off": "Two-step sign-in turned off",
+  "two-step-failed": "Correct password, wrong two-step code",
+  "recovery-code-used": "Signed in with a recovery code",
+  "recovery-codes-replaced": "New recovery codes created",
 };
+
+/** Events that suggest someone else is trying the account, shown as warnings. */
+export const WARNING_ACTIVITY: ReadonlySet<AccountActivityType> = new Set(["sign-in-failed", "two-step-failed"]);
 
 /** Activity is kept for 90 days, then expires. */
 export const ACTIVITY_RETENTION_DAYS = 90;

@@ -8,6 +8,7 @@ import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate
 import { createSessionToken } from "@/lib/session";
 import { countKnownDeviceFailure, countSignInFailure, knownDevicePause, signInPause } from "@/lib/server/abuse-guard";
 import { authenticateAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
+import { createTwoStepChallenge, TWO_STEP_CHALLENGE_COOKIE, TWO_STEP_CHALLENGE_MS, TWO_STEP_CHALLENGE_PATH, twoStepEnabled } from "@/lib/two-step";
 
 export async function POST(request:Request) {
   const body=await request.json().catch(()=>null) as {email?:unknown;password?:unknown}|null;
@@ -49,10 +50,18 @@ export async function POST(request:Request) {
       return NextResponse.json({error:"Email or password was incorrect."},{status:401});
     }
     if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});
+    const production=process.env.NODE_ENV==="production";
+    // With two-step sign-in on, the right password earns a five-minute challenge, not a session: the
+    // session is issued by /api/auth/two-step once a code from the authenticator app is right too.
+    if(twoStepEnabled(account)){
+      const challenge=createTwoStepChallenge({subject:account.id,sessionVersion:account.sessionVersion??0,expiresAt:Date.now()+TWO_STEP_CHALLENGE_MS},secret);
+      const response=NextResponse.json({twoStep:true});
+      response.cookies.set(TWO_STEP_CHALLENGE_COOKIE,challenge,{httpOnly:true,sameSite:"strict",secure:production,path:TWO_STEP_CHALLENGE_PATH,maxAge:TWO_STEP_CHALLENGE_MS/1000});
+      return response;
+    }
     const token=await createSessionToken({subject:account.id,role:account.role,sessionVersion:account.sessionVersion??0,expiresAt:Date.now()+1000*60*60*24*7},secret);
     await recordAccountActivity(account.id,"sign-in",device).catch(()=>undefined);
     const response=NextResponse.json({destination:account.role==="consumer"?"/consumer":"/brand"});
-    const production=process.env.NODE_ENV==="production";
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:production,path:"/",maxAge:60*60*24*7});
     const known=knownDeviceCookie(email,secret,production);
     response.cookies.set(known.name,known.value,known.options);

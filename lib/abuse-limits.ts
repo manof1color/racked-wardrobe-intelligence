@@ -26,6 +26,8 @@ export const DURABLE_LIMITS = {
   signUpsSiteWide: { limit: 100, windowMs: 60 * 60 * 1000 },
   /** Reset emails to one address, so nobody can flood someone's inbox through Racked. */
   passwordResetsPerEmail: { limit: 3, windowMs: 60 * 60 * 1000 },
+  /** Two-step codes tried on one account, right or wrong: few enough that guessing six digits is hopeless. */
+  twoStepAttemptsPerAccount: { limit: 5, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, DurableRule>;
 
 /**
