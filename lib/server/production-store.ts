@@ -33,6 +33,7 @@ import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirat
 import { ACTIVITY_RETENTION_DAYS, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
+import { acceptanceIncrement, acceptanceOutcome, type AcceptanceOutcome } from "@/lib/ai-acceptance";
 import sharp from "sharp";
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -384,7 +385,22 @@ export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,ov
   // The photos are kept before the record that points at them is written.
   await keepScanImages(copyPrivateImage,[image,evidence]);
   await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:registryProductId?`PRODUCT#${registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
+  // Real-use evidence (lib/ai-acceptance.ts): the signed proposal against what was kept, as daily
+  // totals only. It never holds up or fails a save.
+  await recordAiAcceptance(ownerId,acceptanceOutcome(analysis,{name,category:classification.category,subtype:classification.subtype,customType})).catch(error=>console.error("AI acceptance count skipped",{name:error instanceof Error?error.name:"UnknownError"}));
   return item;
+}
+
+/**
+ * Adds one saved piece to today's AI-acceptance totals. The item holds whole-number counters and
+ * nothing else: no account, photo, garment or name. Demo and test-cohort accounts are not counted.
+ */
+async function recordAiAcceptance(ownerId:string,outcome:AcceptanceOutcome,now=Date.now()){
+  const account=await getAccount(ownerId);
+  if(!account||account.dataClassification==="DEMO"||(account as {testCohort?:unknown}).testCohort===true)return;
+  const day=new Date(now).toISOString().slice(0,10);
+  const counts=Object.entries(acceptanceIncrement(outcome));
+  await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:"STATS#ai-acceptance",SK:`DAY#${day}`},UpdateExpression:`ADD ${counts.map(([key])=>`#${key} :${key}`).join(", ")}`,ExpressionAttributeNames:Object.fromEntries(counts.map(([key])=>[`#${key}`,key])),ExpressionAttributeValues:Object.fromEntries(counts.map(([key,value])=>[`:${key}`,value]))}));
 }
 
 /**

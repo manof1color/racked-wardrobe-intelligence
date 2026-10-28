@@ -51,6 +51,8 @@ Each account keeps its own security log for 90 days, then it expires: sign-ins, 
 
 ## Data minimization
 
+To measure how well recognition works in real use, saving a scanned piece adds to one item of daily totals (`STATS#ai-acceptance`): pieces saved, saved exactly as the AI proposed, and how often the category, type or name was changed. The comparison uses the signed proposal, so a browser cannot skew it. No account, photo, garment or name is stored with the totals, demo and test-cohort accounts are not counted, and the README publishes only the owner's snapshot, with any count under 5 shown as "fewer than 5" (`lib/ai-acceptance.ts`, `scripts/pilot-usage-snapshot.mjs`).
+
 The matching and wear systems do not store protected demographic attributes. Brand analytics do not query names, email addresses, images, or full wardrobes. Password hashes and salts are never returned by application APIs.
 
 Password recovery does not reveal account existence. Reset secrets are never stored directly: DynamoDB receives only a keyed HMAC derived with the private session secret. Tokens expire after 30 minutes, work once, and become invalid after any password change. SES delivery logs exclude the email address and token.
