@@ -37,7 +37,7 @@ Each scoring category, what to look for, and where to check it.
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Evidence](#evidence-and-what-is-not-claimed) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **833 tests** in 113 files; CI runs audit, lint, type check, tests, build and CodeQL on every change; **169 merged PRs** counted on 2026-10-28 before this documentation merge; build log through Phase 88 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **Code, docs & GitHub** | 15% | **841 tests** in 114 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **169 merged PRs** counted on 2026-10-28 before this documentation merge; build log through Phase 89 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for post-purchase intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Pricing](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
@@ -210,11 +210,11 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 
 ## Testing and CI
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite and a production build on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. Merges happen only when both are green.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite, a production build and [accessibility checks](docs/accessibility.md) (axe on the public pages and, through a fixture-only harness, the signed-in screens, plus keyboard-only passes of both demo flows) on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. Merges happen only when both are green.
 
-**833 passing tests** in 113 files (verified 2026-10-28). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**841 passing tests** in 114 files (verified 2026-10-29). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
-Coverage over the whole suite (2026-10-28): **96.97% of lines, 86.72% of branches, 94.39% of functions**; `privacy.ts` 100% and the session guard 97.56% of branches. Coverage shows what the tests run, not that the scoring is right.
+Coverage over the whole suite (2026-10-29): **97.21% of lines, 87.02% of branches, 94.56% of functions**; `privacy.ts` 100% and the session guard 97.56% of branches. Coverage shows what the tests run, not that the scoring is right.
 
 | What is protected | Tests |
 | --- | --- |
@@ -230,10 +230,11 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: wardrobe, photo intake, Looks, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry
 lib/server/     All DynamoDB and S3 access, with every ownership check
-tests/          113 test files, 833 tests (node --test)
+tests/          114 test files, 841 tests (node --test)
 scripts/        Judge and demo seeds, verification, evaluation, owner-run tools (dry run by default)
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
+.github/        CI (audit, lint, type check, tests, build, accessibility) and CodeQL
 ```
 
 ---
@@ -265,6 +266,7 @@ Requirements: Node.js **22.13.0 or newer** and **pnpm 11.9.0**.
 pnpm install --frozen-lockfile
 copy .env.example .env.local
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm audit:prod
+pnpm test:a11y   # after pnpm build; needs `pnpm exec playwright install chromium` once
 pnpm dev
 ```
 
@@ -278,13 +280,13 @@ Account and upload features need a DynamoDB table, a private S3 bucket and AWS c
 
 - **For judges:** [JUDGES.md](JUDGES.md) · [Judge accounts](docs/judge-accounts.md) · [Competition checklist](docs/competition-checklist.md) · [One-page summary](docs/one-page-summary.md) · [Presentation script](docs/demo-script.md) · [Demo checklist](docs/demo-checklist.md)
 - **The product:** [User workflow](docs/user-workflow.md) · [Brand linking incentives](docs/brand-linking-incentives.md) · [Brand UX review](docs/brand-ux-review.md) · [Brand approval](docs/brand-approval.md)
-- **The engineering:** [Architecture and module map](docs/architecture.md) · [Backend API](docs/backend-api.md) · [AI use log](docs/ai-use-log.md) · [Segmentation and the crop benchmark](docs/segmentation-backends.md) · [AWS deployment](docs/aws-deployment.md) · [Security verification](docs/security-verification.md) · [PROGRESS.md](PROGRESS.md)
+- **The engineering:** [Architecture and module map](docs/architecture.md) · [Accessibility](docs/accessibility.md) · [Backend API](docs/backend-api.md) · [AI use log](docs/ai-use-log.md) · [Segmentation and the crop benchmark](docs/segmentation-backends.md) · [AWS deployment](docs/aws-deployment.md) · [Security verification](docs/security-verification.md) · [PROGRESS.md](PROGRESS.md)
 - **What may be claimed:** [Privacy and ethics](docs/privacy-and-ethics.md) · [Evaluation protocol](docs/evaluation.md) · [Dataset provenance](docs/dataset-provenance.md) · [Test cohort](docs/test-cohort.md) · [Demo storefronts](docs/demo-storefronts.md)
 - **Where it goes next:** [Streamline plan](docs/streamline-plan.md) · [App Store launch](docs/app-store-launch.md) · [TikTok campaign](docs/tiktok-campaign.md)
 - **Terms:** [LICENSE](LICENSE) — source-available for reading and evaluation; all rights reserved
 
 ---
 
-**Last updated:** 2026-10-28 — test totals rechecked against main `504d1d7`
+**Last updated:** 2026-10-29 — test totals rechecked against main `504d1d7`
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026

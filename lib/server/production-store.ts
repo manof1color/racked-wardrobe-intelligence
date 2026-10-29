@@ -1020,7 +1020,7 @@ export async function getConsumerInspirationProfile(ownerId:string):Promise<Cons
 // per-subject query log persists in DynamoDB so the budget holds across serverless
 // instances. Re-querying an already-viewed product never consumes budget.
 /**
- * At most six distinct products per brand account in five minutes, enforced atomically.
+ * At most six distinct products per brand account in 24 hours, enforced atomically.
  *
  * The budget used to read the account's query log, check it, and then write — so twenty requests
  * for twenty products sent at once all read the same short log and all passed. Now the budget is
