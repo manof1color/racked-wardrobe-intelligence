@@ -949,3 +949,22 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
    photo picker, whose real file inputs are transparent. */
 .community-nav nav a{display:inline-flex;align-items:center;min-height:24px}
 .photo-source-action:has(>input:focus-visible){outline:3px solid var(--coral-dark);outline-offset:3px}
+
+/* Wear points (Home): a full-width row under the wardrobe readout. */
+.insight-grid .points-card{grid-column:1/-1;order:5;min-height:0;gap:6px}
+/* Where the readout already fills its own row, points come straight after it: the daily action first. */
+@media(max-width:1050px){.insight-grid .points-card{order:1}.insight-grid>.metric-card:not(.points-card){order:2}}
+.points-card strong{font-size:2rem;line-height:1}
+.points-card .points-unit{font-size:.8rem;font-weight:600}
+.points-days{display:flex;gap:6px;list-style:none;margin:6px 0 0;padding:0}
+.points-days li{width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--muted)}
+.points-days li.logged{background:var(--coral);border-color:var(--coral-dark);color:var(--ink)}
+.points-card .points-rule{font-size:.7rem;color:var(--muted);max-width:60ch;margin-top:4px}
+.points-card>.button{align-self:flex-start;margin-top:8px}
+.points-log{display:grid;gap:12px;margin-top:10px}
+.points-log fieldset{border:1px solid var(--line);padding:10px 12px;margin:0}
+.points-log legend{font-size:.72rem;font-weight:700;padding:0 4px}
+.points-log ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.points-log li button{min-height:32px;padding:6px 12px;border:1px solid var(--ink);background:var(--white);cursor:pointer}
+.points-log .points-pieces label{display:inline-flex;align-items:center;gap:6px;min-height:32px;font-size:.78rem}
+.points-log>.button{justify-self:start}
