@@ -19,6 +19,7 @@
     "seed:judge:dry": "node scripts/seed-judge-accounts.mjs --dry-run",
     "seed:judge": "node scripts/seed-judge-accounts.mjs",
     "verify:judge": "node scripts/verify-judge-accounts.mjs",
+    "usage:snapshot": "node scripts/pilot-usage-snapshot.mjs",
     "verify:live": "node scripts/verify-live.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
