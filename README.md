@@ -12,6 +12,7 @@ People get a private wardrobe and an AI stylist that are useful on their own. Br
 | **Judges, start here** | [JUDGES.md](JUDGES.md) — one screen: the two demo flows, how to sign in, and where every piece of evidence is |
 | **Live application** | https://main.d2iv0khybuuaeh.amplifyapp.com — installable on a phone |
 | **What is deployed right now** | [`/api/version`](https://main.d2iv0khybuuaeh.amplifyapp.com/api/version) returns the exact commit Amplify built |
+| **Measured AI recognition** | **89.7% of garments placed in the right category** (262 of 292; 95% CI 85.7%–92.7%) by the live scan, on 300 independent, publicly licensed photos with answers locked before the first model call — [results](docs/evaluation-results.md) |
 | **Stack** | Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Pro, Nova Lite) · GitHub Actions · CodeQL |
 | **Built for** | CUA Busch School AI Vibe Coding Contest, Fall 2026 |
 
@@ -36,8 +37,8 @@ Each scoring category, what to look for, and where to check it.
 | --- | ---: | --- | --- |
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Evidence](#evidence-and-what-is-not-claimed) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
-| **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **841 tests** in 114 files; CI runs audit, lint, type check, tests, build and CodeQL on every change; **169 merged PRs** counted on 2026-10-28 before this documentation merge; build log through Phase 88 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 89.7% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
+| **Code, docs & GitHub** | 15% | **842 tests** in 114 files; CI runs audit, lint, type check, tests, build and CodeQL on every change; **169 merged PRs** counted on 2026-10-28 before this documentation merge; build log through Phase 88 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for post-purchase intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Pricing](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
@@ -134,7 +135,7 @@ Built, live and tested, but outside the five-minute demo:
 | **Batch scanning** | Up to **6 photos** in one pass, every piece in one review list, bounded at 24 pieces | [`garment-intake.tsx`](components/garment-intake.tsx) |
 | **Outfits, wear and Looks** | Saved outfits with private flat-lay boards, one-tap repeat wear, and a swipe-through builder that uses the same ranker as Hanger with no AI call | [`looks-builder.tsx`](components/looks-builder.tsx) |
 
-**Next:** measured recognition accuracy on the [independent dataset](#evidence-and-what-is-not-claimed); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md).
+**Next:** raise exact-type recognition (59.5% today) and the top/outerwear boundary, the most common miss in the [measured benchmark](docs/evaluation-results.md); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md).
 
 ---
 
@@ -170,11 +171,23 @@ Built, live and tested, but outside the five-minute demo:
 | "Recreate with my wardrobe" | No | Owned / substitute / missing scoring with per-piece evidence | `lib/recreate-look.ts` |
 | Whether a brand may see an aggregate at all | No | Consent filter, `k ≥ 25`, enumeration budget | `lib/privacy.ts`, `lib/metrics.ts` |
 
-> **Is the AI trained on clothing photos? Not by Racked.** Racked uses Amazon Bedrock Nova models as supplied and does not fine-tune them. Where it needs domain knowledge it writes it down and tests it: the controlled garment taxonomy, a reference of 23 generic shoe classes that grounds recognition, and the formality ladder above. Recognition accuracy is to be measured, not asserted.
+> **Is the AI trained on clothing photos? Not by Racked.** Racked uses Amazon Bedrock Nova models as supplied and does not fine-tune them. Where it needs domain knowledge it writes it down and tests it: the controlled garment taxonomy, a reference of 23 generic shoe classes that grounds recognition, and the formality ladder above. Recognition accuracy is measured, not asserted: [89.7% category accuracy on 300 independent photos](#evidence-and-what-is-not-claimed).
 
 ---
 
 ## Evidence, and what is not claimed
+
+**Recognition accuracy, measured on the live scan (2026-10-29).** Racked ran the exact scan the app runs — the code behind `POST /api/garments/detect`, with the same prompt, the same Nova Pro model and the same 1,600-pixel photo — on **300 photos from the independent CC BY 4.0 [Clothing Dataset for Second-Hand Fashion](https://zenodo.org/records/13788681)**. Every answer and photo was locked by hash before the first model call, so nothing could be tuned after seeing results.
+
+| Measure | Result (95% confidence interval) |
+| --- | --- |
+| **Garment category correct** | **262 of 292 — 89.7%** (85.7%–92.7%) |
+| Exact type correct, on photos labelled with a type | 100 of 168 — 59.5% (52.0%–66.6%) |
+| Products marked "verified" by AI alone | **0** — only registry evidence verifies a product |
+| Scans that came back unlabelled | 0 of 292 |
+| Service timeouts, where the person is offered manual entry | 8 of 300 — 2.7% |
+
+The whole benchmark cost **$1.75 of Bedrock time** (counted with a 1.5× safety margin, under a hard $3.50 cap). The most common miss is a top proposed as outerwear (18 photos); every proposal is shown to the person to confirm or change before anything is saved. [Full results](docs/evaluation-results.md) · [method](docs/evaluation.md#live-path-benchmark-the-scan-the-app-actually-runs) · [aggregates](data/evaluation-live-2026-10-29.json) · [lock](data/evaluation-lock.json)
 
 <!-- real-use:start (generated from data/pilot-usage.json; tests/real-use.test.ts) -->
 **Real use: not measured yet.** Racked has counted, since 2026-10-28, how often people keep the AI's proposal for a scanned piece unchanged, as anonymous daily totals for real (non-demo) accounts. The first snapshot will be published here, with any count under 5 shown as "fewer than 5".
@@ -188,9 +201,9 @@ Built, live and tested, but outside the five-minute demo:
 | Repeat use | **19 of 25 repeat wearers (76%)** | Is it earning repeated use? |
 | Zero-wear opportunity | **3 of 25 owners** | Where could styling help? |
 
-**Recognition accuracy is not claimed yet.** Racked has chosen the CC BY 4.0 [Clothing Dataset for Second-Hand Fashion](https://zenodo.org/records/13788681) (31,638 real garments) as its external benchmark; the protocol is in [docs/evaluation.md](docs/evaluation.md). A first label-coverage audit of 1,000 records found **93.9%** map to Racked's categories, **62.6%** are specific enough for exact-subtype scoring, and **94.0%** carry usable brand annotations. These measure benchmark compatibility, not model accuracy ([report](data/evaluation-label-coverage.json)).
+Before the benchmark, a label-coverage audit of 1,000 dataset records found **93.9%** map to Racked's categories, **62.6%** are specific enough for exact-type scoring, and **94.0%** carry usable brand annotations. These measure benchmark compatibility, not model accuracy ([report](data/evaluation-label-coverage.json)).
 
-Racked does **not** claim recognition accuracy, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. Every seeded record is synthetic and classified `DEMO`. Pricing is a proposal; nothing is billed.
+Racked does **not** claim recognition accuracy beyond the measured benchmark above, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. Every seeded record is synthetic and classified `DEMO`. Pricing is a proposal; nothing is billed.
 
 ---
 
@@ -212,9 +225,9 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite and a production build on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. Merges happen only when both are green.
 
-**841 passing tests** in 114 files (verified 2026-10-28). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**842 passing tests** in 114 files (verified 2026-10-29). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
-Coverage over the whole suite (2026-10-28): **97.01% of lines, 86.71% of branches, 94.30% of functions**; `privacy.ts` 100% and the session guard 97.56% of branches. Coverage shows what the tests run, not that the scoring is right.
+Coverage over the whole suite (2026-10-29): **97.01% of lines, 86.71% of branches, 94.30% of functions**; `privacy.ts` 100% and the session guard 97.56% of branches. Coverage shows what the tests run, not that the scoring is right.
 
 | What is protected | Tests |
 | --- | --- |
@@ -230,7 +243,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: wardrobe, photo intake, Looks, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry
 lib/server/     All DynamoDB and S3 access, with every ownership check
-tests/          114 test files, 841 tests (node --test)
+tests/          114 test files, 842 tests (node --test)
 scripts/        Judge and demo seeds, verification, evaluation, owner-run tools (dry run by default)
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -285,6 +298,6 @@ Account and upload features need a DynamoDB table, a private S3 bucket and AWS c
 
 ---
 
-**Last updated:** 2026-10-28 — test totals rechecked against main `504d1d7`
+**Last updated:** 2026-10-29 — test totals and coverage rechecked with the recognition benchmark results
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026

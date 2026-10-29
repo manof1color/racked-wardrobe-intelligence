@@ -99,6 +99,22 @@ test("scoring uses the largest detection, counts failures apart, and flags any A
   assert.equal(scoreSet([entry("z")], []).notAttempted, 1);
 });
 
+test("the figures judges read match the committed benchmark report", () => {
+  const report = JSON.parse(read("data/evaluation-live-2026-10-29.json"));
+  const { category, exactSubtype } = report.external;
+  assert.equal(report.complete, true);
+  assert.ok(report.spentUsd <= HARD_BUDGET_USD);
+  assert.equal(report.external.identityBoundaryViolations, 0);
+  const percent = (rate: number) => `${(rate * 100).toFixed(1)}%`;
+  const headline = `${percent(category.rate)} category`;
+  const readme = read("README.md");
+  assert.ok(readme.includes(`**${category.successes} of ${category.trials} — ${percent(category.rate)}** (${percent(category.low)}–${percent(category.high)})`), "README table");
+  assert.ok(readme.includes(`${exactSubtype.successes} of ${exactSubtype.trials} — ${percent(exactSubtype.rate)}`), "README exact type");
+  assert.ok(readme.includes(`$${report.spentUsd.toFixed(2)} of Bedrock time`), "README cost");
+  for (const path of ["README.md", "JUDGES.md", "docs/one-page-summary.md", "docs/demo-script.md"]) assert.ok(read(path).includes(percent(category.rate)), `${path} quotes ${headline}`);
+  assert.ok(read("docs/evaluation-results.md").includes(`${category.successes} of ${category.trials} (${percent(category.rate)}`), "the generated results page");
+});
+
 test("the published results say how much was attempted and what it cost", () => {
   const cases = [entry("a"), entry("b")];
   const report = { date: "2026-11-01", complete: false, spentUsd: 1.23, models: [pro], promptSha256: "f".repeat(64), external: scoreSet(cases, [prediction("a", "top")]), pilot: null };

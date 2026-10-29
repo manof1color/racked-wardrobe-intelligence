@@ -48,7 +48,7 @@ Run the same audit over downloaded dataset-server row files with:
 pnpm eval:audit-labels path/to/rows-directory path/to/coverage-report.json
 ```
 
-This is a **schema/label-coverage result, not recognition accuracy**. Model accuracy remains unreported until the three-view inference protocol is executed.
+This is a **schema/label-coverage result, not recognition accuracy**. Recognition accuracy on the live scan path was measured separately on 2026-10-29 — **89.7% category correct** — and is reported in [evaluation-results.md](evaluation-results.md). The three-view protocol above remains unexecuted.
 
 ## Live-path benchmark (the scan the app actually runs)
 

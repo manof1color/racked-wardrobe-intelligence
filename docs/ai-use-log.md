@@ -152,7 +152,7 @@ The Brand wear agent applies the existing consent filter and k≥25 privacy thre
 
 ## Claims not made
 
-Racked does not claim photorealistic virtual try-on, body fit, recognition accuracy, purchase probability, sales lift, demographic classification, or production-scale validation.
+Racked does not claim photorealistic virtual try-on, body fit, recognition accuracy beyond the [measured live-path benchmark](evaluation-results.md), purchase probability, sales lift, demographic classification, or production-scale validation.
 
 ## Fictional demo product imagery
 

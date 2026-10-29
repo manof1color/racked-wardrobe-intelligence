@@ -37,7 +37,7 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **841 tests and a CI gate** — lint, type check, tests, production build, dependency audit, CodeQL —
+- **842 tests and a CI gate** — lint, type check, tests, production build, dependency audit, CodeQL —
   on every pull request, with a build log through Phase 88 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-10-27).
 
 ## Lessons learned
@@ -55,6 +55,6 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 - **A UI can lie in both directions.** The worst bug I shipped told users a brand product was linked
   while saving no link at all, so no brand ever received that owner. It passed every test that
   checked the screen and none that checked what was stored.
-- **Say what you cannot prove.** I do not claim recognition accuracy, sales lift, or purchase intent,
-  because I have not run an independent benchmark. Naming the gap cost nothing and made everything
-  else more credible.
+- **Measure before you claim.** I did not claim recognition accuracy until I had measured it: the live
+  scan placed 89.7% of 292 independent, locked photos in the right category. I still do not claim
+  sales lift or purchase intent. Naming the gaps cost nothing and made everything else more credible.
