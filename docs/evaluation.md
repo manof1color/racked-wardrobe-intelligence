@@ -50,6 +50,15 @@ pnpm eval:audit-labels path/to/rows-directory path/to/coverage-report.json
 
 This is a **schema/label-coverage result, not recognition accuracy**. Model accuracy remains unreported until the three-view inference protocol is executed.
 
+## Live-path benchmark (the scan the app actually runs)
+
+`pnpm eval:run` measures three-view analysis on Nova Lite, which live intake does not use. The live-path benchmark runs `detectLookOrManualReview` around `detectGarmentsInLook` — what `POST /api/garments/detect` runs, with the same prompt, model candidates, parsing, shoe-pair joining and taxonomy mapping — on the same 1,600-pixel JPEG the route prepares. It writes nothing to Racked's table or bucket.
+
+1. **Build and lock the cases (no model calls, no AWS).** `pnpm eval:live:build` reads ten windows of dataset metadata, samples 300 labelled front photos with `deterministicEvaluationSample`, downloads only those photos to a folder outside the repository (`RACKED_EVAL_IMAGES`, default `../racked-eval-images`), and writes `data/evaluation-live-manifest.json` and `data/evaluation-lock.json`. With `--pilot labels.csv` it adds the owner's labelled pilot-brand photos (`file,category,subtype,pieces,conditions`). **Commit both files before any run.**
+2. **Check the estimate.** `pnpm eval:live` verifies every case and photo against the lock, prints the cost estimate, and spends nothing.
+3. **Run.** `RACKED_EVAL_CONFIRM=yes pnpm eval:live`, where AWS credentials with Bedrock access are available. Each call is sent only if, at its worst (full output, largest input seen, prices × 1.5), the counted total stays within **$3.50** — lower with `RACKED_EVAL_BUDGET_USD`, never higher. Spend is counted from the tokens Bedrock reports and saved after every photo, so a rerun resumes and cannot spend the cap twice. Three service failures in a row stop the run.
+4. **Publish.** The run writes `data/evaluation-live-<date>.json` (aggregates only) and `docs/evaluation-results.md`: category accuracy, exact-type accuracy on photos whose label names a type, pieces found in multi-piece photos, service failures and needs-your-label rate, each with a 95% Wilson interval, plus the most common misses and any product marked verified without registry evidence (must be 0). A partial run says so and gives its denominators.
+
 ## What the benchmark can and cannot prove
 
 It can test broad category, specific subtype, front-versus-multi-view behavior, visible attributes, label OCR/autofill, provider failures, and confidence behavior. A label transcription is still only evidence for an editable brand suggestion.
