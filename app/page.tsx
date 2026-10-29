@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Flywheel } from "@/components/flywheel";
 import { getSession } from "@/lib/auth";
 import { workspaceHome } from "@/lib/workspace-navigation";
+import { landingPilotLine } from "@/lib/server/pilot-evidence";
 
 // Every figure on this page is either a product rule (the 25-owner threshold) or visibly marked
 // as an example. Nothing here is a performance claim.
@@ -10,6 +11,7 @@ const EXAMPLE_WEEKLY_WEARS = [38, 52, 47, 61, 58, 72, 69, 80];
 
 export default async function Home() {
   const session=await getSession();
+  const pilot=landingPilotLine();
   if(session)redirect(workspaceHome(session.role));
   return (
     <main className="lp">
@@ -35,6 +37,7 @@ export default async function Home() {
             <Link className="lp-link" href="#how-it-works">See how it works</Link>
           </div>
           <p className="lp-trust lp-rise">Private photos · you confirm every detail · brands never see your closet</p>
+          {pilot&&<p className="lp-pilot lp-rise">{pilot}</p>}
         </div>
 
         <div className="lp-visual" role="img" aria-label="Example: a wardrobe card for a piece worn 14 times, and the anonymous weekly wear totals a brand sees only above 25 opted-in owners.">

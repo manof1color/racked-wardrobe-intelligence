@@ -43,7 +43,7 @@ Do not publish any password — including synthetic test-cohort credentials, whi
 
 ## Still open
 
-Racked is in use by real brands, so these are live gaps rather than pre-launch tasks:
+Two pilot brands have created accounts and uploaded products on the live app, so these are live gaps rather than pre-launch tasks:
 
 - **Enforce the Content Security Policy.** It is report-only. Enforcing it needs nonce-based script loading (Next.js hydration and the install-prompt capture are inline scripts) and a period of clean reports from `/api/security/csp-report`.
 - **Edge rate limiting (AWS WAF).** Per-address limits belong at the edge, where the real client address is known.
