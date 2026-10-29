@@ -1,0 +1,31 @@
+{
+  "asOf": "2026-10-29",
+  "brands": [
+    {
+      "label": "_victimdesigns",
+      "publicName": "_victimdesigns",
+      "namePermission": true,
+      "relationship": null,
+      "agreedToPilot": { "form": "phone", "onOrBefore": "2026-10-29", "reconfirmedOn": null },
+      "accountCreated": true,
+      "productsUploaded": true,
+      "productsEnrolled": null,
+      "pricing": { "tier": null, "price": null, "acceptedOn": null, "form": null, "billingStarts": null },
+      "paid": false,
+      "evidence": []
+    },
+    {
+      "label": "vversatile.usa",
+      "publicName": "vversatile.usa",
+      "namePermission": true,
+      "relationship": null,
+      "agreedToPilot": { "form": "phone", "onOrBefore": "2026-10-29", "reconfirmedOn": null },
+      "accountCreated": true,
+      "productsUploaded": true,
+      "productsEnrolled": null,
+      "pricing": { "tier": null, "price": null, "acceptedOn": null, "form": null, "billingStarts": null },
+      "paid": false,
+      "evidence": []
+    }
+  ]
+}

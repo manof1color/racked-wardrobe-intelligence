@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { pricingPilotNote } from "@/lib/server/pilot-evidence";
 
 export const metadata: Metadata = { title: "Planned pricing — Racked" };
 
@@ -14,6 +15,7 @@ const tiers = [
 ];
 
 export default function PricingPage() {
+  const accepted=pricingPilotNote();
   return <main className="privacy-page pricing-page">
     <header className="community-nav">
       <Link className="wordmark" href="/">RACKED<span>.</span></Link>
@@ -23,6 +25,7 @@ export default function PricingPage() {
     <h1>Planned pricing.</h1>
     <p className="lead">This is the proposed business model for Racked. <strong>Nothing on this page is currently billed</strong> — every account and feature in the competition build is free, and no payment method is ever collected.</p>
     <div className="pricing-disclaimer" role="note"><strong>Planned pricing — not yet billed.</strong> The tiers below are a forward-looking proposal, not an active offer.</div>
+    {accepted&&<p className="pricing-pilot">{accepted}</p>}
     <div className="table-scroll" role="region" aria-label="Proposed tiers" tabIndex={0}>
       <table className="pricing-table">
         <caption className="eyebrow">Proposed tiers (not currently billed)</caption>

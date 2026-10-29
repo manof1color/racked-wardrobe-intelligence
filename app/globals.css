@@ -941,6 +941,9 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .two-step-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:6px}
 .two-step-actions .confirm-turn-off{background:#5d1712;border-color:#5d1712;color:#fff}
 @media (max-width:600px){.two-step-setup{grid-template-columns:1fr}.two-step-qr{width:min(100%,220px);height:auto;aspect-ratio:1}.two-step-codes{grid-template-columns:1fr}}
+/* Pilot status line: shown only when data/pilot-status.json supports it. */
+.lp-pilot{margin:10px 0 0;font-size:.82rem;color:var(--ink);max-width:46ch}
+.pricing-pilot{margin:10px 0 0;font-weight:700}
 
 /* Accessibility (W8): 24px tap targets on narrow screens (WCAG 2.2), and a visible focus ring on the
    photo picker, whose real file inputs are transparent. */

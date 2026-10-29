@@ -2,7 +2,7 @@
 
 Two AI agents work on this repository at the same time: **Codex** (branches `codex/…`) and
 **Claude Code** (branches `claude/…`). The owner merges every pull request. These rules keep the
-two from overwriting each other, and keep a live product with real brand customers safe.
+two from overwriting each other, and keep a live product used by pilot brands safe.
 
 Everything in [CONTRIBUTING.md](CONTRIBUTING.md) applies, above all its **hard boundaries** and its
 verification gate (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm audit:prod`).
