@@ -5,7 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { budgetLimit, callCostUsd, caseHash, createLock, HARD_BUDGET_USD, lockProblems, mayStartCall, primaryDetection, renderResultsMarkdown, scoreSet, wilson, worstCaseCallUsd, type LiveCase, type LivePrediction } from "../lib/live-evaluation.ts";
+import { budgetLimit, callCostUsd, caseHash, createLock, HARD_BUDGET_USD, lockProblems, mayStartCall, primaryDetection, renderResultsMarkdown, roundSuffix, scoreSet, wilson, worstCaseCallUsd, type LiveCase, type LivePrediction } from "../lib/live-evaluation.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const pro = "us.amazon.nova-pro-v1:0";
@@ -67,6 +67,22 @@ test("answers and photos are locked before any run, and any change is refused", 
   assert.match(read("scripts/build-live-evaluation-set.mjs"), /if \(IMAGES\.startsWith\(ROOT\)\) throw/, "photos stay out of the repository");
 });
 
+test("a later round is a fresh, separately locked set that never reuses an earlier photo", () => {
+  assert.equal(roundSuffix(undefined), "");
+  assert.equal(roundSuffix("1"), "");
+  assert.equal(roundSuffix("2"), "-r2");
+  assert.throws(() => roundSuffix("../x"), /single digit/);
+  const build = read("scripts/build-live-evaluation-set.mjs");
+  assert.match(build, /usedEarlier\.has\(`hf3-row-\$\{wrapper\.row_idx\}`\)\) continue;/, "earlier rounds' photos are skipped");
+  assert.match(build, /if \(!usedEarlier\.size\) throw/, "a later round refuses to run without the earlier manifest");
+  const runner = read("scripts/run-live-detection-evaluation.mjs");
+  assert.match(runner, /const PROGRESS = join\(IMAGES, `live-progress\$\{suffix\}\.json`\);/, "each round keeps its own spend");
+  const text = renderResultsMarkdown({ date: "2026-10-30", round: "2", complete: true, spentUsd: 1, models: [pro], promptSha256: "f".repeat(64), external: scoreSet([entry("a")], [prediction("a", "top")]), pilot: null });
+  assert.match(text, /round 2/);
+  assert.match(text, /data\/evaluation-live-2026-10-30-r2\.json/);
+  assert.match(text, /data\/evaluation-lock-r2\.json/);
+});
+
 test("Wilson intervals", () => {
   assert.equal(wilson(0, 0), null);
   const half = wilson(50, 100)!;
@@ -99,20 +115,28 @@ test("scoring uses the largest detection, counts failures apart, and flags any A
   assert.equal(scoreSet([entry("z")], []).notAttempted, 1);
 });
 
-test("the figures judges read match the committed benchmark report", () => {
-  const report = JSON.parse(read("data/evaluation-live-2026-10-29.json"));
-  const { category, exactSubtype } = report.external;
-  assert.equal(report.complete, true);
-  assert.ok(report.spentUsd <= HARD_BUDGET_USD);
-  assert.equal(report.external.identityBoundaryViolations, 0);
+test("the figures judges read match the committed benchmark reports, round 2 as the headline", () => {
+  const before = JSON.parse(read("data/evaluation-live-2026-10-29.json"));
+  const after = JSON.parse(read("data/evaluation-live-2026-10-29-r2.json"));
   const percent = (rate: number) => `${(rate * 100).toFixed(1)}%`;
-  const headline = `${percent(category.rate)} category`;
+  const cell = (score: { successes: number; trials: number; rate: number; low: number; high: number }) => `${score.successes} of ${score.trials} — ${percent(score.rate)}** (${percent(score.low)}–${percent(score.high)})`;
   const readme = read("README.md");
-  assert.ok(readme.includes(`**${category.successes} of ${category.trials} — ${percent(category.rate)}** (${percent(category.low)}–${percent(category.high)})`), "README table");
-  assert.ok(readme.includes(`${exactSubtype.successes} of ${exactSubtype.trials} — ${percent(exactSubtype.rate)}`), "README exact type");
-  assert.ok(readme.includes(`$${report.spentUsd.toFixed(2)} of Bedrock time`), "README cost");
-  for (const path of ["README.md", "JUDGES.md", "docs/one-page-summary.md", "docs/demo-script.md"]) assert.ok(read(path).includes(percent(category.rate)), `${path} quotes ${headline}`);
-  assert.ok(read("docs/evaluation-results.md").includes(`${category.successes} of ${category.trials} (${percent(category.rate)}`), "the generated results page");
+  for (const [report, file] of [[before, "docs/evaluation-results.md"], [after, "docs/evaluation-results-r2.md"]] as const) {
+    assert.equal(report.complete, true);
+    assert.ok(report.spentUsd <= HARD_BUDGET_USD);
+    assert.equal(report.external.identityBoundaryViolations, 0);
+    assert.ok(read(file).includes(`${report.external.category.successes} of ${report.external.category.trials} (${percent(report.external.category.rate)}`), `${file} is the generated page`);
+  }
+  assert.equal(after.round, "2");
+  // Round 1 is the baseline column, round 2 the bold current one.
+  assert.ok(readme.includes(`| ${cell(before.external.category).replace("** (", " (")} | **${cell(after.external.category)} |`), "README category row, both rounds");
+  assert.ok(readme.includes(`**${cell(after.external.exactSubtype)}`), "README exact type, round 2");
+  assert.ok(readme.includes(`$${(before.spentUsd + after.spentUsd).toFixed(2)} of Bedrock time`), "README cost, both rounds");
+  const headline = percent(after.external.category.rate);
+  for (const path of ["README.md", "JUDGES.md", "docs/one-page-summary.md", "docs/demo-script.md"]) assert.ok(read(path).includes(headline), `${path} quotes ${headline}`);
+  // The fix's effect, as stated, is the round-1 → round-2 count of tops proposed as outerwear.
+  const outerwear = (report: { external: { misses: Array<{ key: string; count: number }> } }) => report.external.misses.find((miss) => miss.key === "top → outerwear")?.count ?? 0;
+  assert.ok(readme.includes(`| Hoodies, cardigans and other tops proposed as outerwear | ${outerwear(before)} photos | **${outerwear(after)} photo${outerwear(after) === 1 ? "" : "s"}** |`));
 });
 
 test("the published results say how much was attempted and what it cost", () => {

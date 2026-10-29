@@ -18,17 +18,20 @@ import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-r
 import { buildLookDetectionPrompt, detectGarmentsInLook, lookDetectionModelCandidates } from "../lib/look-garment-detection.ts";
 import { detectLookOrManualReview } from "../lib/look-scan-resilience.ts";
 import { BEDROCK_LOOK_TIMEOUT_MS } from "../lib/bedrock-timeout.ts";
-import { budgetLimit, callCostUsd, HARD_BUDGET_USD, lockProblems, mayStartCall, renderResultsMarkdown, scoreSet, worstCaseCallUsd } from "../lib/live-evaluation.ts";
+import { budgetLimit, callCostUsd, HARD_BUDGET_USD, lockProblems, mayStartCall, renderResultsMarkdown, roundSuffix, scoreSet, worstCaseCallUsd } from "../lib/live-evaluation.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const IMAGES = resolve(process.env.RACKED_EVAL_IMAGES ?? join(ROOT, "..", "racked-eval-images"));
-const PROGRESS = join(IMAGES, "live-progress.json");
 const args = process.argv.slice(2);
+// --round N runs a later, separately locked set; its spend and progress are kept apart from round 1.
+const round = args.includes("--round") ? args[args.indexOf("--round") + 1] : null;
+const suffix = roundSuffix(round);
+const PROGRESS = join(IMAGES, `live-progress${suffix}.json`);
 const which = args.includes("--set") ? args[args.indexOf("--set") + 1] : "external";
 if (!["external", "pilot", "all"].includes(which)) throw new Error("--set must be external, pilot, or all.");
 
-const manifest = JSON.parse(await readFile(join(ROOT, "data/evaluation-live-manifest.json"), "utf8"));
-const lock = JSON.parse(await readFile(join(ROOT, "data/evaluation-lock.json"), "utf8"));
+const manifest = JSON.parse(await readFile(join(ROOT, `data/evaluation-live-manifest${suffix}.json`), "utf8"));
+const lock = JSON.parse(await readFile(join(ROOT, `data/evaluation-lock${suffix}.json`), "utf8"));
 const problems = lockProblems(manifest, lock);
 if (problems.length) throw new Error(`The cases no longer match the lock; refusing to run:\n${problems.slice(0, 10).join("\n")}`);
 for (const entry of manifest) {
@@ -109,6 +112,7 @@ const date = new Date().toISOString().slice(0, 10);
 const forSet = (set) => manifest.filter((entry) => entry.set === set);
 const report = {
   date,
+  ...(suffix ? { round } : {}),
   complete: manifest.every((entry) => progress.predictions.some((prediction) => prediction.id === entry.id)),
   spentUsd: Number(progress.spentUsd.toFixed(2)),
   models: [...new Set(progress.predictions.flatMap((prediction) => prediction.models))],
@@ -116,6 +120,6 @@ const report = {
   external: forSet("external").length ? scoreSet(forSet("external"), progress.predictions) : null,
   pilot: forSet("pilot").length ? scoreSet(forSet("pilot"), progress.predictions) : null,
 };
-await writeFile(join(ROOT, `data/evaluation-live-${date}.json`), `${JSON.stringify(report, null, 2)}\n`);
-await writeFile(join(ROOT, "docs/evaluation-results.md"), renderResultsMarkdown(report));
-console.log(`Report: data/evaluation-live-${date}.json and docs/evaluation-results.md. Counted spend $${report.spentUsd.toFixed(2)}.`);
+await writeFile(join(ROOT, `data/evaluation-live-${date}${suffix}.json`), `${JSON.stringify(report, null, 2)}\n`);
+await writeFile(join(ROOT, `docs/evaluation-results${suffix}.md`), renderResultsMarkdown(report));
+console.log(`Report: data/evaluation-live-${date}${suffix}.json and docs/evaluation-results${suffix}.md. Counted spend $${report.spentUsd.toFixed(2)}.`);

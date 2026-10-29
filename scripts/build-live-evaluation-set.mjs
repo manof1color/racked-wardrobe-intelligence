@@ -10,24 +10,35 @@
 // beside it. An existing lock is never replaced unless --relock is given before any run.
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deterministicEvaluationSample, normalizeSecondHandAnnotation, SECOND_HAND_FASHION_DATASET } from "../lib/evaluation-dataset.ts";
-import { createLock } from "../lib/live-evaluation.ts";
+import { createLock, roundSuffix } from "../lib/live-evaluation.ts";
 import { normalizeGarmentClassification } from "../lib/garment-taxonomy.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MIRROR = "fnauman/fashion-second-hand-front-only-rgb";
 const EXTERNAL_CASES = 300;
 const WINDOWS = 10, WINDOW_ROWS = 100;
-const MANIFEST = join(ROOT, "data/evaluation-live-manifest.json");
-const LOCK = join(ROOT, "data/evaluation-lock.json");
-const IMAGES = resolve(process.env.RACKED_EVAL_IMAGES ?? join(ROOT, "..", "racked-eval-images"));
 const args = process.argv.slice(2);
+// --round N locks a fresh set for a later run: other windows of the dataset, and never a photo an
+// earlier round used, so a change tuned on one round is measured on photos it has never seen.
+const round = args.includes("--round") ? args[args.indexOf("--round") + 1] : null;
+const suffix = roundSuffix(round);
+const MANIFEST = join(ROOT, `data/evaluation-live-manifest${suffix}.json`);
+const LOCK = join(ROOT, `data/evaluation-lock${suffix}.json`);
+const IMAGES = resolve(process.env.RACKED_EVAL_IMAGES ?? join(ROOT, "..", "racked-eval-images"));
 const pilotCsv = args.includes("--pilot") ? resolve(args[args.indexOf("--pilot") + 1] ?? "") : null;
 
-if (existsSync(LOCK) && !args.includes("--relock")) throw new Error("data/evaluation-lock.json already exists. Answers are locked; use --relock only if no benchmark has run yet.");
+if (existsSync(LOCK) && !args.includes("--relock")) throw new Error(`${LOCK} already exists. Answers are locked; use --relock only if no benchmark has run yet.`);
+const usedEarlier = new Set();
+if (suffix) {
+  for (const name of (await readdir(join(ROOT, "data"))).filter((file) => /^evaluation-live-manifest(-r\d)?\.json$/.test(file) && file !== `evaluation-live-manifest${suffix}.json`)) {
+    for (const entry of JSON.parse(await readFile(join(ROOT, "data", name), "utf8"))) usedEarlier.add(entry.id);
+  }
+  if (!usedEarlier.size) throw new Error("A later round needs the earlier round's manifest, so it can avoid its photos.");
+}
 if (IMAGES.startsWith(ROOT)) throw new Error("Keep the photos outside the repository (RACKED_EVAL_IMAGES).");
 await mkdir(IMAGES, { recursive: true });
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -56,11 +67,12 @@ const total = Number(first.num_rows_total);
 if (!Number.isSafeInteger(total) || total < WINDOWS * WINDOW_ROWS) throw new Error("The dataset mirror did not report its size.");
 const candidates = [];
 for (let window = 0; window < WINDOWS; window++) {
-  const offset = Math.floor((window * (total - WINDOW_ROWS)) / (WINDOWS - 1));
+  const shift = suffix ? (Number(round) - 1) * 1_000 : 0;
+  const offset = (Math.floor((window * (total - WINDOW_ROWS)) / (WINDOWS - 1)) + shift) % (total - WINDOW_ROWS);
   const page = await getJson(rowsUrl(offset, WINDOW_ROWS));
   for (const wrapper of page.rows ?? []) {
     const truth = normalizeSecondHandAnnotation(wrapper.row ?? {});
-    if (truth.category === "unknown" || !wrapper.row?.image?.src) continue;
+    if (truth.category === "unknown" || !wrapper.row?.image?.src || usedEarlier.has(`hf3-row-${wrapper.row_idx}`)) continue;
     candidates.push({ externalId: `hf3-row-${wrapper.row_idx}`, row: wrapper.row_idx, src: wrapper.row.image.src, truth });
   }
 }
@@ -99,4 +111,4 @@ if (pilotCsv) {
 
 await writeFile(MANIFEST, `${JSON.stringify(cases, null, 2)}\n`);
 await writeFile(LOCK, `${JSON.stringify(createLock(cases, new Date().toISOString()), null, 2)}\n`);
-console.log(`Wrote ${cases.length} cases (${cases.filter((entry) => entry.set === "pilot").length} pilot). Photos are in ${IMAGES}. Commit data/evaluation-live-manifest.json and data/evaluation-lock.json before running the benchmark.`);
+console.log(`Wrote ${cases.length} cases (${cases.filter((entry) => entry.set === "pilot").length} pilot). Photos are in ${IMAGES}. Commit data/evaluation-live-manifest${suffix}.json and data/evaluation-lock${suffix}.json before running the benchmark.`);

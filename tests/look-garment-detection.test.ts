@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildLookDetectionPrompt, DEFAULT_LOOK_DETECTION_MODEL, detectGarmentsInLook, lookDetectionModelCandidates, MAX_LOOK_GARMENTS, mayTryLookDetectionFallback, parseLookGarmentDetections } from "../lib/look-garment-detection.ts";
+import { GARMENT_TAXONOMY } from "../lib/garment-taxonomy.ts";
 
 test("look detection creates separate controlled garment candidates",()=>{
   const results=parseLookGarmentDetections({garments:[
@@ -32,6 +33,18 @@ test("separate model boxes sharing a footwear pair id are merged without making 
   assert.equal(results[0].analysis.garment.wearableUnit,"pair");
   assert.ok(results[0].bounds.width>.34,"the merged crop must contain both shoes");
   assert.match(results[0].analysis.garment.construction.join(" "),/grouped as one wearable pair/i);
+});
+
+test("the prompt files knit layers as tops, the way Racked's own taxonomy does",()=>{
+  // The live benchmark's most common miss (2026-10-29) was a hoodie or cardigan proposed as outerwear.
+  const prompt=buildLookDetectionPrompt();
+  const boundary=prompt.slice(prompt.indexOf("CATEGORY BOUNDARIES"));
+  for(const layer of ["hoodie","sweatshirt","sweater","cardigan"]){
+    assert.ok((GARMENT_TAXONOMY.top as readonly string[]).includes(layer),`${layer} is a top in the taxonomy`);
+    assert.match(boundary,new RegExp(`${layer}s,[^.]*are category top`,"i"),`${layer} is named a top in the prompt`);
+  }
+  assert.match(boundary,/never file a hoodie or cardigan as outerwear/i);
+  assert.match(boundary,/a long top or tunic is a top/i);
 });
 
 test("the provider prompt requires full-image coverage and pair-aware footwear counting",()=>{

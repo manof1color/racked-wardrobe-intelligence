@@ -189,6 +189,8 @@ export type SetScore = ReturnType<typeof scoreSet>;
 
 export interface LiveReport {
   date: string;
+  /** A later, separately locked round of fresh photos; absent for the first. */
+  round?: string;
   complete: boolean;
   spentUsd: number;
   models: string[];
@@ -201,14 +203,22 @@ const pct = (value: number | null) => (value === null ? "—" : `${(value * 100)
 const interval = (score: { successes: number; trials: number; rate: number | null; low: number | null; high: number | null }) =>
   score.trials ? `${score.successes} of ${score.trials} (${pct(score.rate)}, 95% CI ${pct(score.low)}–${pct(score.high)})` : "no eligible photos";
 
+/** File-name suffix for a later round: "" for the first, "-r2" for round 2. */
+export function roundSuffix(round: string | null | undefined) {
+  if (round === null || round === undefined || round === "1") return "";
+  if (!/^[2-9]$/.test(round)) throw new Error("--round must be a single digit from 2 to 9.");
+  return `-r${round}`;
+}
+
 /** docs/evaluation-results.md, written from the report and nothing else. */
 export function renderResultsMarkdown(report: LiveReport) {
+  const suffix = roundSuffix(report.round);
   const lines = [
-    "# Recognition results — live scan path",
+    `# Recognition results — live scan path${report.round ? `, round ${report.round}` : ""}`,
     "",
-    `Generated from \`data/evaluation-live-${report.date}.json\` by \`scripts/run-live-detection-evaluation.mjs\`. ${report.complete ? "Every locked photo was attempted." : "**Partial run:** not every locked photo was attempted; the denominators below say how many were."}`,
+    `Generated from \`data/evaluation-live-${report.date}${suffix}.json\` by \`scripts/run-live-detection-evaluation.mjs\`. ${report.complete ? "Every locked photo was attempted." : "**Partial run:** not every locked photo was attempted; the denominators below say how many were."}`,
     "",
-    `The benchmark runs \`detectLookOrManualReview\` and \`detectGarmentsInLook\` — the functions \`POST /api/garments/detect\` runs — on the same 1,600-pixel JPEG the route prepares. Models: ${report.models.map((model) => `\`${model}\``).join(", ") || "none called"}. Prompt SHA-256 \`${report.promptSha256.slice(0, 16)}…\`. Answers were locked in \`data/evaluation-lock.json\` before any model call. Bedrock spend counted with a ${PRICE_SAFETY}× margin: $${report.spentUsd.toFixed(2)} (hard cap $${HARD_BUDGET_USD.toFixed(2)}).`,
+    `The benchmark runs \`detectLookOrManualReview\` and \`detectGarmentsInLook\` — the functions \`POST /api/garments/detect\` runs — on the same 1,600-pixel JPEG the route prepares. Models: ${report.models.map((model) => `\`${model}\``).join(", ") || "none called"}. Prompt SHA-256 \`${report.promptSha256.slice(0, 16)}…\`. Answers were locked in \`data/evaluation-lock${suffix}.json\` before any model call. Bedrock spend counted with a ${PRICE_SAFETY}× margin: $${report.spentUsd.toFixed(2)} (hard cap $${HARD_BUDGET_USD.toFixed(2)}).`,
     "",
   ];
   for (const [title, score] of [["External: Clothing Dataset for Second-Hand Fashion (CC BY 4.0), front photos", report.external], ["Pilot brands' products, photographed and labelled by the owner", report.pilot]] as const) {
