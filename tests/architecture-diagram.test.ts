@@ -87,7 +87,7 @@ test("it names nothing Racked does not run and claims nothing it does not do", (
 });
 
 test("the README shows the image first in its architecture section and keeps the text diagram", () => {
-  const section = readme.slice(readme.indexOf("## Architecture Overview"), readme.indexOf("## Repository Map"));
+  const section = readme.slice(readme.indexOf("## Architecture Overview"), readme.indexOf("## Roadmap"));
   assert.match(section, /^!\[Racked architecture: [^\]]{120,}\]\(docs\/architecture\.svg\)$/m, "the image, with a descriptive alt text");
   assert.ok(section.indexOf("docs/architecture.svg") < section.indexOf("```mermaid"), "the image comes before the text diagram");
   assert.match(section, /<details>\s*<summary><strong>The same diagram as text — expand<\/strong><\/summary>\s*```mermaid/, "the Mermaid diagram stays, folded");
