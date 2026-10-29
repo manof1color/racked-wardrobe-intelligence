@@ -122,7 +122,7 @@ Judges score here. Answer in two sentences, then stop.
 | The podium laptop cannot sign in | Use the judge credentials delivered privately before demo day; they are seeded and verified beforehand. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-10-29):** 842 tests in 114 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-10-29):** 852 tests in 115 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 

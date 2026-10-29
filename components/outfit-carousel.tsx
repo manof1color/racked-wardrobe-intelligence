@@ -19,7 +19,7 @@ export function orderOutfitPieces(pieces: WardrobeItem[]) {
 
 export function OutfitPieceCarousel({ pieces, label }: { pieces: WardrobeItem[]; label: string }) {
   if (pieces.length === 0) return null;
-  return <div className="outfit-carousel" role="group" aria-label={label}>
+  return <div className="outfit-carousel" role="region" aria-label={label} tabIndex={0}>
     {orderOutfitPieces(pieces).map((item) => <figure className="outfit-slide" key={item.id}>
       {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <div className={`outfit-slide-fallback ${item.art}`} aria-hidden="true" />}
       <figcaption><strong>{item.name}</strong><small>{item.category} · {item.wearCount} wear{item.wearCount === 1 ? "" : "s"}</small></figcaption>

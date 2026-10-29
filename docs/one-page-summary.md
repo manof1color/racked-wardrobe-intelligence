@@ -37,8 +37,8 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **842 tests and a CI gate** — lint, type check, tests, production build, dependency audit, CodeQL —
-  on every pull request, with a build log through Phase 88 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-10-27).
+- **852 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
+  on every pull request, with a build log through Phase 89 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-10-29).
 
 ## Lessons learned
 
