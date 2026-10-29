@@ -31,16 +31,33 @@ if (existsSync(LOCK) && !args.includes("--relock")) throw new Error("data/evalua
 if (IMAGES.startsWith(ROOT)) throw new Error("Keep the photos outside the repository (RACKED_EVAL_IMAGES).");
 await mkdir(IMAGES, { recursive: true });
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+// The public dataset server sometimes answers with a temporary error page; retry a few times.
+async function fetchWithRetry(url, read) {
+  let lastError;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await read(response);
+    } catch (error) {
+      lastError = error;
+      await new Promise((done) => setTimeout(done, attempt * 3_000));
+    }
+  }
+  throw new Error(`Could not fetch from the dataset server after 5 tries (${lastError instanceof Error ? lastError.message : "unknown error"}).`);
+}
+const getJson = (url) => fetchWithRetry(url, (response) => response.json());
+const getBytes = (url) => fetchWithRetry(url, async (response) => Buffer.from(await response.arrayBuffer()));
 const rowsUrl = (offset, length) => `https://datasets-server.huggingface.co/rows?dataset=${encodeURIComponent(MIRROR)}&config=default&split=train&offset=${offset}&length=${length}`;
 
 // Ten evenly spaced windows of 100 metadata rows, as in the label-coverage audit.
-const first = await (await fetch(rowsUrl(0, 1))).json();
+const first = await getJson(rowsUrl(0, 1));
 const total = Number(first.num_rows_total);
 if (!Number.isSafeInteger(total) || total < WINDOWS * WINDOW_ROWS) throw new Error("The dataset mirror did not report its size.");
 const candidates = [];
 for (let window = 0; window < WINDOWS; window++) {
   const offset = Math.floor((window * (total - WINDOW_ROWS)) / (WINDOWS - 1));
-  const page = await (await fetch(rowsUrl(offset, WINDOW_ROWS))).json();
+  const page = await getJson(rowsUrl(offset, WINDOW_ROWS));
   for (const wrapper of page.rows ?? []) {
     const truth = normalizeSecondHandAnnotation(wrapper.row ?? {});
     if (truth.category === "unknown" || !wrapper.row?.image?.src) continue;
@@ -52,9 +69,7 @@ console.log(`${candidates.length} labelled candidates in ${WINDOWS} windows; sam
 
 const cases = [];
 for (const [index, candidate] of sample.entries()) {
-  const response = await fetch(candidate.src);
-  if (!response.ok) throw new Error(`Photo for ${candidate.externalId} did not download (${response.status}).`);
-  const bytes = Buffer.from(await response.arrayBuffer());
+  const bytes = await getBytes(candidate.src);
   const image = `${candidate.externalId}.jpg`;
   await writeFile(join(IMAGES, image), bytes);
   cases.push({
