@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-29",
+  "round": "2",
+  "complete": true,
+  "spentUsd": 1.76,
+  "models": [
+    "us.amazon.nova-pro-v1:0"
+  ],
+  "promptSha256": "509b9e45f0a7f63242db89de73b8900e0f58a9f17b23516ef18cf2773cfdb693",
+  "external": {
+    "cases": 300,
+    "attempted": 300,
+    "notAttempted": 0,
+    "providerFailures": {
+      "successes": 7,
+      "trials": 300,
+      "rate": 0.0233,
+      "low": 0.0113,
+      "high": 0.0474
+    },
+    "needsYourLabel": {
+      "successes": 0,
+      "trials": 293,
+      "rate": 0,
+      "low": 0,
+      "high": 0.0129
+    },
+    "category": {
+      "successes": 272,
+      "trials": 293,
+      "rate": 0.9283,
+      "low": 0.8929,
+      "high": 0.9526
+    },
+    "exactSubtype": {
+      "successes": 138,
+      "trials": 185,
+      "rate": 0.7459,
+      "low": 0.6787,
+      "high": 0.8032
+    },
+    "pieceRecall": null,
+    "identityBoundaryViolations": 0,
+    "misses": [
+      {
+        "key": "dress → top",
+        "count": 11
+      },
+      {
+        "key": "top → dress",
+        "count": 6
+      },
+      {
+        "key": "outerwear → bottom",
+        "count": 1
+      },
+      {
+        "key": "top → bag",
+        "count": 1
+      },
+      {
+        "key": "top → bottom",
+        "count": 1
+      },
+      {
+        "key": "top → outerwear",
+        "count": 1
+      }
+    ],
+    "missesByCondition": [
+      {
+        "key": "not recorded",
+        "count": 21
+      }
+    ]
+  },
+  "pilot": null
+}

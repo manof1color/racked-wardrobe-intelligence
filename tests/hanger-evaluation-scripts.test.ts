@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { buildRaterSheet, parseCsv, randomValidOutfit, seededRandom, toCsv, type EvalCloset, type EvalRequest, type RunFile, type RunRecord } from "../lib/hanger-evaluation.ts";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 const closets = ["closet-a", "closet-b", "closet-c", "closet-d"].map((id) => JSON.parse(read(`data/hanger-eval/${id}.json`)) as EvalCloset);
 const requests = (JSON.parse(read("data/hanger-eval/requests.json")) as { requests: EvalRequest[] }).requests;

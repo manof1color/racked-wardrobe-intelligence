@@ -7,7 +7,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Defines the purchase-versus-actual-wear information gap.
 - [x] Consumer value: private garment organization, outfit storage, and wear tracking.
 - [x] Brand value: brand-owned actual-wear, active-owner, and repeat-wear intelligence.
-- [x] Makes no unsupported sales-lift or recognition-accuracy claim.
+- [x] Makes no unsupported sales-lift or recognition-accuracy claim; the recognition figure (92.8% category on 300 fresh, locked independent photos; 89.7% before the fix) is [measured](evaluation-results-r2.md).
 
 ## 2. Functionality / technical execution — 25%
 
@@ -62,10 +62,10 @@ This is the judge’s index for the CUA rubric.
 - [x] Sliding-window rate limits on registration, sign-in, AI endpoints, brand metrics, and Community writes (verified live: the eleventh rapid sign-in attempt returns HTTP 429).
 - [x] Every Amazon Bedrock call carries a bounded request timeout, so a stalled provider degrades into the bounded crop, manual-review analysis, or grounded non-model reply instead of an unresolved request; a source-level regression test fails if a Bedrock command is ever sent without one.
 - [x] Installable responsive PWA. Where the browser allows it (Chrome and Edge on Android and desktop), Add Racked opens the real one-tap install dialog, and the install event is kept even when it fires before the page hydrates. iPhone has no install API, so it gets accurate iOS 26 steps with the Share icon shown; apps' built-in browsers (TikTok, Instagram) get an Open in Safari or Chrome handoff, since they cannot add to a Home Screen at all.
-- [x] 858 automated tests and lint pass (re-verified 2026-10-29); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
+- [x] 886 automated tests and lint pass (re-verified 2026-10-29); the clean CI gate runs type check, tests, production build, production dependency audit, and CodeQL before merge.
 - [x] Synthetic demo images are generated from one offline, deterministic illustrator shared by both seeds: distinct category silhouettes, subtype-specific pants/shoes/accessories, visible `SYNTHETIC DEMO` marking, no embedded photographs, and a raster-size regression test. Existing hosted images require a seed rerun to receive the new pixels; no product or wear records change.
 
-- [x] Measured coverage (2026-10-29), not asserted rigour: 98.28% of lines, 90.39% of branches, and 96.63% of functions across the suite, on Node 22.22.0. Recreate reaches 98.85% branch coverage, sessions 97.56%, and outfit ranking 93.72%. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
+- [x] Measured coverage (2026-10-29), not asserted rigour: 96.57% of lines, 86.65% of branches, and 94.40% of functions across the suite. Recreate reaches 98.85% branch coverage, sessions 97.56%, and outfit ranking 93.72%. The Recreate engine's bands, tie-breaks, and uncertainty rules are pinned to exact numbers in `tests/recreate-look-scoring.test.ts`.
 
 - [x] Hanger is a continuing conversation, not a stateless prompt: turns, controlled preferences, previously suggested pieces, and the latest active outfit are stored on the account, resumable across devices, and clearable by the person. The context window is budgeted explicitly — newest complete turns that fit, with older ones counted and declared rather than invented — and a remembered preference can only be a term the taxonomy and that wardrobe already use.
 

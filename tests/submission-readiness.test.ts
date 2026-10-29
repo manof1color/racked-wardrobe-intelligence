@@ -48,5 +48,5 @@ test("the one-page summary carries the sections the submission checklist require
   assert.ok(words <= 750, `a one-page summary must stay one page; this is ${words} words`);
   const lessons = summary.slice(summary.indexOf("## Lessons learned"));
   assert.ok((lessons.match(/^- \*\*/gm) ?? []).length >= 3, "three to five lessons, the section judges read most");
-  assert.match(summary, /I do not claim recognition accuracy/, "and the claims boundary survives the short form");
+  assert.match(summary, /I still do not claim\s+sales lift or purchase intent/, "and the claims boundary survives the short form");
 });

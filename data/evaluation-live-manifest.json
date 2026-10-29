@@ -1,0 +1,4673 @@
+[
+  {
+    "id": "hf3-row-6296",
+    "set": "external",
+    "image": "hf3-row-6296.jpg",
+    "imageSha256": "9e8bb8a502ac3e580c3dd42b2e0e594da5835fcf17bd764b9e16fd56d0eedaf4",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6296
+    }
+  },
+  {
+    "id": "hf3-row-1",
+    "set": "external",
+    "image": "hf3-row-1.jpg",
+    "imageSha256": "e77220ee3c3dca37b1b5e4d1c03ab7f2cc4b9766695c80bf783234b5e72aa5c5",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 1
+    }
+  },
+  {
+    "id": "hf3-row-18793",
+    "set": "external",
+    "image": "hf3-row-18793.jpg",
+    "imageSha256": "744f377598cc234874e5f4a34e9f3444ac5b8a1e565ab365ade6039ce386144b",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18793
+    }
+  },
+  {
+    "id": "hf3-row-18773",
+    "set": "external",
+    "image": "hf3-row-18773.jpg",
+    "imageSha256": "87cefd308c42ba1a03de61a60ba971116e6e601271c3fb8f3f9bfb79f3d57fd5",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18773
+    }
+  },
+  {
+    "id": "hf3-row-25114",
+    "set": "external",
+    "image": "hf3-row-25114.jpg",
+    "imageSha256": "db5dc1c6257a864e1da04cd1b80eb279ba2999a344cb00c61923e39972ef1631",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25114
+    }
+  },
+  {
+    "id": "hf3-row-6297",
+    "set": "external",
+    "image": "hf3-row-6297.jpg",
+    "imageSha256": "dda1cef6bbb0e9e9a7b2e98b62b6c63fc322a9166843e431a1494100fc5c5f23",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6297
+    }
+  },
+  {
+    "id": "hf3-row-6287",
+    "set": "external",
+    "image": "hf3-row-6287.jpg",
+    "imageSha256": "1993e20bd018cc5c7c1bf5165126ba3c1b25d697bfb7bd046e1714f450dd2389",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6287
+    }
+  },
+  {
+    "id": "hf3-row-0",
+    "set": "external",
+    "image": "hf3-row-0.jpg",
+    "imageSha256": "64064c73763edf7e043487010f9098b2232b82da742525946b191dfc14964e66",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 0
+    }
+  },
+  {
+    "id": "hf3-row-18770",
+    "set": "external",
+    "image": "hf3-row-18770.jpg",
+    "imageSha256": "2df027b7324c33ada6e87be8e833200801cc604bf71f292ceaf7c673ed2b068a",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18770
+    }
+  },
+  {
+    "id": "hf3-row-25115",
+    "set": "external",
+    "image": "hf3-row-25115.jpg",
+    "imageSha256": "3d12d07397b351568de3da5031361c911bdf20f4d923629de239d164288e1f94",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25115
+    }
+  },
+  {
+    "id": "hf3-row-6290",
+    "set": "external",
+    "image": "hf3-row-6290.jpg",
+    "imageSha256": "590cbe7ef34b897311663f4edcba40c2d63c1c63d599191f1c4a77413fcfb668",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6290
+    }
+  },
+  {
+    "id": "hf3-row-6286",
+    "set": "external",
+    "image": "hf3-row-6286.jpg",
+    "imageSha256": "3196915568967ce56738823c0f4980ef035d0428647a91ca8a70e6ecf29f561d",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6286
+    }
+  },
+  {
+    "id": "hf3-row-3",
+    "set": "external",
+    "image": "hf3-row-3.jpg",
+    "imageSha256": "e1b5272c19e24971dc1ed2b50b0d3132c20bf755ab5f26082bf39f1e874d6c65",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3
+    }
+  },
+  {
+    "id": "hf3-row-9439",
+    "set": "external",
+    "image": "hf3-row-9439.jpg",
+    "imageSha256": "5a3aaab1f1ed620046826425f453aa81d0afea456078e9f32f144c976302651d",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9439
+    }
+  },
+  {
+    "id": "hf3-row-18771",
+    "set": "external",
+    "image": "hf3-row-18771.jpg",
+    "imageSha256": "269d2fb40eb760be8240072b4e31d750af8328f45fd9a710f38566ee5a28d8e9",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18771
+    }
+  },
+  {
+    "id": "hf3-row-6291",
+    "set": "external",
+    "image": "hf3-row-6291.jpg",
+    "imageSha256": "96b4f9f3c1440a28c2fc0cf1d1b02d243ac796e727df91d137f1e4e170be44c9",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6291
+    }
+  },
+  {
+    "id": "hf3-row-6285",
+    "set": "external",
+    "image": "hf3-row-6285.jpg",
+    "imageSha256": "e180ed1905bfa64b5243a4c3ffc09631363dcf20ee20541a992a1fe8a028a28f",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6285
+    }
+  },
+  {
+    "id": "hf3-row-2",
+    "set": "external",
+    "image": "hf3-row-2.jpg",
+    "imageSha256": "4ff0f1f17b51b825cb1e463e87e3c408400a51accb82e01db202cf7f6ec6368b",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 2
+    }
+  },
+  {
+    "id": "hf3-row-9438",
+    "set": "external",
+    "image": "hf3-row-9438.jpg",
+    "imageSha256": "ce6506c2a6c8f43227aa4d238e2a36202da346665f06e3ee20086cf4f0e439ef",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9438
+    }
+  },
+  {
+    "id": "hf3-row-6292",
+    "set": "external",
+    "image": "hf3-row-6292.jpg",
+    "imageSha256": "c7d2ecfb296eff1c4245da89331669841cb022a724dc2abadc03c43aad512e6f",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6292
+    }
+  },
+  {
+    "id": "hf3-row-6284",
+    "set": "external",
+    "image": "hf3-row-6284.jpg",
+    "imageSha256": "851527224e9ecb74683df89f090d9d349b83cde17577f4bdbc7372fe5e4b6c36",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6284
+    }
+  },
+  {
+    "id": "hf3-row-25048",
+    "set": "external",
+    "image": "hf3-row-25048.jpg",
+    "imageSha256": "6884cac68e65bec3824f77da1beda56211b91227cafb2f78b3a7bdc46af6fefe",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25048
+    }
+  },
+  {
+    "id": "hf3-row-5",
+    "set": "external",
+    "image": "hf3-row-5.jpg",
+    "imageSha256": "5de50a567d9862e43384b48418239b1737e1a4937f26a5cffa8d039ef0d54b78",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 5
+    }
+  },
+  {
+    "id": "hf3-row-6293",
+    "set": "external",
+    "image": "hf3-row-6293.jpg",
+    "imageSha256": "cc80aca79dc8d4d3cfb1d9f4fa8ac2772d2d2994767b1e14f008801ba406aa0e",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6293
+    }
+  },
+  {
+    "id": "hf3-row-6283",
+    "set": "external",
+    "image": "hf3-row-6283.jpg",
+    "imageSha256": "9eebf568de71a5e4b9a784ff78493c81fe9fa315046cfe42ae19d2dbdcfd945e",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6283
+    }
+  },
+  {
+    "id": "hf3-row-25049",
+    "set": "external",
+    "image": "hf3-row-25049.jpg",
+    "imageSha256": "7cb0d141e448473ddf59ba618c305a95940f23ccdecded229a1935aa8adad567",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25049
+    }
+  },
+  {
+    "id": "hf3-row-4",
+    "set": "external",
+    "image": "hf3-row-4.jpg",
+    "imageSha256": "2e427bd000bf453dc647b5f43afed6d7cbe82383fe7ae6c121be90a2f6b64e21",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 4
+    }
+  },
+  {
+    "id": "hf3-row-6282",
+    "set": "external",
+    "image": "hf3-row-6282.jpg",
+    "imageSha256": "0dc00590763538b6dcedaf012cba0d5dc53dfef3d5b8fcf49573c302cfd4141f",
+    "truth": {
+      "category": "bottom",
+      "subtype": "shorts",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6282
+    }
+  },
+  {
+    "id": "hf3-row-7",
+    "set": "external",
+    "image": "hf3-row-7.jpg",
+    "imageSha256": "0b06feac4a4ff5d7f43fef40afc4ac2ceb06c4486dc739d790014fdf0905f40e",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 7
+    }
+  },
+  {
+    "id": "hf3-row-9419",
+    "set": "external",
+    "image": "hf3-row-9419.jpg",
+    "imageSha256": "ee944d1a4c9699e04cb873092226b0e56eb0a87720318e37723588c5b6dd7c03",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9419
+    }
+  },
+  {
+    "id": "hf3-row-6281",
+    "set": "external",
+    "image": "hf3-row-6281.jpg",
+    "imageSha256": "28caa9d1673a171e06c0e83388b3d188296ae7414d8ffa573b6c4223006d0bff",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6281
+    }
+  },
+  {
+    "id": "hf3-row-6",
+    "set": "external",
+    "image": "hf3-row-6.jpg",
+    "imageSha256": "a6cd79ab59bd82d133758a3d7a2191a8c6c54982f5a78364685123976fb4f5b3",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6
+    }
+  },
+  {
+    "id": "hf3-row-9418",
+    "set": "external",
+    "image": "hf3-row-9418.jpg",
+    "imageSha256": "648c99d6e2f676d59546a3ff32c546a7df11bdaa102b78ede95296b016c57a01",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9418
+    }
+  },
+  {
+    "id": "hf3-row-6280",
+    "set": "external",
+    "image": "hf3-row-6280.jpg",
+    "imageSha256": "f184c5ec9b23aa517414ca5f1e312db8dbab018e451622ed871d265fa1ad1740",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6280
+    }
+  },
+  {
+    "id": "hf3-row-25028",
+    "set": "external",
+    "image": "hf3-row-25028.jpg",
+    "imageSha256": "397f7a3b2691a835ebc246a04bfcded1960ce34be3723e04e10d30cfe2da49b5",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25028
+    }
+  },
+  {
+    "id": "hf3-row-9",
+    "set": "external",
+    "image": "hf3-row-9.jpg",
+    "imageSha256": "cc0a471facdf883018c59b3988c000b44c238ad9eccfa2c4046081f72d6abd50",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9
+    }
+  },
+  {
+    "id": "hf3-row-9417",
+    "set": "external",
+    "image": "hf3-row-9417.jpg",
+    "imageSha256": "e14ad5e366ec4ca328c3dd7237c425cb9fe5f1b9aae01d54821dbe8b0810081c",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9417
+    }
+  },
+  {
+    "id": "hf3-row-25029",
+    "set": "external",
+    "image": "hf3-row-25029.jpg",
+    "imageSha256": "9aef03f6ac537848efe518ab64a6e29f14b3db415b3d3aded7bcc347f1e55b1f",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25029
+    }
+  },
+  {
+    "id": "hf3-row-8",
+    "set": "external",
+    "image": "hf3-row-8.jpg",
+    "imageSha256": "7ccf241a1a6a4e8dcab0fb524f676835942cdf54823d22f40d202b37359a026f",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 8
+    }
+  },
+  {
+    "id": "hf3-row-9416",
+    "set": "external",
+    "image": "hf3-row-9416.jpg",
+    "imageSha256": "8b01bb929e39fb6b1585c718ede4b3c19febb1e34e9907e89e408f1a8600e138",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9416
+    }
+  },
+  {
+    "id": "hf3-row-6298",
+    "set": "external",
+    "image": "hf3-row-6298.jpg",
+    "imageSha256": "c46c7a23f1102ad028c8bdd3f89809fabe5381ccc75d1c5227b657cbaf5c2dec",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6298
+    }
+  },
+  {
+    "id": "hf3-row-9415",
+    "set": "external",
+    "image": "hf3-row-9415.jpg",
+    "imageSha256": "947c97da9fc1563963cda7ed425d11fe70af91414a4d751e16f152179b65cf88",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9415
+    }
+  },
+  {
+    "id": "hf3-row-18826",
+    "set": "external",
+    "image": "hf3-row-18826.jpg",
+    "imageSha256": "a83840c9b0696f775a4098992b2b5609f0b49fe51797b5343c8e37b844223446",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18826
+    }
+  },
+  {
+    "id": "hf3-row-6299",
+    "set": "external",
+    "image": "hf3-row-6299.jpg",
+    "imageSha256": "a01b7b5b4125f4e73b79f99fdc9b54a1f911a26f40149ede5123772d92858aa1",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6299
+    }
+  },
+  {
+    "id": "hf3-row-9414",
+    "set": "external",
+    "image": "hf3-row-9414.jpg",
+    "imageSha256": "50697fabd6bd5236ca9753871c4f5f4ddb857dfc884839e6978ce36af3c19194",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9414
+    }
+  },
+  {
+    "id": "hf3-row-18827",
+    "set": "external",
+    "image": "hf3-row-18827.jpg",
+    "imageSha256": "d24aad0d0bdcd3be7b3dc01077b77e20d7e8e0ec2748c1dc8a332fe59f817b77",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18827
+    }
+  },
+  {
+    "id": "hf3-row-25040",
+    "set": "external",
+    "image": "hf3-row-25040.jpg",
+    "imageSha256": "da7cfbad22379448f59201b25427f6ffe23029dce9d72cd9bf01eff9f396e0ba",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25040
+    }
+  },
+  {
+    "id": "hf3-row-9413",
+    "set": "external",
+    "image": "hf3-row-9413.jpg",
+    "imageSha256": "32ad3d49f1bb97c6f9c6686eea4f852bcfa67b6ecd96ae7ffb44e35be0b02f01",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9413
+    }
+  },
+  {
+    "id": "hf3-row-18824",
+    "set": "external",
+    "image": "hf3-row-18824.jpg",
+    "imageSha256": "40490c0bb820288a3c3d5bac985d787b67be448ee3009af74922b73cc9240e4a",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18824
+    }
+  },
+  {
+    "id": "hf3-row-9398",
+    "set": "external",
+    "image": "hf3-row-9398.jpg",
+    "imageSha256": "259fbac85b714f01a3ea2c49adc79f38c40b49f417c769e4cbc749a22cb1be39",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9398
+    }
+  },
+  {
+    "id": "hf3-row-25041",
+    "set": "external",
+    "image": "hf3-row-25041.jpg",
+    "imageSha256": "36f53424c840a4e740544f2b97411526e80526bbdc62139db3fdfdf19b2c6985",
+    "truth": {
+      "category": "top",
+      "subtype": "tank-top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25041
+    }
+  },
+  {
+    "id": "hf3-row-25039",
+    "set": "external",
+    "image": "hf3-row-25039.jpg",
+    "imageSha256": "2ba5ffbb490b76822aee5710067ecfdc0405d19dba8784dcc9286770db474c0c",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25039
+    }
+  },
+  {
+    "id": "hf3-row-6320",
+    "set": "external",
+    "image": "hf3-row-6320.jpg",
+    "imageSha256": "35bd74c340f31b3e4629ec6ebcd04d90af9025946dee2e6d6dc83bde1a8f01f9",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6320
+    }
+  },
+  {
+    "id": "hf3-row-9412",
+    "set": "external",
+    "image": "hf3-row-9412.jpg",
+    "imageSha256": "3a5baef8fc59af1b4381139ac6f439515b7837494ca8d158dfb0262f5413d8c5",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9412
+    }
+  },
+  {
+    "id": "hf3-row-18825",
+    "set": "external",
+    "image": "hf3-row-18825.jpg",
+    "imageSha256": "d11e1025972110dbce90ff5bbd00733e6873c8fa0bbfd884c8b332d562182e76",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18825
+    }
+  },
+  {
+    "id": "hf3-row-18839",
+    "set": "external",
+    "image": "hf3-row-18839.jpg",
+    "imageSha256": "b53b9ed3b31a9c00dbb2d97115e9e8ee54629e80c3b0a9346309f4c1280c61fd",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18839
+    }
+  },
+  {
+    "id": "hf3-row-9399",
+    "set": "external",
+    "image": "hf3-row-9399.jpg",
+    "imageSha256": "790928a9849a5097e7db5b28e148d38e3ddc16601d9934787b169cadfd3772dd",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9399
+    }
+  },
+  {
+    "id": "hf3-row-25042",
+    "set": "external",
+    "image": "hf3-row-25042.jpg",
+    "imageSha256": "f25d3ae4a15349ad287d182d46f7919e6982577d476ffdb096af04b72c15180d",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25042
+    }
+  },
+  {
+    "id": "hf3-row-25022",
+    "set": "external",
+    "image": "hf3-row-25022.jpg",
+    "imageSha256": "e80930d6953cbccb04225719aa88fd9caa3fae2545588a5f3d3cf515c31888a2",
+    "truth": {
+      "category": "bottom",
+      "subtype": "skirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25022
+    }
+  },
+  {
+    "id": "hf3-row-25038",
+    "set": "external",
+    "image": "hf3-row-25038.jpg",
+    "imageSha256": "042e317111633a386834df743b799d7227893244a27e17805b982d966d1939af",
+    "truth": {
+      "category": "bottom",
+      "subtype": "skirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25038
+    }
+  },
+  {
+    "id": "hf3-row-6321",
+    "set": "external",
+    "image": "hf3-row-6321.jpg",
+    "imageSha256": "862bcd19c8d2ef7918acaaf02cb756c7db19a7808fa893c2024c8dd8b3226e8d",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6321
+    }
+  },
+  {
+    "id": "hf3-row-9411",
+    "set": "external",
+    "image": "hf3-row-9411.jpg",
+    "imageSha256": "397f1459b7b7da6ee60b67abc0f65fb1775bd77ca517324f0fbe0fef7483d37c",
+    "truth": {
+      "category": "bottom",
+      "subtype": "skirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9411
+    }
+  },
+  {
+    "id": "hf3-row-18822",
+    "set": "external",
+    "image": "hf3-row-18822.jpg",
+    "imageSha256": "92ab4f731df39dd639dfc69e10e152483033b83fbbb65ea920669d1de89b451f",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18822
+    }
+  },
+  {
+    "id": "hf3-row-18838",
+    "set": "external",
+    "image": "hf3-row-18838.jpg",
+    "imageSha256": "66077c9070833c79374b72a7fdff63ec58ee6d0c6c51f994840d9dc76d9882b3",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18838
+    }
+  },
+  {
+    "id": "hf3-row-6289",
+    "set": "external",
+    "image": "hf3-row-6289.jpg",
+    "imageSha256": "341b14e183664021b25378bad96f66cf54c2dca2517d2309362017eca9bd1866",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6289
+    }
+  },
+  {
+    "id": "hf3-row-25043",
+    "set": "external",
+    "image": "hf3-row-25043.jpg",
+    "imageSha256": "c3b8a60e22f231cc1094e74c182f88421cac45b00fe252bf6b0b76fccb6fb732",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25043
+    }
+  },
+  {
+    "id": "hf3-row-25023",
+    "set": "external",
+    "image": "hf3-row-25023.jpg",
+    "imageSha256": "1580f8e0a88b6185299443da9c2de12f48554e9a74b3bde17d5acf817d50b7be",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25023
+    }
+  },
+  {
+    "id": "hf3-row-6322",
+    "set": "external",
+    "image": "hf3-row-6322.jpg",
+    "imageSha256": "c45a31a24b5c1850b8478709bcb728e3a78ea9f3c07598eff53d8edae59576ae",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6322
+    }
+  },
+  {
+    "id": "hf3-row-6342",
+    "set": "external",
+    "image": "hf3-row-6342.jpg",
+    "imageSha256": "e6fd8cafa2efdf4980ced9235201b14c2e009b639a3fdf2fe1f83e9b384fa059",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6342
+    }
+  },
+  {
+    "id": "hf3-row-9410",
+    "set": "external",
+    "image": "hf3-row-9410.jpg",
+    "imageSha256": "4b8917fe69a12f2f82ba2b023719f0c0792f1c3c1d15e384641baa23c0637f3b",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9410
+    }
+  },
+  {
+    "id": "hf3-row-18823",
+    "set": "external",
+    "image": "hf3-row-18823.jpg",
+    "imageSha256": "3bf89baa0fd71c2129b88ba7dc032a03c9cbbcb8bae6ed923ba33af09a74573b",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18823
+    }
+  },
+  {
+    "id": "hf3-row-6288",
+    "set": "external",
+    "image": "hf3-row-6288.jpg",
+    "imageSha256": "4b6bc76aab289271675f24cbeaafa937b723376726c2f89035bc4b76f0168028",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6288
+    }
+  },
+  {
+    "id": "hf3-row-25044",
+    "set": "external",
+    "image": "hf3-row-25044.jpg",
+    "imageSha256": "8e68445e36d7e1cdcd751daa4de201045e0ca3f5dda18283d1a4835aad605b9a",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25044
+    }
+  },
+  {
+    "id": "hf3-row-25020",
+    "set": "external",
+    "image": "hf3-row-25020.jpg",
+    "imageSha256": "b4e997b91e19ea2b0937b9a4e05cad1fcba077af4f8725efbae92f5765e3584d",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25020
+    }
+  },
+  {
+    "id": "hf3-row-6323",
+    "set": "external",
+    "image": "hf3-row-6323.jpg",
+    "imageSha256": "81cec9bb400943397e7d800470c3e641a38e856cbc56a394915cd01d4fbc56dd",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6323
+    }
+  },
+  {
+    "id": "hf3-row-6343",
+    "set": "external",
+    "image": "hf3-row-6343.jpg",
+    "imageSha256": "ffe28e64e1d0d90eb127527ad2e2251e86a1bdd74708f4ea1669372c4bcd791c",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6343
+    }
+  },
+  {
+    "id": "hf3-row-18820",
+    "set": "external",
+    "image": "hf3-row-18820.jpg",
+    "imageSha256": "21d2f0c0258c3ba10b5d4eeb34cc72d0bda70b8e88f5b32d437565343d152264",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18820
+    }
+  },
+  {
+    "id": "hf3-row-25045",
+    "set": "external",
+    "image": "hf3-row-25045.jpg",
+    "imageSha256": "4d48570e8d36a7da767ca5954361cc96ccc0b7f57d5f3e822a0953c37405a663",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25045
+    }
+  },
+  {
+    "id": "hf3-row-25021",
+    "set": "external",
+    "image": "hf3-row-25021.jpg",
+    "imageSha256": "4db47b867d4fba924c19a65c52cf662d96bd00dd4648e545df31018063bfac1f",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25021
+    }
+  },
+  {
+    "id": "hf3-row-25035",
+    "set": "external",
+    "image": "hf3-row-25035.jpg",
+    "imageSha256": "34858086aa201ce6416d592a2b4b507636045ea6e71584c577188dc55e7dbd9c",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25035
+    }
+  },
+  {
+    "id": "hf3-row-6324",
+    "set": "external",
+    "image": "hf3-row-6324.jpg",
+    "imageSha256": "8fc9bca23e213579fdfa45d8a2d5672257e24c26b1b4658261c6b98cad1e3c07",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6324
+    }
+  },
+  {
+    "id": "hf3-row-6340",
+    "set": "external",
+    "image": "hf3-row-6340.jpg",
+    "imageSha256": "040a6ede51d3ac6e56808a7eb5e5fe7d0a5d4b95367b3030cb807cadd1c7b31d",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6340
+    }
+  },
+  {
+    "id": "hf3-row-18821",
+    "set": "external",
+    "image": "hf3-row-18821.jpg",
+    "imageSha256": "5c834e81ab2ba332b3f921bee74c0a77a3c562c6029cff3ae9396eebcc5e41cb",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18821
+    }
+  },
+  {
+    "id": "hf3-row-25046",
+    "set": "external",
+    "image": "hf3-row-25046.jpg",
+    "imageSha256": "9d070861c8a386abeee904f8b28a9293cb9e443772c9a5aac5894207247829b1",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25046
+    }
+  },
+  {
+    "id": "hf3-row-25026",
+    "set": "external",
+    "image": "hf3-row-25026.jpg",
+    "imageSha256": "857283f86749d548380ca4e94392212d91f93fcde6cbbb6170f67aef218e5c96",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25026
+    }
+  },
+  {
+    "id": "hf3-row-25034",
+    "set": "external",
+    "image": "hf3-row-25034.jpg",
+    "imageSha256": "243c633ab6f27a51d04706d0ce1869d54000772c277c68b3ea5ea2cb92688ba4",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25034
+    }
+  },
+  {
+    "id": "hf3-row-6325",
+    "set": "external",
+    "image": "hf3-row-6325.jpg",
+    "imageSha256": "5b326e1c657212c77c9900f501eccdc11530a1cd50d759547870d8cf29ee4234",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6325
+    }
+  },
+  {
+    "id": "hf3-row-6341",
+    "set": "external",
+    "image": "hf3-row-6341.jpg",
+    "imageSha256": "303f3fff96b0419f313a3cd0fbe9f62b3e8c262e0c52981a3af644f09504c602",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6341
+    }
+  },
+  {
+    "id": "hf3-row-25047",
+    "set": "external",
+    "image": "hf3-row-25047.jpg",
+    "imageSha256": "47559dbceca508dd1a4ff31e20b72fe0725882d856760cf250ce158de08bcb80",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25047
+    }
+  },
+  {
+    "id": "hf3-row-25027",
+    "set": "external",
+    "image": "hf3-row-25027.jpg",
+    "imageSha256": "38edd2156c8a6873f037a148a56cc66568cf8b383f2dc6d4ba43438e21a384d8",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25027
+    }
+  },
+  {
+    "id": "hf3-row-25037",
+    "set": "external",
+    "image": "hf3-row-25037.jpg",
+    "imageSha256": "2b540c9ebcc4954da6d67aba93d11177b76d0f542f05dd611ce575e0de6bca2b",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25037
+    }
+  },
+  {
+    "id": "hf3-row-6326",
+    "set": "external",
+    "image": "hf3-row-6326.jpg",
+    "imageSha256": "4b728eb873f1dc035fdd258c93ae1db5c8e85cecdf65ef875d1c73555d87dc0e",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6326
+    }
+  },
+  {
+    "id": "hf3-row-6346",
+    "set": "external",
+    "image": "hf3-row-6346.jpg",
+    "imageSha256": "2b8132dbdcafff37c6f15b9a0f19dce741ea392643b8a47b885a4cd265e8ab75",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6346
+    }
+  },
+  {
+    "id": "hf3-row-6354",
+    "set": "external",
+    "image": "hf3-row-6354.jpg",
+    "imageSha256": "a01b849fec26e197e6bf5e698c842d8b15ec5bd7e7e2cc9bc252930753d318c1",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6354
+    }
+  },
+  {
+    "id": "hf3-row-25036",
+    "set": "external",
+    "image": "hf3-row-25036.jpg",
+    "imageSha256": "2fb265187247a817eb97726b37ce4fb9cbb6a0b93a3aaac87b39430a7e00613d",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25036
+    }
+  },
+  {
+    "id": "hf3-row-6327",
+    "set": "external",
+    "image": "hf3-row-6327.jpg",
+    "imageSha256": "aab13c218f1c296b5606933480c9a9fd0d65fd74d6d286af797a0e2be4c19e55",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6327
+    }
+  },
+  {
+    "id": "hf3-row-6347",
+    "set": "external",
+    "image": "hf3-row-6347.jpg",
+    "imageSha256": "f281bb383fab5101c004c2ba1008852db7699ec6d708a152b960e409a4bc8b79",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6347
+    }
+  },
+  {
+    "id": "hf3-row-9390",
+    "set": "external",
+    "image": "hf3-row-9390.jpg",
+    "imageSha256": "ab437dbedf282b97b97a4f7a98b282532e563f8badb5fe8092aa4c85633d33f7",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9390
+    }
+  },
+  {
+    "id": "hf3-row-25025",
+    "set": "external",
+    "image": "hf3-row-25025.jpg",
+    "imageSha256": "99d0322aaaa41737e20f6bb1796c0c673a8a46226b96c831ddffa4113cfcb3b6",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25025
+    }
+  },
+  {
+    "id": "hf3-row-6328",
+    "set": "external",
+    "image": "hf3-row-6328.jpg",
+    "imageSha256": "c30e7969e911cabef84f402b0be679eefc3cdd2b65cb4174f6472b16d6f86de8",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6328
+    }
+  },
+  {
+    "id": "hf3-row-6344",
+    "set": "external",
+    "image": "hf3-row-6344.jpg",
+    "imageSha256": "47c24ec99b4d132abffde625753ed9457c4fafb2481e3fab6be1ab6df29aeb8e",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6344
+    }
+  },
+  {
+    "id": "hf3-row-18831",
+    "set": "external",
+    "image": "hf3-row-18831.jpg",
+    "imageSha256": "a49a08a5461a05a6bbdc610751466f140effa33603f3e940467274ee97dd0a88",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18831
+    }
+  },
+  {
+    "id": "hf3-row-18849",
+    "set": "external",
+    "image": "hf3-row-18849.jpg",
+    "imageSha256": "9d46e07719a62a64da3ebc6d0da02970ed67cfd87209dfaa6f11b3c2b31ad628",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18849
+    }
+  },
+  {
+    "id": "hf3-row-9391",
+    "set": "external",
+    "image": "hf3-row-9391.jpg",
+    "imageSha256": "bea5007790a97c6a6eeb5a25990215ecc9ef89e86b4acf83b40d1eaa7dfe7547",
+    "truth": {
+      "category": "bottom",
+      "subtype": "skirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9391
+    }
+  },
+  {
+    "id": "hf3-row-25030",
+    "set": "external",
+    "image": "hf3-row-25030.jpg",
+    "imageSha256": "20e6efb73678e490cf543d4f00891836cb7a3a34cafe47fea04cf67333c680c8",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25030
+    }
+  },
+  {
+    "id": "hf3-row-6329",
+    "set": "external",
+    "image": "hf3-row-6329.jpg",
+    "imageSha256": "8da7293bc4d0ddf511dad35996e3ae9942d35a6e0b82c047829c158dcec6bb0f",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6329
+    }
+  },
+  {
+    "id": "hf3-row-6345",
+    "set": "external",
+    "image": "hf3-row-6345.jpg",
+    "imageSha256": "a85a5ab8699a253458beabcc80fb58713d510ce0a681f458536399ff03342be9",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6345
+    }
+  },
+  {
+    "id": "hf3-row-6351",
+    "set": "external",
+    "image": "hf3-row-6351.jpg",
+    "imageSha256": "99cc72a26f5b1498728744ff4542d6f52438e244ba1111045f25cb71616b2a12",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6351
+    }
+  },
+  {
+    "id": "hf3-row-18830",
+    "set": "external",
+    "image": "hf3-row-18830.jpg",
+    "imageSha256": "d86ad24703f846275ee864efcef7614766f6f94574ca09ffa18435d48e3f1a8a",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18830
+    }
+  },
+  {
+    "id": "hf3-row-9392",
+    "set": "external",
+    "image": "hf3-row-9392.jpg",
+    "imageSha256": "7bb51039522b5f85406d8973016c9cfac66d85a286df1587b42c16ea3e09337a",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9392
+    }
+  },
+  {
+    "id": "hf3-row-25033",
+    "set": "external",
+    "image": "hf3-row-25033.jpg",
+    "imageSha256": "880b5488fe75980b1b42245ee65af91aa946b32cd84be7b1ce10329376d88017",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25033
+    }
+  },
+  {
+    "id": "hf3-row-6350",
+    "set": "external",
+    "image": "hf3-row-6350.jpg",
+    "imageSha256": "977b16ff411a095e0eecb199eaa4fbfa6287543b6a28199c5be8e5be99c732e0",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6350
+    }
+  },
+  {
+    "id": "hf3-row-9393",
+    "set": "external",
+    "image": "hf3-row-9393.jpg",
+    "imageSha256": "10734a23193007916184eb46d8914bff7578fdcea04c919fcc4a26af79e028b1",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9393
+    }
+  },
+  {
+    "id": "hf3-row-25032",
+    "set": "external",
+    "image": "hf3-row-25032.jpg",
+    "imageSha256": "3f1613e06cddd47e005669fe2bb9c146008c4b570f71c089e16ca81104a3f95e",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25032
+    }
+  },
+  {
+    "id": "hf3-row-6353",
+    "set": "external",
+    "image": "hf3-row-6353.jpg",
+    "imageSha256": "189b8a52f856fad4f9f2780a1076d01a80aeeb16005a91f1a8ac93399fff2419",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6353
+    }
+  },
+  {
+    "id": "hf3-row-18828",
+    "set": "external",
+    "image": "hf3-row-18828.jpg",
+    "imageSha256": "dd784e30c74fddafd28725cb8a94c2eb2794909401546f966d3133b56e4a59e4",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18828
+    }
+  },
+  {
+    "id": "hf3-row-18832",
+    "set": "external",
+    "image": "hf3-row-18832.jpg",
+    "imageSha256": "f7fdcd180afbd89eb8e4d11fd80508546bc2f8ecfc53f0705b393337149d758a",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18832
+    }
+  },
+  {
+    "id": "hf3-row-18844",
+    "set": "external",
+    "image": "hf3-row-18844.jpg",
+    "imageSha256": "50d22176b89afccfba4faf067e4ae8282815e06c6b34cb8910903a7b96dc6083",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18844
+    }
+  },
+  {
+    "id": "hf3-row-9394",
+    "set": "external",
+    "image": "hf3-row-9394.jpg",
+    "imageSha256": "59348945e04c59c52813fe81140d56aa99e3cced26b5882f4ce566f563eea08a",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9394
+    }
+  },
+  {
+    "id": "hf3-row-6348",
+    "set": "external",
+    "image": "hf3-row-6348.jpg",
+    "imageSha256": "22dc3b9fe42531d30da1e0153db754961ecf2447eec31babb3c981aa7e54833d",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6348
+    }
+  },
+  {
+    "id": "hf3-row-6352",
+    "set": "external",
+    "image": "hf3-row-6352.jpg",
+    "imageSha256": "3d782d1c267b02a2f62d668d94b12610b0c216cc77a16a6d1f712bc738a0b245",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6352
+    }
+  },
+  {
+    "id": "hf3-row-18829",
+    "set": "external",
+    "image": "hf3-row-18829.jpg",
+    "imageSha256": "7ba8156d391ce8873c43323ca95f6016704d2caffe598aebf62bfddc54273f21",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18829
+    }
+  },
+  {
+    "id": "hf3-row-18835",
+    "set": "external",
+    "image": "hf3-row-18835.jpg",
+    "imageSha256": "088dd370886476b09c25245d30bcf210296cd7dc96eaa7c9162191cd9cade433",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18835
+    }
+  },
+  {
+    "id": "hf3-row-18845",
+    "set": "external",
+    "image": "hf3-row-18845.jpg",
+    "imageSha256": "097770237e77ef7d2911032ba9922b65ea4628491beafa037b57fbf330735816",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18845
+    }
+  },
+  {
+    "id": "hf3-row-18859",
+    "set": "external",
+    "image": "hf3-row-18859.jpg",
+    "imageSha256": "1c07d85e79b915772b9d25897b1473a6cb7c959c00a14f99fe76a664116fa745",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "vest",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18859
+    }
+  },
+  {
+    "id": "hf3-row-9395",
+    "set": "external",
+    "image": "hf3-row-9395.jpg",
+    "imageSha256": "84fbb89de53430c85249cdc580e358273f1ba53571c8182fc52023127e772fcb",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9395
+    }
+  },
+  {
+    "id": "hf3-row-6349",
+    "set": "external",
+    "image": "hf3-row-6349.jpg",
+    "imageSha256": "0508a1d0459d6d77e6984abc47f5ce2c505f7c8eb19bce5f836df6b36377760a",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 6349
+    }
+  },
+  {
+    "id": "hf3-row-18834",
+    "set": "external",
+    "image": "hf3-row-18834.jpg",
+    "imageSha256": "bd6819db3e7a5ab64510fcc58fed6b37b42eb0836e8a7c66971b7ece35ecd4da",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18834
+    }
+  },
+  {
+    "id": "hf3-row-18846",
+    "set": "external",
+    "image": "hf3-row-18846.jpg",
+    "imageSha256": "7ae1d193b032ff262dc4af367dda7515f0d29c9dcfde261fc4343b278f618e18",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18846
+    }
+  },
+  {
+    "id": "hf3-row-18858",
+    "set": "external",
+    "image": "hf3-row-18858.jpg",
+    "imageSha256": "6cb657c3485b4fc83ed2aa5e71a87784d4f1da286aec30e9a0df0b9572c3b301",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18858
+    }
+  },
+  {
+    "id": "hf3-row-9396",
+    "set": "external",
+    "image": "hf3-row-9396.jpg",
+    "imageSha256": "d0713b88dff0bf8de8cfada98f7cdc830d43ba1db9066a2cefdb46ede6b23c02",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9396
+    }
+  },
+  {
+    "id": "hf3-row-18837",
+    "set": "external",
+    "image": "hf3-row-18837.jpg",
+    "imageSha256": "d916dc6053c4a7ef3b7f7269834308b3cd73aa023ccf3021d06a1f2f468d119f",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18837
+    }
+  },
+  {
+    "id": "hf3-row-18847",
+    "set": "external",
+    "image": "hf3-row-18847.jpg",
+    "imageSha256": "3dc18ea9c4d8fec80f35a6293669989b6c97a1a6386336a71ad316e67ba183c3",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18847
+    }
+  },
+  {
+    "id": "hf3-row-18857",
+    "set": "external",
+    "image": "hf3-row-18857.jpg",
+    "imageSha256": "d623f82663fbf704cb70ce71ebddda87843823596b99eebfedbb061f3c564810",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18857
+    }
+  },
+  {
+    "id": "hf3-row-9397",
+    "set": "external",
+    "image": "hf3-row-9397.jpg",
+    "imageSha256": "045ffec47a8f47f5f70d11e7292fb4ee461712457473b9aeceb194834cdabfd3",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 9397
+    }
+  },
+  {
+    "id": "hf3-row-18836",
+    "set": "external",
+    "image": "hf3-row-18836.jpg",
+    "imageSha256": "60dade88bfd380838d87367524f11643f3a07b0683ff7ee45b42c9cbd09a21a8",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18836
+    }
+  },
+  {
+    "id": "hf3-row-18840",
+    "set": "external",
+    "image": "hf3-row-18840.jpg",
+    "imageSha256": "969729702badab2a8df9a8e5317b985ab7c0c398c1420dc5059bad229b2b4b88",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18840
+    }
+  },
+  {
+    "id": "hf3-row-18856",
+    "set": "external",
+    "image": "hf3-row-18856.jpg",
+    "imageSha256": "34aae66b952c88a609f022194d3c5300346b79b7ca7725fb393fbfb6bc984dec",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18856
+    }
+  },
+  {
+    "id": "hf3-row-18841",
+    "set": "external",
+    "image": "hf3-row-18841.jpg",
+    "imageSha256": "d63f9fe31cfe33c53d66462c726f87f5cc859c6d868280319bc31d08cf832899",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18841
+    }
+  },
+  {
+    "id": "hf3-row-18855",
+    "set": "external",
+    "image": "hf3-row-18855.jpg",
+    "imageSha256": "9c117bed78f1d9bcc0251e23488754e015ef55e5d38ae77c846b892dc18dfa1d",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18855
+    }
+  },
+  {
+    "id": "hf3-row-18842",
+    "set": "external",
+    "image": "hf3-row-18842.jpg",
+    "imageSha256": "0b0e51a62caa0d4167a4a6321baa54c1daf30e45cc9f483489be904b5a502ba5",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18842
+    }
+  },
+  {
+    "id": "hf3-row-18854",
+    "set": "external",
+    "image": "hf3-row-18854.jpg",
+    "imageSha256": "7ea27c1baafdd789a7f196f678694340be76a3d3d64c90f1d019b9ce26c01af4",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18854
+    }
+  },
+  {
+    "id": "hf3-row-18843",
+    "set": "external",
+    "image": "hf3-row-18843.jpg",
+    "imageSha256": "d6693d461cca724cb6dff304d57d27c0f27428f02dcac308634c10599fec3d6e",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18843
+    }
+  },
+  {
+    "id": "hf3-row-18853",
+    "set": "external",
+    "image": "hf3-row-18853.jpg",
+    "imageSha256": "032c6db04fe016dd114bbe0f66a8af39b655ec5e939d7117d573ba459efedead",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18853
+    }
+  },
+  {
+    "id": "hf3-row-18852",
+    "set": "external",
+    "image": "hf3-row-18852.jpg",
+    "imageSha256": "32d83aafb0a0aa81204004cde0e8a9087fa899b05aee82cf48619dd0d77f1a65",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18852
+    }
+  },
+  {
+    "id": "hf3-row-18851",
+    "set": "external",
+    "image": "hf3-row-18851.jpg",
+    "imageSha256": "d6ff99416abb197bc524af2ab6d1071430bd3bd8626980be479bcc9c9c2093b8",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18851
+    }
+  },
+  {
+    "id": "hf3-row-18850",
+    "set": "external",
+    "image": "hf3-row-18850.jpg",
+    "imageSha256": "a90b7ec7cc7c218c67f084a44b13114bdfe12b69a4d9dcb04bffda8dff6d8ef6",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 18850
+    }
+  },
+  {
+    "id": "hf3-row-3176",
+    "set": "external",
+    "image": "hf3-row-3176.jpg",
+    "imageSha256": "31641716b58ac684b51b4c38442d2c030a4fe0e78234b6adbb0c02193d1f0f43",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3176
+    }
+  },
+  {
+    "id": "hf3-row-3177",
+    "set": "external",
+    "image": "hf3-row-3177.jpg",
+    "imageSha256": "30d63d380fe32a6c19a21463e900f05ce7ade4a8c98cf60a4cabf878a4c09437",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3177
+    }
+  },
+  {
+    "id": "hf3-row-3174",
+    "set": "external",
+    "image": "hf3-row-3174.jpg",
+    "imageSha256": "660ee14daa27b425731a9f3fd9e890967de659fdebb745bc2629098f3b087f96",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3174
+    }
+  },
+  {
+    "id": "hf3-row-12520",
+    "set": "external",
+    "image": "hf3-row-12520.jpg",
+    "imageSha256": "4c87c0ea643cd1adb401df4aef603c153120f873e00d8784d60ed24bc3cc3837",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12520
+    }
+  },
+  {
+    "id": "hf3-row-36",
+    "set": "external",
+    "image": "hf3-row-36.jpg",
+    "imageSha256": "8a6ab3d14a128f39e8603fc7268a40a4edbd51f670de0f810f52d125b4289d89",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 36
+    }
+  },
+  {
+    "id": "hf3-row-3175",
+    "set": "external",
+    "image": "hf3-row-3175.jpg",
+    "imageSha256": "90a31e284a145c5453675a2945a2381c138897fb15427a112cddbc400110f25b",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3175
+    }
+  },
+  {
+    "id": "hf3-row-3169",
+    "set": "external",
+    "image": "hf3-row-3169.jpg",
+    "imageSha256": "9df7e234ab918369fdbcbcfb9fd9111bf90147570fca7534e63e9e97c315ce5c",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3169
+    }
+  },
+  {
+    "id": "hf3-row-12523",
+    "set": "external",
+    "image": "hf3-row-12523.jpg",
+    "imageSha256": "336b2b53255f843f2d95eb2673e63a0294a63c75159fc520b295b6d4023a6eff",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12523
+    }
+  },
+  {
+    "id": "hf3-row-37",
+    "set": "external",
+    "image": "hf3-row-37.jpg",
+    "imageSha256": "e9f4066e51a2b2b0a60ffd09153553036f537db3c1751fe6408d14cbecc1f7b8",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 37
+    }
+  },
+  {
+    "id": "hf3-row-3172",
+    "set": "external",
+    "image": "hf3-row-3172.jpg",
+    "imageSha256": "a279a34f9029d3def6b1b55e51fccbe2e1c96fe70c19d0fc638bc78f5db8dc5d",
+    "truth": {
+      "category": "top",
+      "subtype": "tank-top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3172
+    }
+  },
+  {
+    "id": "hf3-row-3168",
+    "set": "external",
+    "image": "hf3-row-3168.jpg",
+    "imageSha256": "e7a58f9106d9c39fdb0e4501a7984ed36460e81f0b7e0d4a5e687df1e419fa56",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3168
+    }
+  },
+  {
+    "id": "hf3-row-12522",
+    "set": "external",
+    "image": "hf3-row-12522.jpg",
+    "imageSha256": "e2938028511beec466c3d33239943da201106347660f1eb390a8e19421a20f58",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12522
+    }
+  },
+  {
+    "id": "hf3-row-34",
+    "set": "external",
+    "image": "hf3-row-34.jpg",
+    "imageSha256": "fecca5a91453cd630365c41a990bf80cc1bb484ff21afdcb6218ef3a67b76b41",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 34
+    }
+  },
+  {
+    "id": "hf3-row-3173",
+    "set": "external",
+    "image": "hf3-row-3173.jpg",
+    "imageSha256": "31467f5d9739a2b84cd6dd38cefac9324b636bee283489b58bb045909121b5e0",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3173
+    }
+  },
+  {
+    "id": "hf3-row-12525",
+    "set": "external",
+    "image": "hf3-row-12525.jpg",
+    "imageSha256": "a814cf965ce7423a994be440c15074f392fe601c71ebca76b93cf09a1456485b",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12525
+    }
+  },
+  {
+    "id": "hf3-row-35",
+    "set": "external",
+    "image": "hf3-row-35.jpg",
+    "imageSha256": "1448167642871850cc48d2013a09ff5cc341e5ad8a7253cab92842877cd10232",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 35
+    }
+  },
+  {
+    "id": "hf3-row-29",
+    "set": "external",
+    "image": "hf3-row-29.jpg",
+    "imageSha256": "f2bce284728d647feddbd7df68c03e23eb41d76033e4686c8d34bb9173bf1588",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 29
+    }
+  },
+  {
+    "id": "hf3-row-3170",
+    "set": "external",
+    "image": "hf3-row-3170.jpg",
+    "imageSha256": "ed28f5c0735ed8053e7cbed1f32694ff3caf60133da08edcc177043ba5381e41",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3170
+    }
+  },
+  {
+    "id": "hf3-row-12524",
+    "set": "external",
+    "image": "hf3-row-12524.jpg",
+    "imageSha256": "e4bf8590b437719bf7faa265acf26da8d7a5fa6c818fe6b45918f80a907a8419",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12524
+    }
+  },
+  {
+    "id": "hf3-row-32",
+    "set": "external",
+    "image": "hf3-row-32.jpg",
+    "imageSha256": "6d9f00002b83cb0cb423b8550c63b5ae1b1e544cae7dd1577e0e0617f3497e09",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 32
+    }
+  },
+  {
+    "id": "hf3-row-28",
+    "set": "external",
+    "image": "hf3-row-28.jpg",
+    "imageSha256": "32706ea8a3ee0c37db8de44302acdd8ce69e671ad5274a213be5ae10bfef292e",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28
+    }
+  },
+  {
+    "id": "hf3-row-3171",
+    "set": "external",
+    "image": "hf3-row-3171.jpg",
+    "imageSha256": "a279a34f9029d3def6b1b55e51fccbe2e1c96fe70c19d0fc638bc78f5db8dc5d",
+    "truth": {
+      "category": "top",
+      "subtype": "tank-top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3171
+    }
+  },
+  {
+    "id": "hf3-row-12527",
+    "set": "external",
+    "image": "hf3-row-12527.jpg",
+    "imageSha256": "5f220d095dcbc47b99ef9bcd8414d45e811494990f2ba766359ed40f90dd5959",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12527
+    }
+  },
+  {
+    "id": "hf3-row-33",
+    "set": "external",
+    "image": "hf3-row-33.jpg",
+    "imageSha256": "d50edb51141b0946a2513b7203f19b1e871daf31066a017fb34dc6c388c2345d",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 33
+    }
+  },
+  {
+    "id": "hf3-row-12526",
+    "set": "external",
+    "image": "hf3-row-12526.jpg",
+    "imageSha256": "8f287ffae42c86bb66e221a5d18c2257a186faf06cd56b255b0fecc6ea698908",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12526
+    }
+  },
+  {
+    "id": "hf3-row-30",
+    "set": "external",
+    "image": "hf3-row-30.jpg",
+    "imageSha256": "be4ec19e5a4d4dfd97a6fc7dff967967c2a7d624121f57a64c6f6cd4de889f66",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 30
+    }
+  },
+  {
+    "id": "hf3-row-12529",
+    "set": "external",
+    "image": "hf3-row-12529.jpg",
+    "imageSha256": "556c26f3f09e5c99779b1e3114f41e1464c792382511461d1b131148b383dd80",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12529
+    }
+  },
+  {
+    "id": "hf3-row-31",
+    "set": "external",
+    "image": "hf3-row-31.jpg",
+    "imageSha256": "3c3f5655609785744c5cd83e4fde4eb5469504b2f3411177ea9ad1501ceb2f19",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 31
+    }
+  },
+  {
+    "id": "hf3-row-89",
+    "set": "external",
+    "image": "hf3-row-89.jpg",
+    "imageSha256": "ebebd0bd4f553d2d1c15e109dd3afbfc8710670b27676822e1b7016fe36f03e0",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 89
+    }
+  },
+  {
+    "id": "hf3-row-15696",
+    "set": "external",
+    "image": "hf3-row-15696.jpg",
+    "imageSha256": "9a5e1375a8d79ef889e01ac8992eb95e1b591e4f68dd9add5bc848c6b913d8e6",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15696
+    }
+  },
+  {
+    "id": "hf3-row-12528",
+    "set": "external",
+    "image": "hf3-row-12528.jpg",
+    "imageSha256": "3b1f0451f535be05ef8e0c070e2bdceecfcd9ec1f22866f050d18671b6b7facc",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12528
+    }
+  },
+  {
+    "id": "hf3-row-88",
+    "set": "external",
+    "image": "hf3-row-88.jpg",
+    "imageSha256": "d65677062cc2da5abf642a495196d6f8e0bebcbd00d3f762a598f467b659633a",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 88
+    }
+  },
+  {
+    "id": "hf3-row-3161",
+    "set": "external",
+    "image": "hf3-row-3161.jpg",
+    "imageSha256": "97d919237984de5e0310c02e3e2e13eded23c4fdf0fc9e3c13af6343e7c382fa",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3161
+    }
+  },
+  {
+    "id": "hf3-row-15697",
+    "set": "external",
+    "image": "hf3-row-15697.jpg",
+    "imageSha256": "74076e4a0b81348c975df50860d162f0d1de780c08390fdc1d55b7c2636e17c3",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15697
+    }
+  },
+  {
+    "id": "hf3-row-3160",
+    "set": "external",
+    "image": "hf3-row-3160.jpg",
+    "imageSha256": "aa90d020e10f915c2f2664030b276b02b27d1fb4215a824a099fca00fea153f6",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3160
+    }
+  },
+  {
+    "id": "hf3-row-15694",
+    "set": "external",
+    "image": "hf3-row-15694.jpg",
+    "imageSha256": "f9478adbfec535a33e0b4978896815e012065dfab30c60c437503e8d64f24174",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15694
+    }
+  },
+  {
+    "id": "hf3-row-15638",
+    "set": "external",
+    "image": "hf3-row-15638.jpg",
+    "imageSha256": "1258e4d5059794f456922f688036de949d8190a021bcf4132c8bd65c65703c08",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15638
+    }
+  },
+  {
+    "id": "hf3-row-58",
+    "set": "external",
+    "image": "hf3-row-58.jpg",
+    "imageSha256": "31fa799cf6357b047825d6e774759aab55faea77401a82f3952b766b2ecd3ca0",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 58
+    }
+  },
+  {
+    "id": "hf3-row-3163",
+    "set": "external",
+    "image": "hf3-row-3163.jpg",
+    "imageSha256": "6510a78fb2f62754a99203ae1bc71e4c75ae911fba2818e3edd713374a49e424",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3163
+    }
+  },
+  {
+    "id": "hf3-row-15695",
+    "set": "external",
+    "image": "hf3-row-15695.jpg",
+    "imageSha256": "26ed0c3cc99b1846e6330cc6d203d19d015e36611c0335af05df153ae2bdaa7a",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15695
+    }
+  },
+  {
+    "id": "hf3-row-15689",
+    "set": "external",
+    "image": "hf3-row-15689.jpg",
+    "imageSha256": "80aba3589ec78e401d31e4513a14def83907f3dc67a799f49cd27c9e127d9b7d",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15689
+    }
+  },
+  {
+    "id": "hf3-row-15639",
+    "set": "external",
+    "image": "hf3-row-15639.jpg",
+    "imageSha256": "9161271826f1831063c24d29388e4a5a18ca9b95806463948a9204b508f29e65",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15639
+    }
+  },
+  {
+    "id": "hf3-row-21",
+    "set": "external",
+    "image": "hf3-row-21.jpg",
+    "imageSha256": "829026f612bcbc377d28c2ad3d5e95cb379116887f7f5cc25d2f536bb63e2765",
+    "truth": {
+      "category": "outerwear",
+      "subtype": "blazer",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21
+    }
+  },
+  {
+    "id": "hf3-row-59",
+    "set": "external",
+    "image": "hf3-row-59.jpg",
+    "imageSha256": "485e33d2cb13ac317f164676b05d1b26a96de765ac6b672687c59b6b360c2688",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 59
+    }
+  },
+  {
+    "id": "hf3-row-3178",
+    "set": "external",
+    "image": "hf3-row-3178.jpg",
+    "imageSha256": "1a2613f53aef8ad6848771596fcf6073b403e79b953982b4670862be760f9e7e",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3178
+    }
+  },
+  {
+    "id": "hf3-row-15692",
+    "set": "external",
+    "image": "hf3-row-15692.jpg",
+    "imageSha256": "04adb658e9ce4227912a7db2e10e6d2b321c23aef8b904861c05d546720fd797",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15692
+    }
+  },
+  {
+    "id": "hf3-row-15688",
+    "set": "external",
+    "image": "hf3-row-15688.jpg",
+    "imageSha256": "02a8a5e756e86483a327f8faa7abe0f9d144575b345643210871434eb75cad62",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15688
+    }
+  },
+  {
+    "id": "hf3-row-20",
+    "set": "external",
+    "image": "hf3-row-20.jpg",
+    "imageSha256": "f36d8b3eb25c8e025f319edfb9434fe22068c4c7fc1fe15b2402154ac7ec5c68",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 20
+    }
+  },
+  {
+    "id": "hf3-row-3179",
+    "set": "external",
+    "image": "hf3-row-3179.jpg",
+    "imageSha256": "2a18d5b5d79d95faf7f706a601d598b1a4f38d0afa06c93ed596ef8f789f4093",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3179
+    }
+  },
+  {
+    "id": "hf3-row-3165",
+    "set": "external",
+    "image": "hf3-row-3165.jpg",
+    "imageSha256": "d2225651b17c6f1c323b8ccbd7e64536ff9c3b194e4924bd2dc106eabcddb144",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3165
+    }
+  },
+  {
+    "id": "hf3-row-15693",
+    "set": "external",
+    "image": "hf3-row-15693.jpg",
+    "imageSha256": "38974dbe4e3be4cfc87d77803ff26920e09269a24908cd9c70b03edeb4d1f3d8",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15693
+    }
+  },
+  {
+    "id": "hf3-row-23",
+    "set": "external",
+    "image": "hf3-row-23.jpg",
+    "imageSha256": "eb6b52c7f70c071f93e8932ebb18a3207dbdd6b4c8b2c7f656ca9a5db99d67ca",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 23
+    }
+  },
+  {
+    "id": "hf3-row-83",
+    "set": "external",
+    "image": "hf3-row-83.jpg",
+    "imageSha256": "0e0f89fe25731f5a77aabbab439713aaba7353c2e992f3d46fb94a95938e2fd6",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 83
+    }
+  },
+  {
+    "id": "hf3-row-3164",
+    "set": "external",
+    "image": "hf3-row-3164.jpg",
+    "imageSha256": "3288ca883b99cb41235600bf9a62631360fefb46ee977d04f4d65c0bf14d7a4d",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3164
+    }
+  },
+  {
+    "id": "hf3-row-15690",
+    "set": "external",
+    "image": "hf3-row-15690.jpg",
+    "imageSha256": "ea3b998f04ec8a8984ab1daa8d5f476c0485ef112d6c486bd080e35dee8794d5",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15690
+    }
+  },
+  {
+    "id": "hf3-row-15658",
+    "set": "external",
+    "image": "hf3-row-15658.jpg",
+    "imageSha256": "059ee1d041b0f121c7b6bf27b530638b612a7887870ab4b58247fd8effa60b55",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15658
+    }
+  },
+  {
+    "id": "hf3-row-38",
+    "set": "external",
+    "image": "hf3-row-38.jpg",
+    "imageSha256": "cb2adcfed0c0789f00f40e1954c668e1c3c328855d0cd828a5d0dff761df4c17",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 38
+    }
+  },
+  {
+    "id": "hf3-row-22",
+    "set": "external",
+    "image": "hf3-row-22.jpg",
+    "imageSha256": "6e0142b6c81adf2a46cb3b7bd1b0979132e199311a4513191b147f2bad7a28e2",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 22
+    }
+  },
+  {
+    "id": "hf3-row-54",
+    "set": "external",
+    "image": "hf3-row-54.jpg",
+    "imageSha256": "287ba01b93884b46422742056a1bb972a53e35fd9cd625a79652b153c6d2bd73",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 54
+    }
+  },
+  {
+    "id": "hf3-row-82",
+    "set": "external",
+    "image": "hf3-row-82.jpg",
+    "imageSha256": "beb2bff37698715528d46e793a247144ede37db66900f0048820a738991c2107",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 82
+    }
+  },
+  {
+    "id": "hf3-row-3167",
+    "set": "external",
+    "image": "hf3-row-3167.jpg",
+    "imageSha256": "70ca41cd15d117ffc849957b996f3bcafffc99d4757346200ded424bc5d79b4b",
+    "truth": {
+      "category": "bottom",
+      "subtype": "skirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3167
+    }
+  },
+  {
+    "id": "hf3-row-28173",
+    "set": "external",
+    "image": "hf3-row-28173.jpg",
+    "imageSha256": "1705849f27960e7dea3649ee9e59c737232416d0953f6edfc52549b5fc967b97",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28173
+    }
+  },
+  {
+    "id": "hf3-row-15691",
+    "set": "external",
+    "image": "hf3-row-15691.jpg",
+    "imageSha256": "01f69e9e80055345ccb5177ae7c4a337a4e2a5493d06b60fda52c135487add6b",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15691
+    }
+  },
+  {
+    "id": "hf3-row-15659",
+    "set": "external",
+    "image": "hf3-row-15659.jpg",
+    "imageSha256": "045077c87070b6d302513a188117819a120a5bb96745d510b4f461fa106a0d4f",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15659
+    }
+  },
+  {
+    "id": "hf3-row-39",
+    "set": "external",
+    "image": "hf3-row-39.jpg",
+    "imageSha256": "c4eebb3529b72ab9124bac1697e0151fac37fc2c7b8aa81c98a5ee109b584db2",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 39
+    }
+  },
+  {
+    "id": "hf3-row-25",
+    "set": "external",
+    "image": "hf3-row-25.jpg",
+    "imageSha256": "fd31672ae3a41f724a6adac6097ef56df5c35c10aae72937e5fc315f748de4bb",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 25
+    }
+  },
+  {
+    "id": "hf3-row-55",
+    "set": "external",
+    "image": "hf3-row-55.jpg",
+    "imageSha256": "6b0f282e805dd59d3bc3ab1533b4264d5c13f0ded787f7f2ea27116bea0e7d70",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 55
+    }
+  },
+  {
+    "id": "hf3-row-49",
+    "set": "external",
+    "image": "hf3-row-49.jpg",
+    "imageSha256": "4fd37a2ca455d22adb2d410f007f7ee8c8a42627d207a1737c09ccd115a94bd5",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 49
+    }
+  },
+  {
+    "id": "hf3-row-81",
+    "set": "external",
+    "image": "hf3-row-81.jpg",
+    "imageSha256": "b382dfd4f6848504b8c2b2d2b5f76ab55a4e6e2e9a8b72abf949c5da1688d873",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 81
+    }
+  },
+  {
+    "id": "hf3-row-3166",
+    "set": "external",
+    "image": "hf3-row-3166.jpg",
+    "imageSha256": "0dee2b0f9ecc090b568c299f004c27b885aa81d859d262d928227288611e4a2f",
+    "truth": {
+      "category": "bottom",
+      "subtype": "skirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 3166
+    }
+  },
+  {
+    "id": "hf3-row-28172",
+    "set": "external",
+    "image": "hf3-row-28172.jpg",
+    "imageSha256": "e9d8cddebb15179ad10df908e27b1a03f04baab4169dd243238576e96d1f47af",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28172
+    }
+  },
+  {
+    "id": "hf3-row-24",
+    "set": "external",
+    "image": "hf3-row-24.jpg",
+    "imageSha256": "3710cf341b83b389a2b9c72d542b6fb70f0ed0bc856e67a9cb4f787f4690ca2a",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 24
+    }
+  },
+  {
+    "id": "hf3-row-56",
+    "set": "external",
+    "image": "hf3-row-56.jpg",
+    "imageSha256": "c4520fabfb323342f5ea2f3e1eb14001bf1f287c94c22ae324a0924aa0036400",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 56
+    }
+  },
+  {
+    "id": "hf3-row-48",
+    "set": "external",
+    "image": "hf3-row-48.jpg",
+    "imageSha256": "8f15445a73f227d8bbc8a23ca8535f509b83df2a96160af763e1bb5f999e4c52",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 48
+    }
+  },
+  {
+    "id": "hf3-row-80",
+    "set": "external",
+    "image": "hf3-row-80.jpg",
+    "imageSha256": "0b58cafdcb77a81253a30b72da60f50c66376f93d1fe75f3b877a3026552c300",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 80
+    }
+  },
+  {
+    "id": "hf3-row-28171",
+    "set": "external",
+    "image": "hf3-row-28171.jpg",
+    "imageSha256": "8386cec991663c826c9a92fa8382157542b228abcd8e0cecf1eb7a6092c4af2b",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28171
+    }
+  },
+  {
+    "id": "hf3-row-27",
+    "set": "external",
+    "image": "hf3-row-27.jpg",
+    "imageSha256": "d5e929f623bed855494f52b6ffb98092f9f9e95d34f8611eb82df9681a7cbded",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 27
+    }
+  },
+  {
+    "id": "hf3-row-57",
+    "set": "external",
+    "image": "hf3-row-57.jpg",
+    "imageSha256": "73e9e042a637178630125c9a31c5494acbbb16a38dda80e6f6aa05f5e84e8767",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 57
+    }
+  },
+  {
+    "id": "hf3-row-87",
+    "set": "external",
+    "image": "hf3-row-87.jpg",
+    "imageSha256": "f6b46b01463547faef3ec30b84132f6af4fa51ba9d34b72aa9c9eb67bafcb5a5",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 87
+    }
+  },
+  {
+    "id": "hf3-row-28170",
+    "set": "external",
+    "image": "hf3-row-28170.jpg",
+    "imageSha256": "d5f5f7faccc3622eae5d730814c4121fb23c2b82485aaa107d5df38794cb0982",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28170
+    }
+  },
+  {
+    "id": "hf3-row-12538",
+    "set": "external",
+    "image": "hf3-row-12538.jpg",
+    "imageSha256": "855c6afec08cca7fe5a1584e4e1d33d1fb308431026fee9f618d3a8ef82a35f6",
+    "truth": {
+      "category": "bottom",
+      "subtype": "shorts",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12538
+    }
+  },
+  {
+    "id": "hf3-row-26",
+    "set": "external",
+    "image": "hf3-row-26.jpg",
+    "imageSha256": "55cc196e244e7cb95e8b119d5d3f69889f3e58c226ffbd1e4a5a624bf99e8882",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 26
+    }
+  },
+  {
+    "id": "hf3-row-50",
+    "set": "external",
+    "image": "hf3-row-50.jpg",
+    "imageSha256": "1d32e25be9f4e34f952d01e34deb4a890603af1c41e94f90cd49ccefb837c833",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 50
+    }
+  },
+  {
+    "id": "hf3-row-86",
+    "set": "external",
+    "image": "hf3-row-86.jpg",
+    "imageSha256": "441920cf4db77bed8391220f3d2e876a6ba3b6d8b70960068212301a7a5397c6",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 86
+    }
+  },
+  {
+    "id": "hf3-row-28177",
+    "set": "external",
+    "image": "hf3-row-28177.jpg",
+    "imageSha256": "5b4895ee122626e853e7c613dc54823e1f6c646577b1604c97954454930ac1fc",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28177
+    }
+  },
+  {
+    "id": "hf3-row-15681",
+    "set": "external",
+    "image": "hf3-row-15681.jpg",
+    "imageSha256": "e3d43d88fdefc0071663d7665c466c2f42d1423673b8ef86e8ff11afbc7988e7",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15681
+    }
+  },
+  {
+    "id": "hf3-row-12539",
+    "set": "external",
+    "image": "hf3-row-12539.jpg",
+    "imageSha256": "7fc965b7df758f226dedc716fa9e8399faabae217b5479b11bbda99a3f69e786",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12539
+    }
+  },
+  {
+    "id": "hf3-row-15649",
+    "set": "external",
+    "image": "hf3-row-15649.jpg",
+    "imageSha256": "414736e19d128d414bfb3a3b07264526a5daaa82817031eb0d74f9e87a5fd11d",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15649
+    }
+  },
+  {
+    "id": "hf3-row-51",
+    "set": "external",
+    "image": "hf3-row-51.jpg",
+    "imageSha256": "e0fe2e16dee9caa26ff39cf3b5a2c2efa463b4981cf509f4dec730e9600dd12b",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 51
+    }
+  },
+  {
+    "id": "hf3-row-45",
+    "set": "external",
+    "image": "hf3-row-45.jpg",
+    "imageSha256": "80c395e74df57f705b635638e3125580bb8e93a306e97efb5f185023decf302a",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 45
+    }
+  },
+  {
+    "id": "hf3-row-85",
+    "set": "external",
+    "image": "hf3-row-85.jpg",
+    "imageSha256": "3bce41ad96558447fe076ca4af83eec21c2d69318e97655e5033f7c9e7e9ed67",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 85
+    }
+  },
+  {
+    "id": "hf3-row-28176",
+    "set": "external",
+    "image": "hf3-row-28176.jpg",
+    "imageSha256": "8ee67fb6daccd304625fe1d7f1a7e68950b2cd402ae56eebe61d132bae1c257c",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28176
+    }
+  },
+  {
+    "id": "hf3-row-15680",
+    "set": "external",
+    "image": "hf3-row-15680.jpg",
+    "imageSha256": "31458d3f20cd90ce32a703b6d227b45b1553b7b1561e7446622199ab37ed440b",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15680
+    }
+  },
+  {
+    "id": "hf3-row-12536",
+    "set": "external",
+    "image": "hf3-row-12536.jpg",
+    "imageSha256": "54b3b4aaf6f8e069849d2f0f32db2640b08d06040fd389adae1483db332dc205",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12536
+    }
+  },
+  {
+    "id": "hf3-row-15652",
+    "set": "external",
+    "image": "hf3-row-15652.jpg",
+    "imageSha256": "a78cf685f06bb486e01b50a5a7c945a8f3b1432d98569c12bb401000687854d5",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15652
+    }
+  },
+  {
+    "id": "hf3-row-15648",
+    "set": "external",
+    "image": "hf3-row-15648.jpg",
+    "imageSha256": "75afeced0cfc1123be9bda0059ea549ed4638f78d385f005ce96282a8389720a",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15648
+    }
+  },
+  {
+    "id": "hf3-row-52",
+    "set": "external",
+    "image": "hf3-row-52.jpg",
+    "imageSha256": "4b0f5b6981f62e87204e37eed84ae5418d4984b4a94ff903249609ffe633a51c",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 52
+    }
+  },
+  {
+    "id": "hf3-row-44",
+    "set": "external",
+    "image": "hf3-row-44.jpg",
+    "imageSha256": "f90a23f5250d911582f6a82f53546cfddbd358a5c4a4fc4b0739a281ee1bd564",
+    "truth": {
+      "category": "top",
+      "subtype": "tank-top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 44
+    }
+  },
+  {
+    "id": "hf3-row-84",
+    "set": "external",
+    "image": "hf3-row-84.jpg",
+    "imageSha256": "a878d983b18493615b4b497cc35859d21c3fd5bde573e83a29b6219c2a46cd06",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 84
+    }
+  },
+  {
+    "id": "hf3-row-28175",
+    "set": "external",
+    "image": "hf3-row-28175.jpg",
+    "imageSha256": "ec17f543deec8e1afc0ff21dfe95fa17042f561b04e3d5476dda1857b52ebf13",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28175
+    }
+  },
+  {
+    "id": "hf3-row-28159",
+    "set": "external",
+    "image": "hf3-row-28159.jpg",
+    "imageSha256": "3ec5b54926cb27a71c424ae1f91e1857a3ed22a14aba7e2da4ac13cdf9c3c2c4",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28159
+    }
+  },
+  {
+    "id": "hf3-row-15683",
+    "set": "external",
+    "image": "hf3-row-15683.jpg",
+    "imageSha256": "bc092af190a15daafdb16b0d301639396ba5acfb38887b68b4ad33fcf5e9f33e",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15683
+    }
+  },
+  {
+    "id": "hf3-row-12537",
+    "set": "external",
+    "image": "hf3-row-12537.jpg",
+    "imageSha256": "4eff92df39607a584ac4979749f0d82e1d7ff20a85cad0d73d55492af87739ee",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12537
+    }
+  },
+  {
+    "id": "hf3-row-15653",
+    "set": "external",
+    "image": "hf3-row-15653.jpg",
+    "imageSha256": "e624f965f808b188008d8cb85aeba89959a75821fb5a6f6d773d3a32100bdf05",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15653
+    }
+  },
+  {
+    "id": "hf3-row-53",
+    "set": "external",
+    "image": "hf3-row-53.jpg",
+    "imageSha256": "cd5b228851acfb7f09930ebd9808eb087660cd88df7cb7a932e471097552e988",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 53
+    }
+  },
+  {
+    "id": "hf3-row-43",
+    "set": "external",
+    "image": "hf3-row-43.jpg",
+    "imageSha256": "2dd463d2787f10cc5baaf45f60da5d22afe67c0e6012f5cf3d88f84a44567d7e",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 43
+    }
+  },
+  {
+    "id": "hf3-row-28174",
+    "set": "external",
+    "image": "hf3-row-28174.jpg",
+    "imageSha256": "b6a5a12df34a42b4787b35c2e06fa4e2b89c5b8084f2a79c70ee01da0d0f0b43",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28174
+    }
+  },
+  {
+    "id": "hf3-row-15698",
+    "set": "external",
+    "image": "hf3-row-15698.jpg",
+    "imageSha256": "3a44709f23389bc8decd163af85f073eca141c059cafd67d005ad3be8f6901e8",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15698
+    }
+  },
+  {
+    "id": "hf3-row-15682",
+    "set": "external",
+    "image": "hf3-row-15682.jpg",
+    "imageSha256": "985e0c18236c2180972322cf9bc6dcb9d668aaf3eb27f2d0366d4126126372a1",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15682
+    }
+  },
+  {
+    "id": "hf3-row-12534",
+    "set": "external",
+    "image": "hf3-row-12534.jpg",
+    "imageSha256": "6e00b4c37fef395de28c9f356d6522bdb2458999601171f4bcc04412602e3d8a",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12534
+    }
+  },
+  {
+    "id": "hf3-row-15650",
+    "set": "external",
+    "image": "hf3-row-15650.jpg",
+    "imageSha256": "c7678b19a39fb7d9e8003a3f9c4ee47ae32ad92f94b03935e950a3aab0336336",
+    "truth": {
+      "category": "bottom",
+      "subtype": "jeans",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15650
+    }
+  },
+  {
+    "id": "hf3-row-42",
+    "set": "external",
+    "image": "hf3-row-42.jpg",
+    "imageSha256": "7bf204f81ffba9908fa661fc162a4c733a7a85159f0b4c36b10fe7df2748caf7",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 42
+    }
+  },
+  {
+    "id": "hf3-row-21981",
+    "set": "external",
+    "image": "hf3-row-21981.jpg",
+    "imageSha256": "dc74d0ed39c5c6fea9acedf9b8a78843eea6f526e8f66c2c8538eb0fdd1090a3",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21981
+    }
+  },
+  {
+    "id": "hf3-row-15699",
+    "set": "external",
+    "image": "hf3-row-15699.jpg",
+    "imageSha256": "413c0979b49499e1020ad7c0a494b6f0ea36f74c86e5ae1c66d100cf2f8a68a8",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15699
+    }
+  },
+  {
+    "id": "hf3-row-12535",
+    "set": "external",
+    "image": "hf3-row-12535.jpg",
+    "imageSha256": "5e56bc41ea1da574aa7695cb60688d7baef954e4757d1b67781373e3e0e4b1c4",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12535
+    }
+  },
+  {
+    "id": "hf3-row-15651",
+    "set": "external",
+    "image": "hf3-row-15651.jpg",
+    "imageSha256": "e19a5d09bd0a3f26670b16c287644aaff0b74f9a8c9857cd890f9b9ab4f4803b",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15651
+    }
+  },
+  {
+    "id": "hf3-row-15645",
+    "set": "external",
+    "image": "hf3-row-15645.jpg",
+    "imageSha256": "b1305bd5f5765d72a735c07bfad8991419e4c2e38fa24dc17c89446203d7506f",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15645
+    }
+  },
+  {
+    "id": "hf3-row-41",
+    "set": "external",
+    "image": "hf3-row-41.jpg",
+    "imageSha256": "87295996e5b3ff31c0aab63b995736e36099090fa737e14ea1785d65bccd3d06",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 41
+    }
+  },
+  {
+    "id": "hf3-row-21980",
+    "set": "external",
+    "image": "hf3-row-21980.jpg",
+    "imageSha256": "1152869ad284b1da254aa935b28da87040987b35ab885b2780c48646fa3ae905",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21980
+    }
+  },
+  {
+    "id": "hf3-row-15684",
+    "set": "external",
+    "image": "hf3-row-15684.jpg",
+    "imageSha256": "f64277fe2c81f4b253c9cb0bcf764243c0565339559d4bff023c65b2d54a8e70",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15684
+    }
+  },
+  {
+    "id": "hf3-row-12532",
+    "set": "external",
+    "image": "hf3-row-12532.jpg",
+    "imageSha256": "4bb8058317edebfd4630258db6a95c1abb85c49cad2381a561f060a0b8c88086",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12532
+    }
+  },
+  {
+    "id": "hf3-row-15656",
+    "set": "external",
+    "image": "hf3-row-15656.jpg",
+    "imageSha256": "454c2aab925e601027efd90e9809a286c38f47732d35def4060e868b4f93468d",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15656
+    }
+  },
+  {
+    "id": "hf3-row-15644",
+    "set": "external",
+    "image": "hf3-row-15644.jpg",
+    "imageSha256": "4e9f7d993ff5e6822789f8a0980cfc02eb425995de03e69130afcbcd8bda699c",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15644
+    }
+  },
+  {
+    "id": "hf3-row-40",
+    "set": "external",
+    "image": "hf3-row-40.jpg",
+    "imageSha256": "78acf5eddb3778ca0ec2315ed0f1295d8984705e0b552e7c8ae2d3eae19c57e9",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 40
+    }
+  },
+  {
+    "id": "hf3-row-28179",
+    "set": "external",
+    "image": "hf3-row-28179.jpg",
+    "imageSha256": "5b7bf7eae430a79c4ad40adc7bb3194e318024b265da96a49006509e32bf45f7",
+    "truth": {
+      "category": "top",
+      "subtype": "blouse",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28179
+    }
+  },
+  {
+    "id": "hf3-row-21983",
+    "set": "external",
+    "image": "hf3-row-21983.jpg",
+    "imageSha256": "579e1be6a82e8a0573b7e2f4d74da496805d3b1b48ad6050c875a4a4f700c449",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21983
+    }
+  },
+  {
+    "id": "hf3-row-15687",
+    "set": "external",
+    "image": "hf3-row-15687.jpg",
+    "imageSha256": "e83613199f7543b3a6e0057830acb6cd473997637f5653824aff8dc813a819c7",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15687
+    }
+  },
+  {
+    "id": "hf3-row-15637",
+    "set": "external",
+    "image": "hf3-row-15637.jpg",
+    "imageSha256": "fab59e310c79ce15d738fb7525403b779fa9c9f4e742d637b5f13caed5f18443",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15637
+    }
+  },
+  {
+    "id": "hf3-row-12533",
+    "set": "external",
+    "image": "hf3-row-12533.jpg",
+    "imageSha256": "5f1f5e21627738569b4cf9dbd55998b04fd9dfc345d2111aef44456f33da9b3b",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12533
+    }
+  },
+  {
+    "id": "hf3-row-15657",
+    "set": "external",
+    "image": "hf3-row-15657.jpg",
+    "imageSha256": "5c882b55cf45dcee2d3ecc04f08bc40da3006a933a6a408332b0e09e338934a8",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15657
+    }
+  },
+  {
+    "id": "hf3-row-15647",
+    "set": "external",
+    "image": "hf3-row-15647.jpg",
+    "imageSha256": "4dbc7a74a2b3fe865773d00df3c63d7353da4f679c8d6ae1f89c239f7a1d97a1",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15647
+    }
+  },
+  {
+    "id": "hf3-row-28178",
+    "set": "external",
+    "image": "hf3-row-28178.jpg",
+    "imageSha256": "da3bd1f9aee54407d4ada69964611742dd489c03f79e3d53c06b3387798c1324",
+    "truth": {
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28178
+    }
+  },
+  {
+    "id": "hf3-row-21982",
+    "set": "external",
+    "image": "hf3-row-21982.jpg",
+    "imageSha256": "dc6f7c4855ec9ebbe425d4f12095251b97f2cafed536ff4a2350050c9b8b3033",
+    "truth": {
+      "category": "top",
+      "subtype": "tank-top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21982
+    }
+  },
+  {
+    "id": "hf3-row-15686",
+    "set": "external",
+    "image": "hf3-row-15686.jpg",
+    "imageSha256": "ad477975bf41001c160d5263cc884835227bbbfb580c0a04faf1f7ea8d357c26",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15686
+    }
+  },
+  {
+    "id": "hf3-row-12530",
+    "set": "external",
+    "image": "hf3-row-12530.jpg",
+    "imageSha256": "e0b6fe038c1d6746d3ab61b748b7deffe4682a01136525d4ddc131c5bdf24d18",
+    "truth": {
+      "category": "bottom",
+      "subtype": "skirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12530
+    }
+  },
+  {
+    "id": "hf3-row-15654",
+    "set": "external",
+    "image": "hf3-row-15654.jpg",
+    "imageSha256": "57787990ce9180bd7993acde5dd5c773be1170bd5809f3357b3b39e8de6b87eb",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15654
+    }
+  },
+  {
+    "id": "hf3-row-15646",
+    "set": "external",
+    "image": "hf3-row-15646.jpg",
+    "imageSha256": "5337800440199dc0dac1612e5b08083c265b0807c12127fbd5ffbec48bbc38ab",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15646
+    }
+  },
+  {
+    "id": "hf3-row-21985",
+    "set": "external",
+    "image": "hf3-row-21985.jpg",
+    "imageSha256": "958806d3c81b284f9affdfc29ec3d87d42781d2925c2c7c77bdcfa6ec257efa1",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21985
+    }
+  },
+  {
+    "id": "hf3-row-12531",
+    "set": "external",
+    "image": "hf3-row-12531.jpg",
+    "imageSha256": "769b9bf55641116c11cfd953873416c0e2afab7c2311485b9d42f0077f1c0ca1",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 12531
+    }
+  },
+  {
+    "id": "hf3-row-15655",
+    "set": "external",
+    "image": "hf3-row-15655.jpg",
+    "imageSha256": "60a4dd3cb2194e9b0c74d605cddec3ebaad91b4a22ff140f60efec411e2dbc39",
+    "truth": {
+      "category": "top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15655
+    }
+  },
+  {
+    "id": "hf3-row-15641",
+    "set": "external",
+    "image": "hf3-row-15641.jpg",
+    "imageSha256": "a6ea44ba27f976782d97edcc8c42fa3c7140f511d0fb809074ecdd1750e4ba5a",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15641
+    }
+  },
+  {
+    "id": "hf3-row-21916",
+    "set": "external",
+    "image": "hf3-row-21916.jpg",
+    "imageSha256": "d9d548bc4bea8d3c38d53ab5e4276d7935e8f88fa1dc9b5fd109410109fe3922",
+    "truth": {
+      "category": "top",
+      "subtype": "tank-top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21916
+    }
+  },
+  {
+    "id": "hf3-row-21984",
+    "set": "external",
+    "image": "hf3-row-21984.jpg",
+    "imageSha256": "05e74082e2e4f581b48c7888358f61377142bb3910a46215f8220ab603bdfd84",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21984
+    }
+  },
+  {
+    "id": "hf3-row-15640",
+    "set": "external",
+    "image": "hf3-row-15640.jpg",
+    "imageSha256": "a6ea44ba27f976782d97edcc8c42fa3c7140f511d0fb809074ecdd1750e4ba5a",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15640
+    }
+  },
+  {
+    "id": "hf3-row-28151",
+    "set": "external",
+    "image": "hf3-row-28151.jpg",
+    "imageSha256": "426736c8f8644df46a570c20ded091af2e29991592b7345e3144cf71b0b34c02",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28151
+    }
+  },
+  {
+    "id": "hf3-row-28199",
+    "set": "external",
+    "image": "hf3-row-28199.jpg",
+    "imageSha256": "d655567761b97a200f0b75ede86b1f284cf681daa78ffe139f24b885a54aaf65",
+    "truth": {
+      "category": "bottom",
+      "subtype": "shorts",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28199
+    }
+  },
+  {
+    "id": "hf3-row-21917",
+    "set": "external",
+    "image": "hf3-row-21917.jpg",
+    "imageSha256": "f85db47120302805a779110121f846f2c451d51fbabd6e02c34a4d622aaf4a31",
+    "truth": {
+      "category": "outerwear",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21917
+    }
+  },
+  {
+    "id": "hf3-row-21987",
+    "set": "external",
+    "image": "hf3-row-21987.jpg",
+    "imageSha256": "7b7941559db76e8aff1f22a38cb15c7dc439b865db37237496ffc531af78325b",
+    "truth": {
+      "category": "dress",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21987
+    }
+  },
+  {
+    "id": "hf3-row-15643",
+    "set": "external",
+    "image": "hf3-row-15643.jpg",
+    "imageSha256": "d6030d3a079fa4d014d9aaa2aa49f649bfcd5eae340c2f4d6b2ae1a227ba9352",
+    "truth": {
+      "category": "top",
+      "subtype": "t-shirt",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15643
+    }
+  },
+  {
+    "id": "hf3-row-15708",
+    "set": "external",
+    "image": "hf3-row-15708.jpg",
+    "imageSha256": "85fb9f5dd446eb9219a2ebdf9f99508d0b7c82ab6032ed077f669865ce069b17",
+    "truth": {
+      "category": "top",
+      "subtype": "sweater",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 15708
+    }
+  },
+  {
+    "id": "hf3-row-28150",
+    "set": "external",
+    "image": "hf3-row-28150.jpg",
+    "imageSha256": "58d2a07f2ee46e1daa392d36376d583141b1f03b502ac86420d924c95ebbe119",
+    "truth": {
+      "category": "top",
+      "subtype": "hoodie",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28150
+    }
+  },
+  {
+    "id": "hf3-row-28198",
+    "set": "external",
+    "image": "hf3-row-28198.jpg",
+    "imageSha256": "290702ee328ff9209b1075639248fb5761475cdc4378a418f161a4b54f7d1e7e",
+    "truth": {
+      "category": "top",
+      "subtype": "tank-top",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 28198
+    }
+  },
+  {
+    "id": "hf3-row-21914",
+    "set": "external",
+    "image": "hf3-row-21914.jpg",
+    "imageSha256": "608104bbdd93271dfbb7b1a9604b9cceb1a66d5b1ea0d3781ef0665cb2073b35",
+    "truth": {
+      "category": "top",
+      "subtype": "cardigan",
+      "pieces": 1
+    },
+    "source": {
+      "dataset": "Clothing Dataset for Second-Hand Fashion v3 (CC BY 4.0)",
+      "mirror": "fnauman/fashion-second-hand-front-only-rgb",
+      "row": 21914
+    }
+  }
+]

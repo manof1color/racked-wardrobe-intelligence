@@ -121,6 +121,7 @@ test("the enumeration window is a day, and the dashboard says so in hours", () =
   assert.equal(budgetWait(61 * 60), "2 hours");
   assert.equal(budgetWait(40 * 60), "40 minutes");
   assert.equal(budgetWait(1), "1 minute");
+  assert.equal(budgetWait(60 * 60), "1 hour");
   const dashboard = read("components/brand-dashboard.tsx");
   assert.match(dashboard, /more product\$\{budget\.remaining===1\?"":"s"\} today\./);
   assert.match(dashboard, /in the last 24 hours, the most Racked releases in a day/);
