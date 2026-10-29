@@ -1,0 +1,312 @@
+{
+  "id": "closet-a",
+  "name": "Capsule workwear, four seasons",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation (work order W7). No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "a-01",
+      "name": "White oxford shirt",
+      "category": "top",
+      "subtype": "dress-shirt",
+      "color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "classic",
+        "tailored"
+      ],
+      "season": "all-season",
+      "wearCount": 24,
+      "lastWornDays": 3
+    },
+    {
+      "id": "a-02",
+      "name": "Light blue poplin shirt",
+      "category": "top",
+      "subtype": "dress-shirt",
+      "color": "light blue",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 17,
+      "lastWornDays": 6
+    },
+    {
+      "id": "a-03",
+      "name": "Navy fine-knit sweater",
+      "category": "top",
+      "subtype": "sweater",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "merino wool",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "winter",
+      "wearCount": 12,
+      "lastWornDays": 20
+    },
+    {
+      "id": "a-04",
+      "name": "Grey crewneck t-shirt",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "minimal"
+      ],
+      "season": "all-season",
+      "wearCount": 19,
+      "lastWornDays": 4
+    },
+    {
+      "id": "a-05",
+      "name": "Cream silk blouse",
+      "category": "top",
+      "subtype": "blouse",
+      "color": "cream",
+      "pattern": "solid",
+      "material": "silk",
+      "style": [
+        "elegant",
+        "refined"
+      ],
+      "season": "spring",
+      "wearCount": 6,
+      "lastWornDays": 35
+    },
+    {
+      "id": "a-06",
+      "name": "Charcoal dress trousers",
+      "category": "bottom",
+      "subtype": "dress-pants",
+      "color": "charcoal",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 22,
+      "lastWornDays": 5
+    },
+    {
+      "id": "a-07",
+      "name": "Navy chinos",
+      "category": "bottom",
+      "subtype": "chinos",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "classic",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 18,
+      "lastWornDays": 7
+    },
+    {
+      "id": "a-08",
+      "name": "Dark indigo jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "indigo",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 21,
+      "lastWornDays": 2
+    },
+    {
+      "id": "a-09",
+      "name": "Camel wool skirt",
+      "category": "bottom",
+      "subtype": "skirt",
+      "color": "camel",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "classic",
+        "elegant"
+      ],
+      "season": "winter",
+      "wearCount": 7,
+      "lastWornDays": 48
+    },
+    {
+      "id": "a-10",
+      "name": "Navy blazer",
+      "category": "outerwear",
+      "subtype": "blazer",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 20,
+      "lastWornDays": 8
+    },
+    {
+      "id": "a-11",
+      "name": "Camel overcoat",
+      "category": "outerwear",
+      "subtype": "overcoat",
+      "color": "camel",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "elegant",
+        "classic"
+      ],
+      "season": "winter",
+      "wearCount": 11,
+      "lastWornDays": 25
+    },
+    {
+      "id": "a-12",
+      "name": "Stone rain trench",
+      "category": "outerwear",
+      "subtype": "rain-jacket",
+      "color": "stone",
+      "pattern": "solid",
+      "material": "cotton blend",
+      "style": [
+        "classic",
+        "utility"
+      ],
+      "season": "fall",
+      "wearCount": 9,
+      "lastWornDays": 14
+    },
+    {
+      "id": "a-13",
+      "name": "Black oxfords",
+      "category": "shoe",
+      "subtype": "oxfords",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 16,
+      "lastWornDays": 9
+    },
+    {
+      "id": "a-14",
+      "name": "Brown loafers",
+      "category": "shoe",
+      "subtype": "loafers",
+      "color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 23,
+      "lastWornDays": 3
+    },
+    {
+      "id": "a-15",
+      "name": "White leather sneakers",
+      "category": "shoe",
+      "subtype": "sneakers",
+      "color": "white",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 26,
+      "lastWornDays": 1
+    },
+    {
+      "id": "a-16",
+      "name": "Black ankle boots",
+      "category": "shoe",
+      "subtype": "ankle-boots",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "sleek",
+        "refined"
+      ],
+      "season": "winter",
+      "wearCount": 10,
+      "lastWornDays": 30
+    },
+    {
+      "id": "a-17",
+      "name": "Tan leather briefcase",
+      "category": "bag",
+      "subtype": "briefcase",
+      "color": "tan",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "classic",
+        "structured"
+      ],
+      "season": "all-season",
+      "wearCount": 25,
+      "lastWornDays": 3
+    },
+    {
+      "id": "a-18",
+      "name": "Grey wool scarf",
+      "category": "accessory",
+      "subtype": "scarf",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "classic",
+        "comfortable"
+      ],
+      "season": "winter",
+      "wearCount": 13,
+      "lastWornDays": 22
+    },
+    {
+      "id": "a-19",
+      "name": "Silver wristwatch",
+      "category": "jewelry",
+      "subtype": "watch",
+      "color": "silver",
+      "pattern": "solid",
+      "material": "steel",
+      "style": [
+        "refined",
+        "minimal"
+      ],
+      "season": "all-season",
+      "wearCount": 28,
+      "lastWornDays": 1
+    }
+  ]
+}
