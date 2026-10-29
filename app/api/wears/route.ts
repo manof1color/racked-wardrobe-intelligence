@@ -24,13 +24,13 @@ export async function POST(request:Request) {
   if(!limit.allowed)return NextResponse.json({error:"Too many wears recorded at once. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   try {
     const body=await readJsonObject(request);
-    onlyFields(body,["itemId","itemIds","outfitId","requestId"]);
+    onlyFields(body,["itemId","itemIds","outfitId","requestId","localDate"]);
     const single=body.itemIds===undefined;
     const ids=single?[readId(body.itemId,"wardrobe piece")]:readIdList(body.itemIds,{label:"wardrobe pieces",min:1,max:10});
-    const result=await recordRealWear(session.subject,ids,{outfitId:readOptionalId(body.outfitId,"saved outfit"),requestId:readOptionalId(body.requestId,"request")});
+    const result=await recordRealWear(session.subject,ids,{outfitId:readOptionalId(body.outfitId,"saved outfit"),requestId:readOptionalId(body.requestId,"request"),localDate:typeof body.localDate==="string"?body.localDate:null});
     const status=result.duplicate?200:201,recordedAt=new Date().toISOString();
-    if(!single)return NextResponse.json({counts:result.counts,outfitWears:result.outfitWears,duplicate:result.duplicate,recordedAt},{status});
-    return NextResponse.json({itemId:ids[0],count:result.counts[ids[0]]??0,duplicate:result.duplicate,recordedAt},{status});
+    if(!single)return NextResponse.json({counts:result.counts,outfitWears:result.outfitWears,duplicate:result.duplicate,points:result.points,recordedAt},{status});
+    return NextResponse.json({itemId:ids[0],count:result.counts[ids[0]]??0,duplicate:result.duplicate,points:result.points,recordedAt},{status});
   } catch(error) {
     return failureResponse(error,"Wear recording failed","The wear could not be recorded. Try again.");
   }

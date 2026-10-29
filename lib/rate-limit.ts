@@ -62,6 +62,7 @@ export const RATE_LIMIT_RULES = {
   brandLookPublish: { limit: 20, windowMs: 60 * 60 * 1000 },
   outfitWrite: { limit: 60, windowMs: 10 * 60 * 1000 },
   wearRecord: { limit: 30, windowMs: 10 * 60 * 1000 },
+  pointsRead: { limit: 60, windowMs: 10 * 60 * 1000 },
   consentChange: { limit: 20, windowMs: 15 * 60 * 1000 },
   wardrobeWrite: { limit: 60, windowMs: 10 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitRule>;

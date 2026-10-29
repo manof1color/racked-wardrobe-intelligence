@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentChatTurn, AgentReply } from "@/lib/platform-types";
 import { roundCoordinate } from "@/lib/weather";
+import { wearRequestBody } from "@/lib/wear-client";
 import type { SavedOutfit } from "@/lib/types";
 
 type AgentAction = AgentReply["actions"][number];
@@ -224,7 +225,7 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
         throw new Error("Hanger's visible outfit changed before saving. Ask Hanger to create the outfit again so every photo and label stays matched.");
       }
       if (kind === "record-outfit") {
-        const response = await fetch("/api/wears", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemIds, requestId: crypto.randomUUID() }) });
+        const response = await fetch("/api/wears", { method: "POST", headers: { "content-type": "application/json" }, body: wearRequestBody({ itemIds }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "The outfit could not be recorded.");
         onWearRecorded?.(data.counts);

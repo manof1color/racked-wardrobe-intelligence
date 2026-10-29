@@ -20,7 +20,8 @@ skipped it.
    be deliverable without the brand learning who received it.
 3. **Honest.** No invented savings, no claims about resale value, sales, or purchase intent. Money
    figures say where they come from (for example, "from the brand's listed price").
-4. **Small.** The aim is a nudge, not a points economy. Nothing converts to cash.
+4. **Small.** The aim is a nudge, not a points economy. Nothing converts to cash. **Wear points**
+   (below) are the one points system, and they follow every rule here.
 5. **Picks and verified links stay different.** A product chosen by search or suggestion is the
    owner's pick; only the label code verifies it. Rewards may differ between the two, and the UI
    always says which one a piece is.
@@ -43,6 +44,31 @@ first thing built is simply making linking easier ([#127](https://github.com/man
 | Product details in the Closet | The brand's product name and a clear **Verified** or **your pick** label on the piece | Private to the owner |
 | **Cost per wear** | For a linked piece whose brand lists a price: "$30.00 a wear, from the brand's listed price", or "Listed at $90.00 · wear it to see its cost per wear" | Private, labelled as the listed price rather than what they paid, and it rewards wearing, not buying |
 | A reason shown at the moment of choice | *Linked pieces show their product details in your Closet, and their cost per wear where the brand lists a price.* | States the benefit plainly and is not pushy |
+
+## Wear points (owner decision, 2026-10-29)
+
+Brand intelligence exists only if people record what they wear, so recording a wear earns points:
+
+| Rule | Value |
+| --- | --- |
+| Each piece recorded as worn, the first time that day | 1 point |
+| A piece owned for 60+ days and not worn in them (back in rotation) | +3 points |
+| Most a day can earn | 15 points |
+
+- **Earned for wearing, never for sharing.** Points are identical whether or not the person shares
+  with brands (rule 1). The award never reads consent.
+- **Private.** Points live on the account. No brand route, metric or dashboard reads them (rule 2),
+  and deleting the account deletes them.
+- **No streak.** Home shows the last seven days — points, and which days had a wear — so a missed
+  day costs nothing. No badges, leaderboards or reminders.
+- **Nothing converts.** Not to money, credit, discounts or entries.
+- **Cannot inflate brand data.** Each piece earns once a day, and the same rule decides what a brand
+  receives: a piece recorded twice in a day sends one wear to its brand, not two.
+
+Code: [`lib/wear-points.ts`](../lib/wear-points.ts) (the rules), `recordRealWear` in
+[`lib/server/production-store.ts`](../lib/server/production-store.ts) (points written in the same
+transaction as the wear), [`components/wear-points-card.tsx`](../components/wear-points-card.tsx)
+(Home's card and "Log today's outfit"). Tests: [`tests/wear-points.test.ts`](../tests/wear-points.test.ts).
 
 ## Next, in order
 
