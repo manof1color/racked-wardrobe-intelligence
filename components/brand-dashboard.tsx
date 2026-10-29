@@ -10,6 +10,7 @@ import { HangerDock } from "./hanger-dock";
 import { WorkspaceMobileNav, type BrandWorkspaceView } from "./workspace-mobile-nav";
 import { communityIsEmpty, communityReadouts, pairingSummary, wearHeadline, wearReadouts } from "@/lib/brand-insights";
 import { catalogAttention } from "@/lib/brand-catalog-health";
+import { budgetWait } from "@/lib/privacy";
 import { brandOnboardingComplete, brandOnboardingProgress, brandOnboardingSteps } from "@/lib/brand-onboarding";
 import type { BrandCommunityMetrics, BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
@@ -30,9 +31,8 @@ function matchesQuery(product:BrandProductRegistration,query:string){
 /** Says what is left of the enumeration budget, so a refusal is never a surprise. */
 function budgetNote(budget?:{remaining:number;limit:number;resetsInSeconds:number}){
   if(!budget)return null;
-  const minutes=Math.ceil(budget.resetsInSeconds/60);
-  if(budget.remaining>0)return `You can open ${budget.remaining} more product${budget.remaining===1?"":"s"} in the next few minutes. Products you have already opened stay free to revisit.`;
-  return `You have opened ${budget.limit} products in the last few minutes, the most Racked releases at once. Revisit one of those now, or open a new one in about ${minutes} minute${minutes===1?"":"s"}. This limit protects owners from being identified by comparison across products.`;
+  if(budget.remaining>0)return `You can open ${budget.remaining} more product${budget.remaining===1?"":"s"} today. Products you have already opened stay free to revisit.`;
+  return `You have opened ${budget.limit} products in the last 24 hours, the most Racked releases in a day. Revisit one of those now, or open a new one in about ${budgetWait(budget.resetsInSeconds)}. This limit protects owners from being identified by comparison across products.`;
 }
 
 /** The state of one product at a glance, before any private data is involved. */
@@ -79,6 +79,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   // slice of the enumeration budget. Its id is remembered only for this visit.
   const [justEnrolled,setJustEnrolled]=useState<string[]>([]);
   const [catalogLoaded,setCatalogLoaded]=useState(false);
+  const productHeading=useRef<HTMLHeadingElement>(null);
 
   const live=products.filter(item=>!item.archived);
   const retiredCount=products.length-live.length;
@@ -137,6 +138,10 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   },[]);
 
   function remember(key:string){try{window.localStorage.setItem(key,"1");}catch{/* nothing to remember on this device */}}
+
+  // Opening a product replaces the catalog card that had focus, which would drop a keyboard user
+  // back at the top of the page; focus moves to the product they opened instead.
+  useEffect(()=>{if(view==="product")productHeading.current?.focus();},[view,productId]);
 
   function openProduct(id:string){setProductId(id);setMetrics(null);setCommunityMetrics(null);setError("");setEditing(false);setView("product");}
   function productSaved(saved:BrandProductRegistration){setProducts(current=>current.map(item=>item.id===saved.id?{...item,...saved}:item));}
@@ -273,7 +278,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
         <button type="button" className="back-link" onClick={()=>setView("catalog")}>← Catalog</button>
         {metrics&&!metrics.suppressed&&<button className="button button-dark button-small" onClick={downloadAggregate}>Download aggregate CSV ↗</button>}
       </div>
-      <div className="selected-product">{product.imageUrls?.front?<div className="large-product-photo"><img src={product.imageUrls.front} alt={product.name}/></div>:<div className="large-swatch cloud"><span>{product.category}</span></div>}<div><div className="eyebrow">TRACKING NOW</div><h2>{product.name}</h2><p>{product.brand} · {product.sku}</p><div className="chip-row">{productChips(product).map(chip=><i key={chip.label} className={`chip chip-${chip.tone}`}>{chip.label}</i>)}</div>
+      <div className="selected-product">{product.imageUrls?.front?<div className="large-product-photo"><img src={product.imageUrls.front} alt={product.name}/></div>:<div className="large-swatch cloud"><span>{product.category}</span></div>}<div><div className="eyebrow">TRACKING NOW</div><h2 ref={productHeading} tabIndex={-1}>{product.name}</h2><p>{product.brand} · {product.sku}</p><div className="chip-row">{productChips(product).map(chip=><i key={chip.label} className={`chip chip-${chip.tone}`}>{chip.label}</i>)}</div>
         <button type="button" className="button button-light button-small" aria-expanded={editing} onClick={()=>setEditing(value=>!value)}>{editing?"Close editing":"Edit or retire"}</button></div></div>
       {editing&&<BrandProductEditor product={product} onSaved={productSaved} onClose={()=>setEditing(false)}/>}
 

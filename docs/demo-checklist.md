@@ -23,6 +23,17 @@ The production environment currently contains these fictional brands. **Verify n
 - Synthetic Stride Lab
 - Lumen Test Objects
 
+## 30 minutes before
+
+1. Run `pnpm verify:live`. It checks, without signing in or spending a model call, that the live
+   site runs the latest `main`, the public pages load, the AI is configured, and today's AI budget
+   is not used up. If any line fails, fix it or switch to the backup video.
+2. Do one real scan on a judge consumer account. It is the only check that proves Bedrock answers.
+3. Ask Hanger one question. If the model is slow, the reply says it was written without the stylist
+   model. Say so plainly: "the AI is slow right now, so Racked falls back to its own outfit builder
+   rather than guessing."
+4. Have the backup video open in a tab.
+
 ## Pre-flight checks
 
 The demo is two flows — a person: scan → confirm → recommendation; a brand: anonymous cohort → wear

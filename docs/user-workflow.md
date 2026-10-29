@@ -241,9 +241,9 @@ wear it more than once? What does it get worn with?*
 - High-frequency owners, and the zero-wear opportunity
 - Aggregate CSV export
 
-The dashboard also says how many more distinct products you can open in the next few minutes, and
-why that limit exists: comparing many products in quick succession is how a near-threshold group
-could otherwise be reconstructed.
+The dashboard also says how many more distinct products you can open today, and why that limit
+exists: comparing many products side by side is how a near-threshold group could otherwise be
+reconstructed.
 
 **Everything above is suppressed before it is calculated when fewer than 25 distinct
 opted-in owners qualify.** Below the threshold you are told so plainly — you do not get
@@ -261,7 +261,7 @@ arriving live. Built only from things people deliberately published.
 
 It never joins to, bypasses, or lowers the `k ≥ 25` threshold on private wear behaviour. To
 resist enumeration, a brand may pull aggregates for at most six distinct products in any
-five-minute window.
+24 hours.
 
 ### 7. Brand Looks
 

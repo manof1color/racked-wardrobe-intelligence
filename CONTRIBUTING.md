@@ -28,7 +28,7 @@ pnpm build
 pnpm audit:prod
 ```
 
-All five run in CI on every push and pull request. Report the real test count from your run rather than copying a number from an older document. If a change plausibly affects an existing test file, run that file in isolation first, then the whole suite.
+All five run in CI on every push and pull request. A separate CI job also runs the accessibility checks (`pnpm test:a11y`, after `pnpm build`); a change to a page or component should keep them passing — see [docs/accessibility.md](docs/accessibility.md). Report the real test count from your run rather than copying a number from an older document. If a change plausibly affects an existing test file, run that file in isolation first, then the whole suite.
 
 ## Hard boundaries
 
