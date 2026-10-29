@@ -79,6 +79,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   // slice of the enumeration budget. Its id is remembered only for this visit.
   const [justEnrolled,setJustEnrolled]=useState<string[]>([]);
   const [catalogLoaded,setCatalogLoaded]=useState(false);
+  const productHeading=useRef<HTMLHeadingElement>(null);
 
   const live=products.filter(item=>!item.archived);
   const retiredCount=products.length-live.length;
@@ -137,6 +138,10 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   },[]);
 
   function remember(key:string){try{window.localStorage.setItem(key,"1");}catch{/* nothing to remember on this device */}}
+
+  // Opening a product replaces the catalog card that had focus, which would drop a keyboard user
+  // back at the top of the page; focus moves to the product they opened instead.
+  useEffect(()=>{if(view==="product")productHeading.current?.focus();},[view,productId]);
 
   function openProduct(id:string){setProductId(id);setMetrics(null);setCommunityMetrics(null);setError("");setEditing(false);setView("product");}
   function productSaved(saved:BrandProductRegistration){setProducts(current=>current.map(item=>item.id===saved.id?{...item,...saved}:item));}
@@ -273,7 +278,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
         <button type="button" className="back-link" onClick={()=>setView("catalog")}>← Catalog</button>
         {metrics&&!metrics.suppressed&&<button className="button button-dark button-small" onClick={downloadAggregate}>Download aggregate CSV ↗</button>}
       </div>
-      <div className="selected-product">{product.imageUrls?.front?<div className="large-product-photo"><img src={product.imageUrls.front} alt={product.name}/></div>:<div className="large-swatch cloud"><span>{product.category}</span></div>}<div><div className="eyebrow">TRACKING NOW</div><h2>{product.name}</h2><p>{product.brand} · {product.sku}</p><div className="chip-row">{productChips(product).map(chip=><i key={chip.label} className={`chip chip-${chip.tone}`}>{chip.label}</i>)}</div>
+      <div className="selected-product">{product.imageUrls?.front?<div className="large-product-photo"><img src={product.imageUrls.front} alt={product.name}/></div>:<div className="large-swatch cloud"><span>{product.category}</span></div>}<div><div className="eyebrow">TRACKING NOW</div><h2 ref={productHeading} tabIndex={-1}>{product.name}</h2><p>{product.brand} · {product.sku}</p><div className="chip-row">{productChips(product).map(chip=><i key={chip.label} className={`chip chip-${chip.tone}`}>{chip.label}</i>)}</div>
         <button type="button" className="button button-light button-small" aria-expanded={editing} onClick={()=>setEditing(value=>!value)}>{editing?"Close editing":"Edit or retire"}</button></div></div>
       {editing&&<BrandProductEditor product={product} onSaved={productSaved} onClose={()=>setEditing(false)}/>}
 

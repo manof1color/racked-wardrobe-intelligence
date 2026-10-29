@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useDialogFocus } from "./use-dialog-focus";
 import { detectInAppBrowser, detectIosBrowser, detectPwaInstallPlatform, externalBrowserUrl, pwaInstallGuidance, type InAppBrowser, type IosBrowser, type PwaInstallPlatform } from "@/lib/pwa-install";
 
 interface InstallPromptEvent extends Event {
@@ -25,6 +26,10 @@ export function PwaInstall() {
   const [hidden,setHidden]=useState(true);
   const [helpOpen,setHelpOpen]=useState(false);
   const [installing,setInstalling]=useState(false);
+  const banner=useRef<HTMLElement>(null);
+  const help=useRef<HTMLElement>(null);
+  const closeHelp=useCallback(()=>setHelpOpen(false),[]);
+  useDialogFocus(help,helpOpen,closeHelp);
 
   useEffect(()=>{
     let refreshing=false;
@@ -67,12 +72,6 @@ export function PwaInstall() {
     return ()=>{window.removeEventListener("racked:installable",adopt);window.removeEventListener("beforeinstallprompt",capture);window.removeEventListener("appinstalled",installed);navigator.serviceWorker?.removeEventListener("controllerchange",refreshForUpdate);window.clearTimeout(revealTimer);};
   },[]);
 
-  useEffect(()=>{
-    if(!helpOpen)return;
-    const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setHelpOpen(false);};
-    window.addEventListener("keydown",close);
-    return()=>window.removeEventListener("keydown",close);
-  },[helpOpen]);
 
   async function install(){
     if(!prompt){setHelpOpen(true);return;}
@@ -88,6 +87,20 @@ export function PwaInstall() {
     }finally{setInstalling(false);}
   }
 
+  // The tip shares the bottom corner with the Hanger launcher and sits above it, which used to hide
+  // the launcher completely, focus ring included. Its height is published as --install-offset so the
+  // launcher rises clear of it while it shows (WCAG 2.2, 2.4.11 Focus Not Obscured).
+  useEffect(()=>{
+    const root=document.documentElement;
+    const element=banner.current;
+    if(hidden||!element){root.style.removeProperty("--install-offset");return;}
+    const publish=()=>root.style.setProperty("--install-offset",`${Math.ceil(element.getBoundingClientRect().height)+12}px`);
+    publish();
+    const observer=new ResizeObserver(publish);
+    observer.observe(element);
+    return()=>{observer.disconnect();root.style.removeProperty("--install-offset");};
+  },[hidden]);
+
   if (hidden) return null;
   const guidance=pwaInstallGuidance(platform,browser);
   const inAppOnly=Boolean(inApp)&&!prompt;
@@ -102,7 +115,7 @@ export function PwaInstall() {
         :"Your browser menu can install it. We'll show you where.";
   const inAppSteps=[`Tap ⋯ in the corner of ${inApp??"this app"}.`,`Choose Open in browser${platform==="ios"?" or Open in Safari":""}.`,"Then tap Add Racked again."];
   return <>
-    <aside className="pwa-install" aria-label="Install Racked on this device">
+    <aside ref={banner} className="pwa-install" aria-label="Install Racked on this device">
       <Image src="/icon-192.png" alt="" width={44} height={44}/>
       <div><strong>{title}</strong><span>{detail}</span></div>
       {inAppOnly&&openUrl
@@ -111,7 +124,7 @@ export function PwaInstall() {
       <button type="button" className="pwa-dismiss" aria-label="Dismiss installation tip" onClick={()=>setHidden(true)}>×</button>
     </aside>
     {helpOpen&&<div className="modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setHelpOpen(false);}}>
-      <section className="modal pwa-install-help" role="dialog" aria-modal="true" aria-labelledby="pwa-install-title">
+      <section ref={help} tabIndex={-1} className="modal pwa-install-help" role="dialog" aria-modal="true" aria-labelledby="pwa-install-title">
         <button type="button" className="modal-close" aria-label="Close installation steps" onClick={()=>setHelpOpen(false)}>×</button>
         <div className="eyebrow">HOME SCREEN APP</div>
         <h2 id="pwa-install-title">{inAppOnly?`Open Racked in ${realBrowser} first`:guidance.title}</h2>

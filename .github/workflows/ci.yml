@@ -29,3 +29,33 @@ jobs:
       - run: pnpm build
         env:
           SESSION_SECRET: github-actions-test-only-secret-with-32-characters
+
+  # Work order W8: axe on the public pages and, through the fixture-only harness, the signed-in
+  # screens, plus keyboard-only passes of both demo flows. It runs against a local `next start`
+  # of this commit with synthetic data; it never contacts the deployed site or a real table.
+  accessibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+        env:
+          SESSION_SECRET: github-actions-test-only-secret-with-32-characters
+      - run: pnpm test:a11y
+        env:
+          SESSION_SECRET: github-actions-test-only-secret-with-32-characters
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: accessibility-report
+          path: playwright-report/
+          retention-days: 14

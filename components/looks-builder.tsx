@@ -12,8 +12,10 @@ const EXTRA_LABELS: Record<LooksExtraKey, string> = { hat: "Hat", bag: "Bag", je
 const SWIPE_DISTANCE = 40;
 
 function Face({ item, size, emptyLabel }: { item: WardrobeItem | null; size: "center" | "peek"; emptyLabel: string }) {
-  if (!item) return <div className={`looks-card looks-${size} looks-none`}>{size === "center" ? emptyLabel : "NONE"}</div>;
-  return <div className={`looks-card looks-${size}`}>
+  // A peek previews the neighbouring option the arrows step to; the arrows carry its meaning. An
+  // empty peek is the dashed box alone: a faded word there was too faint to read.
+  if (!item) return <div className={`looks-card looks-${size} looks-none`} aria-hidden={size === "peek" || undefined}>{size === "center" ? emptyLabel : null}</div>;
+  return <div className={`looks-card looks-${size}`} aria-hidden={size === "peek" || undefined}>
     {item.imageUrl ? <img src={item.imageUrl} alt={size === "center" ? item.name : ""} /> : <div className={`outfit-slide-fallback ${item.art}`} aria-hidden="true" />}
   </div>;
 }
