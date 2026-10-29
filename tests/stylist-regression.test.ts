@@ -1,6 +1,7 @@
 /**
- * A stylist's evaluation set: the closet from the reported conversation, and what a stylist would
- * and would not put in front of someone for each request. The cases run through the same code the
+ * Stylist regression cases: the closet from the reported conversation, and what a stylist would
+ * and would not put in front of someone for each request. These are regression tests, not an
+ * evaluation of outfit quality; a blind rated comparison is a separate measurement. The cases run through the same code the
  * live app uses — the outfit builder, the turn planner, and the agent's build_outfits tool — so a
  * change that makes Hanger dress someone badly fails here before it reaches a phone.
  */

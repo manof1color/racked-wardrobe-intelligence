@@ -104,3 +104,66 @@ The Brand Hanger agent shares that exact function, so the dashboard and the conv
 ## Explicit non-claims
 
 The Looks flat-lay is a visual outfit composition tool, not photorealistic virtual try-on or body-fit prediction. Racked does not predict purchase likelihood, sales lift, identity, income, age, gender, ethnicity, or body measurements. The adaptive photo plan reduces unnecessary photos; it does not improve identification accuracy, and it never changes what counts as verified. Published pricing is a proposal with no billing integration behind it.
+
+## Module map
+
+Where each responsibility lives. Every route, its access level and its abuse controls are in [backend-api.md](backend-api.md).
+
+```text
+app/api/auth/…                 Register/login/logout: scrypt hashes, signed sessions, rate limits
+app/api/account/               Own-account settings + consumer account deletion (password + typed DELETE)
+app/api/auth/password-reset/   Enumeration-safe request + single-use reset confirmation
+app/api/garments/detect/       One-photo multi-piece detection + a private bounded crop per piece
+app/api/consumer/…             Wardrobe, outfits, consent, home city — always scoped to the signed-in account
+app/api/wears/                 Confirmed wear events + saved-outfit wear totals
+app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
+app/api/agents/…               Hanger conversations; the consumer one is stored, resumable, and clearable
+app/api/community/images/      Public post-scoped image proxy; never exposes private S3 keys
+app/api/community/[postId]/    Signed-in Recreate This Look comparison
+app/api/products/similar/      Rate-limited registry-only product suggestions
+app/api/version/               The commit Amplify built, for deploy verification
+lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
+lib/hanger-agent.ts            Hanger's tool-using agent: wardrobe search, outfit builder, weather, trends
+lib/garment-knowledge.ts       Stylist knowledge: formality ladder per garment type, occasion bands
+lib/outfit-ranking.ts          Deterministic, constrained outfit scoring with evidence
+lib/hanger-turn.ts             Fallback turn modes and active-outfit follow-up planning
+lib/hanger-conversation.ts     Hanger prompts, model selection, history bounds, brand output privacy review
+lib/hanger-memory.ts           Account-scoped memory: turns, preferences, prior suggestions, active outfit
+lib/weather.ts                 Open-Meteo forecast and place search, rounded coordinates, short cache
+lib/looks-rows.ts              Looks builder rows, slots, and the ranker's pick for today (no AI call)
+lib/garment-edit.ts            Which fields of a saved piece can be edited, and the verified-piece boundary
+lib/catalog-match.ts           Look-alike ranking of enrolled products against a scanned piece
+lib/garment-analysis.ts        Vision prompts, registry matching, brand-autofill boundary
+lib/look-garment-detection.ts  Bounded instance detection, coordinates, deduplication, trust boundary
+lib/garment-taxonomy.ts        Controlled categories/subtypes, bounded uncertainty, typed-type resolver
+lib/shoe-knowledge.ts          Generic footwear aliases/cues for AI grounding and name grammar
+lib/recreate-look.ts           Deterministic owned/substitute/missing scoring with evidence
+lib/similar-products.ts        Same-category suggestions using the same scoring weights
+lib/outfit-contracts.ts        Exact/estimated/similar/generic/unavailable product states
+lib/look-discovery.ts          Inferred look styles, category filters, public-field search
+lib/commerce.ts                Public-HTTPS validation and controlled destination states
+lib/brand-looks.ts             Brand-owned authorization for Brand Looks
+lib/privacy.ts                 k ≥ 25 gate + product-enumeration budget
+lib/rate-limit.ts              Sliding-window abuse limits for auth/AI/community endpoints
+lib/deletion-plan.ts           Owner-scoped deletion planning: outfits, posts, shared photos, profile last
+lib/account-security.ts        Password policy and reset-token lifetime/hash rules
+lib/outfit-board.ts            Deterministic category-aware flat-lay placement
+lib/garment-crop.ts            Evidence-preserving auto-crop with tested fallbacks
+lib/backdrop-model.ts          Clustered backdrop colours; perimeter-run surface test
+lib/garment-segmenter.ts       Registration seam for a learned segmenter (MobileSAM-ready)
+lib/garment-cutout.ts          Edge-connected transparency (research; not used by live intake)
+lib/ai-background-removal.ts   Optional asynchronous-ready segmentation helper; not an intake gate
+lib/evaluation-dataset.ts      External-dataset normalization, deterministic sampling, scoring
+lib/garment-evaluation-runner.ts  Production-result → privacy-safe benchmark contract
+lib/matching.ts                Product-fit reference scorer (analytics reference; no route imports it)
+lib/photo-plan.ts              Intake category list; retired photo-plan logic kept with its identity tests
+components/consumer-dashboard.tsx  Today / Looks / Closet / Outfits views
+components/looks-builder.tsx       Swipe-through outfit rows with lock, Shuffle, Save, and Wear today
+components/garment-intake.tsx      Photo intake: per-piece cards, typeable Type field, brand linking
+components/garment-editor.tsx      Editing a saved piece
+components/agent-panels.tsx        Hanger chat: outfit cards, Save/Record, weather and location controls
+components/home-city-setting.tsx   The home city Hanger uses for the forecast
+components/demo-purchase-panel.tsx $0 fictional bag and checkout simulation
+components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
+infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
+```

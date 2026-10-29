@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { once } from "node:events";
 import { a11yHarnessEnabled, harnessScreen, A11Y_HARNESS_FLAG } from "../lib/a11y-harness.ts";
@@ -44,7 +45,7 @@ test("the accessibility checks run against a local build, never the deployed sit
 
 test("the fixture store answers reads with invented posts and refuses every write", async () => {
   const port = 4600 + Math.floor(Math.random() * 300);
-  const store = spawn(process.execPath, [new URL("./a11y/community-store-stub.mjs", import.meta.url).pathname], { env: { ...process.env, A11Y_STORE_PORT: String(port) } });
+  const store = spawn(process.execPath, [fileURLToPath(new URL("./a11y/community-store-stub.mjs", import.meta.url))], { env: { ...process.env, A11Y_STORE_PORT: String(port) } });
   try {
     await once(store.stdout, "data");
     const call = (operation: string, body: unknown) => fetch(`http://127.0.0.1:${port}/`, { method: "POST", headers: { "x-amz-target": `DynamoDB_20120810.${operation}` }, body: JSON.stringify(body) });
