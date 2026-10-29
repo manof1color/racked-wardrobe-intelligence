@@ -42,6 +42,8 @@ export const RATE_LIMIT_RULES = {
   cspReport: { limit: 30, windowMs: 10 * 60 * 1000 },
   accountActivity: { limit: 30, windowMs: 5 * 60 * 1000 },
   endSessions: { limit: 5, windowMs: 15 * 60 * 1000 },
+  // The demo preflight reads /api/health a few times; nobody needs it more often.
+  health: { limit: 30, windowMs: 5 * 60 * 1000 },
   // Setting up, replacing recovery codes, and turning off; the code itself is also counted per account in DynamoDB.
   twoStep: { limit: 10, windowMs: 15 * 60 * 1000 },
   communityLike: { limit: 40, windowMs: 5 * 60 * 1000 },
