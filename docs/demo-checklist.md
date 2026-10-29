@@ -110,7 +110,7 @@ Any fallback state shown must stay clearly labeled. If pre-seeded synthetic data
 
 ## Post-demo honesty checklist
 
-- [ ] No claim of recognition accuracy was made
+- [ ] Any recognition figure quoted was the measured one (89.7% category, 59.5% exact type) with its source, [evaluation-results.md](evaluation-results.md)
 - [ ] No claim of sales lift, conversion, revenue, or purchase intent was made
 - [ ] Synthetic data was described as synthetic every time it appeared
 - [ ] Suppression was framed as a working control, not a limitation

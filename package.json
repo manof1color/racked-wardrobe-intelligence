@@ -15,6 +15,8 @@
     "eval:run": "node --experimental-strip-types scripts/run-garment-evaluation.mjs",
     "eval:score": "node --experimental-strip-types scripts/score-garment-evaluation.mjs",
     "eval:audit-labels": "node --experimental-strip-types scripts/audit-second-hand-label-coverage.mjs",
+    "eval:live:build": "node --experimental-strip-types scripts/build-live-evaluation-set.mjs",
+    "eval:live": "node --experimental-strip-types scripts/run-live-detection-evaluation.mjs",
     "verify:demo-match": "node --experimental-strip-types scripts/verify-test-cohort-match.mjs",
     "seed:judge:dry": "node scripts/seed-judge-accounts.mjs --dry-run",
     "seed:judge": "node scripts/seed-judge-accounts.mjs",
