@@ -23,7 +23,7 @@ export default function PricingPage() {
     <h1>Planned pricing.</h1>
     <p className="lead">This is the proposed business model for Racked. <strong>Nothing on this page is currently billed</strong> — every account and feature in the competition build is free, and no payment method is ever collected.</p>
     <div className="pricing-disclaimer" role="note"><strong>Planned pricing — not yet billed.</strong> The tiers below are a forward-looking proposal, not an active offer.</div>
-    <div className="table-scroll">
+    <div className="table-scroll" role="region" aria-label="Proposed tiers" tabIndex={0}>
       <table className="pricing-table">
         <caption className="eyebrow">Proposed tiers (not currently billed)</caption>
         <thead><tr><th scope="col">Tier</th><th scope="col">Price</th><th scope="col">Includes</th></tr></thead>
