@@ -34,3 +34,30 @@ test("the build stamp is written deliberately, not dumped from the environment",
   assert.ok(allowlist.length > 0, "the allowlist is still there");
   assert.doesNotMatch(allowlist, /AWS_|CI_|CODEBUILD|AMPLIFY/, "no AWS or CI metadata is copied wholesale");
 });
+
+test("the health check reports readiness as a band and spends nothing", async () => {
+  const { modelBudgetBand } = await import("../lib/demo-health.ts");
+  assert.equal(modelBudgetBand(0, 1_500), "plenty");
+  assert.equal(modelBudgetBand(1_400, 1_500), "low", "fewer than a tenth left");
+  assert.equal(modelBudgetBand(1_480, 1_500), "low");
+  assert.equal(modelBudgetBand(1_500, 1_500), "exhausted");
+  assert.equal(modelBudgetBand(2_000, 1_500), "exhausted");
+  assert.equal(modelBudgetBand(80, 100), "low", "at least 25 calls left, even on a small ceiling");
+  assert.equal(modelBudgetBand(null, 1_500), "unknown", "an unreadable counter is not reported as fine");
+  const health = read("app/api/health/route.ts");
+  assert.match(health, /export const dynamic = "force-dynamic";/);
+  assert.match(health, /"cache-control": "no-store"/);
+  assert.match(health, /consumeRateLimit\(`health:\$\{clientIdentifier\(request\)\}`, RATE_LIMIT_RULES\.health\)/);
+  assert.match(health, /readSecurityCounter\("ai:site-calls", DAY_MS\)/, "reads the same counter the ceiling charges, without adding to it");
+  assert.doesNotMatch(health, /incrementSecurityCounter|spendSiteModelCall|Bedrock|Converse|getSession|SESSION_SECRET|AWS_/, "no model call, no write, no account, no secret");
+  assert.match(health, /ai: \{ configured, budget: configured \? modelBudgetBand\(used, aiDailyCeiling\(\)\) : "unknown" \}/, "a band, never the counts");
+});
+
+test("verify:live only reads public pages", () => {
+  const script = read("scripts/verify-live.mjs");
+  assert.match(read("package.json"), /"verify:live": "node scripts\/verify-live\.mjs"/);
+  assert.doesNotMatch(script, /method:\s*"(POST|PUT|PATCH|DELETE)"|password|cookie|Authorization|aws-sdk/i, "no writes, no sign-in, no AWS");
+  assert.match(script, /git", \["ls-remote", "origin", "refs\/heads\/main"\]/, "main is read without changing the local checkout");
+  for (const page of ["/", "/pricing", "/privacy", "/terms", "/login", "/community", "/api/version", "/api/health"]) assert.ok(script.includes(`"${page}"`), page);
+  assert.match(read("docs/demo-checklist.md"), /## 30 minutes before\s+1\. Run `pnpm verify:live`/);
+});

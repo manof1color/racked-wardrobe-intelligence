@@ -18,8 +18,18 @@ export function toBrandSafeSegment(input: { id:string; label:string; size:number
 // against the budget — only breadth of enumeration does.
 export interface AggregateQueryEvent { subject:string; productId:string; at:number; }
 
-export const ENUMERATION_WINDOW_MS = 5 * 60 * 1000;
+// A day, not five minutes: six distinct products every five minutes still allowed about seventy an
+// hour, enough to line results up. Re-opening a product already opened stays free all day.
+export const ENUMERATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const MAX_DISTINCT_PRODUCTS_PER_WINDOW = 6;
+
+/** "3 hours" or "40 minutes": how long until the oldest opened product leaves the window. */
+export function budgetWait(seconds: number) {
+  const minutes = Math.max(1, Math.ceil(seconds / 60));
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.ceil(minutes / 60);
+  return `${hours} hour${hours === 1 ? "" : "s"}`;
+}
 
 export interface EnumerationBudgetState {
   /** Distinct products this subject has already opened inside the window. */
