@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { brandProductUpdate, IMMUTABLE_PRODUCT_FIELDS, matchBrandProduct } from "../lib/product-registry.ts";
-import { enumerationBudgetState, ENUMERATION_WINDOW_MS, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "../lib/privacy.ts";
+import { budgetWait, enumerationBudgetState, ENUMERATION_WINDOW_MS, exceedsEnumerationBudget, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "../lib/privacy.ts";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -105,6 +105,26 @@ test("a brand is told how much of the enumeration budget is left", () => {
   const dashboard = read("components/brand-dashboard.tsx");
   assert.match(dashboard, /This limit protects owners from being identified by comparison across products/);
   assert.doesNotMatch(dashboard, /budget\.used/, "the note says what is left, not what was looked at");
+});
+
+test("the enumeration window is a day, and the dashboard says so in hours", () => {
+  // Six products every five minutes still allowed about seventy distinct products an hour.
+  assert.equal(ENUMERATION_WINDOW_MS, 24 * 60 * 60 * 1000);
+  assert.equal(MAX_DISTINCT_PRODUCTS_PER_WINDOW, 6);
+  const now = 10 * ENUMERATION_WINDOW_MS;
+  const sixAnHourAgo: AggregateQueryEvent[] = ["a", "b", "c", "d", "e", "f"].map((productId) => ({ subject: "brand-1", productId, at: now - 60 * 60 * 1000 }));
+  assert.equal(exceedsEnumerationBudget(sixAnHourAgo, "brand-1", "g", now), true, "a seventh product an hour later is refused");
+  assert.equal(exceedsEnumerationBudget(sixAnHourAgo, "brand-1", "a", now), false, "re-opening one is free");
+  assert.equal(exceedsEnumerationBudget(sixAnHourAgo, "brand-1", "g", now + 23 * 60 * 60 * 1000 + 1), false, "a day after the first, a new one opens");
+  assert.equal(enumerationBudgetState(sixAnHourAgo, "brand-1", now).resetsInSeconds, 23 * 60 * 60);
+  assert.equal(budgetWait(23 * 60 * 60), "23 hours");
+  assert.equal(budgetWait(61 * 60), "2 hours");
+  assert.equal(budgetWait(40 * 60), "40 minutes");
+  assert.equal(budgetWait(1), "1 minute");
+  const dashboard = read("components/brand-dashboard.tsx");
+  assert.match(dashboard, /more product\$\{budget\.remaining===1\?"":"s"\} today\./);
+  assert.match(dashboard, /in the last 24 hours, the most Racked releases in a day/);
+  assert.doesNotMatch(dashboard, /next few minutes|last few minutes/);
 });
 
 // ─── Finding a product, and pointing customers at the catalog ──────────────────

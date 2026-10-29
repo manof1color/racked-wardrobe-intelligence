@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandAgentPanel, ConsumerAgentPanel } from "./agent-panels";
+import { useDialogFocus } from "./use-dialog-focus";
 import type { SavedOutfit } from "@/lib/types";
 
 const ROLE_COPY = {
@@ -17,27 +18,18 @@ export function HangerDock({ role, productId, brandHasProducts = false, onOpenCa
 
   const close = useCallback(() => setOpen(false), []);
 
-  // A dialog that cannot be dismissed with Escape, does not take focus, and lets the
-  // page behind it scroll is a dialog in markup only.
+  // A dialog that cannot be dismissed with Escape, does not take focus, keeps it inside, and lets
+  // the page behind it scroll is a dialog in markup only. Focus returns to the launcher.
+  useDialogFocus(drawer, open, close, launcher);
   useEffect(() => {
     if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
-    document.addEventListener("keydown", onKeyDown);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    drawer.current?.focus();
-    // Captured now: by cleanup time the ref may point somewhere else, and focus has to
-    // return to the button that opened the drawer.
-    const openedBy = launcher.current;
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      openedBy?.focus();
-    };
-  }, [open, close]);
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [open]);
 
   return <>
-    <button ref={launcher} type="button" className="hanger-launcher" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
+    <button ref={launcher} type="button" className="hanger-launcher" aria-label="Ask Hanger" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
       <span className="hanger-mark" aria-hidden="true">⌁</span>
       <span className="hanger-launcher-copy"><strong>Ask Hanger</strong><small>{copy.launcher}</small></span>
     </button>

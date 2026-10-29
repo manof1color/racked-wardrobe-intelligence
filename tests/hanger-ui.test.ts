@@ -8,11 +8,14 @@ const panels = read("components/agent-panels.tsx");
 const css = read("app/globals.css");
 
 test("the Hanger drawer behaves like a dialog, not just markup that says dialog", () => {
+  const dialogFocus = read("components/use-dialog-focus.ts");
   assert.match(dock, /aria-modal="true"/);
-  assert.match(dock, /event\.key === "Escape"/, "Escape must dismiss the drawer");
+  assert.match(dock, /useDialogFocus\(drawer, open, close, launcher\)/, "the drawer must use the shared dialog focus behaviour, returning focus to the launcher");
   assert.match(dock, /document\.body\.style\.overflow = "hidden"/, "the page behind a modal must not scroll");
-  assert.match(dock, /drawer\.current\?\.focus\(\)/, "opening must move focus into the drawer");
-  assert.match(dock, /openedBy\?\.focus\(\)/, "closing must return focus to the launcher");
+  assert.match(dialogFocus, /event\.key === "Escape"/, "Escape must dismiss the drawer");
+  assert.match(dialogFocus, /element\.focus\(\)/, "opening must move focus into the drawer");
+  assert.match(dialogFocus, /event\.key !== "Tab"/, "Tab must stay inside the open drawer");
+  assert.match(dialogFocus, /opener\.focus\(\)/, "closing must return focus to the launcher");
 });
 
 test("the launcher says what Hanger will do rather than only naming it", () => {
