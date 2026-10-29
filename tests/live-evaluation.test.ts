@@ -115,20 +115,28 @@ test("scoring uses the largest detection, counts failures apart, and flags any A
   assert.equal(scoreSet([entry("z")], []).notAttempted, 1);
 });
 
-test("the figures judges read match the committed benchmark report", () => {
-  const report = JSON.parse(read("data/evaluation-live-2026-10-29.json"));
-  const { category, exactSubtype } = report.external;
-  assert.equal(report.complete, true);
-  assert.ok(report.spentUsd <= HARD_BUDGET_USD);
-  assert.equal(report.external.identityBoundaryViolations, 0);
+test("the figures judges read match the committed benchmark reports, round 2 as the headline", () => {
+  const before = JSON.parse(read("data/evaluation-live-2026-10-29.json"));
+  const after = JSON.parse(read("data/evaluation-live-2026-10-29-r2.json"));
   const percent = (rate: number) => `${(rate * 100).toFixed(1)}%`;
-  const headline = `${percent(category.rate)} category`;
+  const cell = (score: { successes: number; trials: number; rate: number; low: number; high: number }) => `${score.successes} of ${score.trials} — ${percent(score.rate)}** (${percent(score.low)}–${percent(score.high)})`;
   const readme = read("README.md");
-  assert.ok(readme.includes(`**${category.successes} of ${category.trials} — ${percent(category.rate)}** (${percent(category.low)}–${percent(category.high)})`), "README table");
-  assert.ok(readme.includes(`${exactSubtype.successes} of ${exactSubtype.trials} — ${percent(exactSubtype.rate)}`), "README exact type");
-  assert.ok(readme.includes(`$${report.spentUsd.toFixed(2)} of Bedrock time`), "README cost");
-  for (const path of ["README.md", "JUDGES.md", "docs/one-page-summary.md", "docs/demo-script.md"]) assert.ok(read(path).includes(percent(category.rate)), `${path} quotes ${headline}`);
-  assert.ok(read("docs/evaluation-results.md").includes(`${category.successes} of ${category.trials} (${percent(category.rate)}`), "the generated results page");
+  for (const [report, file] of [[before, "docs/evaluation-results.md"], [after, "docs/evaluation-results-r2.md"]] as const) {
+    assert.equal(report.complete, true);
+    assert.ok(report.spentUsd <= HARD_BUDGET_USD);
+    assert.equal(report.external.identityBoundaryViolations, 0);
+    assert.ok(read(file).includes(`${report.external.category.successes} of ${report.external.category.trials} (${percent(report.external.category.rate)}`), `${file} is the generated page`);
+  }
+  assert.equal(after.round, "2");
+  // Round 1 is the baseline column, round 2 the bold current one.
+  assert.ok(readme.includes(`| ${cell(before.external.category).replace("** (", " (")} | **${cell(after.external.category)} |`), "README category row, both rounds");
+  assert.ok(readme.includes(`**${cell(after.external.exactSubtype)}`), "README exact type, round 2");
+  assert.ok(readme.includes(`$${(before.spentUsd + after.spentUsd).toFixed(2)} of Bedrock time`), "README cost, both rounds");
+  const headline = percent(after.external.category.rate);
+  for (const path of ["README.md", "JUDGES.md", "docs/one-page-summary.md", "docs/demo-script.md"]) assert.ok(read(path).includes(headline), `${path} quotes ${headline}`);
+  // The fix's effect, as stated, is the round-1 → round-2 count of tops proposed as outerwear.
+  const outerwear = (report: { external: { misses: Array<{ key: string; count: number }> } }) => report.external.misses.find((miss) => miss.key === "top → outerwear")?.count ?? 0;
+  assert.ok(readme.includes(`| Hoodies, cardigans and other tops proposed as outerwear | ${outerwear(before)} photos | **${outerwear(after)} photo${outerwear(after) === 1 ? "" : "s"}** |`));
 });
 
 test("the published results say how much was attempted and what it cost", () => {

@@ -56,5 +56,5 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
   while saving no link at all, so no brand ever received that owner. It passed every test that
   checked the screen and none that checked what was stored.
 - **Measure before you claim.** I did not claim recognition accuracy until I had measured it: the live
-  scan placed 89.7% of 292 independent, locked photos in the right category. I still do not claim
+  scan placed 92.8% of 293 independent, locked photos in the right category. I still do not claim
   sales lift or purchase intent. Naming the gaps cost nothing and made everything else more credible.

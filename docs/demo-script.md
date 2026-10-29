@@ -82,7 +82,7 @@ skip it.
 Read the current test count off the scorecard rather than from memory. Then the honest boundary:
 *"Every brand number on screen today is synthetic demonstration data, labelled in the interface. The
 one real number is recognition: on 300 independent photos, locked before the first call, the live
-scan got the category right 89.7% of the time. I don't claim sales lift or purchase intent."*
+scan got the category right 92.8% of the time. I don't claim sales lift or purchase intent."*
 
 ## 4:30–5:00 — Close, and the roadmap
 
@@ -107,7 +107,7 @@ Judges score here. Answer in two sentences, then stop.
 | **"How much of this did you actually write?"** | I directed it and reviewed every change; the history is public, pull request by pull request. Open any file and I will walk you through it — the ranker, the session guard, or the registry match. |
 | **"What stops someone claiming they own a product they don't?"** | Nothing stops them *claiming* it — that is why a claim and evidence are stored as different things. A pick shows them their own product details; only a barcode or brand-plus-style-code match against the registry ever reaches a brand. |
 | **"Is the AI doing real work, or writing text around a rule engine?"** | Both, deliberately. Bedrock does the vision and the conversation, and decides which tools to use; a deterministic ranker picks the outfit, so the model explains a selection it cannot override — and a reply listing outfits the ranker never built is refused. |
-| **"What is your accuracy?"** | 89.7% on garment category, with a 95% interval of 85.7–92.7%, measured on 300 photos from an independent public dataset. I locked every answer by hash before the first model call and ran the exact code the app runs, for $1.75. Exact type is 59.5%, which is why the person always confirms before anything is saved. |
+| **"What is your accuracy?"** | 92.8% on garment category, with a 95% interval of 89.3–95.3%, on 300 photos from an independent public dataset. I locked every answer by hash before the first model call and ran the exact code the app runs. The first round found 89.7% and one clear mistake — hoodies called outerwear — so I fixed it and re-measured on 300 fresh photos rather than the ones I tuned on. Exact type is 74.6%, which is why the person always confirms before anything is saved. |
 | **"What would you do differently?"** | I built background removal before I had evidence it worked on real phone photos, and it erased white garments against pale walls. The fix was to stop cutting pieces out and show an honest bounded crop. |
 | **"Who pays, and how much?"** | Brands. $25 per SKU to enrol, $149 a month once a product crosses the privacy threshold, $29 before it does — priced low deliberately, because a brand under the threshold gets benchmarks, not customer data. |
 | **"What breaks first at scale?"** | Per-instance limits are only a first layer: shared DynamoDB counters and fail-closed model-call budgets now bound abuse and AI usage. Edge rate limiting and production-scale validation remain follow-ups, not claims. |

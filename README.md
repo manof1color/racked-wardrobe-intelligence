@@ -12,7 +12,7 @@ People get a private wardrobe and an AI stylist that are useful on their own. Br
 | **Judges, start here** | [JUDGES.md](JUDGES.md) — one screen: the two demo flows, how to sign in, and where every piece of evidence is |
 | **Live application** | https://main.d2iv0khybuuaeh.amplifyapp.com — installable on a phone |
 | **What is deployed right now** | [`/api/version`](https://main.d2iv0khybuuaeh.amplifyapp.com/api/version) returns the exact commit Amplify built |
-| **Measured AI recognition** | **89.7% of garments placed in the right category** (262 of 292; 95% CI 85.7%–92.7%) by the live scan, on 300 independent, publicly licensed photos with answers locked before the first model call — [results](docs/evaluation-results.md) |
+| **Measured AI recognition** | **92.8% of garments placed in the right category** (272 of 293; 95% CI 89.3%–95.3%) by the live scan, on 300 independent, publicly licensed photos with answers locked before the first model call — up from 89.7% after one measured fix — [results](docs/evaluation-results-r2.md) |
 | **Stack** | Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Pro, Nova Lite) · GitHub Actions · CodeQL |
 | **Built for** | CUA Busch School AI Vibe Coding Contest, Fall 2026 |
 
@@ -37,7 +37,7 @@ Each scoring category, what to look for, and where to check it.
 | --- | ---: | --- | --- |
 | **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Evidence](#evidence-and-what-is-not-claimed) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
-| **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 89.7% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
+| **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
 | **Code, docs & GitHub** | 15% | **842 tests** in 114 files; CI runs audit, lint, type check, tests, build and CodeQL on every change; **169 merged PRs** counted on 2026-10-28 before this documentation merge; build log through Phase 88 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for post-purchase intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Pricing](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) |
@@ -135,7 +135,7 @@ Built, live and tested, but outside the five-minute demo:
 | **Batch scanning** | Up to **6 photos** in one pass, every piece in one review list, bounded at 24 pieces | [`garment-intake.tsx`](components/garment-intake.tsx) |
 | **Outfits, wear and Looks** | Saved outfits with private flat-lay boards, one-tap repeat wear, and a swipe-through builder that uses the same ranker as Hanger with no AI call | [`looks-builder.tsx`](components/looks-builder.tsx) |
 
-**Next:** raise exact-type recognition (59.5% today) and the top/outerwear boundary, the most common miss in the [measured benchmark](docs/evaluation-results.md); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md).
+**Next:** raise exact-type recognition (74.6% today) and the dress/top boundary, now the most common miss in the [measured benchmark](docs/evaluation-results-r2.md); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md).
 
 ---
 
@@ -171,23 +171,26 @@ Built, live and tested, but outside the five-minute demo:
 | "Recreate with my wardrobe" | No | Owned / substitute / missing scoring with per-piece evidence | `lib/recreate-look.ts` |
 | Whether a brand may see an aggregate at all | No | Consent filter, `k ≥ 25`, enumeration budget | `lib/privacy.ts`, `lib/metrics.ts` |
 
-> **Is the AI trained on clothing photos? Not by Racked.** Racked uses Amazon Bedrock Nova models as supplied and does not fine-tune them. Where it needs domain knowledge it writes it down and tests it: the controlled garment taxonomy, a reference of 23 generic shoe classes that grounds recognition, and the formality ladder above. Recognition accuracy is measured, not asserted: [89.7% category accuracy on 300 independent photos](#evidence-and-what-is-not-claimed).
+> **Is the AI trained on clothing photos? Not by Racked.** Racked uses Amazon Bedrock Nova models as supplied and does not fine-tune them. Where it needs domain knowledge it writes it down and tests it: the controlled garment taxonomy, a reference of 23 generic shoe classes that grounds recognition, and the formality ladder above. Recognition accuracy is measured, not asserted: [92.8% category accuracy on 300 independent photos](#evidence-and-what-is-not-claimed).
 
 ---
 
 ## Evidence, and what is not claimed
 
-**Recognition accuracy, measured on the live scan (2026-10-29).** Racked ran the exact scan the app runs — the code behind `POST /api/garments/detect`, with the same prompt, the same Nova Pro model and the same 1,600-pixel photo — on **300 photos from the independent CC BY 4.0 [Clothing Dataset for Second-Hand Fashion](https://zenodo.org/records/13788681)**. Every answer and photo was locked by hash before the first model call, so nothing could be tuned after seeing results.
+**Recognition accuracy, measured on the live scan (2026-10-29).** Racked ran the exact scan the app runs — the code behind `POST /api/garments/detect`, with the same prompt, the same Nova Pro model and the same 1,600-pixel photo — on photos from the independent CC BY 4.0 [Clothing Dataset for Second-Hand Fashion](https://zenodo.org/records/13788681). Every answer and photo was locked by hash before the first model call, so nothing could be tuned after seeing results.
 
-| Measure | Result (95% confidence interval) |
-| --- | --- |
-| **Garment category correct** | **262 of 292 — 89.7%** (85.7%–92.7%) |
-| Exact type correct, on photos labelled with a type | 100 of 168 — 59.5% (52.0%–66.6%) |
-| Products marked "verified" by AI alone | **0** — only registry evidence verifies a product |
-| Scans that came back unlabelled | 0 of 292 |
-| Service timeouts, where the person is offered manual entry | 8 of 300 — 2.7% |
+It ran twice. **Round 1** measured the scan as it was and found its most common mistake: hoodies and cardigans proposed as outerwear, although Racked's own taxonomy files them as tops. The prompt was given that boundary. **Round 2** then measured the fixed scan on **300 fresh photos it had never been tuned on** — none shared with round 1.
 
-The whole benchmark cost **$1.75 of Bedrock time** (counted with a 1.5× safety margin, under a hard $3.50 cap). The most common miss is a top proposed as outerwear (18 photos); every proposal is shown to the person to confirm or change before anything is saved. [Full results](docs/evaluation-results.md) · [method](docs/evaluation.md#live-path-benchmark-the-scan-the-app-actually-runs) · [aggregates](data/evaluation-live-2026-10-29.json) · [lock](data/evaluation-lock.json)
+| Measure (95% confidence interval) | Round 1 — before the fix | **Round 2 — current scan, fresh photos** |
+| --- | --- | --- |
+| **Garment category correct** | 262 of 292 — 89.7% (85.7%–92.7%) | **272 of 293 — 92.8%** (89.3%–95.3%) |
+| Exact type correct, on photos labelled with a type | 100 of 168 — 59.5% (52.0%–66.6%) | **138 of 185 — 74.6%** (67.9%–80.3%) |
+| Hoodies, cardigans and other tops proposed as outerwear | 18 photos | **1 photo** |
+| Products marked "verified" by AI alone | 0 | **0** — only registry evidence verifies a product |
+| Scans that came back unlabelled | 0 of 292 | 0 of 293 |
+| Service timeouts, where the person is offered manual entry | 8 of 300 — 2.7% | 7 of 300 — 2.3% |
+
+Both rounds together cost **$3.51 of Bedrock time** as counted (with a 1.5× safety margin; each round under a hard cap). The most common miss now is a dress proposed as a top (11 photos); every proposal is shown to the person to confirm or change before anything is saved. [Round 2 results](docs/evaluation-results-r2.md) · [Round 1 results](docs/evaluation-results.md) · [method](docs/evaluation.md#live-path-benchmark-the-scan-the-app-actually-runs) · aggregates [round 1](data/evaluation-live-2026-10-29.json), [round 2](data/evaluation-live-2026-10-29-r2.json) · locks [round 1](data/evaluation-lock.json), [round 2](data/evaluation-lock-r2.json)
 
 <!-- real-use:start (generated from data/pilot-usage.json; tests/real-use.test.ts) -->
 **Real use: not measured yet.** Racked has counted, since 2026-10-28, how often people keep the AI's proposal for a scanned piece unchanged, as anonymous daily totals for real (non-demo) accounts. The first snapshot will be published here, with any count under 5 shown as "fewer than 5".

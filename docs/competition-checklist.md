@@ -7,7 +7,7 @@ This is the judge’s index for the CUA rubric.
 - [x] Defines the purchase-versus-actual-wear information gap.
 - [x] Consumer value: private garment organization, outfit storage, and wear tracking.
 - [x] Brand value: brand-owned actual-wear, active-owner, and repeat-wear intelligence.
-- [x] Makes no unsupported sales-lift or recognition-accuracy claim; the one recognition figure (89.7% category on 300 locked independent photos) is [measured](evaluation-results.md).
+- [x] Makes no unsupported sales-lift or recognition-accuracy claim; the recognition figure (92.8% category on 300 fresh, locked independent photos; 89.7% before the fix) is [measured](evaluation-results-r2.md).
 
 ## 2. Functionality / technical execution — 25%
 

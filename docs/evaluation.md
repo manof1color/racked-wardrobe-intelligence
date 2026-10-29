@@ -48,7 +48,7 @@ Run the same audit over downloaded dataset-server row files with:
 pnpm eval:audit-labels path/to/rows-directory path/to/coverage-report.json
 ```
 
-This is a **schema/label-coverage result, not recognition accuracy**. Recognition accuracy on the live scan path was measured separately on 2026-10-29 — **89.7% category correct** — and is reported in [evaluation-results.md](evaluation-results.md). The three-view protocol above remains unexecuted.
+This is a **schema/label-coverage result, not recognition accuracy**. Recognition accuracy on the live scan path was measured separately on 2026-10-29: **89.7% category correct** in round 1 ([results](evaluation-results.md)), then **92.8%** in round 2 on 300 fresh photos after the category-boundary fix ([results](evaluation-results-r2.md)). The three-view protocol above remains unexecuted.
 
 ## Live-path benchmark (the scan the app actually runs)
 
