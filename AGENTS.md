@@ -29,7 +29,7 @@ verification gate (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pn
 | --- | --- |
 | **Codex** | `infra/`, `scripts/` (except `scripts/security-harness/`), new `tests/infra-*.test.ts` and `tests/script-*.test.ts`, and the AWS sections of `docs/aws-deployment.md` and `docs/security-verification.md` |
 | **Claude Code** | `app/`, `components/`, `lib/`, `middleware.ts`, `next.config.ts`, `scripts/security-harness/`, and every other test file |
-| **Claude Code, temporary** | Owner decision 2026-10-28, competition-hardening work order: `scripts/verify-live.mjs` (W6), and the `scripts/` files named in items W2, W3, W4 and W7. Each entry is removed when its item closes. |
+| **Claude Code, temporary** | Owner decision 2026-10-28, competition-hardening work order: `scripts/verify-live.mjs` (W6), `scripts/run-hanger-evaluation.mjs` and `scripts/score-hanger-evaluation.mjs` (W7), and the `scripts/` files named in items W2, W3 and W4. Each entry is removed when its item closes. |
 
 Lanes move only when the owner says so; update this table in the same pull request.
 

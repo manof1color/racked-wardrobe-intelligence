@@ -1,0 +1,422 @@
+{
+  "synthetic": true,
+  "note": "Forty requests invented for the Hanger blind evaluation (work order W7): ten per closet. Per closet: four occasion, three weather (the forecast is supplied, not named in the request), two swap-one-piece, and one impossible ask.",
+  "requests": [
+    {
+      "id": "a-01",
+      "closet": "closet-a",
+      "kind": "occasion",
+      "text": "I have a client presentation tomorrow morning. What should I wear?",
+      "today": "2026-03-10"
+    },
+    {
+      "id": "a-02",
+      "closet": "closet-a",
+      "kind": "occasion",
+      "text": "Dinner with my partner's parents tonight. Smart but not stiff.",
+      "today": "2026-05-16"
+    },
+    {
+      "id": "a-03",
+      "closet": "closet-a",
+      "kind": "occasion",
+      "text": "I'm a guest at an afternoon wedding, black tie optional.",
+      "today": "2026-09-12"
+    },
+    {
+      "id": "a-04",
+      "closet": "closet-a",
+      "kind": "occasion",
+      "text": "It's casual Friday at the office. Something comfortable.",
+      "today": "2026-06-05"
+    },
+    {
+      "id": "a-05",
+      "closet": "closet-a",
+      "kind": "weather",
+      "text": "What should I wear to work today?",
+      "today": "2026-01-21",
+      "forecast": {
+        "description": "light snow",
+        "highC": 2,
+        "lowC": -4,
+        "precipitationChance": 40,
+        "windMph": 12
+      }
+    },
+    {
+      "id": "a-06",
+      "closet": "closet-a",
+      "kind": "weather",
+      "text": "What should I wear for my commute?",
+      "today": "2026-10-08",
+      "forecast": {
+        "description": "steady rain",
+        "highC": 14,
+        "lowC": 9,
+        "precipitationChance": 85,
+        "windMph": 10
+      }
+    },
+    {
+      "id": "a-07",
+      "closet": "closet-a",
+      "kind": "weather",
+      "text": "Something for lunch outside with a client.",
+      "today": "2026-07-22",
+      "forecast": {
+        "description": "sunny and hot",
+        "highC": 31,
+        "lowC": 20,
+        "precipitationChance": 5,
+        "windMph": 6
+      }
+    },
+    {
+      "id": "a-08",
+      "closet": "closet-a",
+      "kind": "swap",
+      "text": "Swap the shoes for something more casual.",
+      "today": "2026-04-14",
+      "activeOutfit": [
+        "a-01",
+        "a-06",
+        "a-13",
+        "a-10"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "a-09",
+      "closet": "closet-a",
+      "kind": "swap",
+      "text": "Change the top but keep everything else.",
+      "today": "2026-04-21",
+      "activeOutfit": [
+        "a-02",
+        "a-07",
+        "a-14"
+      ],
+      "swapCategory": "top"
+    },
+    {
+      "id": "a-10",
+      "closet": "closet-a",
+      "kind": "impossible",
+      "text": "I need a full tuxedo with a bow tie for an opera gala.",
+      "today": "2026-11-02"
+    },
+    {
+      "id": "b-01",
+      "closet": "closet-b",
+      "kind": "occasion",
+      "text": "Hanging out with friends at the skate park.",
+      "today": "2026-04-18"
+    },
+    {
+      "id": "b-02",
+      "closet": "closet-b",
+      "kind": "occasion",
+      "text": "First date at a casual dinner spot tonight.",
+      "today": "2026-10-23"
+    },
+    {
+      "id": "b-03",
+      "closet": "closet-b",
+      "kind": "occasion",
+      "text": "Interview at a creative agency tomorrow.",
+      "today": "2026-02-10"
+    },
+    {
+      "id": "b-04",
+      "closet": "closet-b",
+      "kind": "occasion",
+      "text": "Gym first, then grabbing coffee with a friend.",
+      "today": "2026-09-05"
+    },
+    {
+      "id": "b-05",
+      "closet": "closet-b",
+      "kind": "weather",
+      "text": "What should I wear today?",
+      "today": "2026-01-12",
+      "forecast": {
+        "description": "snow and wind",
+        "highC": -8,
+        "lowC": -15,
+        "precipitationChance": 70,
+        "windMph": 18
+      }
+    },
+    {
+      "id": "b-06",
+      "closet": "closet-b",
+      "kind": "weather",
+      "text": "I'm heading out for a long walk.",
+      "today": "2026-10-14",
+      "forecast": {
+        "description": "cold rain",
+        "highC": 11,
+        "lowC": 7,
+        "precipitationChance": 90,
+        "windMph": 14
+      }
+    },
+    {
+      "id": "b-07",
+      "closet": "closet-b",
+      "kind": "weather",
+      "text": "Beach cookout this afternoon.",
+      "today": "2026-07-19",
+      "forecast": {
+        "description": "sunny and warm",
+        "highC": 29,
+        "lowC": 21,
+        "precipitationChance": 5,
+        "windMph": 8
+      }
+    },
+    {
+      "id": "b-08",
+      "closet": "closet-b",
+      "kind": "swap",
+      "text": "Swap the jeans for something warmer.",
+      "today": "2026-02-03",
+      "activeOutfit": [
+        "b-01",
+        "b-08",
+        "b-17",
+        "b-14"
+      ],
+      "swapCategory": "bottom"
+    },
+    {
+      "id": "b-09",
+      "closet": "closet-b",
+      "kind": "swap",
+      "text": "Switch the shoes to something I can walk far in.",
+      "today": "2026-10-30",
+      "activeOutfit": [
+        "b-03",
+        "b-10",
+        "b-20"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "b-10",
+      "closet": "closet-b",
+      "kind": "impossible",
+      "text": "Put together my ski outfit with my goggles and snow pants.",
+      "today": "2026-12-27"
+    },
+    {
+      "id": "c-01",
+      "closet": "closet-c",
+      "kind": "occasion",
+      "text": "Garden party on Saturday afternoon.",
+      "today": "2026-05-09"
+    },
+    {
+      "id": "c-02",
+      "closet": "closet-c",
+      "kind": "occasion",
+      "text": "Business lunch with a new client.",
+      "today": "2026-06-17"
+    },
+    {
+      "id": "c-03",
+      "closet": "closet-c",
+      "kind": "occasion",
+      "text": "Drinks at a rooftop bar tonight.",
+      "today": "2026-08-14"
+    },
+    {
+      "id": "c-04",
+      "closet": "closet-c",
+      "kind": "occasion",
+      "text": "I'm a guest at an evening wedding, formal.",
+      "today": "2026-10-03"
+    },
+    {
+      "id": "c-05",
+      "closet": "closet-c",
+      "kind": "weather",
+      "text": "What should I wear for a day of sightseeing?",
+      "today": "2026-08-02",
+      "forecast": {
+        "description": "very hot and sunny",
+        "highC": 35,
+        "lowC": 26,
+        "precipitationChance": 5,
+        "windMph": 7
+      }
+    },
+    {
+      "id": "c-06",
+      "closet": "closet-c",
+      "kind": "weather",
+      "text": "Running errands all afternoon.",
+      "today": "2026-09-21",
+      "forecast": {
+        "description": "tropical downpours",
+        "highC": 29,
+        "lowC": 24,
+        "precipitationChance": 85,
+        "windMph": 12
+      }
+    },
+    {
+      "id": "c-07",
+      "closet": "closet-c",
+      "kind": "weather",
+      "text": "Something for a cool evening out.",
+      "today": "2026-04-04",
+      "forecast": {
+        "description": "cool and breezy",
+        "highC": 15,
+        "lowC": 8,
+        "precipitationChance": 10,
+        "windMph": 16
+      }
+    },
+    {
+      "id": "c-08",
+      "closet": "closet-c",
+      "kind": "swap",
+      "text": "Make this dressier: swap the shoes.",
+      "today": "2026-06-06",
+      "activeOutfit": [
+        "c-01",
+        "c-17",
+        "c-21"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "c-09",
+      "closet": "closet-c",
+      "kind": "swap",
+      "text": "Swap the skirt for pants.",
+      "today": "2026-07-11",
+      "activeOutfit": [
+        "c-06",
+        "c-14",
+        "c-18"
+      ],
+      "swapCategory": "bottom"
+    },
+    {
+      "id": "c-10",
+      "closet": "closet-c",
+      "kind": "impossible",
+      "text": "Pair my red leather jacket with my black jeans.",
+      "today": "2026-03-28"
+    },
+    {
+      "id": "d-01",
+      "closet": "closet-d",
+      "kind": "occasion",
+      "text": "A morning run, then a quick breakfast.",
+      "today": "2026-05-23"
+    },
+    {
+      "id": "d-02",
+      "closet": "closet-d",
+      "kind": "occasion",
+      "text": "A casual team offsite with a mix of activities.",
+      "today": "2026-09-18"
+    },
+    {
+      "id": "d-03",
+      "closet": "closet-d",
+      "kind": "occasion",
+      "text": "Dinner meeting tonight. Smart casual.",
+      "today": "2026-11-05"
+    },
+    {
+      "id": "d-04",
+      "closet": "closet-d",
+      "kind": "occasion",
+      "text": "A weekend hike with a pub stop after.",
+      "today": "2026-10-10"
+    },
+    {
+      "id": "d-05",
+      "closet": "closet-d",
+      "kind": "weather",
+      "text": "What should I wear for my run?",
+      "today": "2026-01-08",
+      "forecast": {
+        "description": "freezing and clear",
+        "highC": 1,
+        "lowC": -3,
+        "precipitationChance": 5,
+        "windMph": 9
+      }
+    },
+    {
+      "id": "d-06",
+      "closet": "closet-d",
+      "kind": "weather",
+      "text": "What should I wear to the office today?",
+      "today": "2026-03-19",
+      "forecast": {
+        "description": "rain showers",
+        "highC": 12,
+        "lowC": 8,
+        "precipitationChance": 75,
+        "windMph": 11
+      }
+    },
+    {
+      "id": "d-07",
+      "closet": "closet-d",
+      "kind": "weather",
+      "text": "Outdoor yoga in the park this evening.",
+      "today": "2026-07-30",
+      "forecast": {
+        "description": "hot and humid",
+        "highC": 33,
+        "lowC": 24,
+        "precipitationChance": 20,
+        "windMph": 5
+      }
+    },
+    {
+      "id": "d-08",
+      "closet": "closet-d",
+      "kind": "swap",
+      "text": "Swap the top for something warmer.",
+      "today": "2026-02-17",
+      "activeOutfit": [
+        "d-01",
+        "d-09",
+        "d-17",
+        "d-14"
+      ],
+      "swapCategory": "top"
+    },
+    {
+      "id": "d-09",
+      "closet": "closet-d",
+      "kind": "swap",
+      "text": "Change the shoes to something dressier.",
+      "today": "2026-04-09",
+      "activeOutfit": [
+        "d-03",
+        "d-10",
+        "d-18",
+        "d-16"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "d-10",
+      "closet": "closet-d",
+      "kind": "impossible",
+      "text": "I need a formal evening gown for a charity ball.",
+      "today": "2026-11-14"
+    }
+  ]
+}

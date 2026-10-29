@@ -107,7 +107,11 @@ export interface AgentResult {
   notFound: string[];
 }
 
-export interface AgentModelResponse { content: ContentBlock[]; stopReason?: string }
+/**
+ * `usage` and `modelId` are what Bedrock reported for the call; the route ignores them, and the
+ * Hanger evaluation (scripts/run-hanger-evaluation.mjs) counts its spending from them.
+ */
+export interface AgentModelResponse { content: ContentBlock[]; stopReason?: string; usage?: { inputTokens?: number; outputTokens?: number }; modelId?: string }
 export type AgentConverse = (request: { system: string; messages: Message[]; tools: Tool[]; timeoutMs: number }) => Promise<AgentModelResponse | null>;
 
 const text = (value: unknown, maximum: number) => (typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, maximum) : "");
@@ -236,6 +240,9 @@ export function stripThinking(reply: string) {
   return reply.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "").replace(/<\/?thinking>/gi, "").trim();
 }
 
+/** Sent back to the model, once per turn, when its reply listed outfits the builder never made. */
+export const INVENTED_OUTFIT_CORRECTION = "Do not write outfit lists yourself. Call build_outfits if outfits are wanted; otherwise answer without listing outfits.";
+
 /** Runs one turn. Null means "fall back to the grounded reply". */
 export async function runHangerAgent(input: AgentInput, call: AgentConverse = bedrockAgentConverse, clock: () => number = Date.now): Promise<AgentResult | null> {
   const started = clock();
@@ -337,7 +344,7 @@ export async function runHangerAgent(input: AgentInput, call: AgentConverse = be
     if (!outfits.length && replyInventsOutfits(reply, input.wardrobe)) {
       if (corrected) return fallBack("invented-outfits");
       corrected = true;
-      messages.push({ role: "user", content: [{ text: "Do not write outfit lists yourself. Call build_outfits if outfits are wanted; otherwise answer without listing outfits." }] });
+      messages.push({ role: "user", content: [{ text: INVENTED_OUTFIT_CORRECTION }] });
       continue;
     }
     return { message: formatHangerText(reply).slice(0, 2_500), outfits, offered: [...offered], intent, toolsUsed: [...toolsUsed], notFound: [...notFound] };
@@ -367,7 +374,12 @@ export async function bedrockAgentConverse(request: Parameters<AgentConverse>[0]
         // conversation itself.
         inferenceConfig: { maxTokens: 900, temperature: 0.1 },
       }), bedrockRequestOptions(request.timeoutMs));
-      return { content: response.output?.message?.content ?? [], stopReason: response.stopReason };
+      return {
+        content: response.output?.message?.content ?? [],
+        stopReason: response.stopReason,
+        modelId,
+        ...(response.usage ? { usage: { inputTokens: response.usage.inputTokens, outputTokens: response.usage.outputTokens } } : {}),
+      };
     } catch (error) {
       // Provider messages name the field or rule that failed and never echo the conversation.
       console.error("Hanger agent model call failed", { name: error instanceof Error ? error.name : "UnknownError", detail: error instanceof Error ? error.message.slice(0, 300) : "", modelId });

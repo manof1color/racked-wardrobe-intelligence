@@ -1,0 +1,376 @@
+{
+  "id": "closet-d",
+  "name": "Active and smart-casual mix, all seasons",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation (work order W7). No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "d-01",
+      "name": "Black performance tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": [
+        "athletic",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 31,
+      "lastWornDays": 1
+    },
+    {
+      "id": "d-02",
+      "name": "Grey training tank",
+      "category": "top",
+      "subtype": "tank-top",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": [
+        "athletic",
+        "sporty"
+      ],
+      "season": "summer",
+      "wearCount": 14,
+      "lastWornDays": 6
+    },
+    {
+      "id": "d-03",
+      "name": "Navy cotton polo",
+      "category": "top",
+      "subtype": "polo",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "cotton pique",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "spring",
+      "wearCount": 12,
+      "lastWornDays": 9
+    },
+    {
+      "id": "d-04",
+      "name": "White linen-blend shirt",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "white",
+      "pattern": "solid",
+      "material": "linen blend",
+      "style": [
+        "relaxed",
+        "classic"
+      ],
+      "season": "summer",
+      "wearCount": 10,
+      "lastWornDays": 13
+    },
+    {
+      "id": "d-05",
+      "name": "Chambray button-up",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "light blue",
+      "pattern": "solid",
+      "material": "chambray",
+      "style": [
+        "casual",
+        "utility"
+      ],
+      "season": "spring",
+      "wearCount": 8,
+      "lastWornDays": 19
+    },
+    {
+      "id": "d-06",
+      "name": "Forest green merino sweater",
+      "category": "top",
+      "subtype": "sweater",
+      "color": "green",
+      "pattern": "solid",
+      "material": "merino wool",
+      "style": [
+        "classic",
+        "comfortable"
+      ],
+      "season": "winter",
+      "wearCount": 11,
+      "lastWornDays": 17
+    },
+    {
+      "id": "d-07",
+      "name": "Navy quarter-zip",
+      "category": "top",
+      "subtype": "sweatshirt",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "fleece",
+      "style": [
+        "sporty",
+        "comfortable"
+      ],
+      "season": "fall",
+      "wearCount": 16,
+      "lastWornDays": 5
+    },
+    {
+      "id": "d-08",
+      "name": "Black running shorts",
+      "category": "bottom",
+      "subtype": "shorts",
+      "color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": [
+        "athletic",
+        "sporty"
+      ],
+      "season": "summer",
+      "wearCount": 19,
+      "lastWornDays": 4
+    },
+    {
+      "id": "d-09",
+      "name": "Black training leggings",
+      "category": "bottom",
+      "subtype": "leggings",
+      "color": "black",
+      "pattern": "solid",
+      "material": "nylon blend",
+      "style": [
+        "athletic",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 27,
+      "lastWornDays": 2
+    },
+    {
+      "id": "d-10",
+      "name": "Grey slim chinos",
+      "category": "bottom",
+      "subtype": "chinos",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "classic",
+        "tailored"
+      ],
+      "season": "all-season",
+      "wearCount": 17,
+      "lastWornDays": 6
+    },
+    {
+      "id": "d-11",
+      "name": "Dark straight jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "indigo",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 20,
+      "lastWornDays": 3
+    },
+    {
+      "id": "d-12",
+      "name": "Black jogger sweatpants",
+      "category": "bottom",
+      "subtype": "sweatpants",
+      "color": "black",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "comfortable",
+        "sporty"
+      ],
+      "season": "winter",
+      "wearCount": 15,
+      "lastWornDays": 8
+    },
+    {
+      "id": "d-13",
+      "name": "Olive hiking pants",
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "color": "olive",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "utility",
+        "sporty"
+      ],
+      "season": "fall",
+      "wearCount": 9,
+      "lastWornDays": 22
+    },
+    {
+      "id": "d-14",
+      "name": "Lightweight windbreaker",
+      "category": "outerwear",
+      "subtype": "rain-jacket",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "sporty",
+        "utility"
+      ],
+      "season": "all-season",
+      "wearCount": 18,
+      "lastWornDays": 5
+    },
+    {
+      "id": "d-15",
+      "name": "Grey wool vest",
+      "category": "outerwear",
+      "subtype": "vest",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "classic",
+        "layered"
+      ],
+      "season": "fall",
+      "wearCount": 7,
+      "lastWornDays": 30
+    },
+    {
+      "id": "d-16",
+      "name": "Charcoal unstructured blazer",
+      "category": "outerwear",
+      "subtype": "blazer",
+      "color": "charcoal",
+      "pattern": "solid",
+      "material": "wool blend",
+      "style": [
+        "tailored",
+        "relaxed"
+      ],
+      "season": "all-season",
+      "wearCount": 10,
+      "lastWornDays": 11
+    },
+    {
+      "id": "d-17",
+      "name": "Black running shoes",
+      "category": "shoe",
+      "subtype": "running-shoes",
+      "color": "black",
+      "pattern": "solid",
+      "material": "mesh",
+      "style": [
+        "athletic",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 29,
+      "lastWornDays": 1
+    },
+    {
+      "id": "d-18",
+      "name": "White leather sneakers",
+      "category": "shoe",
+      "subtype": "sneakers",
+      "color": "white",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 24,
+      "lastWornDays": 2
+    },
+    {
+      "id": "d-19",
+      "name": "Brown suede chukka boots",
+      "category": "shoe",
+      "subtype": "boots",
+      "color": "brown",
+      "pattern": "solid",
+      "material": "suede",
+      "style": [
+        "classic",
+        "casual"
+      ],
+      "season": "fall",
+      "wearCount": 13,
+      "lastWornDays": 10
+    },
+    {
+      "id": "d-20",
+      "name": "Black hiking boots",
+      "category": "shoe",
+      "subtype": "hiking-boots",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "utility",
+        "sporty"
+      ],
+      "season": "fall",
+      "wearCount": 8,
+      "lastWornDays": 25
+    },
+    {
+      "id": "d-21",
+      "name": "Brown leather loafers",
+      "category": "shoe",
+      "subtype": "loafers",
+      "color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 9,
+      "lastWornDays": 15
+    },
+    {
+      "id": "d-22",
+      "name": "Black baseball cap",
+      "category": "accessory",
+      "subtype": "hat",
+      "color": "black",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 22,
+      "lastWornDays": 2
+    },
+    {
+      "id": "d-23",
+      "name": "Gym duffel bag",
+      "category": "bag",
+      "subtype": "duffel",
+      "color": "black",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "athletic",
+        "utility"
+      ],
+      "season": "all-season",
+      "wearCount": 26,
+      "lastWornDays": 2
+    }
+  ]
+}

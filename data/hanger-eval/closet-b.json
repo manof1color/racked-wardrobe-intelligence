@@ -1,0 +1,376 @@
+{
+  "id": "closet-b",
+  "name": "Streetwear and casual, cold climate",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation (work order W7). No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "b-01",
+      "name": "Black graphic tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "black",
+      "pattern": "graphic print",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "statement"
+      ],
+      "season": "all-season",
+      "wearCount": 20,
+      "lastWornDays": 2
+    },
+    {
+      "id": "b-02",
+      "name": "White boxy tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "minimal"
+      ],
+      "season": "summer",
+      "wearCount": 14,
+      "lastWornDays": 9
+    },
+    {
+      "id": "b-03",
+      "name": "Grey pullover hoodie",
+      "category": "top",
+      "subtype": "hoodie",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "fleece cotton",
+      "style": [
+        "casual",
+        "comfortable"
+      ],
+      "season": "fall",
+      "wearCount": 27,
+      "lastWornDays": 1
+    },
+    {
+      "id": "b-04",
+      "name": "Black crewneck sweatshirt",
+      "category": "top",
+      "subtype": "sweatshirt",
+      "color": "black",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "sporty"
+      ],
+      "season": "fall",
+      "wearCount": 15,
+      "lastWornDays": 5
+    },
+    {
+      "id": "b-05",
+      "name": "Red plaid flannel shirt",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "red",
+      "pattern": "plaid",
+      "material": "flannel",
+      "style": [
+        "casual",
+        "relaxed"
+      ],
+      "season": "fall",
+      "wearCount": 8,
+      "lastWornDays": 16
+    },
+    {
+      "id": "b-06",
+      "name": "Cream chunky knit sweater",
+      "category": "top",
+      "subtype": "sweater",
+      "color": "cream",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "casual",
+        "comfortable"
+      ],
+      "season": "winter",
+      "wearCount": 9,
+      "lastWornDays": 12
+    },
+    {
+      "id": "b-07",
+      "name": "Olive long-sleeve henley",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "olive",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "utility"
+      ],
+      "season": "spring",
+      "wearCount": 11,
+      "lastWornDays": 10
+    },
+    {
+      "id": "b-08",
+      "name": "Black ripped jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "black",
+      "pattern": "distressed",
+      "material": "denim",
+      "style": [
+        "casual",
+        "statement"
+      ],
+      "season": "all-season",
+      "wearCount": 24,
+      "lastWornDays": 2
+    },
+    {
+      "id": "b-09",
+      "name": "Light wash straight jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "light blue",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "classic"
+      ],
+      "season": "spring",
+      "wearCount": 13,
+      "lastWornDays": 8
+    },
+    {
+      "id": "b-10",
+      "name": "Olive cargo pants",
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "color": "olive",
+      "pattern": "solid",
+      "material": "cotton twill",
+      "style": [
+        "utility",
+        "casual"
+      ],
+      "season": "fall",
+      "wearCount": 16,
+      "lastWornDays": 4
+    },
+    {
+      "id": "b-11",
+      "name": "Grey sweatpants",
+      "category": "bottom",
+      "subtype": "sweatpants",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "comfortable",
+        "casual"
+      ],
+      "season": "winter",
+      "wearCount": 19,
+      "lastWornDays": 3
+    },
+    {
+      "id": "b-12",
+      "name": "Khaki shorts",
+      "category": "bottom",
+      "subtype": "shorts",
+      "color": "khaki",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "relaxed",
+        "casual"
+      ],
+      "season": "summer",
+      "wearCount": 10,
+      "lastWornDays": 60
+    },
+    {
+      "id": "b-13",
+      "name": "Black puffer jacket",
+      "category": "outerwear",
+      "subtype": "puffer-jacket",
+      "color": "black",
+      "pattern": "solid",
+      "material": "nylon down",
+      "style": [
+        "utility",
+        "casual"
+      ],
+      "season": "winter",
+      "wearCount": 30,
+      "lastWornDays": 1
+    },
+    {
+      "id": "b-14",
+      "name": "Olive bomber jacket",
+      "category": "outerwear",
+      "subtype": "bomber-jacket",
+      "color": "olive",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "casual",
+        "sleek"
+      ],
+      "season": "fall",
+      "wearCount": 14,
+      "lastWornDays": 6
+    },
+    {
+      "id": "b-15",
+      "name": "Faded denim jacket",
+      "category": "outerwear",
+      "subtype": "denim-jacket",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "vintage"
+      ],
+      "season": "spring",
+      "wearCount": 9,
+      "lastWornDays": 40
+    },
+    {
+      "id": "b-16",
+      "name": "Orange rain shell",
+      "category": "outerwear",
+      "subtype": "rain-jacket",
+      "color": "orange",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "utility",
+        "statement"
+      ],
+      "season": "all-season",
+      "wearCount": 6,
+      "lastWornDays": 18
+    },
+    {
+      "id": "b-17",
+      "name": "White high-top sneakers",
+      "category": "shoe",
+      "subtype": "high-top-sneakers",
+      "color": "white",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "casual",
+        "statement"
+      ],
+      "season": "all-season",
+      "wearCount": 28,
+      "lastWornDays": 1
+    },
+    {
+      "id": "b-18",
+      "name": "Black running shoes",
+      "category": "shoe",
+      "subtype": "running-shoes",
+      "color": "black",
+      "pattern": "solid",
+      "material": "mesh",
+      "style": [
+        "sporty",
+        "comfortable"
+      ],
+      "season": "all-season",
+      "wearCount": 17,
+      "lastWornDays": 3
+    },
+    {
+      "id": "b-19",
+      "name": "Tan work boots",
+      "category": "shoe",
+      "subtype": "work-boots",
+      "color": "tan",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "utility",
+        "casual"
+      ],
+      "season": "winter",
+      "wearCount": 12,
+      "lastWornDays": 11
+    },
+    {
+      "id": "b-20",
+      "name": "Black chelsea boots",
+      "category": "shoe",
+      "subtype": "chelsea-boots",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "sleek",
+        "casual"
+      ],
+      "season": "fall",
+      "wearCount": 15,
+      "lastWornDays": 7
+    },
+    {
+      "id": "b-21",
+      "name": "Black rubber slides",
+      "category": "shoe",
+      "subtype": "slides",
+      "color": "black",
+      "pattern": "solid",
+      "material": "rubber",
+      "style": [
+        "comfortable",
+        "casual"
+      ],
+      "season": "summer",
+      "wearCount": 8,
+      "lastWornDays": 70
+    },
+    {
+      "id": "b-22",
+      "name": "Black wool beanie",
+      "category": "accessory",
+      "subtype": "beanie",
+      "color": "black",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "casual",
+        "comfortable"
+      ],
+      "season": "winter",
+      "wearCount": 26,
+      "lastWornDays": 1
+    },
+    {
+      "id": "b-23",
+      "name": "Grey canvas backpack",
+      "category": "bag",
+      "subtype": "backpack",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "canvas",
+      "style": [
+        "utility",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 29,
+      "lastWornDays": 1
+    }
+  ]
+}

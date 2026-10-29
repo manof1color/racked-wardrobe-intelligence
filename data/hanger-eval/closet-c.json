@@ -1,0 +1,376 @@
+{
+  "id": "closet-c",
+  "name": "Warm climate, dresses and linen",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation (work order W7). No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "c-01",
+      "name": "Floral maxi dress",
+      "category": "dress",
+      "subtype": "maxi-dress",
+      "color": "multicolor",
+      "pattern": "floral",
+      "material": "viscose",
+      "style": [
+        "relaxed",
+        "elegant"
+      ],
+      "season": "summer",
+      "wearCount": 8,
+      "lastWornDays": 15
+    },
+    {
+      "id": "c-02",
+      "name": "Black midi dress",
+      "category": "dress",
+      "subtype": "midi-dress",
+      "color": "black",
+      "pattern": "solid",
+      "material": "crepe",
+      "style": [
+        "sleek",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 14,
+      "lastWornDays": 6
+    },
+    {
+      "id": "c-03",
+      "name": "Red wrap dress",
+      "category": "dress",
+      "subtype": "wrap-dress",
+      "color": "red",
+      "pattern": "solid",
+      "material": "jersey",
+      "style": [
+        "elegant",
+        "statement"
+      ],
+      "season": "spring",
+      "wearCount": 5,
+      "lastWornDays": 40
+    },
+    {
+      "id": "c-04",
+      "name": "White linen shirt dress",
+      "category": "dress",
+      "subtype": "shirt-dress",
+      "color": "white",
+      "pattern": "solid",
+      "material": "linen",
+      "style": [
+        "relaxed",
+        "classic"
+      ],
+      "season": "summer",
+      "wearCount": 11,
+      "lastWornDays": 9
+    },
+    {
+      "id": "c-05",
+      "name": "Navy satin formal dress",
+      "category": "dress",
+      "subtype": "formal-dress",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "satin",
+      "style": [
+        "elegant",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 3,
+      "lastWornDays": 90
+    },
+    {
+      "id": "c-06",
+      "name": "White linen shirt",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "white",
+      "pattern": "solid",
+      "material": "linen",
+      "style": [
+        "relaxed",
+        "classic"
+      ],
+      "season": "summer",
+      "wearCount": 18,
+      "lastWornDays": 3
+    },
+    {
+      "id": "c-07",
+      "name": "Navy striped tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "navy",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "classic"
+      ],
+      "season": "summer",
+      "wearCount": 16,
+      "lastWornDays": 4
+    },
+    {
+      "id": "c-08",
+      "name": "Silk camisole",
+      "category": "top",
+      "subtype": "tank-top",
+      "color": "champagne",
+      "pattern": "solid",
+      "material": "silk",
+      "style": [
+        "elegant",
+        "minimal"
+      ],
+      "season": "summer",
+      "wearCount": 9,
+      "lastWornDays": 12
+    },
+    {
+      "id": "c-09",
+      "name": "Pale blue blouse",
+      "category": "top",
+      "subtype": "blouse",
+      "color": "light blue",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "refined",
+        "classic"
+      ],
+      "season": "spring",
+      "wearCount": 7,
+      "lastWornDays": 21
+    },
+    {
+      "id": "c-10",
+      "name": "Thin cream cardigan",
+      "category": "top",
+      "subtype": "cardigan",
+      "color": "cream",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "comfortable",
+        "classic"
+      ],
+      "season": "spring",
+      "wearCount": 12,
+      "lastWornDays": 10
+    },
+    {
+      "id": "c-11",
+      "name": "Linen wide-leg pants",
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "color": "sand",
+      "pattern": "solid",
+      "material": "linen",
+      "style": [
+        "relaxed",
+        "minimal"
+      ],
+      "season": "summer",
+      "wearCount": 15,
+      "lastWornDays": 5
+    },
+    {
+      "id": "c-12",
+      "name": "Denim shorts",
+      "category": "bottom",
+      "subtype": "shorts",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "relaxed"
+      ],
+      "season": "summer",
+      "wearCount": 13,
+      "lastWornDays": 7
+    },
+    {
+      "id": "c-13",
+      "name": "White jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "white",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "classic"
+      ],
+      "season": "spring",
+      "wearCount": 10,
+      "lastWornDays": 14
+    },
+    {
+      "id": "c-14",
+      "name": "Tan midi skirt",
+      "category": "bottom",
+      "subtype": "skirt",
+      "color": "tan",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "classic",
+        "relaxed"
+      ],
+      "season": "summer",
+      "wearCount": 8,
+      "lastWornDays": 18
+    },
+    {
+      "id": "c-15",
+      "name": "Light denim jacket",
+      "category": "outerwear",
+      "subtype": "denim-jacket",
+      "color": "light blue",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "vintage"
+      ],
+      "season": "spring",
+      "wearCount": 9,
+      "lastWornDays": 16
+    },
+    {
+      "id": "c-16",
+      "name": "Ivory linen blazer",
+      "category": "outerwear",
+      "subtype": "blazer",
+      "color": "ivory",
+      "pattern": "solid",
+      "material": "linen",
+      "style": [
+        "tailored",
+        "refined"
+      ],
+      "season": "summer",
+      "wearCount": 6,
+      "lastWornDays": 26
+    },
+    {
+      "id": "c-17",
+      "name": "Tan leather sandals",
+      "category": "shoe",
+      "subtype": "sandals",
+      "color": "tan",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "casual",
+        "minimal"
+      ],
+      "season": "summer",
+      "wearCount": 22,
+      "lastWornDays": 2
+    },
+    {
+      "id": "c-18",
+      "name": "White canvas sneakers",
+      "category": "shoe",
+      "subtype": "low-top-sneakers",
+      "color": "white",
+      "pattern": "solid",
+      "material": "canvas",
+      "style": [
+        "casual",
+        "minimal"
+      ],
+      "season": "all-season",
+      "wearCount": 20,
+      "lastWornDays": 3
+    },
+    {
+      "id": "c-19",
+      "name": "Nude block-heel pumps",
+      "category": "shoe",
+      "subtype": "heels",
+      "color": "nude",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "elegant",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 7,
+      "lastWornDays": 33
+    },
+    {
+      "id": "c-20",
+      "name": "Black leather flats",
+      "category": "shoe",
+      "subtype": "flats",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 11,
+      "lastWornDays": 12
+    },
+    {
+      "id": "c-21",
+      "name": "Natural straw tote",
+      "category": "bag",
+      "subtype": "tote",
+      "color": "natural",
+      "pattern": "woven",
+      "material": "straw",
+      "style": [
+        "relaxed",
+        "casual"
+      ],
+      "season": "summer",
+      "wearCount": 17,
+      "lastWornDays": 3
+    },
+    {
+      "id": "c-22",
+      "name": "Gold hoop earrings",
+      "category": "jewelry",
+      "subtype": "earrings",
+      "color": "gold",
+      "pattern": "solid",
+      "material": "gold-plated",
+      "style": [
+        "minimal",
+        "statement"
+      ],
+      "season": "all-season",
+      "wearCount": 25,
+      "lastWornDays": 1
+    },
+    {
+      "id": "c-23",
+      "name": "Wide-brim straw hat",
+      "category": "accessory",
+      "subtype": "hat",
+      "color": "natural",
+      "pattern": "woven",
+      "material": "straw",
+      "style": [
+        "relaxed",
+        "vintage"
+      ],
+      "season": "summer",
+      "wearCount": 9,
+      "lastWornDays": 20
+    }
+  ]
+}
