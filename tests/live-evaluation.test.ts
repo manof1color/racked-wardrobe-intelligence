@@ -5,7 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { budgetLimit, callCostUsd, caseHash, createLock, HARD_BUDGET_USD, lockProblems, mayStartCall, primaryDetection, renderResultsMarkdown, scoreSet, wilson, worstCaseCallUsd, type LiveCase, type LivePrediction } from "../lib/live-evaluation.ts";
+import { budgetLimit, callCostUsd, caseHash, createLock, HARD_BUDGET_USD, lockProblems, mayStartCall, primaryDetection, renderResultsMarkdown, roundSuffix, scoreSet, wilson, worstCaseCallUsd, type LiveCase, type LivePrediction } from "../lib/live-evaluation.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const pro = "us.amazon.nova-pro-v1:0";
@@ -65,6 +65,22 @@ test("answers and photos are locked before any run, and any change is refused", 
   assert.match(read("scripts/run-live-detection-evaluation.mjs"), /if \(problems\.length\) throw new Error\(`The cases no longer match the lock; refusing to run/);
   assert.match(read("scripts/build-live-evaluation-set.mjs"), /if \(existsSync\(LOCK\) && !args\.includes\("--relock"\)\) throw/, "a lock is never silently replaced");
   assert.match(read("scripts/build-live-evaluation-set.mjs"), /if \(IMAGES\.startsWith\(ROOT\)\) throw/, "photos stay out of the repository");
+});
+
+test("a later round is a fresh, separately locked set that never reuses an earlier photo", () => {
+  assert.equal(roundSuffix(undefined), "");
+  assert.equal(roundSuffix("1"), "");
+  assert.equal(roundSuffix("2"), "-r2");
+  assert.throws(() => roundSuffix("../x"), /single digit/);
+  const build = read("scripts/build-live-evaluation-set.mjs");
+  assert.match(build, /usedEarlier\.has\(`hf3-row-\$\{wrapper\.row_idx\}`\)\) continue;/, "earlier rounds' photos are skipped");
+  assert.match(build, /if \(!usedEarlier\.size\) throw/, "a later round refuses to run without the earlier manifest");
+  const runner = read("scripts/run-live-detection-evaluation.mjs");
+  assert.match(runner, /const PROGRESS = join\(IMAGES, `live-progress\$\{suffix\}\.json`\);/, "each round keeps its own spend");
+  const text = renderResultsMarkdown({ date: "2026-10-30", round: "2", complete: true, spentUsd: 1, models: [pro], promptSha256: "f".repeat(64), external: scoreSet([entry("a")], [prediction("a", "top")]), pilot: null });
+  assert.match(text, /round 2/);
+  assert.match(text, /data\/evaluation-live-2026-10-30-r2\.json/);
+  assert.match(text, /data\/evaluation-lock-r2\.json/);
 });
 
 test("Wilson intervals", () => {
