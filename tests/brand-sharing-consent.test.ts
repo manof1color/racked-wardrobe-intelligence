@@ -28,8 +28,21 @@ test("every wording is pinned to its version: changing the words means adding a 
 test("the switch shows the current wording, which says earlier wear is included", () => {
   assert.match(BRAND_SHARING_TERMS.text, /including wear you recorded before turning it on/);
   assert.match(BRAND_SHARING_TERMS.text, /figures a brand has already seen can’t be taken back/);
+  const setting = read("components/brand-sharing-setting.tsx");
+  assert.match(setting, /<h2 id="brand-sharing-title">Anonymous brand insights\.<\/h2>\s*<p>\{BRAND_SHARING_TERMS\.text\}<\/p>/, "rendered from the versioned text, never retyped");
+  assert.match(read("components/login-panel.tsx"), /<small>\{BRAND_SHARING_TERMS\.text\} You can change this any time in Settings\.<\/small>/, "sign-up shows the same versioned words that get recorded");
+});
+
+// Asked once when the account is made, changed in Settings, and never a banner on the wardrobe.
+test("brand sharing is chosen at sign-up and lives in Settings, not on the wardrobe", () => {
+  const login = read("components/login-panel.tsx");
+  assert.match(login, /const \[brandDataSharing,setBrandDataSharing\]=useState\(false\);/, "unticked until the person ticks it");
+  const register = read("app/api/auth/register/route.ts");
+  assert.match(register, /brandDataSharing:raw\.brandDataSharing===true/, "only a literal true turns it on");
+  assert.match(register, /if\(account\.role==="consumer"&&body\.brandDataSharing\)\{const shared=await setBrandDataSharing\(account\.id,true\)/, "recorded through the same write as Settings, for consumers only");
+  assert.match(read("components/account-settings-panel.tsx"), /\{account\.role==="consumer"&&<BrandSharingSetting\/>\}/);
   const dashboard = read("components/consumer-dashboard.tsx");
-  assert.match(dashboard, /<strong>Anonymous brand insights<\/strong><p>\{BRAND_SHARING_TERMS\.text\}<\/p>/, "rendered from the versioned text, never retyped");
+  assert.doesNotMatch(dashboard, /consumer\/consent|BRAND_SHARING_TERMS|privacy-banner/);
 });
 
 test("a choice made before versions were kept reads as the earlier wording", () => {

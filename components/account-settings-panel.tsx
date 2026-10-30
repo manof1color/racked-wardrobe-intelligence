@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Role } from "@/lib/types";
 import { HomeCitySetting } from "./home-city-setting";
+import { BrandSharingSetting } from "./brand-sharing-setting";
 import { AccountSecurityActivity } from "./account-security-activity";
 import { TwoStepSetting } from "./two-step-setting";
 
@@ -17,6 +18,7 @@ export function AccountSettingsPanel({account}:{account:{displayName:string;emai
   async function deleteAccount(){setDeleteError("");setDeleting(true);try{const response=await fetch("/api/account",{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({currentPassword:deletePassword,confirmation:deleteConfirmation})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error??"Your account could not be deleted.");window.location.assign("/");}catch(reason){setDeleteError(reason instanceof Error?reason.message:"Your account could not be deleted.");setDeleting(false);}}
   const home=account.role==="brand"?"/brand":"/consumer";
   return <main className="settings-page"><Link className="wordmark" href={home}>RACKED<span>.</span></Link><section className="settings-card"><div className="eyebrow">ACCOUNT SETTINGS</div><h1>Your account.</h1><p>Update your own profile. Your current password is required for every change.</p>{account.brandName&&<div className="settings-readonly"><small>BRAND WORKSPACE</small><strong>{account.brandName}</strong><span>Brand ownership cannot be changed from account settings.</span></div>}<div className="auth-fields"><label><span>Display name</span><input autoComplete="name" value={displayName} onChange={event=>setDisplayName(event.target.value)}/></label><label><span>Email</span><input type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)}/></label><label><span>Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={event=>setCurrentPassword(event.target.value)}/></label><label><span>New password <small>(optional)</small></span><input type="password" autoComplete="new-password" value={newPassword} onChange={event=>setNewPassword(event.target.value)} placeholder="12+ characters"/></label><label><span>Confirm new password</span><input type="password" autoComplete="new-password" value={confirmPassword} onChange={event=>setConfirmPassword(event.target.value)}/></label></div>{error&&<div className="form-error" role="alert">{error}</div>}{message&&<div className="success-banner" role="status">✓ {message}</div>}<button className="button button-accent button-full" disabled={busy||!displayName||!email||!currentPassword} onClick={submit}>{busy?"Saving securely…":"Save account settings"}</button><Link className="settings-return" href={home}>← Return to Racked</Link></section>
+    {account.role==="consumer"&&<BrandSharingSetting/>}
     {account.role==="consumer"&&<HomeCitySetting/>}
     {account.role==="brand"&&<TwoStepSetting/>}
     <AccountSecurityActivity/>

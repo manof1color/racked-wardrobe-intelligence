@@ -23,7 +23,7 @@ import { RequestRefused } from "@/lib/api-errors";
 import { keepScanImages, keptScanImage, PENDING_SCAN_PREFIX } from "@/lib/scan-storage";
 import { brandSharingChange, brandSharingTermsOf, brandSharingUnchanged } from "@/lib/brand-sharing-consent";
 import { wornDaysAgo } from "@/lib/wear-recency";
-import { DAILY_POINTS_CAP, pointsWeek, shiftDay, wearAward, wearDay, POINTS_WEEK_DAYS } from "@/lib/wear-points";
+import { DAILY_POINTS_CAP, pointsWeek, shiftDay, streakAfterWear, streakOn, wearAward, wearDay, POINTS_WEEK_DAYS } from "@/lib/wear-points";
 import { buildBrandCommunityMetrics, type PrivacySafeCommunityEvent } from "@/lib/brand-community-metrics";
 import { demoProductImagePath, isDemoStorefrontProduct } from "@/lib/demo-storefront";
 import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, passwordResetIsUsable, passwordResetTokenHash } from "@/lib/account-security";
@@ -458,7 +458,7 @@ async function findOutfitRecord(ownerId:string,outfitId:string){
   });
 }
 
-export interface WearPointsOutcome { awarded:number; rediscovered:number; capped:boolean; repeat:boolean }
+export interface WearPointsOutcome { awarded:number; rediscovered:number; capped:boolean; repeat:boolean; streak:number; streakGrew:boolean }
 
 export async function recordRealWear(ownerId:string,itemIds:string[],options:{requestId?:string|null;outfitId?:string|null;localDate?:string|null}={}):Promise<{counts:Record<string,number>;outfitWears:number|null;duplicate:boolean;points:WearPointsOutcome}> {
   const unique=[...new Set(itemIds)];
@@ -467,7 +467,7 @@ export async function recordRealWear(ownerId:string,itemIds:string[],options:{re
   const now=Date.now(),occurredAt=new Date(now).toISOString(),expiresInSecondsFrom=(ms:number)=>Math.ceil((now+ms)/1000)+3600;
   // The person's day decides both points and what reaches brands: each piece counts once a day.
   const day=wearDay(options.localDate,now),dayMarker=(id:string)=>`WEARDAY#${day}#${id}`,pointsDayKey=`POINTSDAY#${day}`;
-  const found=await db.send(new BatchGetCommand({RequestItems:{[table]:{Keys:[...unique.map(id=>({PK:ownerPK,SK:`GARMENT#${id}`})),...unique.map(id=>({PK:ownerPK,SK:dayMarker(id)})),{PK:ownerPK,SK:pointsDayKey}]}}}));
+  const found=await db.send(new BatchGetCommand({RequestItems:{[table]:{Keys:[...unique.map(id=>({PK:ownerPK,SK:`GARMENT#${id}`})),...unique.map(id=>({PK:ownerPK,SK:dayMarker(id)})),{PK:ownerPK,SK:pointsDayKey},{PK:ownerPK,SK:"POINTS"}]}}}));
   if(Object.keys(found.UnprocessedKeys??{}).length)throw new Error("Wardrobe lookup was throttled.");
   const returned=found.Responses?.[table]??[];
   const garments=new Map(returned.filter(item=>String(item.SK).startsWith("GARMENT#")).map(item=>[String(item.SK).slice("GARMENT#".length),item]));
@@ -476,6 +476,16 @@ export async function recordRealWear(ownerId:string,itemIds:string[],options:{re
   const earnedToday=Number(returned.find(item=>item.SK===pointsDayKey)?.points??0);
   const award=wearAward(unique.map(id=>{const garment=garments.get(id);return {id,createdAt:typeof garment?.createdAt==="string"?garment.createdAt:null,lastWornAt:typeof garment?.lastWornAt==="string"?garment.lastWornAt:null,wornToday:wornToday.has(id)};}),earnedToday,now);
   const firstToday=new Set(award.firstToday);
+  // The streak lives on the POINTS record. Extending it is conditional on the last day read here, so
+  // two first wears of the day at the same moment cannot both extend it.
+  const totalsRecord=returned.find(item=>item.SK==="POINTS"),streak=streakAfterWear({streak:totalsRecord?.streak,best:totalsRecord?.bestStreak,day:totalsRecord?.streakDay},day);
+  const totals=award.points>0||streak.grew?{
+    TableName:table,Key:{PK:ownerPK,SK:"POINTS"},
+    UpdateExpression:[streak.grew?"SET #streak = :streak, #best = :best, #streakDay = :day":"",award.points>0?"ADD #total :points":""].filter(Boolean).join(" "),
+    ...(streak.grew?{ConditionExpression:totalsRecord?.streakDay===undefined?"attribute_not_exists(#streakDay)":"#streakDay = :lastDay"}:{}),
+    ExpressionAttributeNames:{...(streak.grew?{"#streak":"streak","#best":"bestStreak","#streakDay":"streakDay"}:{}),...(award.points>0?{"#total":"total"}:{})} as Record<string,string>,
+    ExpressionAttributeValues:{...(streak.grew?{":streak":streak.streak,":best":streak.best,":day":day,...(totalsRecord?.streakDay===undefined?{}:{":lastDay":totalsRecord.streakDay})}:{}),...(award.points>0?{":points":award.points}:{})},
+  }:null;
   const outfit=outfitId?await findOutfitRecord(ownerId,outfitId):null;
   if(outfitId&&!outfit)throw new RequestRefused("Saved outfit not found for this account.",404);
   const guards=[
@@ -491,16 +501,16 @@ export async function recordRealWear(ownerId:string,itemIds:string[],options:{re
     // The day's record exists whenever something was worn, so the week can show the day as logged,
     // and the cap holds even when two wears are recorded at the same moment.
     {Update:{TableName:table,Key:{PK:ownerPK,SK:pointsDayKey},UpdateExpression:"SET #day = :day, #ttl = :ttl ADD #points :points",ConditionExpression:"attribute_not_exists(#points) OR #points <= :room",ExpressionAttributeNames:{"#day":"day","#ttl":"ttl","#points":"points"} as Record<string,string>,ExpressionAttributeValues:{":day":day,":ttl":expiresInSecondsFrom((POINTS_WEEK_DAYS+3)*24*60*60*1000),":points":award.points,":room":DAILY_POINTS_CAP-award.points}}},
-    ...(award.points>0?[{Update:{TableName:table,Key:{PK:ownerPK,SK:"POINTS"},UpdateExpression:"ADD #total :points",ExpressionAttributeNames:{"#total":"total"} as Record<string,string>,ExpressionAttributeValues:{":points":award.points}}}]:[]),
+    ...(totals?[{Update:totals}]:[]),
   ];
-  const points:WearPointsOutcome={awarded:award.points,rediscovered:award.rediscovered.length,capped:award.capped,repeat:award.firstToday.length<unique.length};
+  const points:WearPointsOutcome={awarded:award.points,rediscovered:award.rediscovered.length,capped:award.capped,repeat:award.firstToday.length<unique.length,streak:streak.streak,streakGrew:streak.grew};
   const before={counts:Object.fromEntries(unique.map(id=>[id,Number(garments.get(id)?.wearCount??0)])),outfitWears:outfit?Number(outfit.wears??0):null};
   try{
     await db.send(new TransactWriteCommand({TransactItems:[...guards,...writes]}));
   }catch(error){
     const reasons=(error as {CancellationReasons?:Array<{Code?:string}>}).CancellationReasons??[];
     if(error instanceof Error&&error.name==="TransactionCanceledException"){
-      if(reasons.slice(0,guards.length).some(reason=>reason.Code==="ConditionalCheckFailed"))return {...before,duplicate:true,points:{awarded:0,rediscovered:0,capped:false,repeat:true}};
+      if(reasons.slice(0,guards.length).some(reason=>reason.Code==="ConditionalCheckFailed"))return {...before,duplicate:true,points:{awarded:0,rediscovered:0,capped:false,repeat:true,streak:streak.streak,streakGrew:false}};
       if(reasons.some(reason=>reason.Code==="ConditionalCheckFailed"))throw new RequestRefused("A piece or outfit changed while the wear was being recorded. Try again.",409);
     }
     throw error;
@@ -516,7 +526,7 @@ export async function getWearPoints(ownerId:string,localDate?:string|null){
     db.send(new GetCommand({TableName:requireTable(),Key:{PK:ownerPK,SK:"POINTS"}})),
   ]);
   const entries=(days.Items??[]).map(item=>({day:String(item.day??String(item.SK).slice("POINTSDAY#".length)),points:Number(item.points??0)}));
-  return {today,week:pointsWeek(entries,today),total:Number(total.Item?.total??0)};
+  return {today,week:pointsWeek(entries,today),total:Number(total.Item?.total??0),streak:streakOn({streak:total.Item?.streak,best:total.Item?.bestStreak,day:total.Item?.streakDay},today)};
 }
 
 export async function listOutfits(ownerId:string):Promise<SavedOutfit[]> {

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import type { SavedOutfit, WardrobeItem } from "@/lib/types";
-import { DAILY_POINTS_CAP, REDISCOVERY_BONUS, REDISCOVERY_DAYS } from "@/lib/wear-points";
+import { DAILY_POINTS_CAP, REDISCOVERY_BONUS, REDISCOVERY_DAYS, streakLine, type streakOn } from "@/lib/wear-points";
 import { localDay } from "@/lib/wear-client";
 
 interface PointsWeek {
@@ -10,6 +10,8 @@ interface PointsWeek {
   daysLogged: number;
   days: Array<{ day: string; points: number; logged: boolean }>;
 }
+
+type Streak = ReturnType<typeof streakOn>;
 
 const weekday = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "narrow", timeZone: "UTC" });
 
@@ -26,6 +28,7 @@ export function WearPointsCard({ items, outfits, refreshKey, onWearOutfit, onWea
 }) {
   const [week, setWeek] = useState<PointsWeek | null>(null);
   const [total, setTotal] = useState(0);
+  const [streak, setStreak] = useState<Streak>({ streak: 0, best: 0, loggedToday: false });
   const [unavailable, setUnavailable] = useState(false);
   const [logging, setLogging] = useState(false);
   const [chosen, setChosen] = useState<string[]>([]);
@@ -36,7 +39,7 @@ export function WearPointsCard({ items, outfits, refreshKey, onWearOutfit, onWea
     let live = true;
     fetch(`/api/points?today=${localDay()}`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("points"))))
-      .then((data: { week: PointsWeek; total: number }) => { if (live) { setWeek(data.week); setTotal(data.total); setUnavailable(false); } })
+      .then((data: { week: PointsWeek; total: number; streak?: Streak }) => { if (live) { setWeek(data.week); setTotal(data.total); setStreak(data.streak ?? { streak: 0, best: 0, loggedToday: false }); setUnavailable(false); } })
       .catch(() => { if (live) setUnavailable(true); });
     return () => { live = false; };
   }, [refreshKey]);
@@ -53,6 +56,7 @@ export function WearPointsCard({ items, outfits, refreshKey, onWearOutfit, onWea
       <small id={`${panelId}-title`}>THIS WEEK</small>
       {unavailable ? <p>Points are unavailable right now. Recording a wear still works.</p> : <>
         <strong>{week?.points ?? 0} <span className="points-unit">points</span></strong>
+        <p className={`points-streak${streak.streak > 0 ? " live" : ""}${streak.streak > 0 && !streak.loggedToday ? " due" : ""}`}><span aria-hidden="true">{streak.streak > 0 ? "🔥" : "○"}</span> {streakLine(streak)}</p>
         <p>Logged {week?.daysLogged ?? 0} of 7 days · {total} all time</p>
         {week && <ol className="points-days" aria-label="Points for each of the last seven days">
           {week.days.map((entry) => <li key={entry.day} className={entry.logged ? "logged" : ""} aria-label={`${entry.day}: ${entry.logged ? `${entry.points} point${entry.points === 1 ? "" : "s"}` : "nothing logged"}`}><span aria-hidden="true">{weekday(entry.day)}</span></li>)}

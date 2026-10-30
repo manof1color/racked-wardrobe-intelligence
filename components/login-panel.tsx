@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Role } from "@/lib/types";
+import { BRAND_SHARING_TERMS } from "@/lib/brand-sharing-consent";
 
 type AuthMode="signin"|"create";
 
@@ -15,6 +16,8 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
   const [displayName,setDisplayName]=useState("");
   const [brandName,setBrandName]=useState("");
   const [consent,setConsent]=useState(false);
+  // Optional, unticked by default, and changeable later in Settings.
+  const [brandDataSharing,setBrandDataSharing]=useState(false);
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
   // The honeypot: a field no person sees or reaches; a form-filling bot fills it.
@@ -28,7 +31,7 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
     setBusy(true);setError("");
     try {
       const endpoint=mode==="create"?"/api/auth/register":"/api/auth/login";
-      const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,role,displayName,brandName,consent,formToken,website:trap})});
+      const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,role,displayName,brandName,consent,brandDataSharing,formToken,website:trap})});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error??"Account access failed.");
       if(data.twoStep){setCodeStep(true);setCode("");setUseRecovery(false);setBusy(false);return;}
@@ -91,6 +94,7 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       {mode==="signin"&&<Link className="forgot-link" href="/forgot-password">Forgot password?</Link>}
       {mode==="create"&&role==="brand"&&<p className="auth-fineprint">Racked reviews each new brand account before it can add products or see insights. You can sign in and set up your account while you wait.</p>}
       {mode==="create"&&role==="consumer"&&<label className="consent-row"><input type="checkbox" checked={consent} onChange={event=>setConsent(event.target.checked)}/><span><strong>I consent to wardrobe image processing.</strong><small>My photos and wear history remain private. Brands receive only qualifying anonymous aggregates when I separately enable sharing.</small></span></label>}
+      {mode==="create"&&role==="consumer"&&<label className="consent-row"><input type="checkbox" checked={brandDataSharing} onChange={event=>setBrandDataSharing(event.target.checked)}/><span><strong>Optional: share anonymous brand insights.</strong><small>{BRAND_SHARING_TERMS.text} You can change this any time in Settings.</small></span></label>}
       {error&&<div className="form-error" role="alert">{error}</div>}
       <button className="button button-accent button-full" disabled={busy||!email||!password||(mode==="create"&&(!displayName||(role==="brand"&&!brandName)||(role==="consumer"&&!consent)))} onClick={submit}>{busy?"Please wait…":mode==="signin"?"Sign in →":"Create account →"}</button>
       <p className="auth-fineprint">Passwords are salted and hashed. Sessions use secure HTTP-only cookies; private photos are never placed in the public website directory.</p>

@@ -15,7 +15,7 @@ import { WearPointsCard } from "./wear-points-card";
 import { wearPointsNotice, wearRequestBody } from "@/lib/wear-client";
 import { WorkspaceMobileNav, type ConsumerWorkspaceView } from "./workspace-mobile-nav";
 import { costPerWearLine } from "@/lib/cost-per-wear";
-import { BRAND_SHARING_TERMS } from "@/lib/brand-sharing-consent";
+import { viewHeading } from "@/lib/view-headings";
 import type { SavedOutfit, WardrobeItem } from "@/lib/types";
 
 export function ConsumerDashboard({initialView="home",openAddInitially=false}:{initialView?:ConsumerWorkspaceView;openAddInitially?:boolean}) {
@@ -35,12 +35,12 @@ export function ConsumerDashboard({initialView="home",openAddInitially=false}:{i
   const [pointsVersion,setPointsVersion]=useState(0);
   const [filter,setFilter]=useState("all");
   const [activeView,setActiveView]=useState<ConsumerWorkspaceView>(initialView);
-  const [brandDataSharing,setBrandDataSharing]=useState(false);
   const addDialog=useRef<HTMLElement>(null);
   const closeAdd=useCallback(()=>setShowAdd(false),[]);
   useDialogFocus(addDialog,showAdd,closeAdd);
 
-  useEffect(()=>{Promise.all([fetch("/api/consumer/wardrobe").then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error??"Wardrobe could not be loaded.");return data;}),fetch("/api/consumer/consent").then(response=>response.json())]).then(([wardrobeData,consentData])=>{setItems(wardrobeData.items??[]);setOutfits(wardrobeData.outfits??[]);if(typeof consentData.brandDataSharing==="boolean")setBrandDataSharing(consentData.brandDataSharing);}).catch(reason=>setLoadError(reason instanceof Error?reason.message:"Wardrobe could not be loaded.")).finally(()=>setLoading(false));},[]);
+  // Brand sharing is chosen at sign-up and changed in Settings, so the wardrobe never asks for it.
+  useEffect(()=>{fetch("/api/consumer/wardrobe").then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error??"Wardrobe could not be loaded.");return data;}).then(wardrobeData=>{setItems(wardrobeData.items??[]);setOutfits(wardrobeData.outfits??[]);}).catch(reason=>setLoadError(reason instanceof Error?reason.message:"Wardrobe could not be loaded.")).finally(()=>setLoading(false));},[]);
 
   const visible=filter==="all"?items:items.filter(item=>item.category===filter);
   const totalWears=useMemo(()=>items.reduce((sum,item)=>sum+item.wearCount,0),[items]);
@@ -48,7 +48,6 @@ export function ConsumerDashboard({initialView="home",openAddInitially=false}:{i
   const leastWorn=[...items].sort((a,b)=>a.wearCount-b.wearCount)[0];
   function openAdd(){setShowAdd(true);}
 
-  async function toggleBrandDataSharing(){const next=!brandDataSharing;setBrandDataSharing(next);const response=await fetch("/api/consumer/consent",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({brandDataSharing:next})});if(!response.ok)setBrandDataSharing(!next);}
   async function recordWear(id:string){const response=await fetch("/api/wears",{method:"POST",headers:{"content-type":"application/json"},body:wearRequestBody({itemId:id})});const data=await response.json();if(!response.ok){setNotice(data.error??"Wear could not be recorded.");return;}setItems(current=>current.map(item=>item.id===id?{...item,wearCount:data.count,lastWornDays:0}:item));setPointsVersion(version=>version+1);setNotice(data.duplicate?"That wear was already recorded a moment ago.":["Wear recorded.",wearPointsNotice(data)].filter(Boolean).join(" "));}
   // Saving a look keeps it for later without recording a wear; "Wear today" does both.
   async function saveNewOutfit(itemIds:string[]){const response=await fetch("/api/consumer/outfits",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:`Look ${new Date().toLocaleDateString()}`,itemIds})});const data=await response.json();if(!response.ok)throw new Error(data.error??"The look could not be saved.");setOutfits(current=>[data.outfit,...current]);setNotice(`Saved a look with ${itemIds.length} pieces. It is in Outfits.`);}
@@ -63,8 +62,7 @@ export function ConsumerDashboard({initialView="home",openAddInitially=false}:{i
 
   const tabs:Array<{id:ConsumerWorkspaceView;label:string;icon:string}>=[{id:"home",label:"Today",icon:"⌂"},{id:"looks",label:"Looks",icon:"◇"},{id:"closet",label:"Closet",icon:"▦"},{id:"outfits",label:"Outfits",icon:"◫"}];
   return <AppShell role="consumer"><main className="workspace consumer-workspace">
-    <section className="workspace-heading"><div><div className="eyebrow">YOUR PRIVATE WARDROBE</div><h1>Your wardrobe is<br/><em>working smarter.</em></h1><p>Upload what you own, build outfits, and track what you actually wear.</p></div><button className="button button-accent" onClick={openAdd}>+ Add clothing</button></section>
-    <div className="privacy-banner"><span>◉</span><div><strong>Anonymous brand insights</strong><p>{BRAND_SHARING_TERMS.text}</p></div><button type="button" className="button button-light" onClick={toggleBrandDataSharing}>{brandDataSharing?"ON — turn off":"OFF — turn on"}</button></div>
+    {(()=>{const heading=viewHeading(activeView,{pieces:items.length,outfits:outfits.length,outfitWears:outfits.reduce((sum,outfit)=>sum+(outfit.wears??0),0),wears:totalWears});return <section className={`workspace-heading view-heading view-${activeView}`}><div><div className="eyebrow">{heading.eyebrow}</div><h1>{heading.title}<br/><em>{heading.accent}</em></h1><p>{heading.lede}</p></div>{heading.stats.length>0&&<dl className="view-stats">{heading.stats.map(stat=><div key={stat.label}><dt>{stat.label}</dt><dd>{stat.value}</dd></div>)}</dl>}<button className="button button-accent" onClick={openAdd}>+ Add clothing</button></section>;})()}
     <nav className="consumer-view-tabs" aria-label="Consumer app views">{tabs.map(tab=><button key={tab.id} className={activeView===tab.id?"active":""} onClick={()=>setActiveView(tab.id)}><span>{tab.icon}</span>{tab.label}</button>)}<Link href="/community"><span>◎</span>Community</Link></nav>
     {notice&&<div className="success-banner" role="status"><span>✓</span>{notice}<button aria-label="Dismiss notification" onClick={()=>setNotice("")}>×</button></div>}
     {loadError&&<div className="form-error" role="alert">{loadError}</div>}

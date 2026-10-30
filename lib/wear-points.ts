@@ -6,7 +6,9 @@
  * - Points are earned for recording a wear, identically whether or not the person shares with brands.
  *   A reward for sharing would buy consent.
  * - Points stay on the account. No brand sees them, and they never become money, discounts or entries.
- * - No streak: a missed day costs nothing. The summary is a rolling seven days, not a chain to break.
+ * - A daily streak (owner decision, 2026-10-29): consecutive days with at least one recorded wear.
+ *   It counts the day, not the points, so a wear at the daily cap still keeps it. It earns no extra
+ *   points, and like the points it is private and has nothing to do with sharing.
  * - Each piece earns once per day, and the day is capped, so tapping Record again earns nothing. The
  *   same once-a-day rule decides which wears reach brand data, so points cannot inflate it.
  */
@@ -94,13 +96,58 @@ export function pointsWeek(days: PointsDay[], today: string) {
   };
 }
 
+export interface StreakState {
+  /** Consecutive days with a recorded wear, ending on `day`. */
+  streak?: number | null;
+  best?: number | null;
+  /** The last day with a recorded wear. */
+  day?: string | null;
+}
+
+const streakFields = (state: StreakState) => {
+  const day = typeof state.day === "string" && DATE.test(state.day) ? state.day : null;
+  const streak = day ? Math.max(0, Math.floor(Number(state.streak) || 0)) : 0;
+  return { day, streak, best: Math.max(streak, Math.floor(Number(state.best) || 0)) };
+};
+
+/**
+ * The streak after recording a wear on `day`. The day after the last logged day extends it; a gap
+ * starts again at 1. A day already logged, or an earlier one (a wear recorded from behind the
+ * date line), leaves it as it is.
+ */
+export function streakAfterWear(state: StreakState, day: string) {
+  const current = streakFields(state);
+  if (current.day && current.day >= day) return { ...current, grew: false };
+  const streak = current.day && shiftDay(current.day, 1) === day ? current.streak + 1 : 1;
+  return { day, streak, best: Math.max(current.best, streak), grew: true };
+}
+
+/**
+ * The streak as it stands on `today`. Logged yesterday but not yet today, it is still alive: today
+ * is the day to keep it. Older than that, it has ended, and only the best is kept.
+ */
+export function streakOn(state: StreakState, today: string) {
+  const current = streakFields(state);
+  const alive = current.day !== null && (current.day >= today || current.day === shiftDay(today, -1));
+  return { streak: alive ? current.streak : 0, best: current.best, loggedToday: current.day !== null && current.day >= today };
+}
+
+/** Home's streak line: how long it is, and whether today still needs a wear to keep it. */
+export function streakLine({ streak, best, loggedToday }: ReturnType<typeof streakOn>) {
+  if (streak === 0) return best > 0 ? `Log an outfit to start a new streak. Best: ${best} days.` : "Log an outfit to start a daily streak.";
+  const days = `${streak}-day streak`;
+  if (!loggedToday) return `${days} — log today to keep it going.`;
+  return streak >= best && streak > 1 ? `${days} — your best yet.` : `${days}. Back tomorrow to make it ${streak + 1}.`;
+}
+
 /** The line under a recorded wear: what it earned, and why when it earned nothing. */
-export function awardNotice(award: { points: number; rediscovered: number; capped: boolean; repeat: boolean }) {
+export function awardNotice(award: { points: number; rediscovered: number; capped: boolean; repeat: boolean; streak?: number; streakGrew?: boolean }) {
+  const streak = award.streakGrew && award.streak ? (award.streak === 1 ? " Streak started — log tomorrow to keep it." : ` ${award.streak}-day streak.`) : "";
   if (award.points > 0) {
     const bonus = award.rediscovered ? ` — ${award.rediscovered === 1 ? "a piece" : `${award.rediscovered} pieces`} back in rotation` : "";
-    return `+${award.points} point${award.points === 1 ? "" : "s"}${bonus}.`;
+    return `+${award.points} point${award.points === 1 ? "" : "s"}${bonus}.${streak}`;
   }
-  if (award.capped) return `You've earned today's ${DAILY_POINTS_CAP} points; the wear still counts.`;
+  if (award.capped) return `You've earned today's ${DAILY_POINTS_CAP} points; the wear still counts.${streak}`;
   if (award.repeat) return "Already counted today; the wear is still recorded.";
-  return "";
+  return streak.trim();
 }

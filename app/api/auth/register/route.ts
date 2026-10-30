@@ -7,7 +7,7 @@ import { claimAddressRequest, claimSignUp } from "@/lib/server/abuse-guard";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
 import { failureResponse } from "@/lib/api-errors";
-import { createAccount, recordAccountActivity } from "@/lib/server/production-store";
+import { createAccount, recordAccountActivity, setBrandDataSharing } from "@/lib/server/production-store";
 import type { Role } from "@/lib/types";
 import { passwordValidationError } from "@/lib/account-security";
 
@@ -21,7 +21,7 @@ export async function POST(request:Request) {
   // Strings are checked as strings, and every value is bounded, before anything reads them. The
   // role is one of two, and nothing else in the body — an account ID, a verification state — is read.
   const text=(value:unknown,max:number)=>typeof value==="string"&&value.length<=max?value:undefined;
-  const body=raw&&typeof raw==="object"?{email:text(raw.email,254),password:text(raw.password,1_024),role:raw.role==="consumer"||raw.role==="brand"?raw.role as Role:undefined,displayName:text(raw.displayName,80)?.trim(),brandName:text(raw.brandName,80),consent:raw.consent===true,formToken:raw.formToken,[HONEYPOT_FIELD]:raw[HONEYPOT_FIELD]}:null;
+  const body=raw&&typeof raw==="object"?{email:text(raw.email,254),password:text(raw.password,1_024),role:raw.role==="consumer"||raw.role==="brand"?raw.role as Role:undefined,displayName:text(raw.displayName,80)?.trim(),brandName:text(raw.brandName,80),consent:raw.consent===true,brandDataSharing:raw.brandDataSharing===true,formToken:raw.formToken,[HONEYPOT_FIELD]:raw[HONEYPOT_FIELD]}:null;
   // The bot trap: a hidden field a person never fills, and a signed token proving the form was
   // served by Racked a few seconds ago. A script posting straight here has neither.
   const secret=process.env.SESSION_SECRET;
@@ -37,6 +37,10 @@ export async function POST(request:Request) {
     const account=await createAccount({email:body.email,password:body.password!,role:body.role,displayName:body.displayName,brandName:body.brandName});
     if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});
     await recordAccountActivity(account.id,"account-created",deviceLabel(request.headers.get("user-agent"))).catch(()=>undefined);
+    // Brand sharing is asked once, at sign-up, and starts off unless ticked. It is recorded like any
+    // later change in Settings (the words shown, and when); if that write fails the account simply
+    // starts with sharing off, which Settings can change.
+    if(account.role==="consumer"&&body.brandDataSharing){const shared=await setBrandDataSharing(account.id,true).catch(()=>null);if(shared?.changed)await recordAccountActivity(account.id,"brand-sharing-on",deviceLabel(request.headers.get("user-agent"))).catch(()=>undefined);}
     const token=await createSessionToken({subject:account.id,role:account.role,sessionVersion:account.sessionVersion??0,expiresAt:Date.now()+1000*60*60*24*7},secret);
     const response=NextResponse.json({destination:account.role==="consumer"?"/consumer":"/brand"},{status:201});
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*24*7});

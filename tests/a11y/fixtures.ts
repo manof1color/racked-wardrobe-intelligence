@@ -105,7 +105,7 @@ export async function mockSignedInApi(page: Page) {
     switch (pathname) {
       case "/api/consumer/wardrobe": return method === "POST" ? json(route, { item: { ...wardrobe[0], id: `saved-${Date.now()}` } }) : json(route, { items: wardrobe, outfits });
       case "/api/consumer/consent": return json(route, { brandDataSharing: true });
-      case "/api/points": return json(route, { today: "2026-10-29", total: 42, week: { points: 9, daysLogged: 3, days: ["2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29"].map((day, index) => ({ day, points: [0, 4, 0, 0, 2, 0, 3][index], logged: [false, true, false, false, true, false, true][index] })) } });
+      case "/api/points": return json(route, { today: "2026-10-29", total: 42, streak: { streak: 3, best: 5, loggedToday: false }, week: { points: 9, daysLogged: 3, days: ["2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29"].map((day, index) => ({ day, points: [0, 4, 0, 0, 2, 0, 3][index], logged: [false, true, false, false, true, false, true][index] })) } });
       case "/api/consumer/outfits": return json(route, { outfit: { id: "saved-outfit", name: "Hanger outfit", itemIds: ["w1", "w2"], createdAt: "2026-10-28T12:00:00.000Z", wears: 0 } });
       case "/api/wears": return json(route, { counts: { w1: 19, w2: 16 }, outfitWears: 1, points: { awarded: 2, rediscovered: 0, capped: false, repeat: false } });
       case "/api/consumer/location": return json(route, { homeCity: null, results: [] });

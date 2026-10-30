@@ -52,7 +52,7 @@ test("sign-up checks the trap before any account work; reset requests skip the e
 
 test("both forms carry the hidden field and the page's token", () => {
   const login = read("components/login-panel.tsx");
-  assert.match(login, /body:JSON\.stringify\(\{email,password,role,displayName,brandName,consent,formToken,website:trap\}\)/);
+  assert.match(login, /body:JSON\.stringify\(\{email,password,role,displayName,brandName,consent,brandDataSharing,formToken,website:trap\}\)/);
   assert.match(login, /<div className="form-trap" aria-hidden="true"><label>Website<input tabIndex=\{-1\} autoComplete="off" name="website"/, "unseen, unreachable by keyboard, skipped by screen readers");
   const reset = read("components/password-reset-panels.tsx");
   assert.match(reset, /body:JSON\.stringify\(\{email,formToken,website:trap\}\)/);
