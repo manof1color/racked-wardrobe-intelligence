@@ -59,8 +59,12 @@ Brand intelligence exists only if people record what they wear, so recording a w
   with brands (rule 1). The award never reads consent.
 - **Private.** Points live on the account. No brand route, metric or dashboard reads them (rule 2),
   and deleting the account deletes them.
-- **No streak.** Home shows the last seven days — points, and which days had a wear — so a missed
-  day costs nothing. No badges, leaderboards or reminders.
+- **A daily streak (owner decision, 2026-10-29, replacing "no streak").** Consecutive days with at
+  least one recorded wear. It counts the day, not the points, so a wear at the daily cap keeps it;
+  it is still alive the morning after, so the person has all of today to keep it; and it earns no
+  extra points. Home shows it beside the last seven days and the person's best. Like the points it
+  is private and identical whether or not the person shares. Still no badges, leaderboards or
+  notifications.
 - **Nothing converts.** Not to money, credit, discounts or entries.
 - **Cannot inflate brand data.** Each piece earns once a day, and the same rule decides what a brand
   receives: a piece recorded twice in a day sends one wear to its brand, not two.

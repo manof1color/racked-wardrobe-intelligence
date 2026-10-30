@@ -88,10 +88,10 @@ test("REGRESSION: a product enrolled moments ago costs no enumeration budget", (
 
 test("the layout the workspace replaced left no styles behind", () => {
   const css = read("app/globals.css");
-  for (const dead of ["brand-layout", "catalog-panel", "match-panel", "product-list", "metric-row-expanded", "analytics-loading", "tiny-product-photo", "tiny-swatch"]) {
+  for (const dead of ["brand-layout", "catalog-panel", "match-panel", "product-list", "metric-row-expanded", "analytics-loading", "tiny-product-photo", "tiny-swatch", "privacy-banner"]) {
     assert.ok(!css.includes(`.${dead}`), `dead style left behind: .${dead}`);
   }
-  for (const live of [".product-grid{", ".onboarding-card{", ".wear-hero{", ".privacy-banner{"]) {
+  for (const live of [".product-grid{", ".onboarding-card{", ".wear-hero{", ".view-heading{"]) {
     assert.ok(css.includes(live), `live style removed by mistake: ${live}`);
   }
 });

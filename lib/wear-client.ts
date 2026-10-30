@@ -12,6 +12,6 @@ export function wearRequestBody(fields: { itemId?: string; itemIds?: string[]; o
 }
 
 /** The points sentence to add after a recorded wear, or "" when the response carries none. */
-export function wearPointsNotice(data: { points?: { awarded: number; rediscovered: number; capped: boolean; repeat: boolean } }) {
-  return data.points ? awardNotice({ points: data.points.awarded, rediscovered: data.points.rediscovered, capped: data.points.capped, repeat: data.points.repeat }) : "";
+export function wearPointsNotice(data: { points?: { awarded: number; rediscovered: number; capped: boolean; repeat: boolean; streak?: number; streakGrew?: boolean } }) {
+  return data.points ? awardNotice({ points: data.points.awarded, rediscovered: data.points.rediscovered, capped: data.points.capped, repeat: data.points.repeat, streak: data.points.streak, streakGrew: data.points.streakGrew }) : "";
 }
