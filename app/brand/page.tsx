@@ -4,6 +4,7 @@ import { brandStatusOf } from "@/lib/brand-approval";
 import { getAccount } from "@/lib/server/production-store";
 import { BrandDashboard } from "@/components/brand-dashboard";
 import { BrandApprovalNotice } from "@/components/brand-approval-notice";
+import { DemoNotice } from "@/components/demo-notice";
 import type { BrandTabView } from "@/components/workspace-mobile-nav";
 
 export const metadata: Metadata = { title:"Brand opportunity" };
@@ -14,5 +15,5 @@ export default async function BrandPage({searchParams}:{searchParams:Promise<{vi
   const account=await getAccount(session.subject);
   const status=brandStatusOf(account);
   if(status==="pending"||status==="revoked")return <BrandApprovalNotice status={status} brandName={account?.brandName??null}/>;
-  const query=await searchParams;const initialView=views.has(query.view as BrandTabView)?query.view as BrandTabView:"overview";return <BrandDashboard initialView={initialView}/>;
+  const query=await searchParams;const initialView=views.has(query.view as BrandTabView)?query.view as BrandTabView:"overview";return <>{session.demo&&<DemoNotice kind="brand"/>}<BrandDashboard initialView={initialView}/></>;
 }

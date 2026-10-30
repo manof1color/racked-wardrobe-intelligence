@@ -404,6 +404,20 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - Home shows the last seven days (points, and which days had a wear) and **Log today's outfit**: a saved outfit in one tap, or up to ten pieces. Every wear notice says what it earned, or why it earned nothing.
 - Tests: `tests/wear-points.test.ts`; the accessibility harness answers the new points call.
 
+## Phase 92 — Daily streak, sharing in Settings, a heading per view (2026-10-29)
+
+- Owner decision: a daily streak, replacing the "no streak" rule. A day counts when at least one wear is recorded; it is kept on the `POINTS` record (`streak`, `bestStreak`, `streakDay`) and extended in the wear's own transaction, conditional on the last day read, so two first wears at once cannot both extend it. It is still alive the morning after a logged day, earns no extra points, and is private like the points.
+- Anonymous brand insights moved off the wardrobe. Sign-up asks once (an optional, unticked box showing the versioned wording, recorded through the same write as Settings), and Settings has the switch. The wardrobe no longer shows the banner on every view.
+- Today, Looks, Closet and Outfits each open with their own heading, colour and numbers (`lib/view-headings.ts`).
+- Tests: `tests/wear-points.test.ts` (streak rules, the race guard, the headings) and `tests/brand-sharing-consent.test.ts` (sign-up and Settings).
+
+## Phase 93 — Try the demo (2026-10-30)
+
+- The finalists' instructions require a **Try the demo** button on the sign-in screen: one click, no typing, made-up data, and the same starting point for every judge. `POST /api/auth/demo` gives each visitor a fresh copy of the seeded judge wardrobe (`demo-session-<uuid>`, no email or password, 24-hour session, 48-hour `ttl`), or opens the seeded demo brand read-only.
+- Demo sessions are marked in the signed session token. `brandAccess({ write: true })` refuses the demo brand on the four routes that change a brand; the account, sessions and two-step routes refuse both demos; Community publishing is refused, and look comparisons are not counted.
+- A demo wardrobe never joins a product's owner index (`addWardrobeItem`), and `getRealProductMetrics` skips demo owners as well. Demo wardrobes get 12 scans and 30 Hanger messages a day, and are limited per address and site-wide.
+- A strip above a demo workspace says it is a demo. Tests: `tests/demo-session.test.ts`, checked against the seed in dry-run mode.
+
 ## Continuous verification
 
 The phase entries above record their historical verification. The current working branch carries **893 passing tests** in 118 files (re-verified 2026-10-29), including session branch coverage at 97.56%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.

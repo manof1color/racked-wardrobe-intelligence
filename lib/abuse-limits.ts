@@ -35,6 +35,10 @@ export const DURABLE_LIMITS = {
   signInsPerAddress: { limit: 30, windowMs: 5 * 60 * 1000 },
   signUpsPerAddress: { limit: 20, windowMs: 60 * 60 * 1000 },
   resetRequestsPerAddress: { limit: 10, windowMs: 60 * 60 * 1000 },
+  /** "Try the demo" from one address: room for a judging panel on one network, not for a script. */
+  demoSessionsPerAddress: { limit: 30, windowMs: 60 * 60 * 1000 },
+  /** Demo wardrobes across the whole site. Each is free to make and holds its own AI allowance. */
+  demoWardrobesSiteWide: { limit: 120, windowMs: 60 * 60 * 1000 },
   /** Two-step codes tried on one account, right or wrong: few enough that guessing six digits is hopeless. */
   twoStepAttemptsPerAccount: { limit: 5, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, DurableRule>;
@@ -107,10 +111,10 @@ export function aiUnavailable(): AiAllowance {
 }
 
 /** The account's daily allowance, in requests. The site's ceiling is enforced per model call. */
-export function aiAllowance(action: AiAction, accountCount: number, now = Date.now()): AiAllowance {
+export function aiAllowance(action: AiAction, accountCount: number, now = Date.now(), limit = AI_DAILY_ALLOWANCE[action]): AiAllowance {
   const resetAt = windowStart(now, DAY_MS) + DAY_MS;
-  const account = durableDecision(accountCount, AI_DAILY_ALLOWANCE[action], resetAt, now);
-  if (!account.allowed) return { allowed: false, scope: "account", retryAfterSeconds: account.retryAfterSeconds, message: ACCOUNT_MESSAGES[action](AI_DAILY_ALLOWANCE[action]) };
+  const account = durableDecision(accountCount, limit, resetAt, now);
+  if (!account.allowed) return { allowed: false, scope: "account", retryAfterSeconds: account.retryAfterSeconds, message: ACCOUNT_MESSAGES[action](limit) };
   return { allowed: true };
 }
 

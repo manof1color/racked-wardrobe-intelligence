@@ -69,5 +69,5 @@ test("axe: brand product metrics and Brand Hanger", async ({ page }, testInfo) =
 test("the harness falls back to the consumer landing view for a role or view it does not know", async ({ page }) => {
   const response = await page.goto("/a11y-harness?role=admin&view=anything");
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Your wardrobe");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("What are you wearing today?");
 });

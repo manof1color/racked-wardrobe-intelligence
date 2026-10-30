@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Role } from "@/lib/types";
+import { BRAND_SHARING_TERMS } from "@/lib/brand-sharing-consent";
 
 type AuthMode="signin"|"create";
 
@@ -15,6 +16,8 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
   const [displayName,setDisplayName]=useState("");
   const [brandName,setBrandName]=useState("");
   const [consent,setConsent]=useState(false);
+  // Optional, unticked by default, and changeable later in Settings.
+  const [brandDataSharing,setBrandDataSharing]=useState(false);
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
   // The honeypot: a field no person sees or reaches; a form-filling bot fills it.
@@ -23,17 +26,32 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
   const [codeStep,setCodeStep]=useState(false);
   const [code,setCode]=useState("");
   const [useRecovery,setUseRecovery]=useState(false);
+  // "Try the demo" keeps its own progress and error, shown beside its button rather than under the form.
+  const [demoBusy,setDemoBusy]=useState(false);
+  const [demoError,setDemoError]=useState("");
 
   async function submit() {
     setBusy(true);setError("");
     try {
       const endpoint=mode==="create"?"/api/auth/register":"/api/auth/login";
-      const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,role,displayName,brandName,consent,formToken,website:trap})});
+      const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,role,displayName,brandName,consent,brandDataSharing,formToken,website:trap})});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error??"Account access failed.");
       if(data.twoStep){setCodeStep(true);setCode("");setUseRecovery(false);setBusy(false);return;}
       window.location.assign(data.destination);
     } catch(reason){setError(reason instanceof Error?reason.message:"Account access failed.");setBusy(false);}
+  }
+
+  // "Try the demo" (lib/demo-session.ts): one click, no typing. The wardrobe demo is a fresh copy for
+  // this visitor; the brand demo is the shared demo brand, read-only.
+  async function tryDemo(kind:"consumer"|"brand") {
+    setDemoBusy(true);setDemoError("");
+    try {
+      const response=await fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error??"The demo is temporarily unavailable.");
+      window.location.assign(data.destination);
+    } catch(reason){setDemoError(reason instanceof Error?reason.message:"The demo is temporarily unavailable.");setDemoBusy(false);}
   }
 
   async function submitCode() {
@@ -73,6 +91,13 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       <div className="eyebrow">PRIVATE WARDROBE INTELLIGENCE</div>
       <h1 id="auth-title">{mode==="signin"?"Welcome back.":"Create your Racked account."}</h1>
       <p>{mode==="signin"?"Sign in to your wardrobe or brand workspace.":"Choose the workspace that matches how you will use Racked."}</p>
+      {mode==="signin"&&<section className="demo-entry" aria-labelledby="demo-entry-title">
+        <h2 id="demo-entry-title">Just looking?</h2>
+        <p>Open a ready-made wardrobe with one click. No sign-up: it’s made-up data, a fresh copy just for you, and it’s gone after a day.</p>
+        <button className="button button-dark button-full" disabled={busy||demoBusy} onClick={()=>tryDemo("consumer")}>{demoBusy?"Opening…":"Try the demo →"}</button>
+        <button type="button" className="text-button" disabled={busy||demoBusy} onClick={()=>tryDemo("brand")}>Or see the brand side: try the demo brand</button>
+        {demoError&&<div className="form-error" role="alert">{demoError}</div>}
+      </section>}
       <div className="role-switch" role="group" aria-label="Account action">
         <button className={mode==="signin"?"active":""} onClick={()=>{setMode("signin");setError("");}}>Sign in</button>
         <button className={mode==="create"?"active":""} onClick={()=>{setMode("create");setError("");}}>Create account</button>
@@ -91,6 +116,7 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       {mode==="signin"&&<Link className="forgot-link" href="/forgot-password">Forgot password?</Link>}
       {mode==="create"&&role==="brand"&&<p className="auth-fineprint">Racked reviews each new brand account before it can add products or see insights. You can sign in and set up your account while you wait.</p>}
       {mode==="create"&&role==="consumer"&&<label className="consent-row"><input type="checkbox" checked={consent} onChange={event=>setConsent(event.target.checked)}/><span><strong>I consent to wardrobe image processing.</strong><small>My photos and wear history remain private. Brands receive only qualifying anonymous aggregates when I separately enable sharing.</small></span></label>}
+      {mode==="create"&&role==="consumer"&&<label className="consent-row"><input type="checkbox" checked={brandDataSharing} onChange={event=>setBrandDataSharing(event.target.checked)}/><span><strong>Optional: share anonymous brand insights.</strong><small>{BRAND_SHARING_TERMS.text} You can change this any time in Settings.</small></span></label>}
       {error&&<div className="form-error" role="alert">{error}</div>}
       <button className="button button-accent button-full" disabled={busy||!email||!password||(mode==="create"&&(!displayName||(role==="brand"&&!brandName)||(role==="consumer"&&!consent)))} onClick={submit}>{busy?"Please wait…":mode==="signin"?"Sign in →":"Create account →"}</button>
       <p className="auth-fineprint">Passwords are salted and hashed. Sessions use secure HTTP-only cookies; private photos are never placed in the public website directory.</p>

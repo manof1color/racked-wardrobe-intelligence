@@ -7,10 +7,10 @@ Prepared 2026-10-30 for the CUA Busch School AI Vibe Coding Contest, Fall 2026. 
 | 1 | [README checked against the five things the judges asked for](#1-readme-check) | Done. Three small gaps fixed in the README |
 | 2 | [Three two-sentence summaries](#2-three-two-sentence-summaries) | Drafts, pick one |
 | 3 | [Two-minute answer: "What happens when your AI gets it wrong?"](#3-what-happens-when-your-ai-gets-it-wrong) | Draft, about 2 minutes spoken |
-| 4 | [Demo video shot list](#4-demo-video-shot-list) | Draft, 4:30 planned. Waits on the **Try the demo** button |
+| 4 | [Demo video shot list](#4-demo-video-shot-list) | Draft, 4:30 planned, written against the merged **Try the demo** |
 | 5 | [Submission email](#5-the-email) | Draft with placeholders |
 
-**To fill in before sending:** `[LIVE LINK]`, `[VIDEO LINK]`, `[Recipient name]`, the demo-account passwords (from your private notes; never commit them to this public repository), and the three `[CONFIRM …]` notes in the shot list once **Try the demo** exists.
+**To fill in before sending:** `[LIVE LINK]`, `[VIDEO LINK]` and `[Recipient name]`. Only if you also want judges to use the full demo accounts, the passwords go in from your private notes; never commit them to this public repository. **Try the demo** itself needs no password.
 
 ---
 
@@ -110,15 +110,15 @@ A two-minute spoken answer: 295 words, which is a little under two minutes at a 
 
 **Target 4:30. Hard maximum 4:59.** Two flows, the same two as the five-minute judge path ([JUDGES.md](../JUDGES.md)), entered through the **Try the demo** button.
 
-> **Waiting on Try the demo.** The button is being built separately and is not in the repository yet. Three things below depend on what it does, marked `[CONFIRM]`. Once it merges, check them and delete this box. If it is not ready in time, the fallback is the demo accounts in the README, with the sign-in typed off camera and cut from the video.
+> **How Try the demo works** (from the code merged in #196, checked against the sign-in screen's source). It is on the **sign-in screen**, not the home page: from the home page press **Sign in**. **Try the demo →** gives you a fresh private copy of the Judge Consumer wardrobe with no email or password; it expires after a day, and each click makes a new one. **Or see the brand side: try the demo brand**, a link under it, opens the shared Judge Brand **read-only**: opening products, the numbers and Brand Hanger all work, and adding products or Looks is refused. Each demo wardrobe has its own allowance of 12 scans and 30 Hanger messages, so there is room for retakes, and a fresh click starts again.
 
 | Shot | Time | On screen | Action | Narration |
 | ---: | --- | --- | --- | --- |
 | 1 | 0:00–0:20 | The home page | Hold on it | "Brands know what people buy. They have no idea what people actually wear. And most of us have a closet full of clothes and no good way to use it. Racked fixes both, without anyone's closet ever being exposed." |
-| 2 | 0:20–0:35 | Home page, then the app | Click **Try the demo** `[CONFIRM: which account it opens, and that it needs no password]` | "It's live on AWS, and one tap gets you in." |
+| 2 | 0:20–0:35 | Home page, then the sign-in screen | Press **Sign in**, then **Try the demo →** | "It's live on AWS. One click on the sign-in screen, no password, and every judge starts with the same wardrobe." |
 | 3 | 0:35–1:20 | Consumer wardrobe | Tap **+**. Choose the photo you staged beforehand. Wait for the cards. Point to a card, then to a **Type** field that is asking. Tick the confirmation. Press **Add** | "I photograph a garment. Amazon Bedrock's Nova Pro model finds the visible pieces and proposes a category and type for each. They're proposals. Where the AI is unsure, the Type field asks instead of guessing. Nothing is saved until I confirm." |
 | 4 | 1:20–2:00 | Hanger | Open **Hanger**. Ask: *What should I wear with this today?* Let the outfit cards load. Hover **Save** and **Record** | "Now I ask Hanger what to wear with it. Hanger is an AI stylist that chooses its own tools, but the outfit comes from a rules-based builder using only clothes this account owns, including the piece I just added. Save keeps it. Record logs the wear." |
-| 5 | 2:00–2:10 | Switch to the brand view | `[CONFIRM: how Try the demo gets you from the consumer to the brand demo]` | "Now the brand side." |
+| 5 | 2:00–2:10 | The sign-in screen, then the brand view | **Jump cut.** Sign out, then on the sign-in screen press **Or see the brand side: try the demo brand**. Cut the navigation; show only the arrival | "Now the brand side." |
 | 6 | 2:10–2:40 | **Judge Limited Overshirt** | Open the product. Hold on the message | "This product has only four opted-in owners. Below twenty-five, the brand sees nothing. Not zeroes, not even the count. The page says why." |
 | 7 | 2:40–3:20 | **Judge Signature Tee** | Open the product. Show the eight-week chart, repeat wear, then what it's worn with | "This one has fifty consenting owners, so the aggregate is released: wears over eight weeks, repeat wear, and what it's worn with. No names, photos, wardrobes or owner IDs. This is synthetic demo data, and it's labelled that way." |
 | 8 | 3:20–3:50 | Brand Hanger | Ask: *Write me a campaign brief for this product.* Show the brief. Optional, if time allows: go back to the Overshirt and ask the same thing so the decline shows | "Brand Hanger writes the brief from the released totals only. On the four-owner product it declines, and it makes no AI call." |
@@ -131,9 +131,10 @@ Ten shots, 270 seconds. The shot times run back to back with no gap.
 
 - **Stage the scan photo.** Put one clear garment photo on the device, ideally a plain flat lay. A fresh scan can be slow; if it stalls, cut to a second take rather than narrating over a spinner.
 - **Use only the demo accounts.** Everything in them is synthetic and labelled `DEMO`. Do not create accounts, and do not scan photos of real people.
-- **Clean up after the scan.** It adds a piece to the demo wardrobe. Delete it afterwards (Closet → Delete piece) so the next viewer starts clean.
-- **Keep passwords off screen.** If you sign in by hand, type off camera and cut it.
-- **Check the live site first, read-only.** `pnpm verify:live` checks the deployed site without signing in, and `/api/version` should show the commit you expect.
+- **No clean-up needed.** The scan adds a piece to your own private copy of the demo wardrobe, which expires by itself. If a take goes wrong, sign out and press **Try the demo →** again for a fresh one.
+- **Do the brand side in a second, private browser window** already open on the sign-in screen, so you can cut straight to it. Two sessions in one window replace each other.
+- **No password appears**, because **Try the demo** needs none. Do not sign in to any real account on camera.
+- **Check the live site first, read-only.** `pnpm verify:live` checks the deployed site without signing in, `/api/version` should show a commit that includes #196, and **Try the demo →** should be on the live sign-in screen.
 - **Record at 1920×1080**, browser at 100% zoom, notifications off. Add captions: judges may watch muted.
 - **Check the length of the export**, not the plan: it must be under 5:00.
 
@@ -164,8 +165,9 @@ Links
 - Code and docs:    https://github.com/manof1color/racked-wardrobe-intelligence
 - One screen for judges: https://github.com/manof1color/racked-wardrobe-intelligence/blob/main/JUDGES.md
 
-[If the Try the demo button is live: Tap "Try the demo" on the home page for
-a one-tap tour. Delete this line otherwise.]
+Fastest way in: open the live app, press Sign in, then "Try the demo". No
+email and no password; you get a fresh private copy of the demo wardrobe.
+"Try the demo brand" on the same screen opens the brand side, read-only.
 
 The five things you asked for (each is also answered in the README):
 
@@ -188,8 +190,8 @@ The five things you asked for (each is also answered in the README):
    of garments in the right category (95% interval 89.3%-95.3%). Racked
    does not fine-tune the models.
 
-4. How to run it. The quickest way is the live app with the demo accounts
-   below. To run it locally you need Node.js 22.13 or newer and pnpm 11.9.0:
+4. How to run it. The quickest way is the live app: "Try the demo" on the
+   sign-in screen, no password. To run it locally you need Node.js 22.13 or newer and pnpm 11.9.0:
    pnpm install --frozen-lockfile, copy .env.example to .env.local and set
    SESSION_SECRET, then pnpm dev. Account and upload features also need an
    AWS DynamoDB table and a private S3 bucket. The README's "Run It
@@ -204,11 +206,12 @@ The five things you asked for (each is also answered in the README):
    and I make no claim of sales lift, purchase intent or production-scale
    validation.
 
-Demo accounts (synthetic data):
+Full demo accounts, if you want to enrol a product or start from an empty
+wardrobe (synthetic data):
 - Consumer: judge.consumer@racked.local
 - Brand:    judge.brand@racked.local
-- Passwords: [DEMO PASSWORDS - paste from your private notes. Do not commit
-  them to the repository.]
+- Passwords: [DEMO PASSWORDS - paste from your private notes, or delete this
+  block if Try the demo is enough. Do not commit them to the repository.]
 
 Thank you for your time.
 
@@ -217,8 +220,8 @@ James Harris
 
 ### Before you send
 
-- [ ] Replace `[Recipient name]`, `[LIVE LINK]` and `[VIDEO LINK]`, and delete the Try the demo line if the button is not live.
-- [ ] Paste the passwords from your private notes. They must never go into this file or the repository.
-- [ ] Open `/api/version` on the live site and confirm it reports the commit you meant to submit.
+- [ ] Replace `[Recipient name]`, `[LIVE LINK]` and `[VIDEO LINK]`.
+- [ ] Either paste the demo-account passwords from your private notes or delete that block from the email. They must never go into this file or the repository.
+- [ ] Open `/api/version` on the live site and confirm it reports the commit you meant to submit, and that **Try the demo →** is on the sign-in screen.
 - [ ] Watch the exported video once: under 5:00, audible, and no password visible.
 - [ ] Click every link in the email from a signed-out browser.

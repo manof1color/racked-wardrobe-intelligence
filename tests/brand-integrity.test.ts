@@ -144,7 +144,7 @@ test("REGRESSION: a matched label is saved as a verified link, re-checked on the
   assert.match(add, /matchBrandProduct\(\[\],labelEvidence,registry\)/, "the evidence is matched again, not trusted");
   assert.match(add, /const catalogProduct=registryMatch\?\.product\?\?selectedProduct;/, "a label match wins over a catalog pick");
   assert.match(add, /catalogProduct\?catalogProduct\.brand:/, "the registry's brand is authoritative once matched");
-  assert.match(add, /GSI1PK:registryProductId\?`PRODUCT#\$\{registryProductId\}`:undefined/, "and the brand index uses the checked link");
+  assert.match(add, /const ownerIndex=registryProductId&&!isDemoAccountId\(ownerId\);[\s\S]*GSI1PK:ownerIndex\?`PRODUCT#\$\{registryProductId\}`:undefined/, "and the brand index uses the checked link");
   assert.doesNotMatch(add, /overrides\?\.verified|overrides\?\.registryProductId/, "the browser cannot name a product to link");
 });
 

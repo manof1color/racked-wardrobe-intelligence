@@ -22,7 +22,7 @@ const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
  * nothing is stored — enrollment stores it later, if the brand goes ahead.
  */
 export async function POST(request: Request) {
-  const access = await brandAccess();
+  const access = await brandAccess({ write: true });
   if (!access.ok) return access.response;
   const { session } = access;
   const limit = consumeRateLimit(`brand-describe:${session.subject}`, RATE_LIMIT_RULES.brandProductDescribe);

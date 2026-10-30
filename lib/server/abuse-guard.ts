@@ -77,6 +77,18 @@ export async function claimSignUp(now = Date.now()): Promise<RateLimitDecision> 
   }
 }
 
+/** One more demo wardrobe across the site (lib/demo-session.ts). Fails open like sign-up; the AI budgets still fail closed. */
+export async function claimDemoWardrobe(now = Date.now()): Promise<RateLimitDecision> {
+  const rule = DURABLE_LIMITS.demoWardrobesSiteWide;
+  try {
+    const { count, resetAt } = await incrementSecurityCounter("demo-wardrobes:site", rule.windowMs, now);
+    return durableDecision(count, rule.limit, resetAt, now);
+  } catch (error) {
+    failOpen("demo wardrobe ceiling", error);
+    return OPEN;
+  }
+}
+
 export async function claimPasswordResetEmail(email: string, now = Date.now()): Promise<RateLimitDecision> {
   const rule = DURABLE_LIMITS.passwordResetsPerEmail;
   try {
@@ -92,6 +104,7 @@ const ADDRESS_RULES = {
   "sign-in": DURABLE_LIMITS.signInsPerAddress,
   "sign-up": DURABLE_LIMITS.signUpsPerAddress,
   "reset-request": DURABLE_LIMITS.resetRequestsPerAddress,
+  demo: DURABLE_LIMITS.demoSessionsPerAddress,
 } as const;
 
 /**
