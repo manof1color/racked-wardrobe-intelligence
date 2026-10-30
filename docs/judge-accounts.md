@@ -15,6 +15,32 @@ reads one from `RACKED_TEST_PASSWORD` at runtime.
 | `judge.brand@racked.local` | **Judge Demo Atelier**: one product with **50 opted-in owners**, so the dashboard shows what a live product looks like; one with **4**, deliberately below the `k ≥ 25` threshold, so suppression is visible beside it; one retired; and a published Brand Look |
 | `judge.newbrand@racked.local` | **Judge New Label**, no products. Enroll one live from a single photo |
 
+## One click: Try the demo
+
+The finalists' instructions ask for a judge to get in with one click and never type a username or
+password, and for every judge to start from the same place. The sign-in screen does that
+(`app/api/auth/demo/route.ts`, rules in `lib/demo-session.ts`):
+
+- **Try the demo** copies `judge.consumer`'s pieces, outfits and saved inspiration into a new account
+  (`demo-session-<uuid>`) and signs the visitor in for 24 hours. The copy has no email and no
+  password, and its records carry a DynamoDB `ttl` of 48 hours. Photos are shared with the seeded
+  wardrobe, which is safe because deletion only removes photos under the deleting account's own
+  folder. Re-seeding `judge.consumer` changes what the next demo starts from.
+- **Try the demo brand** signs into `judge.brand` itself, read-only: product edits, enrollment, Fill
+  in from photo and Brand Looks are refused, so the brand stays the same for everyone. Brand Hanger
+  and the metrics work. It is refused unless the account is the seeded one, labelled `DEMO`.
+- **Neither reaches a real person or brand.** A demo wardrobe never joins a product's owner index, so
+  its wears never reach a brand, and brand metrics skip demo accounts as well. It cannot publish to
+  Community, and its look comparisons are not counted as Community activity. Neither demo can change
+  email, password, two-step sign-in, or sign out other sessions — otherwise one visitor could lock the
+  shared demo brand.
+- **Limits.** 10 demo sessions per address per ten minutes on one server, 30 per address per hour
+  across all of them, 120 new demo wardrobes an hour site-wide; 12 scans and 30 Hanger messages a
+  day per demo wardrobe, inside the site's daily AI ceiling.
+- **Not cleaned up yet:** records a judge adds during a demo (new pieces, wear markers) and photos
+  they keep are not given a `ttl`, so they stay after the account expires. The account itself is
+  gone, so nobody can reach them.
+
 ## A three-minute tour
 
 1. **Sign in as `judge.consumer`.** The Closet shows a verified brand piece (`Verified Judge Demo

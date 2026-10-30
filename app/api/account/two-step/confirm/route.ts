@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DEMO_SETTINGS_MESSAGE } from "@/lib/demo-session";
 import { getSession, SESSION_COOKIE } from "@/lib/auth";
 import { failureResponse, RequestRefused } from "@/lib/api-errors";
 import { deviceLabel } from "@/lib/device-label";
@@ -15,6 +16,7 @@ import { confirmTwoStepSetup, recordAccountActivity } from "@/lib/server/product
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  if (session.demo) return NextResponse.json({ error: DEMO_SETTINGS_MESSAGE }, { status: 403 });
   if (session.role !== "brand") return NextResponse.json({ error: "Two-step sign-in is available on brand accounts." }, { status: 403 });
   const limit = consumeRateLimit(`two-step-settings:${session.subject}`, RATE_LIMIT_RULES.twoStep);
   if (!limit.allowed) return NextResponse.json({ error: "Too many attempts. Try again shortly." }, { status: 429 });

@@ -26,6 +26,9 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
   const [codeStep,setCodeStep]=useState(false);
   const [code,setCode]=useState("");
   const [useRecovery,setUseRecovery]=useState(false);
+  // "Try the demo" keeps its own progress and error, shown beside its button rather than under the form.
+  const [demoBusy,setDemoBusy]=useState(false);
+  const [demoError,setDemoError]=useState("");
 
   async function submit() {
     setBusy(true);setError("");
@@ -37,6 +40,18 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       if(data.twoStep){setCodeStep(true);setCode("");setUseRecovery(false);setBusy(false);return;}
       window.location.assign(data.destination);
     } catch(reason){setError(reason instanceof Error?reason.message:"Account access failed.");setBusy(false);}
+  }
+
+  // "Try the demo" (lib/demo-session.ts): one click, no typing. The wardrobe demo is a fresh copy for
+  // this visitor; the brand demo is the shared demo brand, read-only.
+  async function tryDemo(kind:"consumer"|"brand") {
+    setDemoBusy(true);setDemoError("");
+    try {
+      const response=await fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error??"The demo is temporarily unavailable.");
+      window.location.assign(data.destination);
+    } catch(reason){setDemoError(reason instanceof Error?reason.message:"The demo is temporarily unavailable.");setDemoBusy(false);}
   }
 
   async function submitCode() {
@@ -76,6 +91,13 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       <div className="eyebrow">PRIVATE WARDROBE INTELLIGENCE</div>
       <h1 id="auth-title">{mode==="signin"?"Welcome back.":"Create your Racked account."}</h1>
       <p>{mode==="signin"?"Sign in to your wardrobe or brand workspace.":"Choose the workspace that matches how you will use Racked."}</p>
+      {mode==="signin"&&<section className="demo-entry" aria-labelledby="demo-entry-title">
+        <h2 id="demo-entry-title">Just looking?</h2>
+        <p>Open a ready-made wardrobe with one click. No sign-up: it’s made-up data, a fresh copy just for you, and it’s gone after a day.</p>
+        <button className="button button-dark button-full" disabled={busy||demoBusy} onClick={()=>tryDemo("consumer")}>{demoBusy?"Opening…":"Try the demo →"}</button>
+        <button type="button" className="text-button" disabled={busy||demoBusy} onClick={()=>tryDemo("brand")}>Or see the brand side: try the demo brand</button>
+        {demoError&&<div className="form-error" role="alert">{demoError}</div>}
+      </section>}
       <div className="role-switch" role="group" aria-label="Account action">
         <button className={mode==="signin"?"active":""} onClick={()=>{setMode("signin");setError("");}}>Sign in</button>
         <button className={mode==="create"?"active":""} onClick={()=>{setMode("create");setError("");}}>Create account</button>

@@ -20,6 +20,8 @@ export interface RateLimitDecision {
 export const RATE_LIMIT_RULES = {
   login: { limit: 10, windowMs: 5 * 60 * 1000 },
   register: { limit: 5, windowMs: 60 * 60 * 1000 },
+  // "Try the demo": looser than sign-up, because a room of judges can share one address.
+  demoSession: { limit: 10, windowMs: 10 * 60 * 1000 },
   passwordResetRequest: { limit: 5, windowMs: 60 * 60 * 1000 },
   passwordResetConsume: { limit: 10, windowMs: 60 * 60 * 1000 },
   accountSettings: { limit: 10, windowMs: 15 * 60 * 1000 },

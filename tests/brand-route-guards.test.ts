@@ -34,7 +34,8 @@ test("every brand handler starts with the one shared brand check", () => {
     assert.ok(handlers.length > 0, file);
     for (const handler of handlers) {
       const body = code.slice(handler.index, handler.index! + 400);
-      assert.match(body, /const access ?= ?await brandAccess\(\);\s*if ?\(!access\.ok\) ?return access\.response;\s*const \{ ?session ?\} ?= ?access;/, `${file} ${handler[1]} must check the brand first`);
+      // `write` marks a handler that changes the brand; the read-only demo brand is refused those.
+      assert.match(body, /const access ?= ?await brandAccess\((\{ ?write: ?true ?\})?\);\s*if ?\(!access\.ok\) ?return access\.response;\s*const \{ ?session ?\} ?= ?access;/, `${file} ${handler[1]} must check the brand first`);
     }
     assert.doesNotMatch(code, /getSession\(|session\.role ?!== ?"brand"/, `${file} must not keep a weaker check of its own`);
   }

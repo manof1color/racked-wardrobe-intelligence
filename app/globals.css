@@ -979,3 +979,7 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .view-stats{display:flex;gap:28px;margin:0}.view-stats div{display:flex;flex-direction:column-reverse}.view-stats dt{font-size:.62rem;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.view-stats dd{margin:0;font-family:Georgia,serif;font-size:2rem;line-height:1}
 .points-streak{font-weight:800;color:var(--ink)}.points-streak.live{color:var(--coral-dark)}.points-streak.due{background:#fff1ec;border-left:3px solid var(--coral);padding:4px 8px}
 @media (max-width:640px){.view-heading{padding:22px 18px}.view-heading::after{font-size:8rem;bottom:-28px}}
+
+/* "Try the demo" on the sign-in screen (lib/demo-session.ts) */
+.demo-entry{margin:26px 0 6px;padding:20px;background:var(--acid);display:flex;flex-direction:column;gap:12px}.demo-entry h2{font-family:Georgia,serif;font-weight:400;font-size:1.5rem;letter-spacing:-.02em;margin:0}.demo-entry p{font-size:.76rem;line-height:1.5;margin:0}.demo-entry .text-button{align-self:center;font-size:.74rem;color:var(--ink);padding:4px}.demo-entry .text-button:disabled{opacity:.5;cursor:not-allowed}
+.demo-notice{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--acid);color:var(--ink);padding:10px 34px;font-size:.74rem;line-height:1.4}.demo-notice strong{font-size:.62rem;font-weight:950;letter-spacing:.12em}.demo-notice a{text-decoration:underline;font-weight:800}@media(max-width:640px){.demo-notice{padding:10px 18px}.demo-entry{padding:16px}}

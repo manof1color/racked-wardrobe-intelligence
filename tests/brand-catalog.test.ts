@@ -94,7 +94,7 @@ test("REGRESSION: a catalog pick is never verified identity and never reaches br
   const add = store.slice(store.indexOf("export async function addWardrobeItem"), store.indexOf("export async function recordRealWear"));
   assert.match(add, /const registryProductId=registryMatch\?registryMatch\.product\.id:analysis\.label\.matched\?analysis\.label\.registryProductId:null;/, "only label evidence produces a registry link");
   assert.match(add, /identityStatus=registryProductId\?"verified":selectedProduct\?"owner-selected":/);
-  assert.match(add, /GSI1PK:registryProductId\?`PRODUCT#\$\{registryProductId\}`:undefined/, "the brand's owner index is keyed by verified links only");
+  assert.match(add, /const ownerIndex=registryProductId&&!isDemoAccountId\(ownerId\);[\s\S]*GSI1PK:ownerIndex\?`PRODUCT#\$\{registryProductId\}`:undefined/, "the brand's owner index is keyed by verified links only, and never a demo wardrobe's");
   assert.match(add, /registry\.find\(product=>product\.id===selectedId&&!product\.archived\)/, "a pick must name a live catalog product");
 
   const picked = { id: "item-1", name: "My tee", category: "top", subtype: "t-shirt", color: "navy", style: [], season: "all-season", wearCount: 0, lastWornDays: 999, source: "ai-confirmed", art: "photo", brand: "Northstar Atelier", sku: "NA-TEE", identityStatus: "owner-selected", selectedProductId: "TEE" } as unknown as WardrobeItem;
@@ -158,7 +158,7 @@ test("Fill in from photo describes the largest recognised piece and stores nothi
   assert.equal(describeProductFromDetections([detection("x", 1, {}, "manual-review")]), null, "a manual-review stand-in describes nothing");
 
   const route = read("app/api/brand/products/describe/route.ts");
-  assert.match(route, /const access = await brandAccess\(\);\s*if \(!access\.ok\) return access\.response;/, "approved brands only");
+  assert.match(route, /const access = await brandAccess\(\{ write: true \}\);\s*if \(!access\.ok\) return access\.response;/, "approved brands only, and never the read-only demo brand");
   assert.match(route, /RATE_LIMIT_RULES\.brandProductDescribe/);
   for (const write of ["putPrivateImage", "saveBrandProduct", "PutCommand"]) assert.ok(!route.includes(write), `reading a photo must not ${write}`);
 });
