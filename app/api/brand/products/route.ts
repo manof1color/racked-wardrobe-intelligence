@@ -17,7 +17,7 @@ export async function GET(){const access=await brandAccess();if(!access.ok)retur
   return NextResponse.json({products:await listOwnedBrandProducts(session.subject)});}
 
 export async function POST(request:Request){
-  const access=await brandAccess();if(!access.ok)return access.response;const {session}=access;
+  const access=await brandAccess({write:true});if(!access.ok)return access.response;const {session}=access;
   const limit=consumeRateLimit(`brand-enroll:${session.subject}`,RATE_LIMIT_RULES.brandProductEnroll);
   if(!limit.allowed)return NextResponse.json({error:"Too many products enrolled in the last hour. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   const contentLength=Number(request.headers.get("content-length")??0);

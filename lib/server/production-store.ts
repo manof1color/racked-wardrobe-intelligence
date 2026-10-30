@@ -35,6 +35,7 @@ import { ACTIVITY_RETENTION_DAYS, type AccountActivity, type AccountActivityType
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
 import { acceptanceIncrement, acceptanceOutcome, type AcceptanceOutcome } from "@/lib/ai-acceptance";
+import { demoCopy, demoProfile, DEMO_SOURCE_ACCOUNTS, isDemoAccountId, newDemoAccountId } from "@/lib/demo-session";
 import sharp from "sharp";
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -304,6 +305,21 @@ export async function getAccount(id:string) {
   return (result.Item as AccountRecord|undefined) ?? null;
 }
 
+/**
+ * "Try the demo" (lib/demo-session.ts): a fresh private copy of the seeded judge wardrobe for one
+ * visitor. The copies are written before the account record, so a session never points at a
+ * half-made wardrobe, and every record expires on its own.
+ */
+export async function createDemoWardrobe(now=Date.now()){
+  const source=await queryEveryPage({KeyConditionExpression:"PK = :pk",ExpressionAttributeValues:{":pk":`USER#${DEMO_SOURCE_ACCOUNTS.consumer}`}});
+  const id=newDemoAccountId(crypto.randomUUID());
+  const copies=source.map(record=>demoCopy(record,id,now)).filter((record):record is Record<string,unknown>=>record!==null);
+  if(!copies.some(record=>String(record.SK).startsWith("GARMENT#")))throw new ProductionConfigurationError("The demo wardrobe is not set up yet.");
+  await Promise.all(copies.map(Item=>db.send(new PutCommand({TableName:requireTable(),Item}))));
+  await db.send(new PutCommand({TableName:requireTable(),Item:demoProfile(id,now),ConditionExpression:"attribute_not_exists(PK)"}));
+  return id;
+}
+
 export async function putPrivateImage(ownerId:string,kind:"wardrobe"|"brand",bytes:Buffer,contentType:string,subfolder?:"evidence",pending=false) {
   const extension=contentType==="image/png"?"png":contentType==="image/webp"?"webp":"jpg";
   const key=`${pending?PENDING_SCAN_PREFIX:""}${kind}/${ownerId}/${subfolder?`${subfolder}/`:""}${crypto.randomUUID()}.${extension}`;
@@ -385,7 +401,9 @@ export async function addWardrobeItem(ownerId:string,analysis:GarmentAnalysis,ov
   const item:WardrobeItem={id:crypto.randomUUID(),name,...classification,wearableUnit:classification.category==="shoe"&&analysis.garment.wearableUnit==="pair"?"pair":"single",color:analysis.garment.color,pattern:analysis.garment.pattern,material:analysis.garment.material,style:analysis.garment.style,season:"all-season",wearCount:0,lastWornDays:999,source:analysis.fallback?"manual":"ai-confirmed",art:"photo",imageKey:image.key,evidenceImageKey,backgroundRemoved:analysis.processedImage.backgroundRemoved??false,customType,imageUrl:await privateImageUrl(image.key),brand:brand&&!placeholderBrand?brand:null,sku:sku&&!placeholderSku?sku:null,registryProductId,identityStatus,selectedProductId:selectedProduct?.id??null,listedPrice:catalogProduct?.price??null,listedCurrency:catalogProduct?.price!==undefined?(catalogProduct.currency??"USD"):null,createdAt:new Date().toISOString()};
   // The photos are kept before the record that points at them is written.
   await keepScanImages(copyPrivateImage,[image,evidence]);
-  await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:registryProductId?`PRODUCT#${registryProductId}`:undefined,GSI1SK:`OWNER#${ownerId}`}}));
+  // A demo wardrobe's piece can show as verified, but it never joins the brand's owner index, so its wears never reach the brand.
+  const ownerIndex=registryProductId&&!isDemoAccountId(ownerId);
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...item,imageUrl:undefined,PK:`USER#${ownerId}`,SK:`GARMENT#${item.id}`,GSI1PK:ownerIndex?`PRODUCT#${registryProductId}`:undefined,GSI1SK:ownerIndex?`OWNER#${ownerId}`:undefined}}));
   // Real-use evidence (lib/ai-acceptance.ts): the signed proposal against what was kept, as daily
   // totals only. It never holds up or fails a save.
   await recordAiAcceptance(ownerId,acceptanceOutcome(analysis,{name,category:classification.category,subtype:classification.subtype,customType})).catch(error=>console.error("AI acceptance count skipped",{name:error instanceof Error?error.name:"UnknownError"}));
@@ -1093,7 +1111,8 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
     queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}}),
     queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"}}),
   ]);
-  const ownerKeys=[...new Set(items.map(item=>String(item.PK)))];
+  // A demo wardrobe never counts toward any brand, even if one slipped into the index.
+  const ownerKeys=[...new Set(items.map(item=>String(item.PK)))].filter(key=>!isDemoAccountId(key.slice("USER#".length)));
   // Consent is decided when the aggregate is built, from strongly consistent reads, so a person who
   // has just turned sharing off is never counted from a replica that still says on.
   const accountResults=await Promise.all(Array.from({length:Math.ceil(ownerKeys.length/100)},(_,index)=>ownerKeys.slice(index*100,(index+1)*100)).filter(chunk=>chunk.length).map(chunk=>db.send(new BatchGetCommand({RequestItems:{[requireTable()]:{Keys:chunk.map(PK=>({PK,SK:"PROFILE"})),ConsistentRead:true}}}))));

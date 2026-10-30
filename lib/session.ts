@@ -1,7 +1,8 @@
 import type { Role } from "./types";
 import { timingSafeEqual } from "node:crypto";
 
-export interface SessionPayload { subject: string; role: Role; expiresAt: number; sessionVersion?: number; }
+/** `demo`: a session from "Try the demo" (lib/demo-session.ts), which some routes refuse to change things for. */
+export interface SessionPayload { subject: string; role: Role; expiresAt: number; sessionVersion?: number; demo?: "consumer" | "brand"; }
 export interface SessionAccount { role: Role; sessionVersion?: number; }
 const encoder = new TextEncoder();
 
@@ -31,7 +32,7 @@ export async function verifySessionToken(token: string, secret: string, now = Da
     const expectedBytes=Buffer.from(await signature(body,secret),"base64url");
     if (suppliedBytes.length!==expectedBytes.length || !timingSafeEqual(suppliedBytes,expectedBytes)) return null;
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as SessionPayload;
-    if (!payload.subject || !["consumer","brand"].includes(payload.role) || payload.expiresAt <= now || (payload.sessionVersion!==undefined&&(!Number.isInteger(payload.sessionVersion)||payload.sessionVersion<0))) return null;
+    if (!payload.subject || !["consumer","brand"].includes(payload.role) || payload.expiresAt <= now || (payload.sessionVersion!==undefined&&(!Number.isInteger(payload.sessionVersion)||payload.sessionVersion<0)) || (payload.demo!==undefined&&payload.demo!==payload.role)) return null;
     return payload;
   } catch { return null; }
 }

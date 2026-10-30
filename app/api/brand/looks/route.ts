@@ -11,7 +11,7 @@ export async function GET(){const access=await brandAccess();if(!access.ok)retur
 // Every product in a Look must be this brand's own; saveBrandLook checks each one against the
 // session's catalog before anything is saved.
 export async function POST(request:Request){
-  const access=await brandAccess();if(!access.ok)return access.response;const {session}=access;
+  const access=await brandAccess({write:true});if(!access.ok)return access.response;const {session}=access;
   const limit=consumeRateLimit(`brand-look:${session.subject}`,RATE_LIMIT_RULES.brandLookPublish);
   if(!limit.allowed)return NextResponse.json({error:"Too many Looks at once. Try again later."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   try{

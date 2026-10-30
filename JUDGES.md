@@ -6,7 +6,15 @@ least 25, and never see a name, a photo or a wardrobe.**
 
 Live app: https://main.d2iv0khybuuaeh.amplifyapp.com — works on a phone, and can be installed.
 
-## Sign in
+## Get in: one click
+
+Open the live app, choose **Sign in**, and press **Try the demo**. No email, no password: you get a
+fresh private copy of a made-up, lived-in wardrobe (Flow 1), the same starting point for every judge,
+gone after a day. **Or see the brand side** opens the made-up demo brand (Flow 2), read-only so
+nobody can change it for the next judge. Neither can publish, change sign-in settings, or reach a
+real brand.
+
+## Or sign in to a named account
 
 | Account | Address | Use it for |
 | --- | --- | --- |

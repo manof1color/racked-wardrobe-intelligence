@@ -15,6 +15,7 @@ export async function POST(_request:Request,{params}:{params:Promise<{postId:str
   const [post,wardrobe]=await Promise.all([getPublicCommunityPost(postId),listWardrobe(session.subject)]);
   if(!post)return NextResponse.json({error:"Public outfit not found."},{status:404});
   const result=recreateLook(post.id,post.garments,wardrobe);
-  await recordPrivacySafeCommunityEvent(post.id,"recreate-look-request");
+  // A demo wardrobe's comparisons are not real interest, so they never reach a brand's Community activity.
+  if(!session.demo)await recordPrivacySafeCommunityEvent(post.id,"recreate-look-request");
   return NextResponse.json({result});
 }

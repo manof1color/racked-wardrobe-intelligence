@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DEMO_SETTINGS_MESSAGE } from "@/lib/demo-session";
 import { getSession, SESSION_COOKIE } from "@/lib/auth";
 import { deviceLabel } from "@/lib/device-label";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
@@ -11,6 +12,7 @@ import { endOtherSessions, recordAccountActivity } from "@/lib/server/production
 export async function DELETE(request:Request){
   const session=await getSession();
   if(!session)return NextResponse.json({error:"Sign in required."},{status:401});
+  if(session.demo)return NextResponse.json({error:DEMO_SETTINGS_MESSAGE},{status:403});
   const limit=consumeRateLimit(`end-sessions:${session.subject}`,RATE_LIMIT_RULES.endSessions);
   if(!limit.allowed)return NextResponse.json({error:"Too many requests. Try again shortly."},{status:429});
   const secret=process.env.SESSION_SECRET;

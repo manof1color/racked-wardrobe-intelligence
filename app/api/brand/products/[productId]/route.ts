@@ -18,7 +18,7 @@ import type { BrandProductEdit } from "@/lib/product-registry";
  * stops answering labels, searches, suggestions, and its public brand page.
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ productId: string }> }) {
-  const access = await brandAccess();
+  const access = await brandAccess({ write: true });
   if (!access.ok) return access.response;
   const { session } = access;
   const limit = consumeRateLimit(`brand-product-edit:${session.subject}`, RATE_LIMIT_RULES.brandProductEdit);

@@ -66,7 +66,7 @@ test("counters and failed sign-ins are stored under keyed hashes, never a raw em
 
 test("sign-in checks fail open; AI budgets fail closed", () => {
   const guard = read("lib/server/abuse-guard.ts");
-  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 8, "the six sign-in, known-device, sign-up and reset checks, the per-address check, plus the helper");
+  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 9, "the six sign-in, known-device, sign-up and reset checks, the per-address check, the demo-wardrobe ceiling, plus the helper");
   assert.match(guard, /return chargeAccountAllowance\(incrementSecurityCounter, action, accountId, now\);/, "the account allowance uses the fail-closed charge");
   assert.match(guard, /return chargeSiteModelCall\(incrementSecurityCounter\);/, "and so does the site's ceiling");
 });

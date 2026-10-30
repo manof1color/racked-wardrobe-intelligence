@@ -1,4 +1,5 @@
 import { aiAllowance, aiDailyCeiling, aiUnavailable, DAY_MS, siteModelCallAllowed, type AiAction, type AiAllowance } from "./abuse-limits.ts";
+import { DEMO_AI_ALLOWANCE, isDemoAccountId } from "./demo-session.ts";
 
 /**
  * Charging and metering for paid model calls.
@@ -28,7 +29,9 @@ function budgetUnavailable(check: string, error: unknown) {
 export async function chargeAccountAllowance(increment: CounterIncrement, action: AiAction, accountId: string, now = Date.now()): Promise<AiAllowance> {
   try {
     const { count } = await increment(`ai:${action}:${accountId}`, DAY_MS, now);
-    return aiAllowance(action, count, now);
+    // A demo wardrobe is free to make, so it gets a smaller allowance than a real account.
+    const demoLimit = isDemoAccountId(accountId) && (action === "scan" || action === "hanger") ? DEMO_AI_ALLOWANCE[action] : undefined;
+    return aiAllowance(action, count, now, demoLimit);
   } catch (error) {
     budgetUnavailable(`account allowance (${action})`, error);
     return aiUnavailable();
