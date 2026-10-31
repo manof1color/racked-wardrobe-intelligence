@@ -23,7 +23,7 @@ password, and for every judge to start from the same place. The sign-in screen d
 
 - **Try the demo** copies `judge.consumer`'s pieces, outfits and saved inspiration into a new account
   (`demo-session-<uuid>`) and signs the visitor in for 24 hours. The copy has no email and no
-  password, and its records carry a DynamoDB `ttl` of 48 hours. Photos are shared with the seeded
+  password, and its records carry a DynamoDB `ttl` of 48 hours (they only expire once TTL is switched on for the table, which was off on 2026-10-30; until then they stay, unreachable). Photos are shared with the seeded
   wardrobe, which is safe because deletion only removes photos under the deleting account's own
   folder. Re-seeding `judge.consumer` changes what the next demo starts from.
 - **Try the demo brand** signs into `judge.brand` itself, read-only: product edits, enrollment, Fill
