@@ -221,7 +221,7 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 - **Consent is explicit and recorded.** Sharing is off until switched on, and every change is kept with the exact wording the person saw. Publishing to Community is a separate, deliberate act that can be undone.
 - **Photos stay private.** Encrypted S3 with public access blocked, links that expire in an hour, location data stripped, and scan photos nobody keeps deleted within two days.
 - **AI never decides identity or access.** A brand name read by AI only prefills an unverified label; registry evidence alone verifies a product.
-- **Accounts are hardened.** scrypt password hashes, signed HTTP-only sessions, shared sign-in limits, a bot trap, a 90-day activity log without IP addresses, and optional two-step sign-in for brands. New brands are approved before they can enroll anything. Demo sessions cannot publish, change sign-in settings, edit the demo brand or reach a real brand's numbers.
+- **Accounts are hardened.** scrypt password hashes at OWASP's recommended cost (older hashes upgrade at their owner's next sign-in), signed HTTP-only sessions, shared sign-in limits, a bot trap, a 90-day activity log without IP addresses, and optional two-step sign-in for brands. New brands are approved before they can enroll anything. Demo sessions cannot publish, change sign-in settings, edit the demo brand or reach a real brand's numbers.
 - **Abuse costs the attacker, not Racked.** Rate limits on every write, and daily AI budgets per account and site-wide that fail closed.
 - **People can leave.** Deleting a piece, an outfit, a Community look, or the whole consumer account is owner-scoped and retry-safe.
 
