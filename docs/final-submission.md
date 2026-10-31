@@ -181,10 +181,11 @@ The five things you asked for (each is also answered in the README):
    already have; and apparel brands that want to know how their products
    are really worn after the sale.
 
-3. Which AI service, and what it does. Amazon Bedrock: Nova Pro (Nova Lite
-   as a fallback). It finds the garments in a photo and proposes a category
-   and type for a person to confirm, and it powers Hanger, an AI stylist
-   that decides which tools to use. The outfit itself comes from a
+3. Which AI service, and what it does. Amazon Bedrock. Nova Pro finds
+   the garments in a photo and proposes a category and type for a person to
+   confirm, and powers Hanger, an AI stylist that decides which tools to
+   use. Nova Lite is Hanger's fallback and handles lighter work such as
+   single-photo analysis and brand insight text. The outfit itself comes from a
    rules-based builder over the clothes the person owns. Measured on 300
    independent photos with the answers locked first, the scan placed 92.8%
    of garments in the right category (95% interval 89.3%-95.3%). Racked
