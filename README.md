@@ -88,6 +88,8 @@ Purchase history stops at the transaction. It cannot show whether a product was 
 2. **Actual-wear intelligence for brands** — confirmed wear, repeat use and pairings for a brand's own products, released only when at least 25 opted-in owners qualify.
 3. **Optional public discovery** — an outfit someone deliberately publishes becomes a Community look others can recreate from their own closets.
 
+**Who it is for.** People who own more clothes than they can keep track of and want a private place to sort them out and get outfits from what they already have. And apparel brands that want to know how their products are really worn after the sale, without asking anyone to hand over a closet.
+
 ---
 
 ## Architecture Overview
@@ -225,6 +227,8 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 - **Abuse costs the attacker, not Racked.** Rate limits on every write, and daily AI budgets per account and site-wide that fail closed.
 - **People can leave.** Deleting a piece, an outfit, a Community look, or the whole consumer account is owner-scoped and retry-safe.
 
+**Disclaimer.** The AI can be wrong. Its recognition accuracy is measured above and is high but not perfect, which is why nothing is saved until a person confirms it. The demo accounts and cohort are synthetic and labelled `DEMO`, pricing is a proposal and nothing is billed, and Racked does not claim recognition accuracy beyond the measured benchmark, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. This is a contest entry, source-available for evaluation under its [LICENSE](LICENSE), not a finished commercial service.
+
 ---
 
 ## Testing and CI
@@ -283,13 +287,13 @@ Requirements: Node.js **22.13.0 or newer** and **pnpm 11.9.0**.
 
 ```bash
 pnpm install --frozen-lockfile
-copy .env.example .env.local
+cp .env.example .env.local   # on Windows: copy .env.example .env.local
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm audit:prod
 pnpm test:a11y   # after pnpm build; needs `pnpm exec playwright install chromium` once
 pnpm dev
 ```
 
-Account and upload features need a DynamoDB table, a private S3 bucket and AWS credentials with the permissions in `infra/template.yaml`. Never commit `.env.local`. Before a live demo, `pnpm verify:live` checks the deployed site without signing in.
+Nothing needs installing to try Racked: open the live app and use the demo accounts above. To run it yourself, set `SESSION_SECRET` (32 or more characters) in `.env.local`; `.env.example` lists every variable. Account and upload features need a DynamoDB table, a private S3 bucket and AWS credentials with the permissions in `infra/template.yaml`. Never commit `.env.local`. Before a live demo, `pnpm verify:live` checks the deployed site without signing in.
 
 </details>
 
@@ -297,7 +301,7 @@ Account and upload features need a DynamoDB table, a private S3 bucket and AWS c
 
 ## Documentation
 
-- **For judges:** [JUDGES.md](JUDGES.md) · [Judge accounts](docs/judge-accounts.md) · [Competition checklist](docs/competition-checklist.md) · [One-page summary](docs/one-page-summary.md) · [Presentation script](docs/demo-script.md) · [Demo checklist](docs/demo-checklist.md)
+- **For judges:** [JUDGES.md](JUDGES.md) · [Final submission package](docs/final-submission.md) · [Judge accounts](docs/judge-accounts.md) · [Competition checklist](docs/competition-checklist.md) · [One-page summary](docs/one-page-summary.md) · [Presentation script](docs/demo-script.md) · [Demo checklist](docs/demo-checklist.md)
 - **The product:** [User workflow](docs/user-workflow.md) · [Brand linking incentives](docs/brand-linking-incentives.md) · [Brand UX review](docs/brand-ux-review.md) · [Brand approval](docs/brand-approval.md)
 - **The engineering:** [Architecture and module map](docs/architecture.md) · [Accessibility](docs/accessibility.md) · [Backend API](docs/backend-api.md) · [AI use log](docs/ai-use-log.md) · [Segmentation and the crop benchmark](docs/segmentation-backends.md) · [AWS deployment](docs/aws-deployment.md) · [Security verification](docs/security-verification.md) · [PROGRESS.md](PROGRESS.md)
 - **What may be claimed:** [Privacy and ethics](docs/privacy-and-ethics.md) · [Evaluation protocol](docs/evaluation.md) · [Dataset provenance](docs/dataset-provenance.md) · [Test cohort](docs/test-cohort.md) · [Demo storefronts](docs/demo-storefronts.md)
