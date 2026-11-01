@@ -53,6 +53,20 @@ test("the health check reports readiness as a band and spends nothing", async ()
   assert.match(health, /ai: \{ configured, budget: configured \? modelBudgetBand\(used, aiDailyCeiling\(\)\) : "unknown" \}/, "a band, never the counts");
 });
 
+test("verify:live also reads that main is protected", () => {
+  const script = read("scripts/verify-live.mjs");
+  assert.match(script, /api\.github\.com\/repos\/\$\{REPO\}/);
+  assert.match(script, /check\("main is protected on GitHub"/);
+  assert.match(read("SECURITY.md"), /`main` is protected: every change arrives by pull request/);
+});
+
+test("verify:aws only reads settings", () => {
+  const script = read("scripts/verify-aws.mjs");
+  assert.match(read("package.json"), /"verify:aws": "node scripts\/verify-aws\.mjs"/);
+  assert.doesNotMatch(script, /(Put|Update|Delete|Create)\w*Command/, "describe and get commands only");
+  for (const command of ["DescribeTimeToLiveCommand", "GetPublicAccessBlockCommand", "GetBucketEncryptionCommand", "GetBucketLifecycleConfigurationCommand"]) assert.ok(script.includes(command), command);
+});
+
 test("verify:live only reads public pages", () => {
   const script = read("scripts/verify-live.mjs");
   assert.match(read("package.json"), /"verify:live": "node scripts\/verify-live\.mjs"/);

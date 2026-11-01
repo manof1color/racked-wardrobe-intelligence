@@ -62,7 +62,7 @@ test("README operational limits, progress phase, and proposed prices match their
   assert.ok(readme.includes(`${SHOE_KNOWLEDGE.length} generic shoe classes`));
   const phases = [...read("PROGRESS.md").matchAll(/^## Phase (\d+)\b/gm)].map(match => Number(match[1]));
   assert.ok(readme.includes(`through Phase ${Math.max(...phases)}`));
-  const prices = [...read("app/pricing/page.tsx").matchAll(/tier: "([^"]+)", price: "([^"]+)"/g)];
+  const prices = [...read("lib/pricing.ts").matchAll(/tier: "([^"]+)", price: "([^"]+)"/g)];
   assert.ok(prices.length > 0);
   for (const [, tier, price] of prices) assert.ok(readme.includes(`| ${tier} | ${price} |`));
 });

@@ -38,6 +38,21 @@ const health = await get("/api/health");
 check("the AI is configured", health.json?.ai?.configured === true, JSON.stringify(health.json?.ai ?? health.status));
 check("today's AI budget is not used up", ["plenty", "low"].includes(health.json?.ai?.budget), health.json?.ai?.budget === "low" ? "low: avoid extra test scans before the demo" : String(health.json?.ai?.budget ?? health.status));
 
+// main is protected: GitHub's public API, read without signing in.
+const REPO = "manof1color/racked-wardrobe-intelligence";
+const github = async (path) => {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${REPO}${path}`, { headers: { accept: "application/vnd.github+json", "user-agent": "racked-verify-live" }, signal: AbortSignal.timeout(15_000) });
+    return { status: response.status, json: await response.json().catch(() => null) };
+  } catch {
+    return { status: 0, json: null };
+  }
+};
+const branch = await github("/branches/main");
+const rules = await github("/rules/branches/main");
+const ruleTypes = Array.isArray(rules.json) ? rules.json.map((rule) => rule.type) : [];
+check("main is protected on GitHub", branch.json?.protected === true || (ruleTypes.includes("pull_request") && ruleTypes.includes("required_status_checks")), `protected ${String(branch.json?.protected ?? branch.status)}, rules: ${ruleTypes.join(", ") || "none"}`);
+
 const failed = results.filter((ok) => !ok).length;
 console.log(failed ? `\n${failed} check${failed === 1 ? "" : "s"} failed. Do not start the demo until they pass, or use the backup video.` : "\nReady. Now do one real scan on a judge account (docs/demo-checklist.md).");
 process.exit(failed ? 1 : 0);

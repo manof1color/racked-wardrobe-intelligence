@@ -11,6 +11,7 @@ Do not publish any password — including synthetic test-cohort credentials, whi
 ## Baseline controls
 
 - Secrets come from ignored runtime environment files or the deployment platform.
+- `main` is protected: every change arrives by pull request, and `verify`, `accessibility` and CodeQL (`Analyze JavaScript and TypeScript`) must pass; force pushes and deletion are blocked (read back from GitHub's public API on 2026-11-01). Check it: `gh api repos/manof1color/racked-wardrobe-intelligence/branches/main --jq .protected`, or `pnpm verify:live`.
 - Sessions are signed, HTTP-only, SameSite, expiring cookies.
 - Passwords are hashed with scrypt and a unique 18-byte random salt (`lib/password-hash.ts`). Every check verifies both Node's default cost (N = 2^14) and OWASP's minimum (N = 2^17, r = 8, p = 1), doing the same derivation work whether or not the email has an account. **Rolled out in two steps:** this release keeps writing the default cost, so a rollback can read every hash; setting `RACKED_PASSWORD_SCHEME=scrypt-n17` then writes new hashes at N = 2^17 and replaces old ones on their owner's next sign-in.
 - A known-device cookie exempts its browser from the per-email sign-in pause, so a stranger's guesses cannot lock an owner out; each cookie has its own budget of eight wrong passwords per fifteen minutes, so a copied cookie cannot guess without limit.
