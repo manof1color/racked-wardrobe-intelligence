@@ -7,7 +7,7 @@ Prepared 2026-10-30 for the CUA Busch School AI Vibe Coding Contest, Fall 2026. 
 | 1 | [README checked against the five things the judges asked for](#1-readme-check) | Done. Three small gaps fixed in the README |
 | 2 | [Three two-sentence summaries](#2-three-two-sentence-summaries) | Drafts, pick one |
 | 3 | [Two-minute answer: "What happens when your AI gets it wrong?"](#3-what-happens-when-your-ai-gets-it-wrong) | Draft, about 2 minutes spoken |
-| 4 | [Demo video shot list](#4-demo-video-shot-list) | Draft, 4:30 planned, written against the merged **Try the demo** |
+| 4 | [Demo video shot list](#4-demo-video-shot-list) | Draft, 2:45 planned, written against the merged **Try the demo** |
 | 5 | [Submission email](#5-the-email) | Draft with placeholders |
 
 **To fill in before sending:** `[LIVE LINK]`, `[VIDEO LINK]` and `[Recipient name]`. Only if you also want judges to use the full demo accounts, the passwords go in from your private notes; never commit them to this public repository. **Try the demo** itself needs no password.
@@ -108,39 +108,49 @@ A two-minute spoken answer: 295 words, which is a little under two minutes at a 
 
 ## 4. Demo video shot list
 
-**Target 4:30. Hard maximum 4:59.** Two flows, the same two as the five-minute judge path ([JUDGES.md](../JUDGES.md)), entered through the **Try the demo** button.
+**Target 2:45. Hard maximum 3:00.** It fits the faculty's request for a 2–3 minute recording and the contest's "under 5 minutes", and a short cut forces the strongest story. Two flows, the same two as the five-minute judge path ([JUDGES.md](../JUDGES.md)), entered through the **Try the demo** button.
 
 > **How Try the demo works** (from the code merged in #196, checked against the sign-in screen's source). It is on the **sign-in screen**, not the home page: from the home page press **Sign in**. **Try the demo →** gives you a fresh private copy of the Judge Consumer wardrobe with no email or password; it expires after a day, and each click makes a new one. **Or see the brand side: try the demo brand**, a link under it, opens the shared Judge Brand **read-only**: opening products, the numbers and Brand Hanger all work, and adding products or Looks is refused. Each demo wardrobe has its own allowance of 12 scans and 30 Hanger messages, so there is room for retakes, and a fresh click starts again.
 
 | Shot | Time | On screen | Action | Narration |
 | ---: | --- | --- | --- | --- |
-| 1 | 0:00–0:20 | The home page | Hold on it | "Brands know what people buy. They have no idea what people actually wear. And most of us have a closet full of clothes and no good way to use it. Racked fixes both, without anyone's closet ever being exposed." |
-| 2 | 0:20–0:35 | Home page, then the sign-in screen | Press **Sign in**, then **Try the demo →** | "It's live on AWS. One click on the sign-in screen, no password, and every judge starts with the same wardrobe." |
-| 3 | 0:35–1:20 | Consumer wardrobe | Tap **+**. Choose the photo you staged beforehand. Wait for the cards. Point to a card, then to a **Type** field that is asking. Tick the confirmation. Press **Add** | "I photograph a garment. Amazon Bedrock's Nova Pro model finds the visible pieces and proposes a category and type for each. They're proposals. Where the AI is unsure, the Type field asks instead of guessing. Nothing is saved until I confirm." |
-| 4 | 1:20–2:00 | Hanger | Open **Hanger**. Ask: *What should I wear with this today?* Let the outfit cards load. Hover **Save** and **Record** | "Now I ask Hanger what to wear with it. Hanger is an AI stylist that chooses its own tools, but the outfit comes from a rules-based builder using only clothes this account owns, including the piece I just added. Save keeps it. Record logs the wear." |
-| 5 | 2:00–2:10 | The sign-in screen, then the brand view | **Jump cut.** Sign out, then on the sign-in screen press **Or see the brand side: try the demo brand**. Cut the navigation; show only the arrival | "Now the brand side." |
-| 6 | 2:10–2:40 | **Judge Limited Overshirt** | Open the product. Hold on the message | "This product has only four opted-in owners. Below twenty-five, the brand sees nothing. Not zeroes, not even the count. The page says why." |
-| 7 | 2:40–3:20 | **Judge Signature Tee** | Open the product. Show the eight-week chart, repeat wear, then what it's worn with | "This one has fifty consenting owners, so the aggregate is released: wears over eight weeks, repeat wear, and what it's worn with. No names, photos, wardrobes or owner IDs. This is synthetic demo data, and it's labelled that way." |
-| 8 | 3:20–3:50 | Brand Hanger | Ask: *Write me a campaign brief for this product.* Show the brief. Optional, if time allows: go back to the Overshirt and ask the same thing so the decline shows | "Brand Hanger writes the brief from the released totals only. On the four-owner product it declines, and it makes no AI call." |
-| 9 | 3:50–4:15 | The README's **Evidence** table | Scroll to the 92.8% row and hold | "When the AI is wrong: category accuracy is 92.8 percent on 300 independent photos, with the answers locked first. Every miss meets a person's confirmation before anything is saved, Hanger's replies are checked against the real outfit, and brands see nothing under twenty-five." |
-| 10 | 4:15–4:30 | Home page, live link and repository name as a caption | Hold | "Racked: a private wardrobe for people, wear intelligence for brands. The live link and the code are below." |
+| 1 | 0:00–0:12 | Home page | Hold on it | "Brands know what people buy. They don't know what people actually wear. Racked shows them, without anyone's closet ever being exposed." |
+| 2 | 0:12–0:20 | Sign in, then Try the demo | Press **Sign in**, then **Try the demo →** | "It's live on AWS. One click, no password." |
+| 3 | 0:20–1:00 | Consumer wardrobe | Tap **+**. Choose the staged photo. Wait for the cards. Point to a **Type** field that is asking. Tick the confirmation. Press **Add** | "I add a garment. Amazon Bedrock's Nova Pro proposes each piece and its type. Where it's unsure, it asks instead of guessing. Nothing is saved until I confirm." |
+| 4 | 1:00–1:25 | Hanger | Ask: *What should I wear with this today?* Show the outfit cards, then **Why these pieces** | "Hanger is an AI stylist that picks its own tools, but every outfit is built in code from clothes this account owns." |
+| 5 | 1:25–1:32 | Brand demo | **Jump cut** to the second window and press **Or see the brand side: try the demo brand** | "Now the brand side." |
+| 6 | 1:32–1:50 | Judge Limited Overshirt | Open the product. Hold on the message | "Four opted-in owners. Below twenty-five, the brand sees nothing — not even the count." |
+| 7 | 1:50–2:15 | Judge Signature Tee | Open the product. Show the chart, repeat wear, then what it's worn with | "Fifty consenting owners, so the aggregate is released: real wear, repeat wear, and what it's worn with. No names, photos or wardrobes. This is labeled demo data." |
+| 8 | 2:15–2:30 | Brand Hanger | Ask: *Write me a campaign brief for this product.* Show the brief | "Brand Hanger writes from the released totals only." |
+| 9 | 2:30–2:45 | Title card | Hold: 92.8% on 300 locked photos · two pilot brands · privacy gate · live link and repository | "92.8 percent category accuracy on 300 independent photos. Two apparel brands in pilot. Racked." |
 
-Ten shots, 270 seconds. The shot times run back to back with no gap.
+Nine shots, 165 seconds. Narration runs at about 140 words a minute; the same words are in [the transcript](demo-transcript.md), which makes the video usable without captions.
 
 ### Before recording
 
-- **Stage the scan photo.** Put one clear garment photo on the device, ideally a plain flat lay. A fresh scan can be slow; if it stalls, cut to a second take rather than narrating over a spinner.
-- **Use only the demo accounts.** Everything in them is synthetic and labelled `DEMO`. Do not create accounts, and do not scan photos of real people.
-- **No clean-up needed.** The scan adds a piece to your own private copy of the demo wardrobe, which expires by itself. If a take goes wrong, sign out and press **Try the demo →** again for a fresh one.
+- **Re-seed first.** The brand chart needs recent wears, so record only after the judge seed has been re-run (`pnpm seed:judge`, then `pnpm verify:judge` and `pnpm verify:live` must pass).
+- **Set up the screen.** Browser window 1440×900, zoom 110%, bookmarks bar hidden, notifications off, other tabs closed. Dismiss the "Add Racked to your Home Screen" banner before shot 3; it covers the bottom tabs.
+- **Stage the scan photo.** Put one clear garment photo on the device, ideally a plain flat lay, and use the file, not the live camera: steadier, and no scan timeout.
+- **Warm up.** Send one Hanger and one Brand Hanger message before recording, so the first answers on camera are not slow.
+- **Use only the demo accounts.** Everything in them is synthetic and labelled `DEMO`. Do not create accounts, and do not scan photos of real people. If a take goes wrong, sign out and press **Try the demo →** again for a fresh one.
 - **Do the brand side in a second, private browser window** already open on the sign-in screen, so you can cut straight to it. Two sessions in one window replace each other.
-- **No password appears**, because **Try the demo** needs none. Do not sign in to any real account on camera.
-- **Check the live site first, read-only.** `pnpm verify:live` checks the deployed site without signing in, `/api/version` should show a commit that includes #196, and **Try the demo →** should be on the live sign-in screen.
-- **Record at 1920×1080**, browser at 100% zoom, notifications off. Add captions: judges may watch muted.
-- **Check the length of the export**, not the plan: it must be under 5:00.
+- **No password appears**, because **Try the demo** needs none. Do not sign in to any real account on camera, and show no real email.
+- **Two full takes.** Keep the better one and cut dead air in the edit, not on camera.
+- **Check the length of the export**, not the plan: 3:00 or shorter.
+
+### Record, export and place it
+
+Record with QuickTime or OBS and a microphone, and export 1080p MP4. If GitHub refuses the file size, re-encode to 720p:
+
+```bash
+ffmpeg -i racked-demo.mov -vf scale=-2:720 -c:v libx264 -preset veryfast -crf 28 -c:a aac -b:a 96k racked-demo.mp4
+```
+
+On GitHub, edit README.md and drag the MP4 in directly under the title; GitHub uploads it and inserts a link that plays inline. If the upload is refused, post it unlisted on YouTube and link a thumbnail. Put the same link at the top of JUDGES.md and in `[VIDEO LINK]` in the email below. Do not upload the video to S3.
 
 ### Do not say
 
-Anything about sales lift, purchase intent, demographics, fit, virtual try-on or production-scale results; Racked does not claim them (README, *Evidence, and what is not claimed*). Say "synthetic demo data" whenever a brand number is on screen.
+Anything about sales lift, purchase intent, demographics, fit, virtual try-on or production-scale results; Racked does not claim them (README, *Evidence, and what is not claimed*). Say "synthetic demo data" whenever a brand number is on screen. "Two apparel brands in pilot" is the pilot block's claim as it stands (the brands agreed to join, made accounts and uploaded products); do not add pricing or payment.
 
 ---
 

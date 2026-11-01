@@ -47,6 +47,53 @@ without blocking. Locally, the Playwright suite (`pnpm test:a11y`) checks the sa
 build, fails any screen that raises a `securitypolicyviolation`, and shows an injected script and
 event handler are refused.
 
+## Live AWS settings — read back with one command
+
+A template is not proof of a live setting. `pnpm verify:aws` asks DynamoDB and S3 directly and prints
+PASS or FAIL for each line; it is read-only and needs the owner's own AWS sign-in (AWS CloudShell, or
+`aws login`):
+
+```bash
+RACKED_TABLE_NAME=racked-production RACKED_UPLOAD_BUCKET=racked-production-uploadbucket-joximfgmwyve pnpm verify:aws
+```
+
+It checks that DynamoDB time-to-live is `ENABLED` on `ttl`, that S3 blocks all four kinds of public
+access, that default encryption is on, and that the `DeleteTemporaryUploads` rule expires `temp/`
+after one day. Paste the dated output here after each run.
+
+**2026-11-01** (TTL switched on by the owner's AWS sign-in that day, then read back):
+
+```text
+Checked 2026-11-01 in us-east-2
+
+PASS  DynamoDB time-to-live is on, on the attribute `ttl` — ENABLED on ttl
+PASS  S3 blocks all public access — BlockPublicAcls true, BlockPublicPolicy true, IgnorePublicAcls true, RestrictPublicBuckets true
+PASS  S3 default encryption is on — AES256
+PASS  S3 deletes unkept scan photos under temp/ after one day — Enabled, temp/, 1 day(s)
+
+All AWS settings read back as documented.
+```
+
+DynamoDB deletes expired items in the background, within days, not at the moment they expire, so the
+code checks expiry itself where it matters: a password-reset token is used only while
+`expiresAt > now` (a conditional write), the repeat-wear guard checks `expiresAt` in its condition, and
+rate-limit counters are keyed by their window. The one read that does not check age is the account
+activity list, which can show an entry up to a few days past its 90 days until DynamoDB removes it.
+
+## Branch protection — read from GitHub's public API
+
+Read on 2026-11-01, no sign-in needed:
+
+```bash
+gh api repos/manof1color/racked-wardrobe-intelligence/branches/main --jq .protected
+gh api repos/manof1color/racked-wardrobe-intelligence/rules/branches/main --jq '.[].type'
+```
+
+The first prints `true`. The second lists `deletion`, `non_fast_forward`, `pull_request` and
+`required_status_checks`; the required checks are `verify`, `accessibility` and
+`Analyze JavaScript and TypeScript`. `pnpm verify:live` repeats the check. The API shows the rules,
+not the ruleset's bypass list, which is a setting only the repository owner can read.
+
 ## Local integration — synthetic accounts, local DynamoDB
 
 `scripts/security-harness/` runs the real routes and the real store code against a production build.
