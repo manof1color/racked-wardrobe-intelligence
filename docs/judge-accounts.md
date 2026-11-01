@@ -26,9 +26,19 @@ password, and for every judge to start from the same place. The sign-in screen d
   password, and its records carry a DynamoDB `ttl` of 48 hours (they only expire once TTL is switched on for the table, which was off on 2026-10-30; until then they stay, unreachable). Photos are shared with the seeded
   wardrobe, which is safe because deletion only removes photos under the deleting account's own
   folder. Re-seeding `judge.consumer` changes what the next demo starts from.
-- **Try the demo brand** signs into `judge.brand` itself, read-only: product edits, enrollment, Fill
-  in from photo and Brand Looks are refused, so the brand stays the same for everyone. Brand Hanger
-  and the metrics work. It is refused unless the account is the seeded one, labelled `DEMO`.
+- **Try the demo brand** signs into `judge.brand` itself, read-only: product edits, enrollment,
+  retiring a product and Brand Looks are refused, so the brand stays the same for everyone. Brand
+  Hanger and the metrics work. It is refused unless the account is the seeded one, labelled `DEMO`.
+- **Fill in from photo works in the demo brand**, because it stores nothing: it reads the photo and
+  proposes the fields, and enrolling the result is still refused. Every demo session gets its own
+  allowance of 12 readings a day, counted under a key minted for that session rather than the shared
+  account, so one judge cannot use up the next judge's; each reading still counts against the
+  site's daily AI ceiling.
+- **Settings in the demo brand is a preview.** It shows two-step sign-in in its "on" state, the
+  brand's approval status, today's product budget (products opened of 6, shared by every visitor)
+  and a security activity log, with every control disabled. No authenticator secret is stored on the
+  shared account, and the activity log is made up: the account's real log is every judge's sign-ins,
+  so a demo session is never shown it, from Settings or from `/api/account/activity`.
 - **Neither reaches a real person or brand.** A demo wardrobe never joins a product's owner index, so
   its wears never reach a brand, and brand metrics skip demo accounts as well. It cannot publish to
   Community, and its look comparisons are not counted as Community activity. Neither demo can change
