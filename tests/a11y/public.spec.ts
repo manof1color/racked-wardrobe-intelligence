@@ -26,7 +26,7 @@ test("every page is served an enforced policy with a nonce of its own", async ({
     expect(policy).not.toMatch(/script-src[^;]*unsafe/);
     nonces.add(nonce!);
     const html = await response.text();
-    const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]);
+    const scripts = [...html.matchAll(/<script\b[^>]*>/gi)].map(match => match[0]);
     expect(scripts.length, route).toBeGreaterThan(0);
     for (const script of scripts) expect(script, route).toContain(`nonce="${nonce}"`);
   }
