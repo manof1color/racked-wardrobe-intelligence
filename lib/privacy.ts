@@ -1,6 +1,47 @@
 export const MINIMUM_COHORT_SIZE = 25;
 // Judge note: brand-facing aggregate output fails closed below the documented cohort threshold.
 
+/**
+ * Only established owners count toward the 25, and only they appear in any released figure.
+ * Without this, a brand could make 24 throwaway accounts, link its own product, and watch which
+ * single real owner tips the product over the threshold. An owner is established when their
+ * account is at least ESTABLISHED_OWNER_MIN_AGE_DAYS old and they have confirmed wears of this
+ * product on at least ESTABLISHED_OWNER_MIN_WEAR_DAYS different days. Days are UTC days of the
+ * server's own wear time, never the browser's date, so three days need at least two real
+ * midnights to pass. A patient attacker can still age accounts; this raises the cost, it does not
+ * end the attack.
+ */
+export const ESTABLISHED_OWNER_MIN_AGE_DAYS = 14;
+export const ESTABLISHED_OWNER_MIN_WEAR_DAYS = 3;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The owners who count, from records the aggregate already loads: each opted-in owner's profile
+ * (`createdAt`) and the product's confirmed wear events. An owner with no readable `createdAt`
+ * does not count — the check fails closed.
+ */
+export function establishedOwners(
+  profiles: Iterable<{ owner: string; createdAt: unknown }>,
+  wears: Iterable<{ owner: string; occurredAt: unknown }>,
+  now = Date.now(),
+): Set<string> {
+  const days = new Map<string, Set<string>>();
+  for (const wear of wears) {
+    const time = typeof wear.occurredAt === "string" ? Date.parse(wear.occurredAt) : NaN;
+    if (!Number.isFinite(time) || time > now) continue;
+    const seen = days.get(wear.owner) ?? new Set<string>();
+    seen.add(new Date(time).toISOString().slice(0, 10));
+    days.set(wear.owner, seen);
+  }
+  const established = new Set<string>();
+  for (const { owner, createdAt } of profiles) {
+    const created = typeof createdAt === "string" ? Date.parse(createdAt) : NaN;
+    if (!Number.isFinite(created) || now - created < ESTABLISHED_OWNER_MIN_AGE_DAYS * DAY_MS) continue;
+    if ((days.get(owner)?.size ?? 0) >= ESTABLISHED_OWNER_MIN_WEAR_DAYS) established.add(owner);
+  }
+  return established;
+}
+
 export function canExposeAggregate(size: number, minimum = MINIMUM_COHORT_SIZE) {
   return Number.isInteger(size) && size >= minimum;
 }

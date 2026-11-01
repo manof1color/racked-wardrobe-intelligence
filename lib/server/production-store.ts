@@ -16,7 +16,7 @@ import { createBrandLook } from "@/lib/brand-looks";
 import { brandProductUpdate, isReservedBrandName, matchBrandProduct, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
 import { releaseWearAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
-import { ENUMERATION_WINDOW_MS, enumerationBudgetState, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "@/lib/privacy";
+import { ENUMERATION_WINDOW_MS, enumerationBudgetState, establishedOwners, MAX_DISTINCT_PRODUCTS_PER_WINDOW, MINIMUM_COHORT_SIZE, type AggregateQueryEvent } from "@/lib/privacy";
 import { findByPaginatedQuery } from "@/lib/community-lookup";
 import { checkPassword, hashPassword } from "@/lib/password-hash";
 import { RequestRefused } from "@/lib/api-errors";
@@ -1116,17 +1116,21 @@ export async function getRealProductMetrics(ownerId:string,productId:string) {
   // Consent is decided when the aggregate is built, from strongly consistent reads, so a person who
   // has just turned sharing off is never counted from a replica that still says on.
   const accountResults=await Promise.all(Array.from({length:Math.ceil(ownerKeys.length/100)},(_,index)=>ownerKeys.slice(index*100,(index+1)*100)).filter(chunk=>chunk.length).map(chunk=>db.send(new BatchGetCommand({RequestItems:{[requireTable()]:{Keys:chunk.map(PK=>({PK,SK:"PROFILE"})),ConsistentRead:true}}}))));
-  const optedInOwners=new Set(accountResults.flatMap(response=>response.Responses?.[requireTable()]??[]).filter(account=>account.brandDataSharing===true).map(account=>String(account.PK)));
-  const eligibleItems=items.filter(item=>optedInOwners.has(String(item.PK)));
+  const optedInProfiles=accountResults.flatMap(response=>response.Responses?.[requireTable()]??[]).filter(account=>account.brandDataSharing===true);
+  // Of those, only established owners count, and they are the only ones in any figure: an account
+  // 14+ days old with confirmed wears of this product on 3+ days (lib/privacy.ts). Decided from the
+  // profiles and wear events already read above — no further read.
+  const countedOwners=establishedOwners(optedInProfiles.map(account=>({owner:String(account.PK),createdAt:account.createdAt})),wearEvents.map(event=>({owner:String(event.ownerPK),occurredAt:event.occurredAt})));
+  const eligibleItems=items.filter(item=>countedOwners.has(String(item.PK)));
   const owners=new Set(eligibleItems.map(item=>String(item.PK)));
   const segmentSize=owners.size;
-  const minimumCohortSize=25;
+  const minimumCohortSize=MINIMUM_COHORT_SIZE;
   // Below the threshold the count itself is withheld: "3 owners" is a small cell too, and watching
   // it tick from 3 to 4 can tell a brand when one known customer linked a piece.
   if(segmentSize<minimumCohortSize)return {opportunity:null,gapPrevalence:null,duplicateRisk:null,actualWears:null,repeatWearRate:null,activeOwners:null,engagementRate:null,averageWearsPerOwner:null,medianWearsPerOwner:null,zeroWearOwners:null,highFrequencyOwners:null,lastWearAt:null,wearDistribution:[],weeklyTrend:[],segmentSize:0,suppressed:true,minimumCohortSize,budget};
   const countsByOwner=new Map<string,number>();
   for(const item of eligibleItems){const key=String(item.PK);countsByOwner.set(key,(countsByOwner.get(key)??0)+Number(item.wearCount??0));}
-  const eligibleEventDates=wearEvents.filter(event=>optedInOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
+  const eligibleEventDates=wearEvents.filter(event=>countedOwners.has(String(event.ownerPK))).map(event=>String(event.occurredAt));
   const analytics=releaseWearAnalytics([...owners].map(owner=>countsByOwner.get(owner)??0),eligibleEventDates);
   return {opportunity:null,gapPrevalence:null,duplicateRisk:null,...analytics,segmentSize,suppressed:false,minimumCohortSize,budget};
 }

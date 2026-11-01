@@ -55,7 +55,7 @@ test("REGRESSION: no private aggregate appears outside an opened product", () =>
   for (const leak of ["metrics.actualWears", "metrics.segmentSize", "metrics.suppressed", "wearReadouts", "communityReadouts"]) {
     assert.ok(!overview.includes(leak), `the overview must not show ${leak}`);
   }
-  assert.match(overview, /Opens per product once 25 opted-in owners/, "it explains the threshold instead");
+  assert.match(overview, /Opens per product once 25 established, opted-in owners/, "it explains the threshold instead");
 });
 
 test("opening a product is what spends the enumeration budget, not landing on the workspace", () => {
