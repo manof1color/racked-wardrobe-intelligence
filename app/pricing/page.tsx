@@ -1,18 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PRICING_TIERS } from "@/lib/pricing";
 import { pricingPilotNote } from "@/lib/server/pilot-evidence";
 
 export const metadata: Metadata = { title: "Planned pricing — Racked" };
-
-const tiers = [
-  { tier: "Consumer Free", price: "$0", includes: "Wardrobe logging, wear tracking, limited Hanger queries" },
-  { tier: "Consumer Pro", price: "$6.99/mo or $59/yr", includes: "Unlimited Hanger, advanced analytics, outfit export" },
-  { tier: "Brand SKU Enrollment", price: "$25 one-time + $10/yr/SKU", includes: "Verification, registry matching" },
-  { tier: "Brand Starter (below k≥25)", price: "$29/mo", includes: "Category benchmarks, progress-to-threshold visibility only" },
-  { tier: "Brand Standard (post-threshold)", price: "$149/mo", includes: "Full aggregate dashboard, CSV export" },
-  { tier: "Brand Growth", price: "$299/mo", includes: "Standard + multi-product comparison + Hanger strategy artifacts" },
-  { tier: "A la carte strategy artifact", price: "$15/artifact", includes: "For non-subscribers" },
-];
 
 export default function PricingPage() {
   const accepted=pricingPilotNote();
@@ -30,13 +21,13 @@ export default function PricingPage() {
       <table className="pricing-table">
         <caption className="eyebrow">Proposed tiers (not currently billed)</caption>
         <thead><tr><th scope="col">Tier</th><th scope="col">Price</th><th scope="col">Includes</th></tr></thead>
-        <tbody>{tiers.map((row) => <tr key={row.tier}><th scope="row">{row.tier}</th><td>{row.price}</td><td>{row.includes}</td></tr>)}</tbody>
+        <tbody>{PRICING_TIERS.map((row) => <tr key={row.tier}><th scope="row">{row.tier}</th><td>{row.price}</td><td>{row.includes}</td></tr>)}</tbody>
       </table>
     </div>
     <section className="privacy-grid pricing-logic">
       <article><span>01</span><h2>Consumers start free</h2><p>The consumer side stays free to solve the cold-start problem: wardrobe and wear data only become valuable once enough real closets exist, so nothing should stand between a consumer and logging their first garment.</p></article>
       <article><span>02</span><h2>Brands carry the revenue</h2><p>Actual-wear intelligence is the product brands cannot get anywhere else, so SKU enrollment and the aggregate dashboards carry the business model rather than consumer subscriptions.</p></article>
-      <article><span>03</span><h2>Starter exists for emerging brands</h2><p>The target customer — an emerging brand — often cannot reach the k ≥ 25 privacy threshold immediately. The Starter tier prices that waiting period honestly: category benchmarks and progress-to-threshold visibility only, with no individual data and no fabricated aggregates.</p></article>
+      <article><span>03</span><h2>Starter exists for emerging brands</h2><p>The target customer — an emerging brand — often cannot reach the k ≥ 25 privacy threshold immediately. The Starter tier prices that waiting period honestly: enrollment and verification, Community presence, Brand Looks, and whether a product has reached the threshold yet. It shows no private wear data and no fabricated aggregates.</p></article>
       <article><span>04</span><h2>Privacy is not a paid unlock</h2><p>No tier weakens the privacy model. Consent, the k ≥ 25 threshold, and aggregate-only release apply identically at every price point; paying more buys more analysis of released aggregates, never more access to people.</p></article>
     </section>
     <p className="auth-fineprint" style={{ textAlign: "left", fontSize: ".72rem", color: "var(--muted)" }}>No billing, checkout, or payment integration exists in this application. See the <Link href="/privacy" style={{ textDecoration: "underline" }}>privacy page</Link> for the data model that applies to every tier.</p>
