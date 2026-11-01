@@ -43,6 +43,19 @@ It checks that DynamoDB time-to-live is `ENABLED` on `ttl`, that S3 blocks all f
 access, that default encryption is on, and that the `DeleteTemporaryUploads` rule expires `temp/`
 after one day. Paste the dated output here after each run.
 
+**2026-11-01** (TTL switched on by the owner's AWS sign-in that day, then read back):
+
+```text
+Checked 2026-11-01 in us-east-2
+
+PASS  DynamoDB time-to-live is on, on the attribute `ttl` — ENABLED on ttl
+PASS  S3 blocks all public access — BlockPublicAcls true, BlockPublicPolicy true, IgnorePublicAcls true, RestrictPublicBuckets true
+PASS  S3 default encryption is on — AES256
+PASS  S3 deletes unkept scan photos under temp/ after one day — Enabled, temp/, 1 day(s)
+
+All AWS settings read back as documented.
+```
+
 DynamoDB deletes expired items in the background, within days, not at the moment they expire, so the
 code checks expiry itself where it matters: a password-reset token is used only while
 `expiresAt > now` (a conditional write), the repeat-wear guard checks `expiresAt` in its condition, and
