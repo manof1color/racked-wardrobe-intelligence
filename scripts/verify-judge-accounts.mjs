@@ -12,6 +12,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BatchGetCommand, DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { JUDGE_CHART_RULE, weeklyWearBuckets } from "./lib/judge-wear-window.mjs";
 
 const table = process.env.RACKED_TABLE_NAME;
 const bucket = process.env.RACKED_UPLOAD_BUCKET;
@@ -84,6 +85,14 @@ check(suppressedLinked.length > 0 && suppressedLinked.length < MINIMUM_COHORT_SI
 
 const wears = await queryAll({ KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": `PRODUCT#${RELEASED}`, ":sk": "WEAR#" } });
 check(wears.length >= 40, "the released product has enough wear events to draw its chart", `${wears.length} events`);
+// The chart a judge sees is this week and the seven before it. A seed that has aged past them
+// leaves it blank, so re-seed when either check fails (docs/judge-accounts.md).
+const wearDates = wears.filter((wear) => wear.eventType === "confirmed-wear").map((wear) => wear.occurredAt);
+const now = new Date();
+const newest = wearDates.map((value) => Date.parse(value)).filter((time) => !Number.isNaN(time)).sort((a, b) => b - a)[0];
+check(newest !== undefined && now.getTime() - newest <= JUDGE_CHART_RULE.maximumNewestWearAgeDays * 86_400_000, `the newest wear on the released product is at most ${JUDGE_CHART_RULE.maximumNewestWearAgeDays} days old`, newest === undefined ? "no wears" : new Date(newest).toISOString().slice(0, 10));
+const weeks = weeklyWearBuckets(wearDates, now);
+check(weeks.filter((week) => week.wears >= JUDGE_CHART_RULE.minimumWearsPerWeek).length >= JUDGE_CHART_RULE.minimumShownWeeks, `at least ${JUDGE_CHART_RULE.minimumShownWeeks} of the last ${JUDGE_CHART_RULE.weeks} weeks hold ${JUDGE_CHART_RULE.minimumWearsPerWeek}+ wears, so the chart is not withheld`, weeks.map((week) => week.wears).join(" · "));
 
 const closet = await queryAll({ KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": `USER#${CONSUMER_ID}`, ":sk": "GARMENT#" } });
 check(closet.length >= 12, "the judge closet has a lived-in wardrobe", `${closet.length} pieces`);

@@ -24,18 +24,30 @@
 //   ALLOW_RACKED_TEST_SEED=yes RACKED_TABLE_NAME=... RACKED_UPLOAD_BUCKET=... \
 //   RACKED_TEST_PASSWORD=... node scripts/seed-judge-accounts.mjs
 //
-// Idempotent: stable ids mean re-running refreshes the same records rather than creating duplicates.
+// Dates are counted back from the day it runs (RACKED_SEED_NOW, an ISO date, overrides it), so the
+// released product's eight-week chart is full on the day of the demo. A fixed date left it empty.
+// Accounts are 120 days old; wears, looks and public activity are recent.
+//
+// Re-running does not double anything. Records keyed by stable ids are overwritten in place. Records
+// whose sort key carries a date (wear events, public activity, the published looks, saved outfits,
+// the Brand Look) would get a new key every day, so the seeded copies are deleted first: only items
+// carrying `testCohort: true`, only in the seeded families, each delete conditional on that flag.
+// The dry run reads nothing, so it counts deletions against an empty table unless
+// RACKED_SEED_COUNT_EXISTING=yes is set with RACKED_TABLE_NAME, which reads the table, read-only.
 
 import { createHash, randomBytes, scrypt as scryptCallback } from "node:crypto";
 import { promisify } from "node:util";
-import { BatchGetCommand, DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { pathToFileURL } from "node:url";
 import sharp from "sharp";
 import { garmentArt, productArt } from "./lib/synthetic-garment-art.mjs";
+import { judgeChartProblems, weeklyWearBuckets } from "./lib/judge-wear-window.mjs";
 
 const dryRun = process.env.RACKED_SEED_DRY_RUN === "yes" || process.argv.includes("--dry-run");
+// A dry run that may read the table, never write it, to count what a real run would delete.
+const countExisting = dryRun && process.env.RACKED_SEED_COUNT_EXISTING === "yes" && Boolean(process.env.RACKED_TABLE_NAME);
 const table = process.env.RACKED_TABLE_NAME ?? (dryRun ? "dry-run-table" : undefined);
 const bucket = process.env.RACKED_UPLOAD_BUCKET ?? (dryRun ? "dry-run-bucket" : undefined);
 const password = process.env.RACKED_TEST_PASSWORD ?? (dryRun ? "dry-run-password-not-real" : undefined);
@@ -46,7 +58,7 @@ if (!dryRun) {
 }
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
-const db = dryRun ? null : DynamoDBDocumentClient.from(new DynamoDBClient({ region }), { marshallOptions: { removeUndefinedValues: true } });
+const db = dryRun && !countExisting ? null : DynamoDBDocumentClient.from(new DynamoDBClient({ region }), { marshallOptions: { removeUndefinedValues: true } });
 const s3 = dryRun ? null : new S3Client({ region });
 const scrypt = promisify(scryptCallback);
 const publicOrigin = (process.env.RACKED_PUBLIC_ORIGIN ?? "https://main.d2iv0khybuuaeh.amplifyapp.com").replace(/\/+$/, "");
@@ -63,8 +75,18 @@ async function putObject(key, body, ownerId) {
   return key;
 }
 
-const createdAt = "2026-09-01T12:00:00.000Z";
-const at = (daysAgo, extraMinutes = 0) => new Date(Date.parse(createdAt) - daysAgo * 86_400_000 + extraMinutes * 60_000).toISOString();
+/** The seed's "now". The day it runs, unless RACKED_SEED_NOW pins it (tests, or a rehearsal). */
+export function seedClock(configured = process.env.RACKED_SEED_NOW) {
+  const now = Date.parse(configured ?? new Date().toISOString());
+  if (Number.isNaN(now)) throw new Error("RACKED_SEED_NOW must be an ISO date, for example 2026-11-18T12:00:00Z.");
+  return now;
+}
+
+/** Old enough to read as a lived-in account, and past any minimum account age a privacy rule sets. */
+export const ACCOUNT_AGE_DAYS = 120;
+let seedNow = seedClock();
+let createdAt = new Date(seedNow - ACCOUNT_AGE_DAYS * 86_400_000).toISOString();
+const at = (daysAgo, extraMinutes = 0) => new Date(seedNow - daysAgo * 86_400_000 + extraMinutes * 60_000).toISOString();
 
 /**
  * Opted-in owners for the released product. A product one owner past k>=25 proves the threshold
@@ -72,6 +94,15 @@ const at = (daysAgo, extraMinutes = 0) => new Date(Date.parse(createdAt) - daysA
  * can reason about. The judge consumer owns it too, so the synthetic cohort supplies the rest.
  */
 const RELEASED_OWNER_TARGET = 50;
+
+/**
+ * Wears per cohort owner of the released product, one a week from the most recent back. Every owner
+ * wears it on at least three separate days, so each counts as established; the longer histories
+ * reach back past eight weeks, so every week of the chart clears the five-wear cell minimum
+ * whatever weekday the seed runs on. The longest, 12 weekly wears from 7 days back, ends 84 days
+ * back, well inside the accounts' 120.
+ */
+export const RELEASED_WEAR_PATTERN = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 const CONSUMER_ID = "judge-consumer-account";
 const CONSUMER_EMAIL = "judge.consumer@racked.local";
@@ -336,10 +367,9 @@ async function seedCommunity({ imageKeys }, products) {
 
 /** The cohort that puts the released product over the threshold, and the four owners that keep the other one under it. */
 async function seedCohortLinks(products, ownerIds) {
-  const wearPattern = [0, 1, 2, 2, 3, 3, 4, 5, 6, 8];
   let wearEvents = 0;
   for (const [index, ownerId] of ownerIds.entries()) {
-    const wearCount = wearPattern[index % wearPattern.length];
+    const wearCount = RELEASED_WEAR_PATTERN[index % RELEASED_WEAR_PATTERN.length];
     await linkVerified({ ownerId, product: PRODUCTS[0], garmentId: `judge-linked-${PRODUCTS[0].sku}-${index + 1}`, wearCount, lastWornDays: (index % 7) + 1, imageKey: `wardrobe/${ownerId}/judge-linked-${PRODUCTS[0].sku}.png` });
     wearEvents += wearCount;
   }
@@ -349,6 +379,70 @@ async function seedCohortLinks(products, ownerIds) {
     wearEvents += index + 1;
   }
   return { wearEvents, suppressedOwners: suppressedOwners.length };
+}
+
+/**
+ * The seeded families whose sort key carries a date. Re-seeding on another day writes new keys, so
+ * the old seeded copies are found and deleted first. `owned` narrows each family to this seed's own
+ * records; the planner also requires `testCohort: true`, so nothing a real person wrote is touched.
+ */
+const DATED_FAMILIES = [
+  ...PRODUCTS.map((product) => ({ label: "wearEvents", PK: `PRODUCT#${product.id}`, prefix: "WEAR#", owned: () => true })),
+  { label: "communityEvents", PK: "COMMUNITY", prefix: "EVENT#", owned: (item) => /#judge-\d+$/.test(String(item.SK)) },
+  { label: "communityPosts", PK: "COMMUNITY", prefix: "POST#", owned: (item) => item.id === "judge-consumer-post" || item.id === "judge-brand-post" },
+  { label: "outfits", PK: `USER#${CONSUMER_ID}`, prefix: "OUTFIT#", owned: (item) => String(item.id ?? "").startsWith("judge-outfit-") },
+  { label: "brandLooks", PK: `USER#${BRAND_ID}`, prefix: "BRANDLOOK#", owned: (item) => item.id === "judge-brand-look" },
+];
+
+/**
+ * Which existing items a run deletes before it writes, by family. Pure, so it is tested without a table.
+ * @param {Array<Record<string, unknown>>} existing
+ * @returns {Record<string, Array<{ PK: unknown, SK: unknown }>>}
+ */
+export function planSeededDeletes(existing) {
+  /** @type {Record<string, Array<{ PK: unknown, SK: unknown }>>} */
+  const plan = Object.fromEntries(DATED_FAMILIES.map((family) => [family.label, []]));
+  for (const family of DATED_FAMILIES) {
+    for (const item of existing) {
+      if (item.PK === family.PK && String(item.SK).startsWith(family.prefix) && item.testCohort === true && family.owned(item)) plan[family.label].push({ PK: item.PK, SK: item.SK });
+    }
+  }
+  return plan;
+}
+
+/** The current seeded items in each dated family, read with a projection. Read-only. */
+async function readDatedFamilies() {
+  const found = [];
+  for (const family of DATED_FAMILIES) {
+    let startKey;
+    do {
+      const page = await db.send(new QueryCommand({
+        TableName: table, KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :prefix)",
+        ProjectionExpression: "#pk, #sk, #id, #tc", ExpressionAttributeNames: { "#pk": "PK", "#sk": "SK", "#id": "id", "#tc": "testCohort" },
+        ExpressionAttributeValues: { ":pk": family.PK, ":prefix": family.prefix }, ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+      }));
+      found.push(...(page.Items ?? []));
+      startKey = page.LastEvaluatedKey;
+    } while (startKey);
+  }
+  return found;
+}
+
+/** Deletes the planned items, each only if it still carries `testCohort: true`. */
+async function deletePlanned(plan) {
+  let deleted = 0, skipped = 0;
+  for (const keys of Object.values(plan)) {
+    for (const key of keys) {
+      try {
+        await db.send(new DeleteCommand({ TableName: table, Key: key, ConditionExpression: "#tc = :yes", ExpressionAttributeNames: { "#tc": "testCohort" }, ExpressionAttributeValues: { ":yes": true } }));
+        deleted++;
+      } catch (error) {
+        if (error?.name !== "ConditionalCheckFailedException") throw error;
+        skipped++;
+      }
+    }
+  }
+  return { deleted, skipped };
 }
 
 /** Wear events actually written against one product, counted rather than restated. */
@@ -364,18 +458,35 @@ export const JUDGE_SEED_IDS = {
   products: PRODUCTS,
 };
 
-/** Runs the seed and returns everything it wrote, so a dry run can be checked before a real one. */
-export async function buildJudgeSeed() {
+/**
+ * Runs the seed and returns everything it wrote, so a dry run can be checked before a real one.
+ * `now` pins the clock; `existing` stands in for the table when a test plans deletions.
+ * @param {{ now?: number, existing?: Array<Record<string, unknown>> }} [options]
+ */
+export async function buildJudgeSeed({ now = seedClock(), existing } = {}) {
+  if (!Number.isFinite(now)) throw new Error("The seed clock must be a valid time.");
+  seedNow = now;
+  createdAt = at(ACCOUNT_AGE_DAYS);
   written.items = [];
   written.objects = [];
+  const deleteSource = existing ? "supplied" : db ? "table read" : "nothing read (dry run)";
+  const plan = planSeededDeletes(existing ?? (db ? await readDatedFamilies() : []));
+  const deletion = !dryRun && !existing ? await deletePlanned(plan) : { deleted: 0, skipped: 0 };
   const owners = await ensureCohortOwners();
   const products = await seedBrand();
   const consumer = await seedConsumer(products);
   const community = await seedCommunity(consumer, products);
   const cohort = await seedCohortLinks(products, owners.ids);
   const optedInOwnersForReleased = owners.ids.length + 1; // the cohort, plus the judge consumer
-  return { written, products, summary: {
+  const plannedDeletes = Object.fromEntries(Object.entries(plan).map(([label, keys]) => [label, keys.length]));
+  const releasedWears = written.items.filter((item) => item.PK === `PRODUCT#${PRODUCTS[0].id}` && String(item.SK).startsWith("WEAR#")).map((item) => item.occurredAt);
+  return { written, plan, products, summary: {
     mode: dryRun ? "dry run — nothing was written" : "written",
+    seedNow: new Date(seedNow).toISOString(),
+    accountsCreatedAt: createdAt,
+    // What a real run deletes before it writes. A plain dry run reads nothing, so it counts zero.
+    deletesBeforeWrite: { countedFrom: deleteSource, ...plannedDeletes, total: Object.values(plannedDeletes).reduce((sum, count) => sum + count, 0), ...(dryRun ? {} : deletion) },
+    releasedChart: { weeks: weeklyWearBuckets(releasedWears, new Date(seedNow)), problems: judgeChartProblems(releasedWears, new Date(seedNow)) },
     judgeConsumer: { email: CONSUMER_EMAIL, wardrobePieces: WARDROBE.length + 2, savedOutfits: OUTFITS.length, verifiedPiece: PRODUCTS[0].sku, ownerPickedPiece: PRODUCTS[1].sku, publishedLook: community.consumerPostId, savedInspiration: 1, brandDataSharing: true },
   freshConsumer: { email: FRESH_CONSUMER_EMAIL, wardrobePieces: 0, purpose: "first-run experience" },
     judgeBrand: { email: BRAND_EMAIL, brand: BRAND_NAME, publicPage: `/brands/${BRAND_SLUG}`, releasedProduct: PRODUCTS[0].sku, suppressedProduct: PRODUCTS[1].sku, retiredProduct: PRODUCTS[2].sku, brandLook: community.lookId, publicActivityEvents: community.events },
