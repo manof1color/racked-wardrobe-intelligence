@@ -29,6 +29,24 @@ anonymous visitor's request writes.
 
 The probe scripts send a handful of GET and POST requests; they never stress the site.
 
+**Content Security Policy, once the nonce policy (Phase 97) is deployed.** The row above records the
+report-only policy as last read live; it stays until the owner reads the enforced one back. The
+check is one unauthenticated GET per page, run twice so the nonces can be compared:
+
+```bash
+for page in / /login /pricing; do
+  curl -sI "https://main.d2iv0khybuuaeh.amplifyapp.com$page" | grep -i '^content-security-policy'
+done
+```
+
+Expected: a `content-security-policy` header (not `-report-only`) on every page, with
+`script-src 'self' 'nonce-…' 'strict-dynamic'`, a different nonce on each response, no `unsafe`
+in `script-src`, and `img-src` naming the upload bucket's own `s3.<region>.amazonaws.com` host. If
+something breaks, set `RACKED_CSP_MODE=report` in Amplify and redeploy; the policy then reports
+without blocking. Locally, the Playwright suite (`pnpm test:a11y`) checks the same on a production
+build, fails any screen that raises a `securitypolicyviolation`, and shows an injected script and
+event handler are refused.
+
 ## Local integration — synthetic accounts, local DynamoDB
 
 `scripts/security-harness/` runs the real routes and the real store code against a production build.
@@ -329,4 +347,4 @@ answers.
 - **Retention — decided.** Unkept scan photos expire under `temp/` within two days (#173), once the
   live rule above is confirmed.
 - **Differencing over time.** Exact totals can be watched as they change; no noise is added.
-- **CSP** is report-only; **WAF** is not in place; there is **no malware scanning** of uploads.
+- **CSP** is enforced with per-request nonces on a local build (Phase 97), pending live read-back; `style-src` still allows inline styles; **WAF** is not in place; there is **no malware scanning** of uploads.
