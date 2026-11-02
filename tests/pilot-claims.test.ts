@@ -75,6 +75,9 @@ test("the README block and the landing line match the data file", () => {
   const end = readme.indexOf("<!-- pilot:end -->") + "<!-- pilot:end -->".length;
   assert.ok(start > 0 && end > start);
   assert.equal(readme.slice(start, end), renderPilotBlock(status, exists));
+  // A phone agreement is backed by what the brand did on the live app, and says so.
+  assert.match(readme.slice(start, end), /Agreed by phone; its brand account and uploaded products are live on Racked/);
+  assert.doesNotMatch(readme, /no written record/);
   assert.ok(start < readme.indexOf("## Judge Scorecard"), "it sits on the first screen, under the opening table");
   const page = read("app/page.tsx");
   assert.match(page, /const pilot=landingPilotLine\(\);/);

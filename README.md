@@ -21,8 +21,8 @@ People get a private wardrobe and an AI stylist that are useful on their own. Br
 
 | Brand | What it has done | Evidence |
 | --- | --- | --- |
-| _victimdesigns | agreed to join the pilot by phone; created a brand account; uploaded products 
-| vversatile.usa | agreed to join the pilot by phone; created a brand account; uploaded products 
+| _victimdesigns | agreed to join the pilot by phone; created a brand account; uploaded products | Agreed by phone; its brand account and uploaded products are live on Racked |
+| vversatile.usa | agreed to join the pilot by phone; created a brand account; uploaded products | Agreed by phone; its brand account and uploaded products are live on Racked |
 
 Not claimed: pricing acceptance and payment. Nothing is billed.
 <!-- pilot:end -->
