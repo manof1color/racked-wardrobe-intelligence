@@ -50,6 +50,15 @@ test("every signed-in screen keeps its bottom controls on the visible edge", () 
   assert.ok(css.includes(".mobile-tab-bar,.hanger-launcher{translate:0 var(--dock-shift,0px);"));
   assert.ok(css.includes('html[data-keyboard="open"] .mobile-tab-bar,html[data-keyboard="open"] .hanger-launcher{opacity:0;visibility:hidden;pointer-events:none}'),
     "the tab bar must not ride up over a form while someone is typing");
+  // REGRESSION: an aria-label of "Ask Hanger" hid the launcher's second visible line from its
+  // accessible name, which axe 4.14 flags (label-content-name-mismatch, WCAG 2.5.3). The button is
+  // named by its own text instead.
+  const launcher = read("components/hanger-dock.tsx").match(/<button ref=\{launcher\}[^>]*>/)?.[0] ?? "";
+  assert.ok(launcher.includes('className="hanger-launcher"'), launcher);
+  assert.doesNotMatch(launcher, /aria-label/, "the launcher is named by what it shows");
+  // On a phone the words are hidden visually, never with display:none, so they still name the button.
+  assert.doesNotMatch(css, /\.hanger-launcher-copy\{display:none\}/);
+  assert.ok(css.includes(".hanger-launcher-copy{position:absolute;width:1px;height:1px;"));
 });
 
 // REGRESSION: object-fit:contain alone was not enough. The intake tile's grid row was sized
