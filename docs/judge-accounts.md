@@ -74,8 +74,28 @@ RACKED_TEST_PASSWORD=... pnpm seed:judge
 RACKED_TABLE_NAME=... RACKED_UPLOAD_BUCKET=... pnpm verify:judge
 ```
 
-The seed is idempotent: stable ids mean re-running repairs the demo rather than duplicating it. If a
-judge edits or deletes something, re-run it.
+### When to re-seed
+
+Every date the seed writes is counted back from the day it runs: the accounts are 120 days old,
+and the wears, looks and public activity are recent. That is what keeps `Judge Signature Tee`'s
+eight-week chart full; with a fixed date it went blank once the weeks moved past it. The chart is
+the current week and the seven before it, and a week with fewer than 5 wears is withheld, so the
+seed gives every owner of the released product a wear every week for three to twelve weeks back,
+each owner on at least three different days.
+
+Re-seed **once after this change merges**, and again on **18 or 19 November**, just before judging.
+`pnpm verify:judge` fails if the newest wear on the released product is more than 7 days old, or if
+fewer than 6 of the 8 weeks on its chart hold 5 or more wears: that is the signal to re-seed. To
+rehearse a particular day, set `RACKED_SEED_NOW` (an ISO date, such as `2026-11-18T12:00:00Z`).
+
+Re-running does not double anything. Records with stable ids are overwritten in place. Records
+whose sort key carries a date (the products' wear events, the four public-activity events, the
+two published looks, the two saved outfits and the Brand Look) would get new keys every day, so the
+seed deletes the seeded copies first. It deletes only items carrying `testCohort: true`, only in
+those families, and each delete is conditional on that flag, so a real wear, event or post is never
+touched. The dry run reads nothing and so counts no deletions; to see the real count first, add
+`RACKED_SEED_COUNT_EXISTING=yes` and `RACKED_TABLE_NAME=...` to the dry run, which reads the table
+read-only. If a judge edits or deletes something, re-run the seed.
 
 `tests/judge-accounts.test.ts` runs the seed in dry-run mode on every CI run and checks its output
 against the app's own rules: that the released product really does clear `k ≥ 25` with opted-in
