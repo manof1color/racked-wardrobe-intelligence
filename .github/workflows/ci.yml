@@ -53,7 +53,7 @@ jobs:
       - run: pnpm test:a11y
         env:
           SESSION_SECRET: github-actions-test-only-secret-with-32-characters
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: accessibility-report
