@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ACTIVITY_LABELS, ACTIVITY_RETENTION_DAYS, deviceLabel, type AccountActivityType } from "../lib/device-label.ts";
+import { ACTIVITY_LABELS, ACTIVITY_RETENTION_DAYS, deviceLabel, withinActivityRetention, type AccountActivityType } from "../lib/device-label.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const store = read("lib/server/production-store.ts");
@@ -72,4 +72,20 @@ test("Settings shows the activity and asks twice before signing other devices ou
   assert.match(panel, /Confirm: sign out all other devices/);
   assert.match(panel, /fetch\("\/api\/account\/sessions", \{ method: "DELETE" \}\)/);
   assert.match(panel, /account-activity-warning/, "failed attempts stand out");
+});
+
+// DynamoDB's TTL deletes expired items in the background, sometimes days late, so retention is
+// enforced again when the log is read.
+test("an entry older than 90 days is dropped when the log is read", () => {
+  const now = Date.parse("2026-11-01T12:00:00.000Z");
+  const daysAgo = (days: number) => new Date(now - days * 86_400_000).toISOString();
+  assert.equal(withinActivityRetention(daysAgo(0), now), true);
+  assert.equal(withinActivityRetention(daysAgo(89), now), true);
+  assert.equal(withinActivityRetention(daysAgo(90), now), true);
+  assert.equal(withinActivityRetention(daysAgo(91), now), false);
+  assert.equal(withinActivityRetention(daysAgo(400), now), false);
+  assert.equal(withinActivityRetention("not a date", now), false);
+  const list = store.slice(store.indexOf("export async function listAccountActivity"), store.indexOf("export async function endOtherSessions"));
+  assert.match(list, /\.filter\(\(entry\)=>withinActivityRetention\(entry\.at\)\)\s*\.sort/, "filtered in code, from the same read");
+  assert.equal(list.match(/QueryCommand/g)?.length, 2, "no extra read");
 });

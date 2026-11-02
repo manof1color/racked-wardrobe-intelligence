@@ -77,8 +77,8 @@ All AWS settings read back as documented.
 DynamoDB deletes expired items in the background, within days, not at the moment they expire, so the
 code checks expiry itself where it matters: a password-reset token is used only while
 `expiresAt > now` (a conditional write), the repeat-wear guard checks `expiresAt` in its condition, and
-rate-limit counters are keyed by their window. The one read that does not check age is the account
-activity list, which can show an entry up to a few days past its 90 days until DynamoDB removes it.
+rate-limit counters are keyed by their window. The account activity list drops any entry older than
+90 days when it is read (`withinActivityRetention`, Phase 95), so a late deletion is never shown.
 
 ## Branch protection — read from GitHub's public API
 
