@@ -399,7 +399,7 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 @media(prefers-reduced-motion:reduce){.hanger-thinking i,.hanger-send-busy{animation:none}}
 @media(max-width:760px){
   .hanger-launcher{right:16px;bottom:96px;padding:9px}
-  .hanger-launcher-copy{display:none}
+  .hanger-launcher-copy{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .hanger-drawer-header{padding:13px 14px;gap:9px}
   .hanger-drawer-title strong{font-size:1.1rem}
   .hanger-scope{display:none}

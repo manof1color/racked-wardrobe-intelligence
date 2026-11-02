@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Script from "next/script";
 import { PwaInstall } from "@/components/pwa-install";
 import { INSTALL_PROMPT_CAPTURE } from "@/lib/pwa-install";
@@ -32,16 +33,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // This request's script nonce (middleware.ts). Reading it renders every page on demand: a
+  // prerendered page would carry no nonce, and the enforced policy would block its scripts.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body>
         {/* Keeps the browser's install prompt even when it fires before React hydrates. */}
-        <Script id="capture-install-prompt" strategy="beforeInteractive">{INSTALL_PROMPT_CAPTURE}</Script>
+        <Script id="capture-install-prompt" strategy="beforeInteractive" nonce={nonce}>{INSTALL_PROMPT_CAPTURE}</Script>
         {children}<PwaInstall />
       </body>
     </html>

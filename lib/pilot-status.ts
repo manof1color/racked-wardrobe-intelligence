@@ -77,6 +77,12 @@ export function pilotSentence(status: PilotStatus, exists: (path: string) => boo
 /** The landing page line, without Markdown. */
 export const pilotLine = (status: PilotStatus, exists: (path: string) => boolean) => pilotSentence(status, exists)?.replace(/\*\*/g, "") ?? null;
 
+/**
+ * The evidence for a phone agreement: the brand's own account and uploaded products on the live
+ * app, which anyone with access to Racked can check.
+ */
+const phoneEvidence = (brand: PilotBrand) => brand.accountCreated && brand.productsUploaded ? "Agreed by phone; its brand account and uploaded products are live on Racked" : brand.accountCreated ? "Agreed by phone; its brand account is live on Racked" : "Agreed by phone";
+
 /** The README block: the sentence, a table of what each brand has done, and what is not claimed. */
 export function renderPilotBlock(status: PilotStatus, exists: (path: string) => boolean) {
   const sentence = pilotSentence(status, exists);
@@ -87,7 +93,7 @@ export function renderPilotBlock(status: PilotStatus, exists: (path: string) => 
     lines.push(`**Pilot status (${status.asOf}):** ${sentence}`, "", "| Brand | What it has done | Evidence |", "| --- | --- | --- |");
     status.brands.forEach((brand, index) => {
       const facts = brandFacts(brand, exists);
-      const evidence = brand.evidence.length && brand.evidence.every(exists) ? brand.evidence.map((path) => `[${path.split("/").pop()}](${path})`).join(", ") : brand.agreedToPilot?.form === "phone" ? "Agreed by phone; no written record" : "None filed";
+      const evidence = brand.evidence.length && brand.evidence.every(exists) ? brand.evidence.map((path) => `[${path.split("/").pop()}](${path})`).join(", ") : brand.agreedToPilot?.form === "phone" ? phoneEvidence(brand) : "None filed";
       lines.push(`| ${displayName(brand, index)} | ${facts.length ? facts.join("; ") : "Nothing recorded"} | ${evidence} |`);
     });
     const unclaimed = [

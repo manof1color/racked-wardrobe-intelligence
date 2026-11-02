@@ -6,9 +6,11 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import sharp from "sharp";
-import nextConfig, { CONTENT_SECURITY_POLICY } from "../next.config.ts";
+import nextConfig from "../next.config.ts";
+import { ANY_S3_IMAGE_SOURCE, contentSecurityPolicy, createNonce, cspHeaderName, cspMode, uploadImageSource } from "../lib/content-security-policy.ts";
 import { guardRequest, MAX_JSON_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, type GuardRequest } from "../lib/request-guard.ts";
 import type { OriginEnvironment } from "../lib/site-origin.ts";
 import { cspViolationSummary } from "../lib/csp-report.ts";
@@ -36,16 +38,91 @@ test("every response carries the browser security headers", async () => {
   assert.match(headers["Permissions-Policy"], /geolocation=\(self\)/, "Use my location needs it");
   assert.match(headers["Permissions-Policy"], /microphone=\(\)/, "nothing uses the microphone");
   assert.equal(headers["Cross-Origin-Opener-Policy"], "same-origin");
-  assert.equal(headers["Content-Security-Policy-Report-Only"], CONTENT_SECURITY_POLICY);
+  assert.equal(headers["Content-Security-Policy-Report-Only"], undefined, "the policy is per request now, set by middleware");
+  assert.equal(headers["Content-Security-Policy"], undefined, "a static copy would have no nonce and block every script");
   assert.equal(nextConfig.poweredByHeader, false, "no framework banner for scanners");
 });
 
+const BUCKET = "racked-uploads-fixture";
+const policy = contentSecurityPolicy({ nonce: "Zml4dHVyZS1ub25jZQ==", development: false, imageSource: uploadImageSource(BUCKET, "us-east-2") });
+const directive = (text: string, name: string) => text.split("; ").find((part) => part.startsWith(`${name} `));
+
 test("the content policy blocks framing, plugins, and foreign scripts, and reports violations", () => {
-  for (const directive of ["default-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "connect-src 'self'", "report-uri /api/security/csp-report"]) {
-    assert.ok(CONTENT_SECURITY_POLICY.includes(directive), directive);
+  for (const part of ["default-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "connect-src 'self'", "report-uri /api/security/csp-report"]) {
+    assert.ok(policy.split("; ").includes(part), part);
   }
-  assert.match(CONTENT_SECURITY_POLICY, /img-src 'self' data: blob: https:\/\/\*\.amazonaws\.com/, "private photos load from short-lived S3 links");
-  assert.doesNotMatch(CONTENT_SECURITY_POLICY, /script-src[^;]*https?:/, "no outside script host is allowed");
+  assert.doesNotMatch(policy, /script-src[^;]*https?:/, "no outside script host is allowed");
+});
+
+test("scripts run only with this request's nonce: no 'unsafe-inline', and 'unsafe-eval' in development only", () => {
+  assert.equal(directive(policy, "script-src"), "script-src 'self' 'nonce-Zml4dHVyZS1ub25jZQ==' 'strict-dynamic'");
+  assert.doesNotMatch(directive(policy, "script-src")!, /unsafe-inline|unsafe-eval/);
+  const development = contentSecurityPolicy({ nonce: "bg==", development: true, imageSource: ANY_S3_IMAGE_SOURCE });
+  assert.equal(directive(development, "script-src"), "script-src 'self' 'nonce-bg==' 'strict-dynamic' 'unsafe-eval'");
+  // Styles keep 'unsafe-inline' for now; SECURITY.md lists it as still open.
+  assert.equal(directive(policy, "style-src"), "style-src 'self' 'unsafe-inline'");
+});
+
+test("a nonce is fresh for every request and unguessable", () => {
+  const nonces = new Set(Array.from({ length: 200 }, () => createNonce()));
+  assert.equal(nonces.size, 200);
+  for (const nonce of nonces) {
+    assert.match(nonce, /^[A-Za-z0-9+/]+=*$/, "base64, safe inside 'nonce-…'");
+    assert.match(Buffer.from(nonce, "base64").toString(), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/, "122 random bits");
+  }
+});
+
+test("private photos may load only from the upload bucket's own host, when it is known", () => {
+  assert.equal(uploadImageSource(BUCKET, "us-east-2"), "https://racked-uploads-fixture.s3.us-east-2.amazonaws.com");
+  assert.equal(directive(policy, "img-src"), "img-src 'self' data: blob: https://racked-uploads-fixture.s3.us-east-2.amazonaws.com");
+  // Unknown or path-style buckets fall back to the old wildcard rather than block every photo.
+  for (const [bucket, region] of [[undefined, "us-east-2"], ["", "us-east-2"], ["has.dots.bucket", "us-east-2"], ["Upper", "us-east-2"], ["ab", "us-east-2"], [BUCKET, undefined], [BUCKET, ""], [BUCKET, "not a region"], ["evil.example/x", "us-east-2"]] as const) {
+    assert.equal(uploadImageSource(bucket, region), ANY_S3_IMAGE_SOURCE, `${bucket} ${region}`);
+  }
+  assert.equal(uploadImageSource(` ${BUCKET} `, " eu-west-1 "), "https://racked-uploads-fixture.s3.eu-west-1.amazonaws.com");
+  assert.equal(uploadImageSource(BUCKET, "us-gov-west-1"), "https://racked-uploads-fixture.s3.us-gov-west-1.amazonaws.com");
+  // The presigner is built with a region alone, so it signs virtual-hosted URLs on that host.
+  assert.match(read("lib/server/production-store.ts"), /const s3 = new S3Client\(\{ region \}\);/);
+});
+
+test("the policy is enforced by default; only RACKED_CSP_MODE=report rolls it back to report-only", () => {
+  assert.equal(cspMode(undefined), "enforce");
+  for (const value of ["", "enforce", "REPORT", " report", "off", "false"]) assert.equal(cspMode(value), "enforce", value);
+  assert.equal(cspMode("report"), "report");
+  assert.equal(cspHeaderName("enforce"), "Content-Security-Policy");
+  assert.equal(cspHeaderName("report"), "Content-Security-Policy-Report-Only");
+  assert.match(read("scripts/write-amplify-env.mjs"), /"RACKED_CSP_MODE"/, "the switch reaches the deployed runtime");
+  assert.match(read(".env.example"), /^RACKED_CSP_MODE=$/m);
+  // The log says which: a violation in report mode was only reported, in enforce mode it was blocked.
+  assert.match(read("app/api/security/csp-report/route.ts"), /console\.warn\(`CSP violation \(\$\{cspMode\(process\.env\.RACKED_CSP_MODE\) === "report" \? "reported, not blocked" : "blocked"\}\)`, summary\);/);
+});
+
+test("middleware gives every page its own nonce, and Next.js and the layout use it", () => {
+  const middleware = read("middleware.ts");
+  assert.match(middleware, /const nonce = createNonce\(\);/);
+  assert.match(middleware, /headers\.set\("x-nonce", nonce\);\s*headers\.set\("Content-Security-Policy", policy\);/, "on the request, where Next.js reads the nonce");
+  assert.match(middleware, /NextResponse\.next\(\{ request: \{ headers \} \}\)/);
+  assert.match(middleware, /response\.headers\.set\(cspHeaderName\(cspMode\(process\.env\.RACKED_CSP_MODE\)\), policy\);/);
+  assert.match(middleware, /development: process\.env\.NODE_ENV !== "production"/);
+  assert.match(middleware, /uploadImageSource\(process\.env\.RACKED_UPLOAD_BUCKET, process\.env\.AWS_REGION \?\? process\.env\.AWS_DEFAULT_REGION \?\? "us-east-2"\)/, "the same region fallback as the presigner");
+  // Every page, not static files.
+  const matcher = middleware.slice(middleware.indexOf("matcher:"));
+  assert.match(matcher, /"\/api\/:path\*"/);
+  // The page pattern as Next.js matches it: the source string, unescaped, anchored.
+  const pages = new RegExp(`^${JSON.parse(matcher.match(/"\/\(\(\?![^"]+"/)![0])}$`);
+  for (const path of ["/", "/login", "/consumer", "/brand", "/settings", "/pricing", "/privacy", "/terms", "/community", "/brands/judge-demo-atelier", "/demo-store/x/y", "/a11y-harness", "/not-a-page"]) assert.ok(pages.test(path), `${path} gets a policy`);
+  for (const path of ["/_next/static/chunks/main.js", "/_next/image", "/favicon.ico", "/manifest.webmanifest", "/sw.js", "/offline.html", "/icon-192.png", "/icon.svg", "/apple-touch-icon.png", "/og.png", "/demo-products/a.png", "/test-cohort/a.png", "/api/version"]) assert.ok(!pages.test(path), `${path} is skipped`);
+  const layout = read("app/layout.tsx");
+  assert.match(layout, /const nonce = \(await headers\(\)\)\.get\("x-nonce"\) \?\? undefined;/);
+  assert.match(layout, /<Script id="capture-install-prompt" strategy="beforeInteractive" nonce=\{nonce\}>/);
+  // No other inline script anywhere in the app would get past the policy without the nonce.
+  for (const dir of ["app", "components"]) {
+    for (const file of readdirSync(new URL(`../${dir}/`, import.meta.url), { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name))) {
+      const code = readFileSync(join(file.parentPath, file.name), "utf8");
+      assert.doesNotMatch(code, /dangerouslySetInnerHTML|<script\b/, `${file.name} adds an inline script`);
+      if (file.name !== "layout.tsx") assert.doesNotMatch(code, /from "next\/script"/, `${file.name} must pass the nonce to next/script`);
+    }
+  }
 });
 
 test("a state-changing request from another site is refused", () => {
@@ -90,7 +167,8 @@ test("the guard runs in front of every API route", () => {
   const middleware = read("middleware.ts");
   assert.match(middleware, /guardRequest\(\{\s*method: request\.method,\s*pathname: request\.nextUrl\.pathname,\s*headers: request\.headers,\s*environment: \{/);
   assert.doesNotMatch(middleware, /siteUrl|x-forwarded-host/i, "trust comes from configuration only");
-  assert.match(middleware, /matcher: \["\/api\/:path\*"\]/);
+  assert.match(middleware, /if \(request\.nextUrl\.pathname\.startsWith\("\/api\/"\)\) \{\s*const decision = guardRequest/, "the guard is for the API only");
+  assert.match(middleware, /matcher: \[\s*"\/api\/:path\*",/);
 });
 
 test("a violation report keeps the directive, blocked host, and page path — never a full URL", () => {
