@@ -36,7 +36,7 @@ export async function POST(request:Request){
       if(!account||!isDemoBrandAccount(account))return NextResponse.json({error:"The demo brand is not set up yet."},{status:503});
       subject=account.id;sessionVersion=account.sessionVersion??0;
     }
-    const token=await createSessionToken({subject,role:kind,sessionVersion,expiresAt:Date.now()+DEMO_SESSION_MS,demo:kind},secret);
+    const token=await createSessionToken({subject,role:kind,sessionVersion,expiresAt:Date.now()+DEMO_SESSION_MS,demo:kind,sid:crypto.randomUUID()},secret);
     const response=NextResponse.json({destination:kind==="consumer"?"/consumer":"/brand"});
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:DEMO_SESSION_MS/1000});
     return response;

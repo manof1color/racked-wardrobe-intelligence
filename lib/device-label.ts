@@ -72,3 +72,12 @@ export const WARNING_ACTIVITY: ReadonlySet<AccountActivityType> = new Set(["sign
 
 /** Activity is kept for 90 days, then expires. */
 export const ACTIVITY_RETENTION_DAYS = 90;
+
+/**
+ * Whether an entry is still inside the 90 days. DynamoDB's TTL deletes expired items in the
+ * background, sometimes days late, so an entry past retention is dropped when it is read.
+ */
+export function withinActivityRetention(at: string, now = Date.now()) {
+  const time = Date.parse(at);
+  return Number.isFinite(time) && now - time <= ACTIVITY_RETENTION_DAYS * 86_400_000;
+}

@@ -9,6 +9,7 @@ import { metered } from "@/lib/ai-budget";
 import { describeProductFromDetections } from "@/lib/product-description";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
+import { demoSessionKey } from "@/lib/demo-session";
 
 export const runtime = "nodejs";
 
@@ -20,12 +21,18 @@ const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
  * and proposes a name, category, type, colour, pattern, and material. It proposes only: the brand
  * sees every field and can change any of them before enrolling. The photo is read in memory and
  * nothing is stored — enrollment stores it later, if the brand goes ahead.
+ *
+ * Because it stores nothing, it is the one brand route the read-only demo brand may use: a judge
+ * can try Fill in from photo, and enrolling the result is still refused. The demo brand is one
+ * shared account, so a demo session's readings are counted under its own key, not the account's,
+ * or one judge would use up the next judge's.
  */
 export async function POST(request: Request) {
-  const access = await brandAccess({ write: true });
+  const access = await brandAccess();
   if (!access.ok) return access.response;
   const { session } = access;
-  const limit = consumeRateLimit(`brand-describe:${session.subject}`, RATE_LIMIT_RULES.brandProductDescribe);
+  const spender = session.demo ? demoSessionKey(session) : session.subject;
+  const limit = consumeRateLimit(`brand-describe:${spender}`, RATE_LIMIT_RULES.brandProductDescribe);
   if (!limit.allowed) return NextResponse.json({ error: "Too many photo readings. Try again in a few minutes." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   if (Number(request.headers.get("content-length") ?? 0) > MAX_UPLOAD_BYTES + 1_000_000) return NextResponse.json({ error: "The photo must be no more than 5 MB." }, { status: 413 });
   if ((process.env.AI_PROVIDER ?? "").toLowerCase() !== "bedrock") return NextResponse.json({ error: "Reading product photos is not configured here. Fill in the details yourself." }, { status: 503 });
@@ -45,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   // Reading a photo is spent from the brand's daily allowance, and its model call from the site's ceiling.
-  const allowance = await spendAiAllowance("brand-describe", session.subject);
+  const allowance = await spendAiAllowance("brand-describe", spender);
   if (!allowance.allowed) return NextResponse.json({ error: allowance.message }, { status: allowance.scope === "account" ? 429 : 503, headers: { "retry-after": String(allowance.retryAfterSeconds) } });
 
   try {

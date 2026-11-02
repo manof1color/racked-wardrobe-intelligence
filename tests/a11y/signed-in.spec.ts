@@ -66,6 +66,18 @@ test("axe: brand product metrics and Brand Hanger", async ({ page }, testInfo) =
   await expectNoSeriousViolations(page, testInfo, "Brand Hanger");
 });
 
+test("axe: the demo brand's Settings preview, with every control disabled", async ({ page }, testInfo) => {
+  await page.goto("/a11y-harness?role=brand&view=demo-settings");
+  await expect(page.getByRole("heading", { name: "Two-step sign-in." })).toBeVisible();
+  for (const part of ["two-step", "approval", "budget", "activity"]) await expect(page.locator(`[data-demo-preview="${part}"]`)).toBeVisible();
+  await expect(page.locator('[data-demo-preview="approval"] h2')).toHaveText("Approved.");
+  await expect(page.locator('[data-demo-preview="budget"] h2')).toHaveText("2 of 6 products opened.");
+  const controls = page.locator("[data-demo-preview] button, [data-demo-preview] input");
+  expect(await controls.count()).toBeGreaterThanOrEqual(3);
+  for (const control of await controls.all()) await expect(control).toBeDisabled();
+  await expectNoSeriousViolations(page, testInfo, "demo brand settings preview");
+});
+
 test("the harness falls back to the consumer landing view for a role or view it does not know", async ({ page }) => {
   const response = await page.goto("/a11y-harness?role=admin&view=anything");
   expect(response?.status()).toBe(200);

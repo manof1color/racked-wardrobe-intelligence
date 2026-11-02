@@ -13,6 +13,8 @@
  * demo can change sign-in settings, so nobody can lock the shared demo brand.
  */
 
+import type { AccountActivity } from "./device-label.ts";
+
 export type DemoKind = "consumer" | "brand";
 
 /** Every demo wardrobe's account id starts with this; real ids are bare UUIDs, so it cannot collide. */
@@ -30,6 +32,45 @@ export const DEMO_COPIED_RECORDS = ["GARMENT#", "OUTFIT#", "INSPIRATION#"] as co
 
 /** Lower than a real account's daily AI allowance (lib/abuse-limits.ts): enough for a thorough look. */
 export const DEMO_AI_ALLOWANCE = { scan: 12, hanger: 30 } as const;
+
+/**
+ * A demo's allowance for one AI action, or undefined for the account's normal one. The demo brand's
+ * Fill in from photo is a scan of a product photo, so it gets the scan allowance.
+ */
+export function demoAiAllowance(action: string): number | undefined {
+  if (action === "scan" || action === "brand-describe") return DEMO_AI_ALLOWANCE.scan;
+  if (action === "hanger") return DEMO_AI_ALLOWANCE.hanger;
+  return undefined;
+}
+
+/**
+ * The key a demo session's own allowances and limits are counted under. The brand demo signs every
+ * visitor into the same seeded account, so counting by account would let one judge spend the next
+ * judge's photo readings. `sid` is minted per session; a token from before it existed falls back to
+ * its signed expiry, which is just as particular to that session. Starts with DEMO_ACCOUNT_PREFIX,
+ * so the demo allowance applies (lib/ai-budget.ts).
+ */
+export function demoSessionKey(session: { demo?: DemoKind; sid?: string; expiresAt: number }) {
+  return `${DEMO_ACCOUNT_PREFIX}${session.demo ?? "visitor"}-${session.sid ?? session.expiresAt}`;
+}
+
+/**
+ * The security log a demo session is shown. Made up and fixed: the demo brand is one shared account,
+ * so its real log holds every judge's sign-ins and every failed attempt on its address, and one
+ * visitor must never see another's. Device labels only, never an address; times count back from now.
+ */
+export function demoActivityLog(now = Date.now()): AccountActivity[] {
+  const ago = (hours: number) => new Date(now - hours * 3_600_000).toISOString();
+  return [
+    { type: "sign-in", at: ago(0.25), device: "Chrome on Mac" },
+    { type: "sign-in", at: ago(27), device: "Safari on iPhone" },
+    { type: "sign-in-failed", at: ago(52), device: "Firefox on Windows" },
+    { type: "recovery-codes-replaced", at: ago(24 * 9), device: "Chrome on Mac" },
+    { type: "two-step-on", at: ago(24 * 21), device: "Chrome on Mac" },
+    { type: "password-changed", at: ago(24 * 40), device: "Chrome on Mac" },
+    { type: "account-created", at: ago(24 * 85), device: "Chrome on Mac" },
+  ];
+}
 
 export const DEMO_READ_ONLY_MESSAGE = "The demo brand is read-only, so every judge sees the same one. Create a brand account to add products.";
 export const DEMO_SETTINGS_MESSAGE = "Sign-in settings are switched off in the demo. Create an account to use them.";
