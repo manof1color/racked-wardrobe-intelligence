@@ -5,6 +5,8 @@ import { rankCatalogCandidates, searchCatalog } from "../lib/catalog-match.ts";
 import { costPerWearLine } from "../lib/cost-per-wear.ts";
 import { matchBrandProduct } from "../lib/product-registry.ts";
 import { MINIMUM_COHORT_SIZE } from "../lib/privacy.ts";
+import { buildWearUsageAnalytics, MINIMUM_CELL_SIZE } from "../lib/metrics.ts";
+import { JUDGE_CHART_RULE, judgeChartProblems, weeklyWearBuckets } from "../scripts/lib/judge-wear-window.mjs";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -13,7 +15,10 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 // needs no password. That is what makes it checkable here against the app's own rules, rather
 // than only after someone has written 176 records to a live table.
 process.env.RACKED_SEED_DRY_RUN = "yes";
-const { buildJudgeSeed, JUDGE_SEED_IDS } = await import("../scripts/seed-judge-accounts.mjs");
+// The seed counts its dates back from the day it runs; pinned here so every assertion is exact.
+const SEED_NOW = "2026-11-18T15:00:00.000Z";
+process.env.RACKED_SEED_NOW = SEED_NOW;
+const { buildJudgeSeed, planSeededDeletes, seedClock, ACCOUNT_AGE_DAYS, JUDGE_SEED_IDS } = await import("../scripts/seed-judge-accounts.mjs");
 const { written, summary } = await buildJudgeSeed();
 const items = written.items as Array<Record<string, unknown>>;
 const objects = new Set(written.objects as string[]);
@@ -144,3 +149,121 @@ test("the seed is a dry run by default in tests, and says what it would write", 
   const seed = read("scripts/seed-judge-accounts.mjs");
   assert.match(seed, /ALLOW_RACKED_TEST_SEED !== "yes"/, "a real write still needs explicit confirmation");
 });
+
+// ── The seed clock (D1) ────────────────────────────────────────────────────────
+
+const DAY = 86_400_000;
+const seedNow = Date.parse(SEED_NOW);
+const releasedWears = of("WEAR#").filter((item) => item.PK === "PRODUCT#judge-product-released");
+const releasedDates = releasedWears.map((wear) => String(wear.occurredAt));
+
+test("accounts are 120 days old on the day the seed runs, and dates follow the clock rather than a fixed day", () => {
+  assert.equal(ACCOUNT_AGE_DAYS, 120);
+  assert.equal(summary.seedNow, SEED_NOW);
+  for (const profile of profiles) assert.equal(profile.createdAt, new Date(seedNow - 120 * DAY).toISOString(), String(profile.email));
+  const dated = items.filter((item) => item.PK === "COMMUNITY" || String(item.SK).startsWith("WEAR#") || String(item.SK).startsWith("BRANDLOOK#"));
+  for (const item of dated) {
+    const when = Date.parse(String(item.occurredAt ?? item.createdAt));
+    assert.ok(when <= seedNow && when > seedNow - 91 * DAY, `${item.SK} is recent: wears, looks and public activity sit inside the last 13 weeks`);
+  }
+});
+
+test("an unreadable RACKED_SEED_NOW stops the seed instead of writing dates from it", async () => {
+  assert.throws(() => seedClock("next tuesday"), /RACKED_SEED_NOW must be an ISO date/);
+  assert.equal(seedClock("2026-11-18T12:00:00Z"), Date.parse("2026-11-18T12:00:00Z"));
+  await assert.rejects(buildJudgeSeed({ now: Number.NaN }), /valid time/);
+});
+
+test("no seeded wear happens before its owner's account existed", () => {
+  const created = new Map(profiles.map((profile) => [profile.PK, Date.parse(String(profile.createdAt))]));
+  for (const wear of of("WEAR#")) {
+    const owner = created.get(String(wear.ownerPK));
+    assert.ok(owner !== undefined && Date.parse(String(wear.occurredAt)) > owner, `${wear.SK} predates ${wear.ownerPK}`);
+  }
+});
+
+test("every owner of the released product has worn it on at least three different days", () => {
+  const days = new Map<string, Set<string>>();
+  for (const wear of releasedWears) {
+    const owner = String(wear.ownerPK);
+    if (!days.has(owner)) days.set(owner, new Set());
+    days.get(owner)!.add(String(wear.occurredAt).slice(0, 10));
+  }
+  assert.equal(days.size, 50, "all fifty owners have wears");
+  for (const [owner, set] of days) assert.ok(set.size >= 3, `${owner} wore it on ${set.size} day(s)`);
+});
+
+test("the chart helper buckets weeks exactly as the brand dashboard does", () => {
+  const app = buildWearUsageAnalytics([], releasedDates, new Date(seedNow)).weeklyTrend;
+  assert.deepEqual(weeklyWearBuckets(releasedDates, new Date(seedNow)), app.map(({ weekStart, wears }) => ({ weekStart, wears })));
+  assert.equal(JUDGE_CHART_RULE.minimumWearsPerWeek, MINIMUM_CELL_SIZE, "the verifier uses the dashboard's own cell minimum");
+});
+
+// Every date the seed writes is relative to its clock, so shifting all of them and "now" by k days is
+// exactly what a run k days later writes: one build covers all seven weekdays.
+test("seeded on any weekday, at least 6 of the last 8 weekly buckets hold 5+ wears and the newest wear is days old", () => {
+  for (let shift = 0; shift < 7; shift++) {
+    const now = new Date(seedNow + shift * DAY);
+    const dates = releasedDates.map((date) => new Date(Date.parse(date) + shift * DAY).toISOString());
+    const weeks = buildWearUsageAnalytics([], dates, now).weeklyTrend;
+    const shown = weeks.filter((week) => week.wears >= MINIMUM_CELL_SIZE).length;
+    assert.ok(shown >= 6, `seeded on ${now.toISOString().slice(0, 10)}: ${shown} of 8 weeks shown (${weeks.map((week) => week.wears).join(", ")})`);
+    assert.deepEqual(judgeChartProblems(dates, now), []);
+  }
+  assert.deepEqual(summary.releasedChart.problems, []);
+});
+
+test("the chart still passes the verifier for the week after a seed, and fails once it goes stale", () => {
+  for (let day = 0; day <= 6; day++) assert.deepEqual(judgeChartProblems(releasedDates, new Date(seedNow + day * DAY)), [], `day ${day} after seeding`);
+  assert.match(judgeChartProblems(releasedDates, new Date(seedNow + 30 * DAY)).join(" "), /newest wear is \d+ days old/, "a month later the verifier asks for a re-seed");
+  assert.match(judgeChartProblems([], new Date(seedNow)).join(" "), /0 of 8 weeks/);
+});
+
+test("a re-run deletes only the seeded, dated records it is about to rewrite, so nothing doubles", async () => {
+  // Yesterday's run, plus records the seed must never touch: a real wear on a judge product, a real
+  // public event, a real post, and a real outfit, none carrying testCohort, and the main cohort's own
+  // seeded post, which is synthetic but not this seed's.
+  const yesterday = (await buildJudgeSeed({ now: seedNow - 3 * DAY, existing: [] })).written.items.slice() as Array<Record<string, unknown>>;
+  const foreign = [
+    { PK: "PRODUCT#judge-product-released", SK: "WEAR#2026-11-10T00:00:00.000Z#USER#real-person#0", ownerPK: "USER#real-person", eventType: "confirmed-wear" },
+    { PK: "COMMUNITY", SK: "EVENT#2026-11-10T00:00:00.000Z#judge-1", eventType: "product-click" },
+    { PK: "COMMUNITY", SK: "POST#2026-11-10T00:00:00.000Z#judge-consumer-post", id: "judge-consumer-post" },
+    { PK: "COMMUNITY", SK: "POST#2026-11-10T00:00:00.000Z#demo-consumer-post-01", id: "demo-consumer-post-01", testCohort: true },
+    { PK: `USER#${JUDGE_SEED_IDS.consumer.id}`, SK: "OUTFIT#2026-11-10T00:00:00.000Z#judge-outfit-mine", id: "judge-outfit-mine" },
+  ];
+  const plan = planSeededDeletes([...yesterday, ...foreign]);
+  const count = (family: string) => plan[family].length;
+  const yesterdayOf = (test: (item: Record<string, unknown>) => boolean) => yesterday.filter(test).length;
+  assert.equal(count("wearEvents"), yesterdayOf((item) => String(item.SK).startsWith("WEAR#")));
+  assert.equal(count("communityEvents"), 4);
+  assert.equal(count("communityPosts"), 2);
+  assert.equal(count("outfits"), 2);
+  assert.equal(count("brandLooks"), 1);
+  const planned = new Set(Object.values(plan).flat().map((key) => `${key.PK}|${key.SK}`));
+  for (const item of foreign) assert.ok(!planned.has(`${item.PK}|${item.SK}`), `never deletes ${item.SK}`);
+
+  // Apply it: the table after today's run holds exactly one copy of everything, plus the foreign records.
+  const today = await buildJudgeSeed({ now: seedNow, existing: [...yesterday, ...foreign] });
+  assert.equal(today.summary.deletesBeforeWrite.countedFrom, "supplied");
+  assert.equal(today.summary.deletesBeforeWrite.total, planned.size);
+  const table = new Map<string, Record<string, unknown>>();
+  for (const item of [...yesterday, ...foreign]) if (!planned.has(`${item.PK}|${item.SK}`)) table.set(`${item.PK}|${item.SK}`, item);
+  const todayItems = today.written.items as Array<Record<string, unknown>>;
+  for (const item of todayItems) table.set(`${item.PK}|${item.SK}`, item);
+  const rows = [...table.values()].filter((item) => item.testCohort === true);
+  const seededOf = (test: (item: Record<string, unknown>) => boolean) => rows.filter(test).length;
+  assert.equal(seededOf((item) => item.PK === "COMMUNITY" && String(item.SK).startsWith("POST#") && String(item.id).startsWith("judge-")), 2);
+  assert.equal(seededOf((item) => String(item.SK).startsWith("OUTFIT#")), 2);
+  assert.equal(seededOf((item) => String(item.SK).startsWith("BRANDLOOK#")), 1);
+  assert.equal(seededOf((item) => /^EVENT#.*#judge-\d+$/.test(String(item.SK))), 4);
+  assert.equal(seededOf((item) => String(item.SK).startsWith("WEAR#")), todayItems.filter((item) => String(item.SK).startsWith("WEAR#")).length);
+});
+
+test("a plain dry run reads nothing, so it plans no deletions and needs no AWS", () => {
+  assert.equal(summary.deletesBeforeWrite.countedFrom, "nothing read (dry run)");
+  assert.equal(summary.deletesBeforeWrite.total, 0);
+  const seed = read("scripts/seed-judge-accounts.mjs");
+  assert.match(seed, /const db = dryRun && !countExisting \? null/, "no client exists in a dry run unless a read-only count was asked for");
+  assert.match(seed, /ConditionExpression: "#tc = :yes"/, "every delete is conditional on testCohort");
+});
+
