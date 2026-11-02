@@ -26,9 +26,19 @@ password, and for every judge to start from the same place. The sign-in screen d
   password, and its records carry a DynamoDB `ttl` of 48 hours (TTL is on for the table, read back on 2026-11-01, so DynamoDB removes them in the background after that). Photos are shared with the seeded
   wardrobe, which is safe because deletion only removes photos under the deleting account's own
   folder. Re-seeding `judge.consumer` changes what the next demo starts from.
-- **Try the demo brand** signs into `judge.brand` itself, read-only: product edits, enrollment, Fill
-  in from photo and Brand Looks are refused, so the brand stays the same for everyone. Brand Hanger
-  and the metrics work. It is refused unless the account is the seeded one, labelled `DEMO`.
+- **Try the demo brand** signs into `judge.brand` itself, read-only: product edits, enrollment,
+  retiring a product and Brand Looks are refused, so the brand stays the same for everyone. Brand
+  Hanger and the metrics work. It is refused unless the account is the seeded one, labelled `DEMO`.
+- **Fill in from photo works in the demo brand**, because it stores nothing: it reads the photo and
+  proposes the fields, and enrolling the result is still refused. Every demo session gets its own
+  allowance of 12 readings a day, counted under a key minted for that session rather than the shared
+  account, so one judge cannot use up the next judge's; each reading still counts against the
+  site's daily AI ceiling.
+- **Settings in the demo brand is a preview.** It shows two-step sign-in in its "on" state, the
+  brand's approval status, today's product budget (products opened of 6, shared by every visitor)
+  and a security activity log, with every control disabled. No authenticator secret is stored on the
+  shared account, and the activity log is made up: the account's real log is every judge's sign-ins,
+  so a demo session is never shown it, from Settings or from `/api/account/activity`.
 - **Neither reaches a real person or brand.** A demo wardrobe never joins a product's owner index, so
   its wears never reach a brand, and brand metrics skip demo accounts as well. It cannot publish to
   Community, and its look comparisons are not counted as Community activity. Neither demo can change
@@ -74,8 +84,28 @@ RACKED_TEST_PASSWORD=... pnpm seed:judge
 RACKED_TABLE_NAME=... RACKED_UPLOAD_BUCKET=... pnpm verify:judge
 ```
 
-The seed is idempotent: stable ids mean re-running repairs the demo rather than duplicating it. If a
-judge edits or deletes something, re-run it.
+### When to re-seed
+
+Every date the seed writes is counted back from the day it runs: the accounts are 120 days old,
+and the wears, looks and public activity are recent. That is what keeps `Judge Signature Tee`'s
+eight-week chart full; with a fixed date it went blank once the weeks moved past it. The chart is
+the current week and the seven before it, and a week with fewer than 5 wears is withheld, so the
+seed gives every owner of the released product a wear every week for three to twelve weeks back,
+each owner on at least three different days.
+
+Re-seed **once after this change merges**, and again on **18 or 19 November**, just before judging.
+`pnpm verify:judge` fails if the newest wear on the released product is more than 7 days old, or if
+fewer than 6 of the 8 weeks on its chart hold 5 or more wears: that is the signal to re-seed. To
+rehearse a particular day, set `RACKED_SEED_NOW` (an ISO date, such as `2026-11-18T12:00:00Z`).
+
+Re-running does not double anything. Records with stable ids are overwritten in place. Records
+whose sort key carries a date (the products' wear events, the four public-activity events, the
+two published looks, the two saved outfits and the Brand Look) would get new keys every day, so the
+seed deletes the seeded copies first. It deletes only items carrying `testCohort: true`, only in
+those families, and each delete is conditional on that flag, so a real wear, event or post is never
+touched. The dry run reads nothing and so counts no deletions; to see the real count first, add
+`RACKED_SEED_COUNT_EXISTING=yes` and `RACKED_TABLE_NAME=...` to the dry run, which reads the table
+read-only. If a judge edits or deletes something, re-run the seed.
 
 `tests/judge-accounts.test.ts` runs the seed in dry-run mode on every CI run and checks its output
 against the app's own rules: that the released product really does clear `k ≥ 25` with opted-in

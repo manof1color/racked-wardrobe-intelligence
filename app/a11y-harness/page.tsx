@@ -4,7 +4,12 @@ import { connection } from "next/server";
 import { ConsumerDashboard } from "@/components/consumer-dashboard";
 import { BrandDashboard } from "@/components/brand-dashboard";
 import type { BrandTabView, ConsumerWorkspaceView } from "@/components/workspace-mobile-nav";
+import { AccountSettingsPanel } from "@/components/account-settings-panel";
 import { a11yHarnessEnabled, harnessScreen } from "@/lib/a11y-harness";
+import { demoActivityLog } from "@/lib/demo-session";
+
+/** A fixed clock, so the preview's relative times are the same on every run. */
+const FIXTURE_NOW = Date.parse("2026-10-29T12:00:00.000Z");
 
 export const metadata: Metadata = { title:"Accessibility harness", robots:{ index:false, follow:false } };
 
@@ -16,6 +21,7 @@ export default async function A11yHarnessPage({searchParams}:{searchParams:Promi
   if(!a11yHarnessEnabled(process.env))notFound();
   const query=await searchParams;
   const screen=harnessScreen(query.role,query.view);
+  if(screen.role==="brand"&&screen.view==="demo-settings")return <AccountSettingsPanel account={{displayName:"Fixture Brand",email:"brand@fixture.example",role:"brand",brandName:"Fixture Denim Co"}} demoBrand={{brandStatus:"approved",budget:{opened:2,limit:6},activity:demoActivityLog(FIXTURE_NOW),now:FIXTURE_NOW}}/>;
   if(screen.role==="brand")return <BrandDashboard initialView={screen.view as BrandTabView}/>;
   return <ConsumerDashboard initialView={screen.view as ConsumerWorkspaceView} openAddInitially={query.add==="1"}/>;
 }

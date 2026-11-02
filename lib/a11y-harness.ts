@@ -13,7 +13,8 @@ export function a11yHarnessEnabled(environment: Record<string, string | undefine
 
 export const A11Y_HARNESS_SCREENS = {
   consumer: ["home", "looks", "closet", "outfits"],
-  brand: ["overview", "catalog", "looks"],
+  // demo-settings is the demo brand's read-only Settings preview, not a dashboard tab.
+  brand: ["overview", "catalog", "looks", "demo-settings"],
 } as const;
 
 export type A11yHarnessRole = keyof typeof A11Y_HARNESS_SCREENS;

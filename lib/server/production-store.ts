@@ -31,7 +31,7 @@ import { accountDeletionInventory, communityPostChangeForDeletedImage, outfitCha
 import { readHangerConversation, type HangerConversationState } from "@/lib/hanger-memory";
 import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
 import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
-import { ACTIVITY_RETENTION_DAYS, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
+import { ACTIVITY_RETENTION_DAYS, withinActivityRetention, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
 import { acceptanceIncrement, acceptanceOutcome, type AcceptanceOutcome } from "@/lib/ai-acceptance";
@@ -284,6 +284,8 @@ export async function listAccountActivity(accountId:string):Promise<AccountActiv
   ]);
   return [...(own.Items??[]),...(failed.Items??[])]
     .map((item)=>({type:item.type as AccountActivityType,at:String(item.at),device:String(item.device??"Unknown device")}))
+    // TTL deletes in the background and can lag by days; past retention is dropped here, from the same read.
+    .filter((entry)=>withinActivityRetention(entry.at))
     .sort((a,b)=>b.at.localeCompare(a.at))
     .slice(0,20);
 }
@@ -1102,6 +1104,10 @@ async function enforceAggregateEnumerationBudget(ownerId:string,productId:string
   }
   throw new EnumerationBudgetError("Aggregate release is limited to a few distinct products in a short window. Revisit a recently viewed product or try again in a few minutes.");
 }
+
+/** How many distinct products this brand has opened in the current window. Read-only: it claims no slot. */
+/** How much of the enumeration budget is spent now, for the demo brand's Settings. Reads the same SLOT# records; claims nothing. */
+export async function getAggregateBudgetUsage(ownerId:string){const cutoff=Date.now()-ENUMERATION_WINDOW_MS;const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`AGGQ#${ownerId}`,":sk":"SLOT#"}}));return {opened:new Set((result.Items??[]).filter(slot=>Number(slot.queriedAt)>=cutoff).map(slot=>String(slot.productId??""))).size,limit:MAX_DISTINCT_PRODUCTS_PER_WINDOW};}
 
 export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owned=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));

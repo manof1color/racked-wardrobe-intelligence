@@ -25,6 +25,8 @@ test("the harness page reads its flag per request and answers 404 without it", (
 test("an unknown role or view falls back to the consumer landing view", () => {
   assert.deepEqual(harnessScreen("brand", "catalog"), { role: "brand", view: "catalog" });
   assert.deepEqual(harnessScreen("brand", "product"), { role: "brand", view: "overview" });
+  assert.deepEqual(harnessScreen("brand", "demo-settings"), { role: "brand", view: "demo-settings" });
+  assert.deepEqual(harnessScreen("consumer", "demo-settings"), { role: "consumer", view: "home" });
   assert.deepEqual(harnessScreen("admin", "anything"), { role: "consumer", view: "home" });
   assert.deepEqual(harnessScreen(undefined, undefined), { role: "consumer", view: "home" });
 });

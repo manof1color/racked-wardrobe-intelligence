@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { DEMO_ACCOUNT_PREFIX, DEMO_AI_ALLOWANCE, DEMO_COPIED_RECORDS, DEMO_RECORD_LIFETIME_MS, DEMO_SESSION_MS, DEMO_SOURCE_ACCOUNTS, demoCopy, demoExpiry, demoKindOf, demoProfile, isDemoAccountId, isDemoBrandAccount, newDemoAccountId } from "../lib/demo-session.ts";
+import { DEMO_ACCOUNT_PREFIX, DEMO_AI_ALLOWANCE, DEMO_COPIED_RECORDS, DEMO_RECORD_LIFETIME_MS, DEMO_SESSION_MS, DEMO_SOURCE_ACCOUNTS, demoCopy, demoExpiry, demoKindOf, demoProfile, isDemoAccountId, isDemoBrandAccount, newDemoAccountId, demoAiAllowance, demoSessionKey, demoActivityLog } from "../lib/demo-session.ts";
+import { withinActivityRetention } from "../lib/device-label.ts";
 import { ownedObjectKey } from "../lib/deletion-plan.ts";
 import { createSessionToken, verifySessionToken } from "../lib/session.ts";
 import { chargeAccountAllowance } from "../lib/ai-budget.ts";
@@ -134,7 +135,7 @@ test("the demo sign-in is limited, signed, and only ever from Racked itself", ()
   assert.match(route, /consumeRateLimit\(`demo:\$\{client\}`,RATE_LIMIT_RULES\.demoSession\)/);
   assert.match(route, /claimAddressRequest\("demo",client\)/);
   assert.match(route, /kind==="consumer"\?await claimDemoWardrobe\(\)/, "the site-wide ceiling counts new wardrobes");
-  assert.match(route, /createSessionToken\(\{subject,role:kind,sessionVersion,expiresAt:Date\.now\(\)\+DEMO_SESSION_MS,demo:kind\}/);
+  assert.match(route, /createSessionToken\(\{subject,role:kind,sessionVersion,expiresAt:Date\.now\(\)\+DEMO_SESSION_MS,demo:kind,sid:crypto\.randomUUID\(\)\}/);
   assert.match(route, /isDemoBrandAccount\(account\)/);
   assert.doesNotMatch(route, /authenticateAccount|checkPassword|knownDeviceCookie|recordAccountActivity/, "no password, and no trace in the shared brand's activity log");
   const decision = guardRequest({ method: "POST", pathname: "/api/auth/demo", headers: new Headers({ origin: "https://evil.example", "content-length": "20" }), environment: { NODE_ENV: "production" } });
@@ -142,9 +143,11 @@ test("the demo sign-in is limited, signed, and only ever from Racked itself", ()
 });
 
 test("demo sessions are refused everything that could change sign-in, publish, or edit the brand", () => {
-  for (const path of ["app/api/brand/looks/route.ts", "app/api/brand/products/route.ts", "app/api/brand/products/[productId]/route.ts", "app/api/brand/products/describe/route.ts"]) {
+  for (const path of ["app/api/brand/looks/route.ts", "app/api/brand/products/route.ts", "app/api/brand/products/[productId]/route.ts"]) {
     assert.match(read(path), /brandAccess\(\{ ?write: ?true ?\}\)/, path);
   }
+  // Fill in from photo stores nothing, so it is the one brand route a demo may use (below).
+  assert.doesNotMatch(read("app/api/brand/products/describe/route.ts"), /write/);
   for (const path of ["app/api/brand/metrics/route.ts", "app/api/brand/community-metrics/route.ts", "app/api/agents/brand/route.ts"]) {
     assert.doesNotMatch(read(path), /write/, `${path} only reads`);
   }
@@ -175,4 +178,84 @@ test("the sign-in screen offers both demos, and a demo workspace says it is one"
   assert.match(read("app/brand/page.tsx"), /session\.demo&&<DemoNotice kind="brand"\/>/);
   assert.match(read("app/globals.css"), /\.demo-entry\{/);
   assert.match(read("app/globals.css"), /\.demo-notice\{/);
+});
+
+test("the demo brand can read a product photo, counted per session, and still cannot enroll it", async () => {
+  const route = read("app/api/brand/products/describe/route.ts");
+  assert.match(route, /const access = await brandAccess\(\);/);
+  assert.match(route, /const spender = session\.demo \? demoSessionKey\(session\) : session\.subject;/);
+  assert.match(route, /consumeRateLimit\(`brand-describe:\$\{spender\}`/);
+  assert.match(route, /spendAiAllowance\("brand-describe", spender\)/);
+  assert.match(route, /metered\(spendSiteModelCall, detectGarmentsInLook\)/, "still counted against the site's ceiling");
+  assert.doesNotMatch(route, /enrollBrandProduct|PutCommand|putObject|storeUpload/, "reading a photo stores nothing");
+  // Two judges in the shared brand get separate keys, each recognised as a demo.
+  const expiresAt = NOW + DEMO_SESSION_MS;
+  const first = demoSessionKey({ demo: "brand", sid: "11111111-1111-4111-8111-111111111111", expiresAt });
+  const second = demoSessionKey({ demo: "brand", sid: "22222222-2222-4222-8222-222222222222", expiresAt });
+  assert.notEqual(first, second);
+  assert.ok(isDemoAccountId(first) && isDemoAccountId(second));
+  assert.notEqual(first, "judge-brand-account");
+  assert.equal(demoSessionKey({ demo: "brand", expiresAt }), `${DEMO_ACCOUNT_PREFIX}brand-${expiresAt}`, "a token from before sid falls back to its own expiry");
+  // Each key is charged under its own counter, up to the demo scan allowance.
+  const counts = new Map<string, number>();
+  const counter = async (key: string) => { counts.set(key, (counts.get(key) ?? 0) + 1); return { count: counts.get(key)!, resetAt: NOW + 1000 }; };
+  assert.equal(demoAiAllowance("brand-describe"), DEMO_AI_ALLOWANCE.scan);
+  for (let index = 0; index < DEMO_AI_ALLOWANCE.scan; index += 1) assert.equal((await chargeAccountAllowance(counter, "brand-describe", first, NOW)).allowed, true);
+  assert.equal((await chargeAccountAllowance(counter, "brand-describe", first, NOW)).allowed, false, "the first session's allowance is spent");
+  assert.equal((await chargeAccountAllowance(counter, "brand-describe", second, NOW)).allowed, true, "the next judge's is untouched");
+  assert.equal((await chargeAccountAllowance(counter, "brand-describe", "judge-brand-account", NOW)).allowed, true, "and the named account's own is not spent by a demo");
+  assert.equal(demoAiAllowance("hanger"), DEMO_AI_ALLOWANCE.hanger);
+  assert.equal(demoAiAllowance("brand-hanger"), undefined);
+  // Enrolling, editing and retiring stay refused.
+  for (const path of ["app/api/brand/products/route.ts", "app/api/brand/products/[productId]/route.ts"]) {
+    const code = read(path);
+    for (const handler of code.matchAll(/export async function (POST|PATCH|PUT|DELETE)\(/g)) assert.match(code.slice(handler.index, handler.index! + 300), /brandAccess\(\{ ?write: ?true ?\}\)/, `${path} ${handler[1]}`);
+  }
+});
+
+test("a demo session gets its own sid, and a malformed one is refused", async () => {
+  const secret = "s".repeat(40);
+  const expiresAt = NOW + DEMO_SESSION_MS;
+  const signed = await verifySessionToken(await createSessionToken({ subject: "judge-brand-account", role: "brand", expiresAt, demo: "brand", sid: "33333333-3333-4333-8333-333333333333" }, secret), secret, NOW);
+  assert.equal(signed?.sid, "33333333-3333-4333-8333-333333333333");
+  for (const sid of ["", 42]) {
+    assert.equal(await verifySessionToken(await createSessionToken({ subject: "judge-brand-account", role: "brand", expiresAt, demo: "brand", sid } as unknown as Parameters<typeof createSessionToken>[0], secret), secret, NOW), null, String(sid));
+  }
+  assert.match(read("app/api/auth/demo/route.ts"), /demo:kind,sid:crypto\.randomUUID\(\)\}/);
+});
+
+test("a demo session is shown a made-up activity log, and the store is never asked", () => {
+  const route = read("app/api/account/activity/route.ts");
+  const demo = route.indexOf("if(session.demo)return NextResponse.json({activity:demoActivityLog(),demo:true});");
+  assert.ok(demo > 0, "the demo branch answers");
+  assert.ok(demo < route.indexOf("listAccountActivity("), "before the real log is read");
+  const log = demoActivityLog(NOW);
+  assert.ok(log.length >= 5);
+  for (const entry of log) {
+    assert.deepEqual(Object.keys(entry).sort(), ["at", "device", "type"]);
+    assert.ok(Date.parse(entry.at) <= NOW && withinActivityRetention(entry.at, NOW), entry.at);
+    assert.doesNotMatch(entry.device, /\d+\.\d+\.\d+|@/, "a device label, never an address");
+  }
+  assert.deepEqual(demoActivityLog(NOW), log, "fixed: the same for every visitor");
+});
+
+test("the demo brand's Settings is a preview with every control disabled", () => {
+  const preview = read("components/demo-brand-security-preview.tsx");
+  const buttons = [...preview.matchAll(/<button\b[^>]*>/g)].map((match) => match[0]);
+  assert.ok(buttons.length >= 3);
+  for (const button of buttons) {
+    assert.match(button, /\bdisabled\b/, button);
+    assert.match(button, /aria-describedby="demo-settings-note"/, button);
+    assert.doesNotMatch(button, /onClick/, button);
+  }
+  assert.doesNotMatch(preview, /<input|<form|fetch\(|"use client"/, "nothing in it can send a change");
+  assert.match(preview, /DEMO SETTINGS|DEMO PREVIEW/);
+  assert.match(preview, /DEMO_SETTINGS_MESSAGE/);
+  for (const part of ["two-step", "approval", "budget", "activity"]) assert.match(preview, new RegExp(`data-demo-preview="${part}"`));
+  const settings = read("app/settings/page.tsx");
+  assert.match(settings, /session\.demo==="brand"/);
+  assert.match(settings, /demoActivityLog\(/);
+  assert.doesNotMatch(settings, /createAuthenticatorSecret|sealSecret|beginTwoStep/, "no authenticator secret is ever made for the shared account");
+  const panel = read("components/account-settings-panel.tsx");
+  assert.match(panel, /demoBrand\s*\?\s*<DemoBrandSecurityPreview preview=\{demoBrand\}\/>/);
 });
