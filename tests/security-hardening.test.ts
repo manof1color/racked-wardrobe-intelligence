@@ -93,6 +93,8 @@ test("the policy is enforced by default; only RACKED_CSP_MODE=report rolls it ba
   assert.equal(cspHeaderName("report"), "Content-Security-Policy-Report-Only");
   assert.match(read("scripts/write-amplify-env.mjs"), /"RACKED_CSP_MODE"/, "the switch reaches the deployed runtime");
   assert.match(read(".env.example"), /^RACKED_CSP_MODE=$/m);
+  // The log says which: a violation in report mode was only reported, in enforce mode it was blocked.
+  assert.match(read("app/api/security/csp-report/route.ts"), /console\.warn\(`CSP violation \(\$\{cspMode\(process\.env\.RACKED_CSP_MODE\) === "report" \? "reported, not blocked" : "blocked"\}\)`, summary\);/);
 });
 
 test("middleware gives every page its own nonce, and Next.js and the layout use it", () => {
