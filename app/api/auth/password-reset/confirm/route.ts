@@ -20,7 +20,9 @@ export async function POST(request:Request){
   // The address is read from the profile, not from the record the reset returned: that record also
   // carries the new password hash, and nothing derived from it should be keyed into a cookie.
   const secret=process.env.SESSION_SECRET;
-  const email=secret?(await getAccount(account.id).catch(()=>null))?.email:null;
-  if(secret&&email){const known=knownDeviceCookie(email,secret,process.env.NODE_ENV==="production");response.cookies.set(known.name,known.value,known.options);}
+  // The cookie is bound to the new password, read back from the profile too.
+  const profile=secret?await getAccount(account.id).catch(()=>null):null;
+  const email=profile?.email;
+  if(secret&&profile&&email){const known=knownDeviceCookie(email,{id:profile.id,passwordChangedAt:profile.passwordChangedAt},secret,process.env.NODE_ENV==="production");response.cookies.set(known.name,known.value,known.options);}
   return response;
 }

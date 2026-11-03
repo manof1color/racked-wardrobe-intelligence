@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { DEMO_SETTINGS_MESSAGE } from "@/lib/demo-session";
+import { DEMO_SETTINGS_MESSAGE, isSharedDemoAccount, SHARED_DEMO_SETTINGS_MESSAGE } from "@/lib/demo-session";
 import { getSession, SESSION_COOKIE } from "@/lib/auth";
 import { deviceLabel } from "@/lib/device-label";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
-import { endOtherSessions, recordAccountActivity } from "@/lib/server/production-store";
+import { endOtherSessions, getAccount, recordAccountActivity } from "@/lib/server/production-store";
 
 // "Sign out of all other devices." Raising the account's session version invalidates every
 // session issued before it; this device gets a fresh session at the new version so it stays
@@ -13,6 +13,8 @@ export async function DELETE(request:Request){
   const session=await getSession();
   if(!session)return NextResponse.json({error:"Sign in required."},{status:401});
   if(session.demo)return NextResponse.json({error:DEMO_SETTINGS_MESSAGE},{status:403});
+  // Ending every other session on a shared demo account would sign out every judge and demo visitor on it.
+  if(isSharedDemoAccount(await getAccount(session.subject)))return NextResponse.json({error:SHARED_DEMO_SETTINGS_MESSAGE},{status:403});
   const limit=consumeRateLimit(`end-sessions:${session.subject}`,RATE_LIMIT_RULES.endSessions);
   if(!limit.allowed)return NextResponse.json({error:"Too many requests. Try again shortly."},{status:429});
   const secret=process.env.SESSION_SECRET;

@@ -4,7 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { AI_PAUSED_REASON } from "../lib/abuse-limits.ts";
+import { AI_PAUSED_REASON, DAY_MS, demoSiteCeiling } from "../lib/abuse-limits.ts";
 import { AiBudgetExhausted, chargeAccountAllowance, chargeSiteModelCall, metered, meteredOrNull, type CounterIncrement } from "../lib/ai-budget.ts";
 import { describeAgentFailure, plainReplyWorthTrying, runHangerAgent, type AgentConverse, type AgentFailure, type AgentInput, type AgentModelResponse } from "../lib/hanger-agent.ts";
 import { detectLookOrManualReview } from "../lib/look-scan-resilience.ts";
@@ -52,6 +52,27 @@ test("concurrent model calls cannot overshoot the site's ceiling", async () => {
   const { increment } = counter();
   const results = await quietly(() => Promise.all(Array.from({ length: 50 }, () => chargeSiteModelCall(increment, noon, 10))));
   assert.equal(results.filter(Boolean).length, 10, "exactly the ceiling, however the calls interleave");
+});
+
+test("REGRESSION: demo sessions spend only their own share, so real accounts keep the AI after any number of demos", async () => {
+  const { increment, counts } = counter();
+  const ceiling = 1_500;
+  // Anonymous demos keep calling: far more than the ceiling, as a stream of "Try the demo" clicks could.
+  const demoResults = await quietly(() => Promise.all(Array.from({ length: 2_000 }, () => chargeSiteModelCall(increment, noon, ceiling, true))));
+  assert.equal(demoResults.filter(Boolean).length, demoSiteCeiling(ceiling), "demos stop at their share (300 of 1,500)");
+  assert.equal(counts.get(`ai:site-calls@${Math.floor(noon / DAY_MS) * DAY_MS}`), demoSiteCeiling(ceiling), "a refused demo call never touches the shared counter");
+  // Every remaining call of the day is still there for real accounts.
+  const realResults = await quietly(() => Promise.all(Array.from({ length: ceiling }, () => chargeSiteModelCall(increment, noon, ceiling))));
+  assert.equal(realResults.filter(Boolean).length, ceiling - demoSiteCeiling(ceiling), "real accounts get the rest of the ceiling");
+  assert.equal(await quietly(() => chargeSiteModelCall(increment, noon, ceiling)), false, "and the ceiling still caps the whole day");
+});
+
+test("a demo call also counts against the shared ceiling, which still caps the whole day", async () => {
+  const { increment } = counter();
+  for (let call = 0; call < 3; call++) assert.equal(await quietly(() => chargeSiteModelCall(increment, noon, 3)), true);
+  assert.equal(await quietly(() => chargeSiteModelCall(increment, noon, 3, true)), false, "a full ceiling refuses demos too");
+  assert.equal(demoSiteCeiling(3), 1, "even a tiny ceiling leaves demos at least one call");
+  assert.equal(await quietly(() => chargeSiteModelCall(broken, noon, 1_500, true)), false, "and an unreadable demo counter fails closed");
 });
 
 test("metered spends one unit per call and never calls the model once refused", async () => {

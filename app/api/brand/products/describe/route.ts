@@ -8,7 +8,7 @@ import { detectLookOrManualReview } from "@/lib/look-scan-resilience";
 import { metered } from "@/lib/ai-budget";
 import { describeProductFromDetections } from "@/lib/product-description";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
+import { spendAiAllowance, siteModelSpender } from "@/lib/server/abuse-guard";
 import { demoSessionKey } from "@/lib/demo-session";
 
 export const runtime = "nodejs";
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   if (!allowance.allowed) return NextResponse.json({ error: allowance.message }, { status: allowance.scope === "account" ? 429 : 503, headers: { "retry-after": String(allowance.retryAfterSeconds) } });
 
   try {
-    const recognition = await detectLookOrManualReview({ base64: prepared.data.toString("base64"), contentType: "image/jpeg", image: { width: prepared.info.width, height: prepared.info.height } }, { detect: metered(spendSiteModelCall, detectGarmentsInLook) });
+    const recognition = await detectLookOrManualReview({ base64: prepared.data.toString("base64"), contentType: "image/jpeg", image: { width: prepared.info.width, height: prepared.info.height } }, { detect: metered(siteModelSpender(session), detectGarmentsInLook) });
     if (recognition.aiPaused) return NextResponse.json({ suggestion: null, message: "Racked's AI is paused to protect the service. Fill in the details yourself — nothing is saved until you enroll." });
     const suggestion = describeProductFromDetections(recognition.providerFailed ? [] : recognition.detections);
     if (!suggestion) return NextResponse.json({ suggestion: null, message: "Racked couldn't make out the product in this photo. Fill in the details yourself, or try a photo of the product on a plain background." });

@@ -46,7 +46,7 @@ export async function POST(request:Request) {
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:60*60*24*7});
     // The browser that created the account is known to it, so a stranger pausing sign-ins for this
     // email address cannot keep its owner out (lib/known-device.ts).
-    const known=knownDeviceCookie(body.email,secret,process.env.NODE_ENV==="production");response.cookies.set(known.name,known.value,known.options);return response;
+    const known=knownDeviceCookie(body.email,account,secret,process.env.NODE_ENV==="production");response.cookies.set(known.name,known.value,known.options);return response;
   } catch(error){
     return failureResponse(error,"Account registration failed","Account service is temporarily unavailable. Please try again.",503);
   }

@@ -67,6 +67,19 @@ test("REGRESSION: addresses a client writes into X-Forwarded-For are ignored", (
   assert.equal(allowed, RATE_LIMIT_RULES.login.limit, "rotating made-up addresses no longer resets the budget");
 });
 
+// REGRESSION: a chain of more than 32 entries was read as "no address", and requests with no
+// address are not counted in the shared per-address limits, so padding the header was a way out of them.
+test("REGRESSION: padding X-Forwarded-For past 32 entries still resolves to the platform's entry", () => {
+  const padded = (count: number, client: string) => [...Array.from({ length: count }, (_, index) => `10.9.${Math.floor(index / 250)}.${index % 250}`), client, "130.176.1.1"].join(", ");
+  resetClientCalibration();
+  assert.equal(clientIdentifier(from(padded(32, "203.0.113.50")), "2"), "203.0.113.50", "configured hops");
+  assert.equal(clientIdentifier(from(padded(500, "203.0.113.50")), "2"), "203.0.113.50", "a very long chain is read from the right");
+  resetClientCalibration();
+  assert.equal(clientIdentifier(from("198.51.100.7, 130.176.1.1"), undefined), "198.51.100.7");
+  assert.equal(clientIdentifier(from(padded(40, "203.0.113.50")), undefined), "203.0.113.50", "learned hops");
+  assert.notEqual(clientIdentifier(from(`${"9.".repeat(3_000)}9, 203.0.113.50, 130.176.1.1`), "2"), "unidentified-client", "an oversized header is cut from the left");
+});
+
 test("with one platform hop, the last entry is the client; a configured hop count wins", () => {
   resetClientCalibration();
   assert.equal(clientIdentifier(from("198.51.100.7"), undefined), "198.51.100.7");

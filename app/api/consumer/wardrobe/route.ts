@@ -4,6 +4,7 @@ import { addWardrobeItem, deleteWardrobeItem, listOutfits, listWardrobe, Product
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { failureResponse } from "@/lib/api-errors";
 import { GarmentEditRefused, readGarmentEdit } from "@/lib/garment-edit";
+import { DEMO_SOURCE_ACCOUNTS, SHARED_DEMO_DELETE_MESSAGE } from "@/lib/demo-session";
 import type { GarmentAnalysis } from "@/lib/platform-types";
 
 export async function GET() {
@@ -50,6 +51,8 @@ export async function DELETE(request:Request) {
   const body=await request.json().catch(()=>null) as {itemId?:unknown}|null;
   const itemId=typeof body?.itemId==="string"?body.itemId.trim():"";
   if(!itemId||itemId.length>128)return NextResponse.json({error:"Choose a wardrobe piece to delete."},{status:400});
+  // Every demo wardrobe shares the seeded source's photos, so the source's pieces are never deleted.
+  if(session.subject===DEMO_SOURCE_ACCOUNTS.consumer)return NextResponse.json({error:SHARED_DEMO_DELETE_MESSAGE},{status:403});
   try {
     const result=await deleteWardrobeItem(session.subject,itemId);
     if(!result)return NextResponse.json({error:"That piece is not in your wardrobe."},{status:404});

@@ -1,6 +1,6 @@
 import "server-only";
 import { DURABLE_LIMITS, durableDecision, type AiAction, type AiAllowance } from "@/lib/abuse-limits";
-import { chargeAccountAllowance, chargeSiteModelCall } from "@/lib/ai-budget";
+import { chargeAccountAllowance, chargeSiteModelCall, type SpendModelCall } from "@/lib/ai-budget";
 import { UNIDENTIFIED_CLIENT, type RateLimitDecision } from "@/lib/rate-limit";
 import { incrementSecurityCounter, readSecurityCounter } from "@/lib/server/production-store";
 
@@ -146,7 +146,13 @@ export function spendAiAllowance(action: AiAction, accountId: string, now = Date
   return chargeAccountAllowance(incrementSecurityCounter, action, accountId, now);
 }
 
-/** Spends one model call from the site's daily ceiling. Pass it to `metered` around each model runner. */
-export function spendSiteModelCall(): Promise<boolean> {
-  return chargeSiteModelCall(incrementSecurityCounter);
+/** Spends one model call from the site's daily ceiling; a demo's call is counted against the demo share first. */
+export function spendSiteModelCall(demo = false): Promise<boolean> {
+  return chargeSiteModelCall(incrementSecurityCounter, Date.now(), undefined, demo);
+}
+
+/** The spender to pass to `metered` around each model runner: a demo session draws from the demo share. */
+export function siteModelSpender(session: { demo?: unknown }): SpendModelCall {
+  const demo = Boolean(session.demo);
+  return () => spendSiteModelCall(demo);
 }

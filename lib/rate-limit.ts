@@ -138,8 +138,12 @@ const ADDRESS = /^[0-9a-f:.]{2,45}$/i;
 export const UNIDENTIFIED_CLIENT = "unidentified-client";
 
 export function clientIdentifier(request: Request, configuredHops: string | undefined = process.env.RACKED_TRUSTED_PROXY_HOPS) {
-  const entries = (request.headers.get("x-forwarded-for") ?? "").split(",").map((entry) => entry.trim()).filter(Boolean);
-  if (!entries.length || entries.length > 32) return UNIDENTIFIED_CLIENT;
+  // Only the right-hand end of the chain is the platform's, so only that end is read, however long
+  // the chain is. A chain the client padded must never turn into "no address": that key is exempt
+  // from the shared per-address limits (lib/server/abuse-guard.ts), so padding would be a way out.
+  const header = (request.headers.get("x-forwarded-for") ?? "").slice(-2_048);
+  const entries = header.split(",").map((entry) => entry.trim()).filter(Boolean).slice(-32);
+  if (!entries.length) return UNIDENTIFIED_CLIENT;
   const configured = Number(configuredHops);
   let hops: number;
   if (Number.isInteger(configured) && configured > 0) hops = configured;

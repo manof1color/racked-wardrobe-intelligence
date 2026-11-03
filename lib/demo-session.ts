@@ -74,6 +74,19 @@ export function demoActivityLog(now = Date.now()): AccountActivity[] {
 
 export const DEMO_READ_ONLY_MESSAGE = "The demo brand is read-only, so every judge sees the same one. Create a brand account to add products.";
 export const DEMO_SETTINGS_MESSAGE = "Sign-in settings are switched off in the demo. Create an account to use them.";
+/**
+ * The shared seeded accounts: everything classified DEMO or in the synthetic test cohort, and the
+ * sources the demos copy from. Judges can also sign into these with a shared password, and that
+ * session carries no demo claim, so the guards that keep anyone from locking or emptying them check
+ * the account itself, as two-step setup does (lib/two-step.ts), never only the session.
+ */
+export function isSharedDemoAccount(account: { id?: unknown; dataClassification?: unknown; testCohort?: unknown } | null | undefined): boolean {
+  if (!account) return false;
+  return account.dataClassification === "DEMO" || account.testCohort === true || Object.values(DEMO_SOURCE_ACCOUNTS).includes(account.id as never);
+}
+
+export const SHARED_DEMO_SETTINGS_MESSAGE = "This is a shared demo account, so its sign-in settings can't be changed, its other sessions can't be ended, and it can't be deleted.";
+export const SHARED_DEMO_DELETE_MESSAGE = "This is the shared demo wardrobe that every demo is copied from, so its pieces can't be deleted.";
 export const DEMO_PUBLISH_MESSAGE = "Demo wardrobes can't publish to Community. Create an account to share a look.";
 
 export function isDemoAccountId(id: unknown): boolean {

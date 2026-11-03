@@ -68,7 +68,7 @@ test("sign-in checks fail open; AI budgets fail closed", () => {
   const guard = read("lib/server/abuse-guard.ts");
   assert.equal((guard.match(/failOpen\(/g) ?? []).length, 9, "the six sign-in, known-device, sign-up and reset checks, the per-address check, the demo-wardrobe ceiling, plus the helper");
   assert.match(guard, /return chargeAccountAllowance\(incrementSecurityCounter, action, accountId, now\);/, "the account allowance uses the fail-closed charge");
-  assert.match(guard, /return chargeSiteModelCall\(incrementSecurityCounter\);/, "and so does the site's ceiling");
+  assert.match(guard, /return chargeSiteModelCall\(incrementSecurityCounter, Date\.now\(\), undefined, demo\);/, "and so does the site's ceiling");
 });
 
 test("sign-in checks the shared pause first, and counts every wrong password the same way", () => {
@@ -78,7 +78,7 @@ test("sign-in checks the shared pause first, and counts every wrong password the
   assert.match(login, /if\(!account\)\{[\s\S]*?await Promise\.all\(\[countSignInFailure\(email\),\.\.\.\(deviceSigned\?\[countKnownDeviceFailure\(deviceToken!\)\]:\[\]\),recordFailedSignIn\(email,device\)/, "unknown email and wrong password do the same work");
 });
 
-test("REGRESSION: a known-device cookie has its own failure budget, so a copied cookie cannot guess without limit", () => {
+test("REGRESSION: a known-device cookie has its own failure budget, so a copied cookie cannot guess from many addresses", () => {
   const login = read("app/api/auth/login/route.ts");
   assert.match(login, /const knownDevice=deviceSigned&&\(await knownDevicePause\(deviceToken!\)\)\.allowed;/, "past its budget the cookie exempts nothing");
   assert.match(login, /deviceSigned\?\[countKnownDeviceFailure\(deviceToken!\)\]:\[\]/, "every wrong password with a signed cookie is counted against the cookie");
@@ -93,28 +93,28 @@ test("a known device is exempt from the per-email pauses, and only those", () =>
   assert.match(login, /const byAddress=byClient\.allowed&&byEmail\.allowed\?await claimAddressRequest\("sign-in",client\):byClient;/, "and the same address across every instance");
   assert.match(login, /const byEmail=knownDevice\?byClient:consumeRateLimit\(`login-email:/);
   assert.match(login, /if\(!knownDevice\)\{\s*const paused=await signInPause\(email\);/);
-  assert.match(login, /const known=knownDeviceCookie\(email,secret,production\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
-  assert.match(read("app/api/auth/password-reset/confirm/route.ts"), /knownDeviceCookie\(email,secret,/, "and on a completed password reset, which proves the inbox");
+  assert.match(login, /const known=knownDeviceCookie\(email,account,secret,production\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
+  assert.match(read("app/api/auth/password-reset/confirm/route.ts"), /knownDeviceCookie\(email,\{id:profile\.id,passwordChangedAt:profile\.passwordChangedAt\},secret,/, "and on a completed password reset, which proves the inbox");
 });
 
 test("every model-backed route spends its allowance first, and meters each model call", () => {
   const detect = read("app/api/garments/detect/route.ts");
   assert.ok(detect.indexOf('spendAiAllowance("scan",session.subject)') < detect.indexOf("await detectLookOrManualReview("));
-  assert.match(detect, /\{detect:metered\(spendSiteModelCall,detectGarmentsInLook\)\}/);
+  assert.match(detect, /\{detect:metered\(siteModelSpender\(session\),detectGarmentsInLook\)\}/);
   const describe = read("app/api/brand/products/describe/route.ts");
   assert.ok(describe.indexOf('spendAiAllowance("brand-describe", session.subject)') < describe.indexOf("await detectLookOrManualReview("));
-  assert.match(describe, /\{ detect: metered\(spendSiteModelCall, detectGarmentsInLook\) \}/);
+  assert.match(describe, /\{ detect: metered\(siteModelSpender\(session\), detectGarmentsInLook\) \}/);
   assert.match(describe, /if \(recognition\.aiPaused\) return/, "a paused budget is not described as an unreadable photo");
   const consumer = read("app/api/agents/consumer/route.ts");
   assert.ok(consumer.indexOf('spendAiAllowance("hanger", subject)') < consumer.indexOf("await runHangerAgent("));
-  assert.match(consumer, /\}, metered\(spendSiteModelCall, bedrockAgentConverse\)\)\.catch\(\(\) => null\);/, "every agent round is metered");
-  assert.match(consumer, /\}, meteredOrNull\(spendSiteModelCall, bedrockHangerConverse\)\);/, "and the plain reply");
+  assert.match(consumer, /\}, metered\(siteModelSpender\(session!\), bedrockAgentConverse\)\)\.catch\(\(\) => null\);/, "every agent round is metered");
+  assert.match(consumer, /\}, meteredOrNull\(siteModelSpender\(session!\), bedrockHangerConverse\)\);/, "and the plain reply");
   assert.match(consumer, /const agentAttempted = isAgentEnabled\(\) && !aiPaused;/, "an unreadable allowance runs no agent");
   assert.match(consumer, /allowModel: !aiPaused && /, "and no plain model call either");
   assert.match(consumer, /aiPaused \? \{ degradedReason: AI_PAUSED_REASON \}/, "and the reply says why");
   const brand = read("app/api/agents/brand/route.ts");
   assert.match(brand, /metrics\.suppressed \? \{ allowed: true as const \} : await spendAiAllowance\("brand-hanger", session\.subject\)/, "below the privacy threshold no model is called, so nothing is spent");
-  assert.match(brand, /allowance\.allowed \? meteredOrNull\(spendSiteModelCall, bedrockHangerConverse\) : async \(\) => null\)/, "a refused budget answers from released aggregates alone");
+  assert.match(brand, /allowance\.allowed \? meteredOrNull\(siteModelSpender\(session\), bedrockHangerConverse\) : async \(\) => null\)/, "a refused budget answers from released aggregates alone");
 });
 
 test("no route reaches a Bedrock runner without the meter", () => {
@@ -124,7 +124,7 @@ test("no route reaches a Bedrock runner without the meter", () => {
     const code = read(path).split("\n").filter((line) => !line.startsWith("import ")).join("\n");
     for (const runner of ["detectGarmentsInLook", "bedrockAgentConverse", "bedrockHangerConverse"]) {
       const uses = code.match(new RegExp(`\\b${runner}\\b`, "g")) ?? [];
-      const metered = code.match(new RegExp(`metered(?:OrNull)?\\(spendSiteModelCall,\\s*${runner}\\)`, "g")) ?? [];
+      const metered = code.match(new RegExp(`metered(?:OrNull)?\\(siteModelSpender\\(session!?\\),\\s*${runner}\\)`, "g")) ?? [];
       assert.equal(uses.length, metered.length, `${path}: every use of ${runner} is metered`);
     }
   }

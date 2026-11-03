@@ -1,4 +1,4 @@
-import { aiAllowance, aiDailyCeiling, aiUnavailable, DAY_MS, siteModelCallAllowed, type AiAction, type AiAllowance } from "./abuse-limits.ts";
+import { aiAllowance, aiDailyCeiling, aiUnavailable, DAY_MS, demoSiteCeiling, siteModelCallAllowed, type AiAction, type AiAllowance } from "./abuse-limits.ts";
 import { demoAiAllowance, isDemoAccountId } from "./demo-session.ts";
 
 /**
@@ -38,9 +38,22 @@ export async function chargeAccountAllowance(increment: CounterIncrement, action
   }
 }
 
-/** Spends one model call from the site's daily ceiling. False means: do not call the model. */
-export async function chargeSiteModelCall(increment: CounterIncrement, now = Date.now(), ceiling = aiDailyCeiling()): Promise<boolean> {
+/**
+ * Spends one model call from the site's daily ceiling. False means: do not call the model.
+ *
+ * A demo session's call is first counted against the demo share (`demoSiteCeiling`). Once demos
+ * have spent their share, a demo call is refused before it touches the shared counter, so demo
+ * traffic can never use up the calls that real accounts depend on.
+ */
+export async function chargeSiteModelCall(increment: CounterIncrement, now = Date.now(), ceiling = aiDailyCeiling(), demo = false): Promise<boolean> {
   try {
+    if (demo) {
+      const { count: demoCalls } = await increment("ai:site-calls:demo", DAY_MS, now);
+      if (!siteModelCallAllowed(demoCalls, demoSiteCeiling(ceiling))) {
+        console.warn("AI demo share reached", { calls: demoCalls, share: demoSiteCeiling(ceiling) });
+        return false;
+      }
+    }
     const { count } = await increment("ai:site-calls", DAY_MS, now);
     const allowed = siteModelCallAllowed(count, ceiling);
     // An alarm signal (docs/security-verification.md): the line names no account.

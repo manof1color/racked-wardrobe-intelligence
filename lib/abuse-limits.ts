@@ -76,6 +76,19 @@ export function aiDailyCeiling(configured: string | undefined = process.env.AI_D
   return Number.isInteger(value) && value > 0 ? value : DEFAULT_AI_DAILY_CEILING;
 }
 
+/**
+ * The share of the day's model calls that demo sessions may spend between them. A demo is free and
+ * anonymous to open, and every click mints a fresh allowance, so without a share of their own a
+ * stream of demos could spend the whole ceiling and pause the AI for every real account until
+ * midnight UTC. Demo calls are counted against this share first, and against the shared ceiling as
+ * well, so the rest of the day's calls stay reserved for real accounts.
+ */
+export const DEMO_AI_CEILING_SHARE = 0.2;
+
+export function demoSiteCeiling(ceiling: number) {
+  return Math.max(1, Math.floor(ceiling * DEMO_AI_CEILING_SHARE));
+}
+
 /** Whether a counter at `count` (this request included) is still inside `limit`. */
 export function durableDecision(count: number, limit: number, resetAt: number, now = Date.now()): RateLimitDecision {
   if (count <= limit) return { allowed: true, retryAfterSeconds: 0 };

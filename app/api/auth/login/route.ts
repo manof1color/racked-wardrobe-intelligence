@@ -3,11 +3,11 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { signInPausedMessage } from "@/lib/abuse-limits";
 import { deviceLabel } from "@/lib/device-label";
-import { isKnownDevice, KNOWN_DEVICE_COOKIE, knownDeviceCookie } from "@/lib/known-device";
+import { isKnownDevice, KNOWN_DEVICE_COOKIE, knownDeviceCookie, knownDeviceSigned } from "@/lib/known-device";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
 import { claimAddressRequest, countKnownDeviceFailure, countSignInFailure, knownDevicePause, signInPause } from "@/lib/server/abuse-guard";
-import { authenticateAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
+import { authenticateAccount, knownDeviceAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
 import { createTwoStepChallenge, TWO_STEP_CHALLENGE_COOKIE, TWO_STEP_CHALLENGE_MS, TWO_STEP_CHALLENGE_PATH, twoStepEnabled } from "@/lib/two-step";
 
 export async function POST(request:Request) {
@@ -20,9 +20,12 @@ export async function POST(request:Request) {
   // per-email pauses below do not apply to it: an attacker typing wrong passwords for someone
   // else's email can pause their own attempts, never the owner's (lib/known-device.ts). The cookie
   // has a failure budget of its own, so a copied cookie cannot be used to guess from many
-  // addresses: past eight wrong passwords it is an unknown device again.
+  // addresses: past eight wrong passwords it is an unknown device again. It is bound to the
+  // account's current password, so cookies kept from before a password change exempt nothing. The
+  // account is read only for a cookie Racked signed: a stranger without one causes no lookup.
   const deviceToken=(await cookies()).get(KNOWN_DEVICE_COOKIE)?.value;
-  const deviceSigned=Boolean(secret)&&isKnownDevice(deviceToken,email,secret!);
+  const deviceAccount=secret&&knownDeviceSigned(deviceToken,secret)?await knownDeviceAccount(email).catch(()=>null):null;
+  const deviceSigned=Boolean(secret)&&isKnownDevice(deviceToken,email,deviceAccount,secret!);
   const knownDevice=deviceSigned&&(await knownDevicePause(deviceToken!)).allowed;
   // Both keys slow credential stuffing: one caller cycling emails, and many callers
   // converging on one account.
@@ -66,7 +69,7 @@ export async function POST(request:Request) {
     await recordAccountActivity(account.id,"sign-in",device).catch(()=>undefined);
     const response=NextResponse.json({destination:account.role==="consumer"?"/consumer":"/brand"});
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:production,path:"/",maxAge:60*60*24*7});
-    const known=knownDeviceCookie(email,secret,production);
+    const known=knownDeviceCookie(email,account,secret,production);
     response.cookies.set(known.name,known.value,known.options);
     return response;
   }catch(error){

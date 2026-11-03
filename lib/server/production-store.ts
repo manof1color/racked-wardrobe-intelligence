@@ -35,7 +35,7 @@ import { ACTIVITY_RETENTION_DAYS, withinActivityRetention, type AccountActivity,
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
 import { acceptanceIncrement, acceptanceOutcome, type AcceptanceOutcome } from "@/lib/ai-acceptance";
-import { demoCopy, demoProfile, DEMO_SOURCE_ACCOUNTS, isDemoAccountId, newDemoAccountId } from "@/lib/demo-session";
+import { demoCopy, demoProfile, DEMO_SOURCE_ACCOUNTS, isDemoAccountId, isSharedDemoAccount, newDemoAccountId } from "@/lib/demo-session";
 import sharp from "sharp";
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -110,6 +110,16 @@ export async function findAccountByEmail(email:string):Promise<AccountRecord|nul
   return (result.Items?.[0] as AccountRecord|undefined) ?? null;
 }
 
+/**
+ * The account a known-device cookie for this email would be bound to (lib/known-device.ts), read
+ * strongly consistent so a password changed a moment ago already retires the old cookies.
+ */
+export async function knownDeviceAccount(email:string):Promise<{id:string;passwordChangedAt?:number}|null> {
+  const found=await findAccountByEmail(email);
+  const account=found?await getAccount(found.id):null;
+  return account?{id:account.id,passwordChangedAt:account.passwordChangedAt}:null;
+}
+
 export async function createAccount(input:{email:string;password:string;role:Role;displayName:string;brandName?:string}) {
   const email=normalizeEmail(input.email);
   if (await findAccountByEmail(email)) throw new AccountConflictError("An account already exists for that email.");
@@ -158,7 +168,8 @@ export async function otherBrandNames(ownerId:string,known?:BrandProductRegistra
   ]);
   const names=new Set<string>();
   for(const claim of claims)if(claim.accountId!==ownerId&&typeof claim.brandName==="string")names.add(claim.brandName);
-  for(const product of registry)if(product.ownerSubject!==ownerId)names.add(product.brand);
+  // Another account's aliases are protected as well as its name: they are what its labels answer to.
+  for(const product of registry)if(product.ownerSubject!==ownerId){names.add(product.brand);for(const alias of product.aliases??[])names.add(alias);}
   return [...names];
 }
 
@@ -713,6 +724,8 @@ async function sweepOwnedPrefix(ownerId:string) {
 }
 
 export async function deleteWardrobeItem(ownerId:string,garmentId:string) {
+  // Every demo wardrobe is a copy that points at the seeded source's photos (lib/demo-session.ts).
+  if(ownerId===DEMO_SOURCE_ACCOUNTS.consumer)throw new RequestRefused("The shared demo wardrobe can't be changed.",403);
   const found=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`GARMENT#${garmentId}`}}));
   const item=found.Item as (WardrobeItem&{GSI1PK?:string})|undefined;
   if(!item)return null;
@@ -758,6 +771,8 @@ export async function deleteOwnConsumerAccount(ownerId:string,currentPassword:st
   const account=await getAccount(ownerId);
   if(!account||!await verifyAccountPassword(account,currentPassword))return null;
   if(account.role!=="consumer")throw new AccountDeletionUnavailableError("Brand accounts can't be deleted from Settings yet: enrolled products are linked to other people's wardrobes and have to be unlinked safely first.");
+  // The shared demo accounts hold the records and photos every demo copy points at.
+  if(isSharedDemoAccount(account))throw new AccountDeletionUnavailableError("This is a shared demo account, so it can't be deleted.");
   const inventory=accountDeletionInventory(ownerId,await queryEveryPage({KeyConditionExpression:"PK = :pk",ExpressionAttributeValues:{":pk":`USER#${ownerId}`}}));
 
   // 1. Public posts.

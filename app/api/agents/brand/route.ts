@@ -3,7 +3,7 @@ import { brandAccess } from "@/lib/server/brand-access";
 import { bedrockHangerConverse, generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
 import { meteredOrNull } from "@/lib/ai-budget";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
+import { spendAiAllowance, siteModelSpender } from "@/lib/server/abuse-guard";
 import { failureResponse, RequestRefused } from "@/lib/api-errors";
 import { getBrandCommunityMetrics, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       product,
       metrics,
       communityMetrics,
-    }, allowance.allowed ? meteredOrNull(spendSiteModelCall, bedrockHangerConverse) : async () => null);
+    }, allowance.allowed ? meteredOrNull(siteModelSpender(session), bedrockHangerConverse) : async () => null);
     const reply: AgentReply = {
       agent: "brand-wear-intelligence",
       provider: metrics.suppressed ? "privacy-threshold" : generated.usedModel ? "amazon-bedrock" : "grounded-aggregate",

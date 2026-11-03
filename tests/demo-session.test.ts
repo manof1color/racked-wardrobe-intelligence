@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { DEMO_ACCOUNT_PREFIX, DEMO_AI_ALLOWANCE, DEMO_COPIED_RECORDS, DEMO_RECORD_LIFETIME_MS, DEMO_SESSION_MS, DEMO_SOURCE_ACCOUNTS, demoCopy, demoExpiry, demoKindOf, demoProfile, isDemoAccountId, isDemoBrandAccount, newDemoAccountId, demoAiAllowance, demoSessionKey, demoActivityLog } from "../lib/demo-session.ts";
+import { DEMO_ACCOUNT_PREFIX, DEMO_AI_ALLOWANCE, DEMO_COPIED_RECORDS, DEMO_RECORD_LIFETIME_MS, DEMO_SESSION_MS, DEMO_SOURCE_ACCOUNTS, demoCopy, demoExpiry, demoKindOf, demoProfile, isDemoAccountId, isDemoBrandAccount, isSharedDemoAccount, newDemoAccountId, demoAiAllowance, demoSessionKey, demoActivityLog } from "../lib/demo-session.ts";
 import { withinActivityRetention } from "../lib/device-label.ts";
 import { ownedObjectKey } from "../lib/deletion-plan.ts";
 import { createSessionToken, verifySessionToken } from "../lib/session.ts";
@@ -186,7 +186,7 @@ test("the demo brand can read a product photo, counted per session, and still ca
   assert.match(route, /const spender = session\.demo \? demoSessionKey\(session\) : session\.subject;/);
   assert.match(route, /consumeRateLimit\(`brand-describe:\$\{spender\}`/);
   assert.match(route, /spendAiAllowance\("brand-describe", spender\)/);
-  assert.match(route, /metered\(spendSiteModelCall, detectGarmentsInLook\)/, "still counted against the site's ceiling");
+  assert.match(route, /metered\(siteModelSpender\(session\), detectGarmentsInLook\)/, "still counted against the site's ceiling, from the demo share");
   assert.doesNotMatch(route, /enrollBrandProduct|PutCommand|putObject|storeUpload/, "reading a photo stores nothing");
   // Two judges in the shared brand get separate keys, each recognised as a demo.
   const expiresAt = NOW + DEMO_SESSION_MS;
@@ -258,4 +258,32 @@ test("the demo brand's Settings is a preview with every control disabled", () =>
   assert.doesNotMatch(settings, /createAuthenticatorSecret|sealSecret|beginTwoStep/, "no authenticator secret is ever made for the shared account");
   const panel = read("components/account-settings-panel.tsx");
   assert.match(panel, /demoBrand\s*\?\s*<DemoBrandSecurityPreview preview=\{demoBrand\}\/>/);
+});
+
+// REGRESSION: the guards that keep the shared demo accounts from being locked or emptied checked
+// only the session's demo claim. A password sign-in to a judge account carries none, so one holder of
+// the shared password could change its email or password, sign every demo visitor out, or delete the
+// wardrobe every demo is copied from, along with the photos the copies point at.
+test("REGRESSION: the shared demo accounts are protected on the account, however someone signed in", () => {
+  const profiles = seeded.filter((item) => item.SK === "PROFILE" && typeof item.PK === "string" && item.PK.startsWith("USER#"));
+  for (const id of [JUDGE_SEED_IDS.consumer.id, JUDGE_SEED_IDS.brand.id]) {
+    const profile = profiles.find((item) => item.PK === `USER#${id}`);
+    assert.ok(profile && isSharedDemoAccount(profile), `${id} is a shared demo account`);
+  }
+  assert.equal(isSharedDemoAccount({ id: DEMO_SOURCE_ACCOUNTS.consumer }), true, "the demo source by id alone");
+  assert.equal(isSharedDemoAccount({ id: "cohort", testCohort: true }), true, "the synthetic cohort too");
+  assert.equal(isSharedDemoAccount({ id: "a-real-account", dataClassification: "REGULAR" }), false, "a real account is not");
+  assert.equal(isSharedDemoAccount(null), false);
+
+  const account = read("app/api/account/route.ts");
+  assert.equal((account.match(/if\(isSharedDemoAccount\(await getAccount\(session\.subject\)\)\)return NextResponse\.json\(\{error:SHARED_DEMO_SETTINGS_MESSAGE\},\{status:403\}\);/g) ?? []).length, 2, "email, password and deletion are refused");
+  assert.ok(account.indexOf("isSharedDemoAccount") < account.indexOf("await updateOwnAccount("), "before any change is made");
+  assert.ok(account.lastIndexOf("isSharedDemoAccount") < account.indexOf("await deleteOwnConsumerAccount("));
+  const sessions = read("app/api/account/sessions/route.ts");
+  assert.ok(sessions.indexOf("isSharedDemoAccount(await getAccount(session.subject))") < sessions.indexOf("await endOtherSessions("), "signing everyone else out is refused");
+  const wardrobe = read("app/api/consumer/wardrobe/route.ts");
+  assert.ok(wardrobe.indexOf("session.subject===DEMO_SOURCE_ACCOUNTS.consumer") < wardrobe.indexOf("await deleteWardrobeItem("), "the source's pieces cannot be deleted");
+  const store = read("lib/server/production-store.ts");
+  assert.match(store, /if\(isSharedDemoAccount\(account\)\)throw new AccountDeletionUnavailableError/, "the store refuses too, whatever route calls it");
+  assert.match(store, /export async function deleteWardrobeItem\(ownerId:string,garmentId:string\) \{\n[^\n]*\n  if\(ownerId===DEMO_SOURCE_ACCOUNTS\.consumer\)throw new RequestRefused/);
 });

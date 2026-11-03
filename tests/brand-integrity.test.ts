@@ -86,6 +86,29 @@ test("REGRESSION: a product's aliases cannot claim another brand", () => {
   );
 });
 
+// REGRESSION: the alias check only refused an alias that contained a whole protected name, while
+// matching looks for the alias inside the label. One word of another brand's name — or any label
+// word — then answered that brand's labels, and with the same style code enrolled the first-listed
+// account took the other brand's verified links and wear.
+test("REGRESSION: an alias cannot be part of another brand's name, or a word that is not this brand's name", () => {
+  assert.equal(conflictingAlias(["Northstar"], "Acme Goods", ["Northstar Atelier"]), "Northstar", "one word of another brand's name");
+  assert.equal(conflictingAlias(["Atelier"], "Acme Goods", ["Northstar Atelier"]), "Atelier");
+  assert.equal(conflictingAlias(["Cotton"], "Acme Goods"), "Cotton", "a generic label word is not a spelling of this brand");
+  assert.equal(conflictingAlias(["NSA"], "Acme Goods", ["Northstar Atelier"]), null, "a short alias never takes part in a match");
+  assert.equal(conflictingAlias(["Acme", "ACME GOODS CO"], "Acme Goods", ["Northstar Atelier"]), null, "spellings of your own name stay free");
+  assert.equal(conflictingAlias(["Northstar"], "Northstar Atelier", ["Northstar Atelier"]), null, "an account's own name is never protected against itself");
+});
+
+test("REGRESSION: a label that answers products of two brand accounts verifies neither", () => {
+  const victim = product({ id: "victim", ownerSubject: "brand-victim", brand: "Northstar Atelier", brandSlug: "northstar-atelier", aliases: ["Northstar Atelier", "Northstar"], sku: "NA-OW-1042", gtin: null });
+  const attacker = product({ id: "attacker", ownerSubject: "brand-attacker", brand: "Acme Goods", brandSlug: "acme-goods", aliases: ["Acme Goods", "Northstar"], sku: "NA-OW-1042", gtin: null });
+  const label = "NORTHSTAR ATELIER NA-OW-1042 100% COTTON";
+  assert.equal(matchBrandProduct([], label, [attacker, victim]), null, "the first-listed account no longer wins");
+  assert.equal(matchBrandProduct([], label, [victim])?.product.id, "victim", "the real brand alone still matches");
+  const sameOwner = product({ id: "victim-gtin", ownerSubject: "brand-victim", brandSlug: "northstar-atelier", aliases: ["Northstar Atelier"], sku: "NA-OW-1042-B", gtin: "5012345678900" });
+  assert.deepEqual(matchBrandProduct([], `${label} 5012345678900`, [victim, sameOwner]), { product: sameOwner, method: "gtin" }, "two products of one account still match, the barcode first");
+});
+
 // REGRESSION: nothing stopped a second record answering the same barcode or style code, and the
 // first-listed record won every match.
 test("REGRESSION: one barcode and one brand style code map to one product", () => {

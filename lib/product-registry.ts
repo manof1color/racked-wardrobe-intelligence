@@ -218,15 +218,21 @@ function containsCode(labelText:string, code:string) {
  */
 export function matchBrandProduct(_parts:UploadDescriptor[], labelText:string, registry:BrandProductRegistration[]):RegistryMatch|null {
   const gtins=gtinCandidates(labelText);
+  const matches:RegistryMatch[]=[];
   for (const product of registry) {
     if (product.archived) continue;
     const productGtin=product.gtin?gtinKey(product.gtin):null;
-    if (productGtin && gtins.has(productGtin)) return {product,method:"gtin"};
+    if (productGtin && gtins.has(productGtin)) { matches.push({product,method:"gtin"}); continue; }
     const skuMatch=Boolean(product.sku) && containsCode(labelText,product.sku);
     const brandMatch=(product.aliases ?? []).some((alias)=>normalizeIdentity(alias).length>=5 && containsCode(labelText,alias));
-    if (skuMatch && brandMatch) return {product,method:"brand-sku"};
+    if (skuMatch && brandMatch) matches.push({product,method:"brand-sku"});
   }
-  return null;
+  // A label that answers products of two different brand accounts is evidence of neither: the first
+  // one listed would otherwise take the other brand's verified links and wear. A GTIN match beats a
+  // brand-plus-style-code match only when it comes from the same account.
+  const owners=new Set(matches.map((match)=>match.product.ownerSubject));
+  if (owners.size!==1) return null;
+  return matches.find((match)=>match.method==="gtin") ?? matches[0];
 }
 
 /**
@@ -262,11 +268,23 @@ export function isReservedBrandName(name:string) {
 }
 
 /**
- * An alias another brand owns. Aliases exist for spellings of the account's own name; one naming a
- * different brand would let this account's products answer that brand's labels.
+ * An alias this account may not use. Aliases exist for spellings of the account's own name; one
+ * naming a different brand would let this account's products answer that brand's labels.
+ *
+ * Matching looks for an alias inside label text, so the check runs both ways: an alias may not
+ * contain another brand's name, and may not be part of one either ("Northstar" against another
+ * account's "Northstar Atelier"). And because any alias of five or more characters can satisfy a
+ * match, each one must be a spelling of this account's own name — a generic label word such as
+ * "Cotton" would otherwise answer every label that carries it. Shorter aliases ("NSA") never take
+ * part in a match, so they stay free.
  */
 export function conflictingAlias(aliases:string[], ownBrand:string, otherBrandNames:string[]=[]) {
+  const own=normalizeIdentity(ownBrand);
   const protectedNames=[...reservedBrandNames(),...otherBrandNames]
-    .filter((name)=>normalizeIdentity(name).length>=3&&!containsCode(ownBrand,name));
-  return aliases.find((alias)=>protectedNames.some((name)=>containsCode(alias,name))) ?? null;
+    .filter((name)=>normalizeIdentity(name).length>=3&&normalizeIdentity(name)!==own&&!containsCode(ownBrand,name));
+  const ownSpelling=(alias:string)=>normalizeIdentity(alias)===own||containsCode(ownBrand,alias)||containsCode(alias,ownBrand);
+  return aliases.find((alias)=>
+    (normalizeIdentity(alias).length>=5&&!ownSpelling(alias))
+    ||protectedNames.some((name)=>containsCode(alias,name)||containsCode(name,alias)),
+  ) ?? null;
 }

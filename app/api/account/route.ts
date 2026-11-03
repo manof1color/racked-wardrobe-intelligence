@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DEMO_SETTINGS_MESSAGE } from "@/lib/demo-session";
+import { DEMO_SETTINGS_MESSAGE, isSharedDemoAccount, SHARED_DEMO_SETTINGS_MESSAGE } from "@/lib/demo-session";
 import { getSession, SESSION_COOKIE } from "@/lib/auth";
 import { AccountConflictError, AccountDeletionUnavailableError, deleteOwnConsumerAccount, getAccount, recordAccountActivity, updateOwnAccount } from "@/lib/server/production-store";
 import { deviceLabel } from "@/lib/device-label";
@@ -16,6 +16,8 @@ export async function GET(){
 
 export async function PATCH(request:Request){
   const session=await getSession();if(!session)return NextResponse.json({error:"Sign in required."},{status:401});if(session.demo)return NextResponse.json({error:DEMO_SETTINGS_MESSAGE},{status:403});
+  // A shared demo account is refused on the account itself: a password sign-in to it carries no demo claim.
+  if(isSharedDemoAccount(await getAccount(session.subject)))return NextResponse.json({error:SHARED_DEMO_SETTINGS_MESSAGE},{status:403});
   // Keyed on the account alone: a key that also named the client address gave each new address a fresh budget.
   const limit=consumeRateLimit(`account:${session.subject}`,RATE_LIMIT_RULES.accountSettings);if(!limit.allowed)return NextResponse.json({error:"Too many account changes. Try again later."},{status:429});
   const body=await request.json().catch(()=>null) as {displayName?:string;email?:string;currentPassword?:string;newPassword?:string}|null;
@@ -35,6 +37,7 @@ export async function PATCH(request:Request){
 // limited. The account is always the session's own; no ID is accepted from the body.
 export async function DELETE(request:Request){
   const session=await getSession();if(!session)return NextResponse.json({error:"Sign in required."},{status:401});if(session.demo)return NextResponse.json({error:DEMO_SETTINGS_MESSAGE},{status:403});
+  if(isSharedDemoAccount(await getAccount(session.subject)))return NextResponse.json({error:SHARED_DEMO_SETTINGS_MESSAGE},{status:403});
   const limit=consumeRateLimit(`account-delete:${session.subject}`,RATE_LIMIT_RULES.accountDeletion);if(!limit.allowed)return NextResponse.json({error:"Too many deletion attempts. Try again later."},{status:429});
   const body=await request.json().catch(()=>null) as {currentPassword?:unknown;confirmation?:unknown}|null;
   if(typeof body?.currentPassword!=="string"||!body.currentPassword)return NextResponse.json({error:"Enter your current password to delete your account."},{status:400});
