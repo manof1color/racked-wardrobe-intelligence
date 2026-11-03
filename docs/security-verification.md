@@ -14,7 +14,7 @@ anonymous visitor's request writes.
 
 | Check | Result |
 | --- | --- |
-| Security headers on `/` | HSTS, `nosniff`, `X-Frame-Options: DENY`, referrer policy, permissions policy (camera and location: self), COOP, CSP **report-only**; no `X-Powered-By` |
+| Security headers on `/` | HSTS, `nosniff`, `X-Frame-Options: DENY`, referrer policy, permissions policy (camera and location: self), COOP, CSP **enforced** with a fresh script nonce per page (read back 2026-11-03, below); no `X-Powered-By` |
 | Cross-site Origin on a write | 403 |
 | Forged `X-Forwarded-Host` with a matching Origin | 403 |
 | Forged `Host` | refused by CloudFront at the TLS handshake — never reaches the app (the app-level refusal is tested locally) |
@@ -29,9 +29,19 @@ anonymous visitor's request writes.
 
 The probe scripts send a handful of GET and POST requests; they never stress the site.
 
-**Content Security Policy, once the nonce policy (Phase 97) is deployed.** The row above records the
-report-only policy as last read live; it stays until the owner reads the enforced one back. The
-check is one unauthenticated GET per page, run twice so the nonces can be compared:
+**Content Security Policy (Phase 97), enforced live since 2026-11-03.** Rollout:
+1. It was deployed with `RACKED_CSP_MODE=report` set in Amplify, so it reported and blocked nothing.
+2. The owner ran both demo flows, a scan, a Hanger message and Fill in from photo on the live site:
+   photos loaded and the browser console showed no policy messages.
+3. The owner removed `RACKED_CSP_MODE` and redeployed.
+4. Read back in Chrome DevTools on 2026-11-03, the page is now served an enforcing policy. The same
+   pass in an Incognito window showed no issues.
+
+With browser extensions switched on, Chrome's Issues tab showed one blocked `eval` with no source
+file. It came from an extension, not from Racked: the built browser code contains no `eval`,
+`new Function` or string `setTimeout`/`setInterval`, and the blocked call is the policy working.
+
+To repeat the check, send one unauthenticated GET per page, twice, so the nonces can be compared:
 
 ```bash
 for page in / /login /pricing; do
@@ -394,4 +404,4 @@ answers.
 - **Retention — decided.** Unkept scan photos expire under `temp/` within two days (#173), once the
   live rule above is confirmed.
 - **Differencing over time.** Exact totals can be watched as they change; no noise is added.
-- **CSP** is enforced with per-request nonces on a local build (Phase 97), pending live read-back; `style-src` still allows inline styles; **WAF** is not in place; there is **no malware scanning** of uploads.
+- **CSP** is enforced on the live site with per-request nonces (Phase 97, since 2026-11-03); `style-src` still allows inline styles; **WAF** is not in place; there is **no malware scanning** of uploads.
