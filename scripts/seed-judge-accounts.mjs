@@ -41,8 +41,7 @@ import { BatchGetCommand, DeleteCommand, DynamoDBDocumentClient, PutCommand, Que
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { pathToFileURL } from "node:url";
-import sharp from "sharp";
-import { garmentArt, productArt } from "./lib/synthetic-garment-art.mjs";
+import { JUDGE_PHOTO_TYPE, judgePhoto, productPhotoName } from "./lib/judge-photos.mjs";
 import { judgeChartProblems, weeklyWearBuckets } from "./lib/judge-wear-window.mjs";
 
 const dryRun = process.env.RACKED_SEED_DRY_RUN === "yes" || process.argv.includes("--dry-run");
@@ -69,9 +68,9 @@ async function putItem(item) {
   if (!dryRun) await db.send(new PutCommand({ TableName: table, Item: item }));
   return item;
 }
-async function putObject(key, body, ownerId) {
+async function putObject(key, body, ownerId, contentType = JUDGE_PHOTO_TYPE) {
   written.objects.push(key);
-  if (!dryRun) await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: "image/png", ServerSideEncryption: "AES256", Metadata: { owner: ownerId, synthetic: "true", classification: "demo" } }));
+  if (!dryRun) await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType, ServerSideEncryption: "AES256", Metadata: { owner: ownerId, synthetic: "true", classification: "demo" } }));
   return key;
 }
 
@@ -158,9 +157,9 @@ function brandNameClaim(brandSlug, accountId, brandName) {
   return { PK: `BRANDNAME#${brandSlug}`, SK: "CLAIM", GSI1PK: "BRAND_NAMES", GSI1SK: brandSlug, accountId, brandName, createdAt, testCohort: true, dataClassification: "DEMO" };
 }
 
-async function imageBytes(svg) {
-  if (dryRun) return Buffer.from("dry-run-image");
-  return sharp(Buffer.from(svg)).png().toBuffer();
+/** A judge photo's bytes. Read in a dry run too, so a missing photo fails before anything is written. */
+function photoBytes(name) {
+  return judgePhoto(name);
 }
 
 /**
@@ -199,10 +198,10 @@ async function seedBrand() {
   for (const product of PRODUCTS) {
     const views = {};
     for (const view of ["front", "back", "label"]) {
-      const bytes = await imageBytes(productArt({ ...product, brand: BRAND_NAME, view }));
-      const key = `brand/${BRAND_ID}/${product.sku}-${view}.png`;
+      const bytes = photoBytes(productPhotoName(product.sku, view));
+      const key = `brand/${BRAND_ID}/${product.sku}-${view}.webp`;
       await putObject(key, bytes, BRAND_ID);
-      views[view] = { view, fileName: `${product.sku}-${view}.png`, contentType: "image/png", size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), storageKey: key };
+      views[view] = { view, fileName: `${product.sku}-${view}.webp`, contentType: JUDGE_PHOTO_TYPE, size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), storageKey: key };
     }
     products[product.key] = await putItem({
       id: product.id, ownerSubject: BRAND_ID, name: product.name, brand: BRAND_NAME, brandSlug: BRAND_SLUG,
@@ -248,7 +247,7 @@ async function seedConsumer(products) {
   for (const piece of WARDROBE) {
     const garmentId = `judge-garment-${piece.key}`;
     ids[piece.key] = garmentId;
-    const imageKey = await putObject(`wardrobe/${CONSUMER_ID}/${garmentId}.png`, await imageBytes(garmentArt(piece)), CONSUMER_ID);
+    const imageKey = await putObject(`wardrobe/${CONSUMER_ID}/${garmentId}.webp`, photoBytes(piece.key), CONSUMER_ID);
     imageKeys[piece.key] = imageKey;
     await putItem({
       id: garmentId, name: piece.name, category: piece.category, subtype: piece.subtype, color: piece.color,
@@ -265,12 +264,12 @@ async function seedConsumer(products) {
   // side they show the difference the whole boundary rests on: only the first is a brand link.
   const verifiedId = "judge-garment-verified-tee";
   ids.verified = verifiedId;
-  imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.png`, await imageBytes(garmentArt(products.released)), CONSUMER_ID);
+  imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.webp`, photoBytes(productPhotoName(products.released.sku, "front")), CONSUMER_ID);
   await linkVerified({ ownerId: CONSUMER_ID, product: PRODUCTS[0], garmentId: verifiedId, wearCount: 5, lastWornDays: 3, imageKey: imageKeys.verified });
 
   const pickedId = "judge-garment-picked-overshirt";
   ids.picked = pickedId;
-  imageKeys.picked = await putObject(`wardrobe/${CONSUMER_ID}/${pickedId}.png`, await imageBytes(garmentArt(products.suppressed)), CONSUMER_ID);
+  imageKeys.picked = await putObject(`wardrobe/${CONSUMER_ID}/${pickedId}.webp`, photoBytes(productPhotoName(products.suppressed.sku, "front")), CONSUMER_ID);
   await putItem({
     id: pickedId, name: "Judge Olive Overshirt", category: "outerwear", subtype: "denim-jacket", color: "olive",
     pattern: "solid", material: "cotton", style: ["utility", "casual"], season: "fall", wearCount: 4, lastWornDays: 6,
