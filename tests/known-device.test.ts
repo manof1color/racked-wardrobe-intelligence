@@ -22,8 +22,8 @@ test("the cookie helps only the account it was issued for", () => {
 
 test("a forged, altered, or foreign cookie is refused", () => {
   const token = issueKnownDeviceToken("owner@example.test", secret, now);
-  const [issuedAt, tag, signature] = token.split(".");
-  assert.equal(isKnownDevice(`${Number(issuedAt) + 1}.${tag}.${signature}`, "owner@example.test", secret, now), false, "a changed date breaks the signature");
+  const [issuedAt, tag, epoch, signature] = token.split(".");
+  assert.equal(isKnownDevice(`${Number(issuedAt) + 1}.${tag}.${epoch}.${signature}`, "owner@example.test", secret, now), false, "a changed date breaks the signature");
   assert.equal(isKnownDevice(token, "owner@example.test", "a-different-secret", now), false, "signed by another deployment");
   assert.equal(isKnownDevice(`${token}.extra`, "owner@example.test", secret, now), false);
   for (const junk of [undefined, null, 7, "", "a.b", "x".repeat(500), "1.2.3"]) assert.equal(isKnownDevice(junk, "owner@example.test", secret, now), false, String(junk));
@@ -41,4 +41,11 @@ test("the cookie names no one and goes only to the sign-in endpoints", () => {
   assert.doesNotMatch(cookie.value, /owner|example/i, "no email in the cookie");
   assert.deepEqual(cookie.options, { httpOnly: true, sameSite: "lax", secure: true, path: KNOWN_DEVICE_COOKIE_PATH, maxAge: KNOWN_DEVICE_MAX_AGE_SECONDS });
   assert.equal(KNOWN_DEVICE_COOKIE_PATH, "/api/auth");
+});
+
+test("a password change invalidates previously issued device tokens", () => {
+  const email = "owner@example.test";
+  const token = issueKnownDeviceToken(email, secret, now);
+  assert.equal(isKnownDevice(token, email, secret, now + 2, now + 1), false);
+  assert.equal(isKnownDevice(issueKnownDeviceToken(email, secret, now + 2, now + 1), email, secret, now + 2, now + 1), true);
 });

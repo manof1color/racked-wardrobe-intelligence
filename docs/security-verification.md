@@ -212,11 +212,7 @@ Reviewing the alert properly also meant checking the two things it gestures at:
 - **The known-device cookie.** Issued on sign-up, sign-in, and a completed reset; HMAC-signed over
   its issue time and a keyed hash of the address, compared in constant time, refused if altered, for
   another address, from the future, or older than 180 days; `HttpOnly`, `Secure` in production,
-  `SameSite=Lax`, path `/api/auth`. Its bypass covered the per-email pauses only — but a copied
-  cookie could then guess one account's password from many addresses without limit. **A real gap:**
-  each cookie now has its own budget of eight wrong passwords per fifteen minutes, past which it
-  exempts nothing. Remaining limitations: a browser remembers one account at a time, and a cookie is
-  not revoked by a password change (its budget still bounds it).
+  `SameSite=Lax`, path `/api/auth`. A signed cookie issued before the account's last password change is refused. Known devices share one atomic sign-in budget per email, separate from the ordinary budget. Both budgets count attempts before password verification.
 
 ## Secrets and dependencies
 

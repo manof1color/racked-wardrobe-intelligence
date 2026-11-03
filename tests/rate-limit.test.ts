@@ -54,15 +54,15 @@ test("client identifier never returns raw junk", () => {
 test("REGRESSION: addresses a client writes into X-Forwarded-For are ignored", () => {
   resetClientCalibration();
   // Behind CloudFront and one more proxy, an ordinary browser's request arrives with two entries.
-  assert.equal(clientIdentifier(from("198.51.100.7, 130.176.1.1"), undefined), "198.51.100.7");
+  assert.equal(clientIdentifier(from("198.51.100.7, 130.176.1.1"), "2"), "198.51.100.7");
   // A script prepends made-up addresses; the platform's two entries still end the chain.
   for (const spoofed of ["1.1.1.1", "2.2.2.2, 3.3.3.3", "9.9.9.9"]) {
-    assert.equal(clientIdentifier(from(`${spoofed}, 203.0.113.50, 130.176.1.1`), undefined), "203.0.113.50", spoofed);
+    assert.equal(clientIdentifier(from(`${spoofed}, 203.0.113.50, 130.176.1.1`), "2"), "203.0.113.50", spoofed);
   }
   resetRateLimits();
   let allowed = 0;
   for (let attempt = 0; attempt < 25; attempt++) {
-    if (consumeRateLimit(`login:${clientIdentifier(from(`10.0.${attempt}.1, 203.0.113.50, 130.176.1.1`), undefined)}`, RATE_LIMIT_RULES.login).allowed) allowed += 1;
+    if (consumeRateLimit(`login:${clientIdentifier(from(`10.0.${attempt}.1, 203.0.113.50, 130.176.1.1`), "2")}`, RATE_LIMIT_RULES.login).allowed) allowed += 1;
   }
   assert.equal(allowed, RATE_LIMIT_RULES.login.limit, "rotating made-up addresses no longer resets the budget");
 });
@@ -105,4 +105,13 @@ test("account changes are limited per account, not per account and address", () 
   assert.match(route, /consumeRateLimit\(`account:\$\{session\.subject\}`,RATE_LIMIT_RULES\.accountSettings\)/);
   assert.match(route, /consumeRateLimit\(`account-delete:\$\{session\.subject\}`,RATE_LIMIT_RULES\.accountDeletion\)/);
   assert.doesNotMatch(route, /clientIdentifier/, "a new address must not mean a new budget");
+});
+
+test("cold instances ignore padded forwarding chains", () => {
+  resetClientCalibration();
+  for (const spoofed of ["1.1.1.1", "2.2.2.2"]) {
+    const chain = [spoofed, ...Array(40).fill("6.6.6.6"), "198.51.100.7", "130.176.1.1"].join(", ");
+    assert.equal(clientIdentifier(from(chain), ""), "130.176.1.1");
+    assert.equal(clientIdentifier(from(chain), "2"), "198.51.100.7");
+  }
 });

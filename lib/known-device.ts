@@ -22,28 +22,28 @@ const emailTag = (email: string, secret: string) =>
   createHmac("sha256", secret).update(`racked-known-device-email:${email.trim().toLowerCase()}`).digest("base64url").slice(0, 22);
 const sign = (payload: string, secret: string) => createHmac("sha256", secret).update(`racked-known-device:${payload}`).digest("base64url");
 
-export function issueKnownDeviceToken(email: string, secret: string, now = Date.now()) {
-  const payload = `${now}.${emailTag(email, secret)}`;
+export function issueKnownDeviceToken(email: string, secret: string, now = Date.now(), passwordChangedAt = 0) {
+  const payload = `${now}.${emailTag(email, secret)}.${passwordChangedAt}`;
   return `${payload}.${sign(payload, secret)}`;
 }
 
 /** Whether this cookie was issued by Racked, for this email address, within the last 180 days. */
-export function isKnownDevice(token: unknown, email: string, secret: string, now = Date.now()) {
+export function isKnownDevice(token: unknown, email: string, secret: string, now = Date.now(), passwordChangedAt?: number) {
   if (typeof token !== "string" || token.length > 200) return false;
-  const [issuedAt, tag, signature, extra] = token.split(".");
-  if (extra !== undefined || !issuedAt || !tag || !signature || !/^\d{1,16}$/.test(issuedAt)) return false;
-  const expected = Buffer.from(sign(`${issuedAt}.${tag}`, secret));
+  const [issuedAt, tag, epoch, signature, extra] = token.split(".");
+  if (extra !== undefined || !issuedAt || !tag || !epoch || !/^\d{1,16}$/.test(epoch) || !signature || !/^\d{1,16}$/.test(issuedAt)) return false;
+  const expected = Buffer.from(sign(`${issuedAt}.${tag}.${epoch}`, secret));
   const supplied = Buffer.from(signature);
   if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) return false;
   const age = now - Number(issuedAt);
-  if (age < 0 || age > KNOWN_DEVICE_MAX_AGE_SECONDS * 1000) return false;
+  if ((passwordChangedAt !== undefined && Number(epoch) !== passwordChangedAt) || age < 0 || age > KNOWN_DEVICE_MAX_AGE_SECONDS * 1000) return false;
   return tag === emailTag(email, secret);
 }
 
-export function knownDeviceCookie(email: string, secret: string, production: boolean) {
+export function knownDeviceCookie(email: string, secret: string, production: boolean, passwordChangedAt = 0) {
   return {
     name: KNOWN_DEVICE_COOKIE,
-    value: issueKnownDeviceToken(email, secret),
+    value: issueKnownDeviceToken(email, secret, Date.now(), passwordChangedAt),
     options: { httpOnly: true, sameSite: "lax" as const, secure: production, path: KNOWN_DEVICE_COOKIE_PATH, maxAge: KNOWN_DEVICE_MAX_AGE_SECONDS },
   };
 }
