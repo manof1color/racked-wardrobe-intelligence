@@ -98,7 +98,7 @@ test("a known device is exempt from the per-email pauses, and only those", () =>
   const login = read("app/api/auth/login/route.ts");
   assert.match(login, /const client=clientIdentifier\(request\);\s*const byClient=consumeRateLimit\(`login:\$\{client\}`/, "the per-client limit always applies");
   assert.match(login, /const byEmail=knownDevice\?byClient:consumeRateLimit\(`login-email:/);
-  assert.match(login, /const known=knownDeviceCookie\(email,secret,production,account\.passwordChangedAt\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
+  assert.match(login, /const known=knownDeviceCookie\(email,secret,production,account\.sessionVersion\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
   assert.match(read("app/api/auth/password-reset/confirm/route.ts"), /knownDeviceCookie\(email,secret,/, "and on a completed password reset, which proves the inbox");
 });
 

@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const production = process.env.NODE_ENV === "production";
     const response = NextResponse.json({ destination: account.role === "consumer" ? "/consumer" : "/brand", ...(spent === "recovery" ? { recoveryCodesLeft: Math.max(0, recoveryCodesLeft(account) - 1) } : {}) });
     response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: production, path: "/", maxAge: 60 * 60 * 24 * 7 });
-    const known = knownDeviceCookie(account.email, secret, production, account.passwordChangedAt);
+    const known = knownDeviceCookie(account.email, secret, production, account.sessionVersion);
     response.cookies.set(known.name, known.value, known.options);
     return clearChallenge(response);
   } catch (error) {

@@ -27,7 +27,7 @@ export async function POST(request:Request) {
     const signed=Boolean(secret)&&isKnownDevice(deviceToken,email,secret!,now);
     const identified=signed?await findAccountByEmail(email):null;
     const profile=identified?await getAccount(identified.id):null;
-    const knownDevice=Boolean(profile&&isKnownDevice(deviceToken,email,secret!,now,profile.passwordChangedAt??0));
+    const knownDevice=Boolean(profile&&isKnownDevice(deviceToken,email,secret!,now,profile.sessionVersion??0));
     const byEmail=knownDevice?byClient:consumeRateLimit(`login-email:${email.toLowerCase()}`,RATE_LIMIT_RULES.login);
     const paused=byEmail.allowed?await claimSignInAttempt(email,knownDevice,now):{...byEmail,reserved:false};
     if(!paused.allowed){console.warn("Sign-in pause engaged");return NextResponse.json({error:signInPausedMessage(paused.retryAfterSeconds)},{status:429,headers:{"retry-after":String(paused.retryAfterSeconds)}});}
@@ -51,7 +51,7 @@ export async function POST(request:Request) {
     await recordAccountActivity(account.id,"sign-in",device).catch(()=>undefined);
     const response=NextResponse.json({destination:account.role==="consumer"?"/consumer":"/brand"});
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:production,path:"/",maxAge:60*60*24*7});
-    const known=knownDeviceCookie(email,secret,production,account.passwordChangedAt);
+    const known=knownDeviceCookie(email,secret,production,account.sessionVersion);
     response.cookies.set(known.name,known.value,known.options);
     return response;
   }catch(error){

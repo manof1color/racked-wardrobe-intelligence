@@ -22,6 +22,6 @@ export async function POST(request:Request){
   const secret=process.env.SESSION_SECRET;
   const profile=secret?await getAccount(account.id).catch(()=>null):null;
   const email=profile?.email;
-  if(secret&&email&&profile?.passwordChangedAt===account.passwordChangedAt){const known=knownDeviceCookie(email,secret,process.env.NODE_ENV==="production",profile?.passwordChangedAt);response.cookies.set(known.name,known.value,known.options);}
+  if(secret&&email&&profile?.sessionVersion===account.sessionVersion){const known=knownDeviceCookie(email,secret,process.env.NODE_ENV==="production",profile?.sessionVersion);response.cookies.set(known.name,known.value,known.options);}
   return response;
 }
