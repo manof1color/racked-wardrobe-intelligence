@@ -41,7 +41,7 @@ Each scoring category, what to look for, and where to check it.
 | **Code, docs & GitHub** | 15% | **937 tests** in 120 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **181 merged PRs** counted on 2026-10-30 before this documentation merge; build log through Phase 97 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Consumers free; brands pay for post-purchase intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Pricing](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) |
-| **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
+| **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, an AI with no write tools, an enforced Content Security Policy, two-step sign-in for brands, owner-scoped deletion — tested by a local attack harness (63 of 63 checks) and an independent audit | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
 
 Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checklist.md).
 
@@ -217,15 +217,103 @@ Racked does **not** claim recognition accuracy beyond the measured benchmark abo
 
 ## Privacy and Security
 
-The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [docs/privacy-and-ethics.md](docs/privacy-and-ethics.md).
+Racked asks people to photograph their closets and asks brands to trust the numbers it releases, so privacy and security are the product, not a feature added afterwards. This section summarises what is built in, how it was built, and how it is tested. The full control list, and everything still open, is in [SECURITY.md](SECURITY.md) and [docs/privacy-and-ethics.md](docs/privacy-and-ethics.md).
 
-- **Brands see groups, never people.** Only opted-in owners count, nothing is released below `k ≥ 25`, any figure about fewer than five owners is withheld, and a brand can open at most six distinct products a day so results cannot be lined up. Opting out removes a person from every aggregate at once.
+### What is built in
+
+- **Brands see groups, never people.**
+  - Only owners who opted in are counted, and nothing is released below `k ≥ 25`: not the figures, and not even the count.
+  - The release step withholds each figure that would describe fewer than five owners.
+  - A brand can open at most six distinct products a day. The budget is claimed atomically in DynamoDB, so lining up results across many products is limited.
+  - Consent is read strongly consistent, so opting out removes a person from every aggregate on the next request.
+  - Code: [`privacy.ts`](lib/privacy.ts), [`metrics.ts`](lib/metrics.ts).
+- **Every record belongs to one account.**
+  - Identity and ownership come only from the signed session, never from the request.
+  - Every read and write is keyed to the signed-in account's own partition.
+  - A request field that names an owner, a role or a verification state is refused, not ignored ([`request-input.ts`](lib/request-input.ts)).
+  - Photo keys are built by the server inside the owner's own folder.
+  - Deletion can only remove that owner's files ([`deletion-plan.ts`](lib/deletion-plan.ts)).
+  - All storage access, and every ownership check, lives in one module: [`lib/server/`](lib/server/production-store.ts).
 - **Consent is explicit and recorded.** Sharing is off until switched on, and every change is kept with the exact wording the person saw. Publishing to Community is a separate, deliberate act that can be undone.
-- **Photos stay private.** Encrypted S3 with public access blocked, links that expire in an hour, location data stripped, and scan photos nobody keeps deleted within two days.
-- **AI never decides identity or access.** A brand name read by AI only prefills an unverified label; registry evidence alone verifies a product.
-- **Accounts are hardened.** scrypt password hashes at OWASP's recommended cost (older hashes upgrade at their owner's next sign-in), signed HTTP-only sessions, an enforced Content Security Policy with a fresh script nonce on every page, shared sign-in limits, a bot trap, a 90-day activity log without IP addresses, and optional two-step sign-in for brands. New brands are approved before they can enroll anything. Demo sessions cannot publish, change sign-in settings, edit the demo brand or reach a real brand's numbers.
-- **Abuse costs the attacker, not Racked.** Rate limits on every write, and daily AI budgets per account and site-wide that fail closed.
-- **People can leave.** Deleting a piece, an outfit, a Community look, or the whole consumer account is owner-scoped and retry-safe.
+- **Photos stay private.**
+  - Storage is encrypted S3 with all public access blocked. Links expire in an hour.
+  - Uploads are type-checked, size-limited and decoded within a pixel cap.
+  - Brand photos are re-encoded without location or camera data.
+  - Scan photos nobody keeps are deleted within two days.
+- **The AI is boxed in.**
+  - Hanger's tools can only read the signed-in wardrobe and anonymous public totals. It has no tool that writes, deletes or changes a setting.
+  - Save and Record happen only when a person taps them, and the server checks ownership again.
+  - An outfit reaches the screen only through the outfit builder, from pieces the account owns.
+  - Model replies are shown as plain text: no HTML or Markdown is rendered anywhere in the app.
+  - A brand name read by AI only fills in an unverified label. Registry evidence alone verifies a product.
+  - Each scan result is signed by the server, so a saved garment can only point at a photo stored for that account.
+  - Brand Hanger sees only released aggregates and makes no model call below the threshold.
+- **Accounts are hardened.**
+  - Passwords use scrypt with a unique salt at OWASP's recommended cost.
+  - Sessions are signed, HTTP-only, SameSite cookies, re-checked against the account on every request, so signing out everywhere or changing a password ends other sessions at once.
+  - Reset tokens are stored only as a hash, work once and expire after 30 minutes.
+  - Brands can turn on optional two-step sign-in (TOTP): the secret is sealed with AES-256-GCM, each code works once, and attempts are counted before they are checked.
+  - Each account has a 90-day activity log with no IP addresses.
+  - New brands are approved before they can enroll anything.
+  - Demo sessions cannot publish, change sign-in settings, edit the demo brand or reach a real brand's numbers.
+- **The browser is locked down.**
+  - Every page has an enforced Content Security Policy with a fresh script nonce per request; injected inline scripts do not run.
+  - HSTS, `nosniff` and `X-Frame-Options: DENY` are set.
+  - Every state-changing request must carry an Origin on an explicit allowlist. The request's own Host header grants no trust.
+- **Abuse is capped.**
+  - Every write and sign-in is rate-limited.
+  - Shared limits in DynamoDB hold across all servers.
+  - Sign-up and reset forms carry a bot trap.
+  - AI budgets apply per account per day, and site-wide per day in model calls. Every model call is metered, including each agent round, and the budgets fail closed, so Bedrock spend has a hard ceiling.
+- **People can leave.** Deleting a piece, an outfit, a Community look or the whole consumer account is owner-scoped and retry-safe.
+
+### How it was built
+
+- **The rules came before the code.**
+  - [CONTRIBUTING.md](CONTRIBUTING.md) sets hard boundaries: never weaken authentication or role checks, preserve consent and `k ≥ 25`, and never let AI-read text create a verified brand.
+  - A change that weakens one is closed, not merged.
+- **Nothing reaches production unreviewed.**
+  - Every change arrives by pull request to a protected `main`.
+  - CI and CodeQL must pass before merge.
+  - Force pushes and branch deletion are blocked.
+- **AI coding agents work under written safety rules.**
+  - Racked is built with two AI coding agents working in parallel, each in its own lane ([AGENTS.md](AGENTS.md)).
+  - Neither may sign in to production, write test data there, or commit a secret, including the demo passwords.
+  - Live checks are read-only and unauthenticated.
+  - Scripts that could write to AWS do nothing without an explicit opt-in, and default to a dry run.
+- **Claims are verified, not assumed.**
+  - Live AWS settings are read back, not taken from the template: encryption, public-access block, photo expiry and record expiry, via `pnpm verify:aws`.
+  - The Content Security Policy ran in report-only mode on the live site until a check found no violations, and was enforced only then.
+  - Known gaps are published in [SECURITY.md](SECURITY.md) under "Still open", not left out.
+
+### How it is tested
+
+- **On every change.**
+  - CI runs a production dependency audit, lint, a type check, 937 tests, a production build, and accessibility checks that also fail on any Content Security Policy violation.
+  - CodeQL scans every pull request and runs weekly.
+  - Dependabot proposes updates weekly.
+  - The security-focused test files are listed [below](#testing-and-ci).
+- **A local attack harness.**
+  - [`scripts/security-harness/`](scripts/security-harness/integration.mjs) drives a production build of the real routes and storage code, against a local DynamoDB, with synthetic accounts. It cannot reach AWS.
+  - It tries to sign in past the lockout, read and edit another account's pieces, open another brand's analytics, and release a cohort at 24 owners instead of 25. It also enumerates products past the budget, runs Hanger with the AI budget exhausted, and looks for leaked details in error responses and logs.
+  - **63 of 63 checks passed** on its last run (2026-10-27). [Results and how to repeat them](docs/security-verification.md#local-integration--synthetic-accounts-local-dynamodb).
+- **Attacks on the AI.** [`ai-privacy-boundaries.test.ts`](tests/ai-privacy-boundaries.test.ts) feeds the real code the following, and none of them changes anything:
+  - a model reply that declares a garment verified
+  - injected tool calls (`record_wear`, `delete_account`, `set_role`)
+  - tool arguments naming another account
+  - an instruction hidden in a garment name
+  - a replayed answer below the threshold
+- **Read-only probes of the live site after each deploy.**
+  - Security headers and the enforced policy are present.
+  - Cross-site and forged-host writes are refused (403), and an oversized body is refused (413).
+  - No credentials or source maps appear in the public scripts.
+  - `/.env` and `/.git` return 404.
+  - [Results](docs/security-verification.md#live-site--read-only-unauthenticated).
+- **Independent review.**
+  - In November 2026 the code was audited using Cloudflare's open-source security-audit methodology.
+  - Every candidate issue had to be reproduced in an isolated sandbox with synthetic data, then re-checked by a separate reviewer. Production was never touched.
+  - It found no path to another person's wardrobe or photos, no account takeover, and no code execution.
+  - The hardening items it raised are being fixed before they are documented.
 
 **Disclaimer.** The AI can be wrong. Its recognition accuracy is measured above and is high but not perfect, which is why nothing is saved until a person confirms it. The demo accounts and cohort are synthetic and labelled `DEMO`, pricing is a proposal and nothing is billed, and Racked does not claim recognition accuracy beyond the measured benchmark, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. This is a contest entry, source-available for evaluation under its [LICENSE](LICENSE), not a finished commercial service.
 
@@ -242,7 +330,9 @@ Coverage over the whole suite (2026-11-01): **96.48% of lines, 87.00% of branche
 | What is protected | Tests |
 | --- | --- |
 | Brands see private wear only at `k ≥ 25` | [`privacy`](tests/privacy.test.ts) · [`brand-route-guards`](tests/brand-route-guards.test.ts) · [`brand-integrity`](tests/brand-integrity.test.ts) |
-| Sessions, accounts, two-step sign-in and deletion | [`session-guards`](tests/session-guards.test.ts) · [`two-step`](tests/two-step.test.ts) · [`account-and-garment-deletion`](tests/account-and-garment-deletion.test.ts) |
+| Sessions, accounts, two-step sign-in and deletion | [`session-guards`](tests/session-guards.test.ts) · [`two-step`](tests/two-step.test.ts) · [`password-hash`](tests/password-hash.test.ts) · [`account-and-garment-deletion`](tests/account-and-garment-deletion.test.ts) |
+| The AI cannot be talked into crossing a boundary | [`ai-privacy-boundaries`](tests/ai-privacy-boundaries.test.ts) · [`hanger-agent`](tests/hanger-agent.test.ts) |
+| Requests, origins, headers and abuse limits | [`security-hardening`](tests/security-hardening.test.ts) · [`request-input`](tests/request-input.test.ts) · [`site-origin`](tests/site-origin.test.ts) · [`rate-limit`](tests/rate-limit.test.ts) · [`abuse-limits`](tests/abuse-limits.test.ts) · [`ai-budget`](tests/ai-budget.test.ts) |
 | Only registry evidence verifies a brand | [`product-registry`](tests/product-registry.test.ts) · [`brand-autofill`](tests/brand-autofill.test.ts) |
 | Photo recognition and intake | [`look-garment-detection`](tests/look-garment-detection.test.ts) · [`look-scan-resilience`](tests/look-scan-resilience.test.ts) · [`garment-intake`](tests/garment-intake.test.ts) |
 | Hanger as an agent and a stylist | [`hanger-agent`](tests/hanger-agent.test.ts) · [`stylist-regression`](tests/stylist-regression.test.ts) · [`garment-knowledge`](tests/garment-knowledge.test.ts) |
