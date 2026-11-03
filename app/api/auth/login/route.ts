@@ -6,8 +6,10 @@ import { deviceLabel } from "@/lib/device-label";
 import { isKnownDevice, KNOWN_DEVICE_COOKIE, knownDeviceCookie } from "@/lib/known-device";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
-import { claimAddressRequest, claimSignInAttempt, releaseSignInAttempt } from "@/lib/server/abuse-guard";
+import { claimAddressRequest, claimDemoSession, claimSignInAttempt, releaseSignInAttempt } from "@/lib/server/abuse-guard";
 import { authenticateAccount, findAccountByEmail, getAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
+import { SHARED_DEMO_ACCOUNTS } from "@/lib/demo-session";
+import { openDemo } from "@/lib/server/demo-entry";
 import { createTwoStepChallenge, TWO_STEP_CHALLENGE_COOKIE, TWO_STEP_CHALLENGE_MS, TWO_STEP_CHALLENGE_PATH, twoStepEnabled } from "@/lib/two-step";
 
 export async function POST(request:Request) {
@@ -38,6 +40,15 @@ export async function POST(request:Request) {
     }
     if(paused.reserved)await releaseSignInAttempt(email,knownDevice,now).catch(()=>undefined);
     if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});
+    // The seeded judge accounts in the README are shared by every judge. Their password opens the
+    // same demo as the matching button on this screen, never the shared account itself, so no judge
+    // can change what the next one sees (lib/demo-session.ts). Nothing is logged to the shared account.
+    const demo=Object.hasOwn(SHARED_DEMO_ACCOUNTS,account.id)?SHARED_DEMO_ACCOUNTS[account.id]:null;
+    if(demo){
+      const bySite=await claimDemoSession();
+      if(!bySite.allowed)return NextResponse.json({error:"The demo is busy right now. Try again in a few minutes."},{status:429,headers:{"retry-after":String(bySite.retryAfterSeconds)}});
+      return await openDemo(demo,secret);
+    }
     const production=process.env.NODE_ENV==="production";
     // With two-step sign-in on, the right password earns a five-minute challenge, not a session: the
     // session is issued by /api/auth/two-step once a code from the authenticator app is right too.

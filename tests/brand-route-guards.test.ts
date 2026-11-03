@@ -88,12 +88,14 @@ test("a brand's catalog stops at 300 products, checked early and enforced in the
   assert.equal(BRAND_PRODUCT_LIMIT, 300);
   assert.match(productLimitMessage(300), /limit of 300 products/);
   const route = read("app/api/brand/products/route.ts");
-  assert.ok(route.indexOf("brandProductCount(access.account)>=BRAND_PRODUCT_LIMIT") < route.indexOf("readCappedFormData(request)"), "a full catalog is refused before any photo is read");
+  assert.ok(route.indexOf("brandProductCount(access.account)>=brandProductLimit(session.subject)") < route.indexOf("readCappedFormData(request)"), "a full catalog is refused before any photo is read");
   const store = read("lib/server/production-store.ts");
+  assert.match(store, /export function brandProductLimit\(ownerId:string\)\{return isDemoAccountId\(ownerId\)\?DEMO_BRAND_PRODUCT_LIMIT:BRAND_PRODUCT_LIMIT;\}/, "300 for a real brand");
   const save = store.slice(store.indexOf("export async function saveBrandProduct"), store.indexOf("/** Whether brand sharing is on"));
   assert.match(save, /new TransactWriteCommand\(\{TransactItems:\[/, "the product and the count are written together or not at all");
   assert.match(save, /UpdateExpression:"SET productCount = productCount \+ :one",ConditionExpression:"productCount < :limit"/, "so requests sent at once cannot pass the limit");
-  assert.match(save, /reasons\[1\]\?\.Code==="ConditionalCheckFailed"\)throw new RequestRefused\(productLimitMessage\(limit\),409\)/);
+  assert.match(save, /const limit=brandProductLimit\(ownerId\);/);
+  assert.match(save, /reasons\[1\]\?\.Code==="ConditionalCheckFailed"\)throw new RequestRefused\(brandProductLimitMessage\(ownerId\),409\)/);
   const count = store.slice(store.indexOf("export async function brandProductCount"), store.indexOf("export async function saveBrandProduct"));
   assert.match(count, /Select:"COUNT",ConsistentRead:true/, "a brand from before the limit is counted once from its real catalog");
   assert.match(count, /ConditionExpression:"attribute_exists\(PK\) AND attribute_not_exists\(productCount\)"/, "and the count is set only if none exists");

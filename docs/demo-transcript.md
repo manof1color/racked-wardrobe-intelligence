@@ -8,7 +8,7 @@ without sound or captions. The screen action for each shot is in the
 
 Brands know what people buy. They don't know what people actually wear. Racked shows them, without anyone's closet ever being exposed.
 
-**0:12–0:20 · Sign in, then Try the demo**
+**0:12–0:20 · Sign in, then Judge Consumer**
 
 It's live on AWS. One click, no password.
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Role } from "@/lib/types";
 import { BRAND_SHARING_TERMS } from "@/lib/brand-sharing-consent";
+import { DEMO_CHOICES, type DemoChoice } from "@/lib/demo-session";
 
 type AuthMode="signin"|"create";
 
@@ -27,7 +28,7 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
   const [code,setCode]=useState("");
   const [useRecovery,setUseRecovery]=useState(false);
   // "Try the demo" keeps its own progress and error, shown beside its button rather than under the form.
-  const [demoBusy,setDemoBusy]=useState(false);
+  const [demoBusy,setDemoBusy]=useState<DemoChoice|null>(null);
   const [demoError,setDemoError]=useState("");
 
   async function submit() {
@@ -42,16 +43,16 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
     } catch(reason){setError(reason instanceof Error?reason.message:"Account access failed.");setBusy(false);}
   }
 
-  // "Try the demo" (lib/demo-session.ts): one click, no typing. The wardrobe demo is a fresh copy for
-  // this visitor; the brand demo is the shared demo brand, read-only.
-  async function tryDemo(kind:"consumer"|"brand") {
-    setDemoBusy(true);setDemoError("");
+  // "Try the demo" (lib/demo-session.ts): one click, no typing, for any of the four judge accounts
+  // in the README. The wardrobes and New Brand are fresh for this visitor; Judge Brand is shared, read-only.
+  async function tryDemo(kind:DemoChoice) {
+    setDemoBusy(kind);setDemoError("");
     try {
       const response=await fetch("/api/auth/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind})});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error??"The demo is temporarily unavailable.");
       window.location.assign(data.destination);
-    } catch(reason){setDemoError(reason instanceof Error?reason.message:"The demo is temporarily unavailable.");setDemoBusy(false);}
+    } catch(reason){setDemoError(reason instanceof Error?reason.message:"The demo is temporarily unavailable.");setDemoBusy(null);}
   }
 
   async function submitCode() {
@@ -92,10 +93,12 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       <h1 id="auth-title">{mode==="signin"?"Welcome back.":"Create your Racked account."}</h1>
       <p>{mode==="signin"?"Sign in to your wardrobe or brand workspace.":"Choose the workspace that matches how you will use Racked."}</p>
       {mode==="signin"&&<section className="demo-entry" aria-labelledby="demo-entry-title">
-        <h2 id="demo-entry-title">Just looking?</h2>
-        <p>Open a ready-made wardrobe with one click. No sign-up: it’s made-up data, a fresh copy just for you, and it’s gone after a day.</p>
-        <button className="button button-dark button-full" disabled={busy||demoBusy} onClick={()=>tryDemo("consumer")}>{demoBusy?"Opening…":"Try the demo →"}</button>
-        <button type="button" className="text-button" disabled={busy||demoBusy} onClick={()=>tryDemo("brand")}>Or see the brand side: try the demo brand</button>
+        <h2 id="demo-entry-title">Try the demo</h2>
+        <p>Open any judge account with one click. No sign-up and no password: it’s made-up data, and anything you add is gone after a day.</p>
+        <div className="demo-choices">{DEMO_CHOICES.map(entry=><button key={entry.choice} type="button" className="demo-choice" disabled={busy||demoBusy!==null} onClick={()=>tryDemo(entry.choice)} aria-describedby={`demo-${entry.choice}`}>
+          <strong>{demoBusy===entry.choice?"Opening…":<>{entry.label} →</>}</strong>
+          <span id={`demo-${entry.choice}`}>{entry.description}</span>
+        </button>)}</div>
         {demoError&&<div className="form-error" role="alert">{demoError}</div>}
       </section>}
       <div className="role-switch" role="group" aria-label="Account action">
