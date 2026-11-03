@@ -11,6 +11,10 @@ closets, and the obvious ways to collect it are invasive. Consumers have the mir
 no simple, private way to organize real clothes, build outfits, and see what they actually use, which
 is why most wardrobe apps are abandoned after a week of manual data entry.
 
+James began Racked after seeing clothing waste in Kenya. WRAP found that 26% of the average UK
+wardrobe went unworn for a year; globally, production doubled from 2000 to 2015 while utilization
+fell 36%. Racked acts before disposal by helping clothing remain useful. [Evidence and boundaries](sustainability-and-business-impact.md).
+
 ## Solution
 
 Racked is a two-sided wardrobe-intelligence platform. A consumer photographs an outfit, a flat lay, or
@@ -24,6 +28,11 @@ told it sees nothing, and is not even shown the count. A garment becomes a verif
 only through registry evidence — a barcode, or the brand together with its own style code. A product
 the owner picked from the catalog is stored as their claim and never reaches a brand. Consumers are
 free; brands pay, because post-purchase wear is what they cannot buy anywhere else.
+
+Two real brands agreed to the pilot, created accounts and uploaded products: participation, not
+payment. Repeat-wear and pairing evidence can inform product, inventory and campaign decisions. At
+the proposed $149 monthly price, avoiding 72 excess units at a $25 landed cost is an illustrative
+annual break-even, not measured pilot ROI.
 
 ## Key technical choices
 
@@ -48,13 +57,6 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 - **A feature that looks better can be worse.** I built background removal early because cut-outs
   look sharp, and on real phone photos it erased white trousers against a pale wall. Showing an
   honest bounded crop beat a cut-out that sometimes deleted the garment.
-- **Measure before defending.** Asked about test coverage, I measured instead of arguing: the two
-  weakest modules were the session guard at 76% branch coverage and the Recreate engine at 61%. Both
-  are now above 97%, and writing those tests exposed a real defect — a signed token with a surplus
-  segment was being accepted.
-- **A UI can lie in both directions.** The worst bug I shipped told users a brand product was linked
-  while saving no link at all, so no brand ever received that owner. It passed every test that
-  checked the screen and none that checked what was stored.
 - **Measure before you claim.** I did not claim recognition accuracy until I had measured it: the live
   scan placed 92.8% of 293 independent, locked photos in the right category. I still do not claim
   sales lift or purchase intent. Naming the gaps cost nothing and made everything else more credible.

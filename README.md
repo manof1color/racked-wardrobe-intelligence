@@ -5,7 +5,7 @@
 
 **Brands know what consumers buy. Racked shows them what consumers actually wear — without ever seeing anyone's closet.**
 
-People get a private wardrobe and an AI stylist that are useful on their own. Brands get consented intelligence about how their products are really worn, released only for groups of at least 25 people — never names, photos, or wardrobes.
+People get a private wardrobe and an AI stylist that help them use more of what they already own. Brands get consented intelligence about which products earn repeat wear and what they are worn with, released only for groups of at least 25 people — never names, photos, or wardrobes. The result is one feedback loop for consumer value, lower-waste decisions, and better-informed products.
 
 | | |
 | --- | --- |
@@ -35,12 +35,12 @@ Each scoring category, what to look for, and where to check it.
 
 | Category | Weight | What to look for | Verify it |
 | --- | ---: | --- | --- |
-| **Problem & relevance** | 20% | Purchase data stops at checkout. Racked measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Evidence](#evidence-and-what-is-not-claimed) · [One-page summary](docs/one-page-summary.md) |
+| **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
 | **Code, docs & GitHub** | 15% | **939 tests** in 120 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **181 merged PRs** counted on 2026-10-30 before this documentation merge; build log through Phase 98 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
-| **Business impact** | 10% | Consumers free; brands pay for post-purchase intelligence they cannot get elsewhere; a Starter tier for brands still below the threshold | [Pricing](#business-model--pricing-proposed--not-currently-billed) · [Pricing page](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing) |
+| **Business impact** | 10% | Two real apparel brands have joined the pilot and uploaded products. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even equals roughly 72 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
 
 Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checklist.md).
@@ -84,11 +84,33 @@ The demo is two flows and nothing else. Everything outside them is built and wor
 
 Purchase history stops at the transaction. It cannot show whether a product was worn once, became a favourite, sat untouched, or anchors outfits with other pieces.
 
-1. **A wardrobe and stylist for people** — photograph your clothes, build outfits, record what you wear (earning private [wear points](docs/brand-linking-incentives.md#wear-points-owner-decision-2026-10-29) for it), and talk to Hanger, an AI stylist that only ever dresses you from what you own.
+1. **A wardrobe and stylist for people** — photograph your clothes, build outfits, record what you wear (earning private [wear points](docs/brand-linking-incentives.md#wear-points-owner-decision-2026-10-29) for it), bring underused pieces back into rotation, and talk to Hanger, an AI stylist that only ever dresses you from what you own.
 2. **Actual-wear intelligence for brands** — confirmed wear, repeat use and pairings for a brand's own products, released only when at least 25 opted-in owners qualify.
 3. **Optional public discovery** — an outfit someone deliberately publishes becomes a Community look others can recreate from their own closets.
 
 **Who it is for.** People who own more clothes than they can keep track of and want a private place to sort them out and get outfits from what they already have. And apparel brands that want to know how their products are really worn after the sale, without asking anyone to hand over a closet.
+
+---
+
+## Why This Matters: More Wear, Less Waste
+
+Racked began with James Harris's experience in Kenya, where he saw the consequences of clothing waste and wanted to connect consumer usefulness with better information for brands. The product works before disposal: recycling tries to recover value after clothing becomes waste; Racked helps a garment remain useful in the wardrobe and gives its maker evidence about what earned continued use.
+
+The scale is documented, but the claims are kept specific:
+
+| Evidence | Why it matters to Racked |
+| --- | --- |
+| In a large UK study, the average adult owned 118 clothing items and **26% — about 31 pieces — had not been worn in the previous year** ([WRAP](https://www.wrap.ngo/resources/report/citizen-insights-clothing-longevity-and-circular-business-models-receptivity-uk)) | Hanger builds from owned garments, the ranker favors rotation when requested, and wear points give a private reason to bring a piece back after 60 days |
+| From 2000 to 2015, clothing production doubled while the number of times an item was worn before disposal fell **36%** ([Ellen MacArthur Foundation](https://www.ellenmacarthurfoundation.org/fashion-business-models/overview)) | Racked measures use after purchase rather than treating the sale as the end of the product story |
+| Globally, **73%** of material used for clothing is eventually landfilled or burned, while less than **1%** of old clothing becomes new clothing ([Ellen MacArthur Foundation](https://www.ellenmacarthurfoundation.org/articles/wearnext)) | Extending use and learning which products remain useful complement reuse and recycling; Racked does not claim that software alone solves end-of-life waste |
+
+**The consumer value:** see what is owned, rediscover underused pieces, build new combinations, repeat saved outfits, and recognize a real wardrobe gap before buying a duplicate.
+
+**The brand value:** use privacy-released repeat-wear, longevity and pairing signals to inform restocks, production quantities, product development, merchandising and campaign creative. At the proposed $149 monthly Standard price, the annual cost is $1,788. As an illustration — not a measured customer result — avoiding about **72 excess units at a $25 landed cost** would cover that annual subscription. The assumptions and formulas are explicit in [Sustainability and business impact](docs/sustainability-and-business-impact.md).
+
+**The early market signal:** two independent apparel brands, **_victimdesigns** and **vversatile.usa**, have already agreed to the pilot, created brand accounts and uploaded products. That is observed participation, stronger than hypothetical survey interest. It does **not** yet prove pricing acceptance, recurring usage, waste reduction or financial return; those are the next measurements.
+
+Kenya's circular-economy work identifies textiles, apparel and fashion as a priority and emphasizes extending product life and minimizing waste ([State Department for Environment and Climate Change](https://environment.go.ke/index.php/ministry-validates-national-circular-economy-strategy-and-implementation-plan-2027-2032)). UNEP has also documented Kenyan businesses returning textile waste to use through collection and upcycling ([UNEP](https://www.unep.org/en/news-and-stories/story/kenya-textiles-get-second-life)).
 
 ---
 
