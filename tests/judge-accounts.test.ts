@@ -1,12 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import sharp from "sharp";
 import { rankCatalogCandidates, searchCatalog } from "../lib/catalog-match.ts";
 import { costPerWearLine } from "../lib/cost-per-wear.ts";
 import { matchBrandProduct } from "../lib/product-registry.ts";
 import { MINIMUM_COHORT_SIZE } from "../lib/privacy.ts";
 import { buildWearUsageAnalytics, MINIMUM_CELL_SIZE } from "../lib/metrics.ts";
 import { JUDGE_CHART_RULE, judgeChartProblems, weeklyWearBuckets } from "../scripts/lib/judge-wear-window.mjs";
+import { JUDGE_PHOTO_DIR, JUDGE_PHOTO_SIZE, JUDGE_PHOTO_TYPE, judgePhoto, judgePhotoPath, productPhotoName } from "../scripts/lib/judge-photos.mjs";
 import type { BrandProductRegistration } from "../lib/platform-types.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -101,6 +104,42 @@ test("nothing a judge is shown points at an image that was never uploaded", () =
   }
   for (const post of items.filter((item) => item.PK === "COMMUNITY" && String(item.SK).startsWith("POST#"))) {
     for (const garment of (post.publishedGarments as Array<{ imageKey: string }>)) assert.ok(objects.has(garment.imageKey), `published look points at missing image ${garment.imageKey}`);
+  }
+});
+
+// The judge accounts show AI-generated photos of fictional items (docs/judge-accounts.md), one per
+// wardrobe piece and per product view. A missing or oversized photo would show a broken tile or a
+// slow page to every judge.
+test("every judge image is one of the demo photos, and every photo is used", () => {
+  const photos = readdirSync(JUDGE_PHOTO_DIR).filter((name) => name.endsWith(".webp")).map((name) => name.replace(/\.webp$/, "")).sort();
+  const expected = [...judgeGarments.filter((garment) => !String(garment.registryProductId ?? "") && !String(garment.selectedProductId ?? "")).map((garment) => String(garment.id).replace("judge-garment-", "")), ...products.flatMap((product) => ["front", "back", "label"].map((view) => productPhotoName(product.sku, view)))].sort();
+  assert.deepEqual(photos, expected, "one photo per plain wardrobe piece and per product view, with none left over");
+  for (const key of objects) {
+    if (key.startsWith(`wardrobe/${JUDGE_SEED_IDS.consumer.id}/`) || key.startsWith(`brand/${JUDGE_SEED_IDS.brand.id}/`)) assert.match(key, /\.webp$/, key);
+  }
+  // The verified tee and the picked overshirt in the closet show their product's own front photo.
+  for (const [id, sku] of [["judge-garment-verified-tee", "JDA-001"], ["judge-garment-picked-overshirt", "JDA-002"]]) {
+    assert.ok(judgeGarments.some((garment) => garment.id === id && String(garment.imageKey).endsWith(`/${id}.webp`)), id);
+    assert.ok(photos.includes(productPhotoName(sku, "front")));
+  }
+  assert.throws(() => judgePhoto("not-a-photo"), /Missing judge photo not-a-photo\.webp/);
+});
+
+test("each demo photo is a 900x1100 WebP under 250 KB, and each product view records its real bytes", async () => {
+  for (const name of readdirSync(JUDGE_PHOTO_DIR).filter((file) => file.endsWith(".webp"))) {
+    const path = `${JUDGE_PHOTO_DIR}/${name}`;
+    const { width, height, format } = await sharp(path).metadata();
+    assert.deepEqual([width, height, format], [JUDGE_PHOTO_SIZE.width, JUDGE_PHOTO_SIZE.height, "webp"], name);
+    assert.ok(statSync(path).size < 250_000, `${name} is ${statSync(path).size} bytes`);
+  }
+  for (const product of products) {
+    for (const [view, record] of Object.entries(product.views ?? {}) as Array<[string, { contentType: string; size: number; sha256?: string; fileName: string }]>) {
+      const bytes = readFileSync(judgePhotoPath(productPhotoName(product.sku, view)));
+      assert.equal(record.contentType, JUDGE_PHOTO_TYPE);
+      assert.equal(record.size, bytes.length);
+      assert.equal(record.sha256, createHash("sha256").update(bytes).digest("hex"));
+      assert.equal(record.fileName, `${product.sku}-${view}.webp`);
+    }
   }
 });
 

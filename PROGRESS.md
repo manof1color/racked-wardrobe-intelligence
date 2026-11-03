@@ -441,7 +441,25 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - A nonce exists only on a rendered request, so `/pricing`, `/privacy`, `/terms` and the not-found page are now rendered on demand instead of prerendered.
 - Tests: `tests/security-hardening.test.ts` (the policy, nonces, the bucket host, the switch, the matcher, no un-nonced inline script in the app), `tests/pwa.test.ts` (pin), and Playwright: every check fails on any `securitypolicyviolation`, every page gets its own nonce on every script tag, and injected markup is refused.
 
-## Phase 98 — Security fixes: demo AI share, brand aliases, forwarded addresses, known devices, shared demo accounts (2026-11-03)
+## Phase 98 — Demo photos for the judge accounts (2026-11-03)
+
+- **The photos.** The judge seed now writes AI-generated product photos of its fictional items in
+  place of the illustrated art:
+  - the ten closet pieces;
+  - the front, back and label of each Judge Demo Atelier product.
+
+  The owner generated them from a written brief: one item per photo, no people, no real logos, and
+  label text exactly "JUDGE DEMO ATELIER" plus the item's code. They were checked by eye.
+- **Size.** Stored as 900×1100 WebP in `scripts/assets/judge-photos/`: 19 files, under 1 MB in all.
+  The originals were 1.5–3.7 MB each.
+- **How they are written.** They go to S3 as `image/webp`. The closet's verified tee and picked
+  overshirt show their product's front photo. A missing photo stops the seed, in a dry run too.
+- **The main demo cohort** keeps the illustrated art.
+- **Tests:** `tests/judge-accounts.test.ts` (every image is a demo photo and every photo is used; sizes;
+  each product view records its real bytes) and `tests/synthetic-garment-art.test.ts` (updated pin).
+- **Live:** the photos appear once the judge seed is run again.
+
+## Phase 99 — Security fixes: demo AI share, brand aliases, forwarded addresses, known devices, shared demo accounts (2026-11-03)
 
 - **Demo AI share.** Demo sessions now draw model calls from their own share of the daily ceiling (20%, `DEMO_AI_CEILING_SHARE`, under `ai:site-calls:demo`) before the shared counter, so any number of "Try the demo" sessions leaves the rest of the day's calls for real accounts. Every AI route passes `siteModelSpender(session)` to `metered`; a refused demo call never touches the shared counter.
 - **Brand aliases.** `conflictingAlias` now checks both ways: an alias may not contain another brand's name or be part of one, and any alias of five or more characters (the length that takes part in a match) must be a spelling of the account's own name. Other accounts' aliases are protected as well as their names. `matchBrandProduct` returns nothing when a label answers products of two brand accounts, instead of the first one listed.
@@ -452,4 +470,4 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 
 ## Continuous verification
 
-The phase entries above record their historical verification. The current working branch carries **946 passing tests** in 120 files (re-verified 2026-11-03), including session branch coverage at 97.83%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
+The phase entries above record their historical verification. The current working branch carries **948 passing tests** in 120 files (re-verified 2026-11-03), including session branch coverage at 97.83%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
