@@ -123,3 +123,13 @@ verifies the label a judge can type while the retired product answers nothing.
   Nothing in the brand dashboard claims sales, revenue, or intent, in seeded data or anywhere else.
 - **No real brand names.** Judge Demo Atelier and Judge New Label are fictional, and well-known
   brand names cannot be registered at all.
+- **Photos are AI-generated, of fictional items.**
+  - **What they are:** every photo on the judge accounts was generated for this demo with an image
+    model. That covers the ten closet pieces, and the front, back and label of each Judge Demo
+    Atelier product. None shows a real product, a person or a real brand's logo, and the label
+    photos read only "JUDGE DEMO ATELIER" and the item's code.
+  - **Where they live:** `scripts/assets/judge-photos/`, as 900×1100 WebP.
+  - **How they are seeded:** `scripts/lib/judge-photos.mjs` writes them, and the seed stops if one
+    is missing.
+  - **The main demo cohort** still uses the illustrated art from
+    `scripts/lib/synthetic-garment-art.mjs`.

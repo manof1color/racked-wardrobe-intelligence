@@ -53,12 +53,15 @@ test("art is deterministic, escapes text, and never embeds photo-like assets", (
   }
 });
 
-test("both seeds use the shared generator, with no inline SVG copies", () => {
-  for (const path of ["seed-judge-accounts.mjs", "seed-test-cohort.mjs"]) {
-    const source = readFileSync(new URL(`../scripts/${path}`, import.meta.url), "utf8");
-    assert.match(source, /\.\/lib\/synthetic-garment-art\.mjs/);
-    assert.doesNotMatch(source, /<svg\b/);
-  }
+// The cohort seed draws with the shared generator. The judge seed shows AI-generated demo photos
+// instead (scripts/lib/judge-photos.mjs). Neither keeps an inline SVG copy.
+test("the cohort seed uses the shared generator, the judge seed its photos, and neither inlines SVG", () => {
+  const cohort = readFileSync(new URL("../scripts/seed-test-cohort.mjs", import.meta.url), "utf8");
+  assert.match(cohort, /\.\/lib\/synthetic-garment-art\.mjs/);
+  const judge = readFileSync(new URL("../scripts/seed-judge-accounts.mjs", import.meta.url), "utf8");
+  assert.match(judge, /\.\/lib\/judge-photos\.mjs/);
+  assert.doesNotMatch(judge, /synthetic-garment-art/);
+  for (const source of [cohort, judge]) assert.doesNotMatch(source, /<svg\b/);
 });
 
 test("rasterized illustration stays below the seed's 150 KB budget", async () => {
