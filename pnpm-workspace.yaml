@@ -10,3 +10,7 @@ overrides:
   sharp: 0.35.5
   # Security: patched floor for GHSA-2883-xcg3-v3hh in lint tooling -> js-yaml.
   js-yaml: 4.3.2
+  # Security: GHSA-g3hv-75wg-m249 (globparts amplification) in typescript-eslint -> minimatch 10.
+  # Only the 10.x line has the affected code; ESLint's own minimatch 3.x predates it and must stay
+  # on 3.x, whose call style its plugins depend on.
+  'minimatch@>=10 <11': 11.0.1
