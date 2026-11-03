@@ -9,7 +9,7 @@ import { MAX_OUTFIT_SET, rankOutfit, rankOutfitSet, readOutfitIntent, repeatedPi
 import { AI_PAUSED_REASON } from "@/lib/abuse-limits";
 import { metered, meteredOrNull } from "@/lib/ai-budget";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
+import { siteModelCallFor, spendAiAllowance } from "@/lib/server/abuse-guard";
 import { clearHangerConversation, getConsumerInspirationProfile, getHomeCity, listCommunityPosts, listOutfits, listWardrobe, loadHangerConversation, saveHangerConversation } from "@/lib/server/production-store";
 import { fetchForecast, validCoordinates, type Forecast } from "@/lib/weather";
 import type { AgentReply } from "@/lib/platform-types";
@@ -76,6 +76,8 @@ export async function POST(request: Request) {
   const { session, error } = await consumerSession();
   if (error) return error;
   const subject = session!.subject;
+  // A demo's model calls come from the demos' share of the day's ceiling (lib/ai-budget.ts).
+  const spendModelCall = siteModelCallFor(session!);
   const limit = consumeRateLimit(`consumer-agent:${subject}`, RATE_LIMIT_RULES.consumerAgent);
   if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const parsedBody = await request.json().catch(() => ({})) as unknown;
@@ -127,7 +129,7 @@ export async function POST(request: Request) {
       },
       loadTrends: async () => summarizeCommunityTrends(await listCommunityPosts()),
       onFallback: (failure) => { agentOutcome.failure = failure; },
-    }, metered(spendSiteModelCall, bedrockAgentConverse)).catch(() => null);
+    }, metered(spendModelCall, bedrockAgentConverse)).catch(() => null);
     if (agent) {
       const agentActions = allowedOutfitActions("create", message);
       const first = agent.outfits[0] ?? [];
@@ -222,7 +224,7 @@ export async function POST(request: Request) {
     styleSource: ranked?.intent.styleSource ?? plan.intent.styleSource,
     forecast,
     clarification: plan.clarification,
-  }, meteredOrNull(spendSiteModelCall, bedrockHangerConverse));
+  }, meteredOrNull(spendModelCall, bedrockHangerConverse));
   const outfitSet: AgentReply["outfits"] = set.length > 1 ? set.map(({ index, outfit }): NonNullable<AgentReply["outfits"]>[number] => {
     const pieces = outfit.pieces.map((piece) => ({
       id: piece.item.id,

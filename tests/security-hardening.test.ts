@@ -206,8 +206,8 @@ test("a file that is not a real JPEG, PNG, or WebP is refused, whatever it claim
 
 test("brand product photos are re-encoded before anything is stored", () => {
   const route = read("app/api/brand/products/route.ts");
-  assert.ok(route.indexOf("stripImageMetadata(") < route.indexOf("putPrivateImage("), "cleaned first");
-  assert.match(route, /cleaned\.map\(image=>putPrivateImage\(session\.subject,"brand",image\.bytes,image\.contentType\)\)/);
+  assert.ok(route.indexOf("stripImageMetadata(") < route.indexOf("putBrandImage("), "cleaned first");
+  assert.match(route, /cleaned\.map\(image=>putBrandImage\(session\.subject,image\.bytes,image\.contentType\)\)/);
   assert.doesNotMatch(route, /putPrivateImage\([^)]*file\.arrayBuffer/, "the raw upload is never stored");
 });
 
@@ -218,7 +218,7 @@ test("a failed brand enrollment deletes every photo it had already stored", () =
   assert.match(route, /try\{await saveBrandProduct\(session\.subject,product\);\}\s*catch\(error\)\{await discardBrandImages\(session\.subject,storedKeys\);throw error;\}/);
   const store = read("lib/server/production-store.ts");
   const discard = store.slice(store.indexOf("export async function discardBrandImages"), store.indexOf("export async function putScanImage"));
-  assert.match(discard, /key\.startsWith\(`brand\/\$\{ownerId\}\/`\)&&!key\.includes\("\.\."\)/, "only this brand's own photos");
+  assert.match(discard, /\(key\.startsWith\(`brand\/\$\{ownerId\}\/`\)\|\|key\.startsWith\(`\$\{PENDING_SCAN_PREFIX\}brand\/\$\{ownerId\}\/`\)\)&&!key\.includes\("\.\."\)/, "only this brand's own photos, a demo's under temp/ included");
 });
 
 test("session, role, and consent checks read the current record, not a replica", () => {

@@ -3,7 +3,8 @@ import { brandAccess } from "@/lib/server/brand-access";
 import { bedrockHangerConverse, generateBrandHangerReply, sanitizeAgentHistory } from "@/lib/hanger-conversation";
 import { meteredOrNull } from "@/lib/ai-budget";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
+import { siteModelCallFor, spendAiAllowance } from "@/lib/server/abuse-guard";
+import { demoSessionKey } from "@/lib/demo-session";
 import { failureResponse, RequestRefused } from "@/lib/api-errors";
 import { getBrandCommunityMetrics, getRealProductMetrics, listOwnedBrandProducts } from "@/lib/server/production-store";
 import type { AgentReply } from "@/lib/platform-types";
@@ -12,7 +13,10 @@ export async function POST(request: Request) {
   const access = await brandAccess();
   if (!access.ok) return access.response;
   const { session } = access;
-  const limit = consumeRateLimit(`brand-agent:${session.subject}`, RATE_LIMIT_RULES.brandAgent);
+  // The shared demo brand is one account for every visitor, so a demo's questions are counted under
+  // its own session, or one judge would use up the next judge's (lib/demo-session.ts).
+  const spender = session.demo ? demoSessionKey(session) : session.subject;
+  const limit = consumeRateLimit(`brand-agent:${spender}`, RATE_LIMIT_RULES.brandAgent);
   if (!limit.allowed) return NextResponse.json({ error: "Hanger is receiving messages too quickly. Try again shortly." }, { status: 429, headers: { "retry-after": String(limit.retryAfterSeconds) } });
   const body = await request.json().catch(() => null) as { productId?: string; message?: string; history?: unknown } | null;
   const productId = typeof body?.productId === "string" ? body.productId.trim() : "";
@@ -30,7 +34,7 @@ export async function POST(request: Request) {
     // Below the privacy threshold no model is called, so nothing is spent. Above it, a question is
     // spent from the brand's daily allowance, and its model call from the site's ceiling; when the
     // ceiling or the counter refuses, the answer comes from the released aggregates alone.
-    const allowance = metrics.suppressed ? { allowed: true as const } : await spendAiAllowance("brand-hanger", session.subject);
+    const allowance = metrics.suppressed ? { allowed: true as const } : await spendAiAllowance("brand-hanger", spender);
     if (!allowance.allowed && allowance.scope === "account") return NextResponse.json({ error: allowance.message }, { status: 429, headers: { "retry-after": String(allowance.retryAfterSeconds) } });
     const generated = await generateBrandHangerReply({
       message,
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
       product,
       metrics,
       communityMetrics,
-    }, allowance.allowed ? meteredOrNull(spendSiteModelCall, bedrockHangerConverse) : async () => null);
+    }, allowance.allowed ? meteredOrNull(siteModelCallFor(session), bedrockHangerConverse) : async () => null);
     const reply: AgentReply = {
       agent: "brand-wear-intelligence",
       provider: metrics.suppressed ? "privacy-threshold" : generated.usedModel ? "amazon-bedrock" : "grounded-aggregate",
