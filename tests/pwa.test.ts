@@ -49,7 +49,7 @@ test("every non-native install path gives complete browser-specific steps",()=>{
 test("REGRESSION: an install prompt fired before hydration is kept, not lost",()=>{
   const layout=read("app/layout.tsx");
   const component=read("components/pwa-install.tsx");
-  assert.match(layout,/<Script id="capture-install-prompt" strategy="beforeInteractive">\{INSTALL_PROMPT_CAPTURE\}<\/Script>/);
+  assert.match(layout,/<Script id="capture-install-prompt" strategy="beforeInteractive" nonce=\{nonce\}>\{INSTALL_PROMPT_CAPTURE\}<\/Script>/,"with this request's nonce, or the enforced policy blocks it");
   assert.match(INSTALL_PROMPT_CAPTURE,/beforeinstallprompt.*event\.preventDefault\(\);window\.__rackedInstallPrompt=event/);
   assert.match(component,/const early=installWindow\.__rackedInstallPrompt;if\(early\)\{setPrompt\(early\)/);
   assert.match(component,/window\.addEventListener\("racked:installable",adopt\)/);

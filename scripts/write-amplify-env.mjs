@@ -24,6 +24,8 @@ const allowlist = [
   "RACKED_TRUSTED_PROXY_HOPS",
   // Set to "scrypt-n17" to write passwords at OWASP's scrypt cost (lib/password-hash.ts).
   "RACKED_PASSWORD_SCHEME",
+  // Set to "report" to make the Content Security Policy report-only again (lib/content-security-policy.ts).
+  "RACKED_CSP_MODE",
 ];
 
 // The commit this artifact was built from. Amplify sets AWS_COMMIT_ID in the build container; it

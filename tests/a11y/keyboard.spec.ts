@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
+import { expect, test } from "./csp.ts";
 import { mockSignedInApi, PIXEL_PNG } from "./fixtures.ts";
 
 // Keyboard-only passes through both demo flows. Nothing is clicked: every step is Tab, Shift+Tab,
