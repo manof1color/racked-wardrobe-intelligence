@@ -28,7 +28,13 @@ const nextConfig: NextConfig = {
   // No "X-Powered-By: Next.js" banner advertising the framework to scanners.
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      { source: "/api/:path((?!community/images/[^/]+/[^/]+$).*)", headers: [
+        {key: "Cache-Control", value: "private, no-store"},
+        {key: "Vary", value: "Cookie"},
+      ] },
+    ];
   },
 };
 

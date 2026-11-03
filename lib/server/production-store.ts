@@ -1026,7 +1026,7 @@ async function currentCommunityLikes(post:StoredPost) {
   return Number(result.Item?.likes??0);
 }
 
-export async function incrementCommunityLike(postId:string){const post=await findCommunityPostById(postId);if(!post)throw new RequestRefused("Community post not found.", 404);const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ReturnValues:"UPDATED_NEW"}));return Number(result.Attributes?.likes??0);}
+export async function incrementCommunityLike(postId:string){const post=await findCommunityPostById(postId);if(!post)throw new RequestRefused("Community post not found.", 404);const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"UPDATED_NEW"})).catch(error=>{if(error instanceof Error&&error.name==="ConditionalCheckFailedException")throw new RequestRefused("Community post not found.",404);throw error;});return Number(result.Attributes?.likes??0);}
 
 /**
  * Saves an intentional Community inspiration under the signed-in Consumer only.

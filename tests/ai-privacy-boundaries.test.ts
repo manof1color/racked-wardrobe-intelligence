@@ -107,7 +107,7 @@ test("REGRESSION: a group of fewer than five inside a released cohort is withhel
   assert.equal(released.highFrequencyOwners, null);
   const hidden = released.wearDistribution.filter((bucket) => bucket.owners === null);
   assert.ok(hidden.some((bucket) => bucket.label === "6+ wears"));
-  assert.ok(hidden.length >= 2, "a second bucket is withheld too, so the total cannot give the first back");
+  assert.equal(hidden.length, released.wearDistribution.length, "the full distribution is withheld");
   assert.ok(released.withheld.includes("highFrequencyOwners") && released.withheld.includes("wearDistribution"));
   assert.equal(MINIMUM_CELL_SIZE, 5);
 });
@@ -128,4 +128,14 @@ test("timestamps are released as days, and small weekly counts and totals are wi
   assert.ok(released.weeklyTrend.some((point) => point.wears === null), "the week with two wears is withheld");
   assert.equal(released.actualWears, null, "a total of two wears describes one or two people");
   assert.equal(released.averageWearsPerOwner, null, "and the average would give the total back");
+});
+
+test("released repeat wear cannot reveal a hidden high-frequency bucket", () => {
+  const counts=[...Array(6).fill(0),...Array(8).fill(1),...Array(9).fill(3),9,12];
+  const result=releaseWearAnalytics(counts,[]);
+  assert.equal(result.repeatWearRate,null);
+  assert.equal(result.activeOwners,null);
+  assert.equal(result.medianWearsPerOwner,null);
+  assert.equal(result.actualWears,null);
+  assert.ok(result.wearDistribution.every(bucket=>bucket.owners===null&&bucket.percentage===null));
 });

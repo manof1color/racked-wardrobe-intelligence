@@ -27,7 +27,11 @@ const site = { host: "main.d2iv0khybuuaeh.amplifyapp.com" };
 const ownOrigin = "https://main.d2iv0khybuuaeh.amplifyapp.com";
 
 test("every response carries the browser security headers", async () => {
-  const [rule] = await nextConfig.headers!();
+  const [rule, apiRule] = await nextConfig.headers!();
+  const privateHeaders=Object.fromEntries(apiRule.headers.map(({key,value})=>[key,value]));
+  assert.equal(privateHeaders["Cache-Control"],"private, no-store");
+  assert.equal(privateHeaders.Vary,"Cookie");
+  assert.match(read("lib/server/production-store.ts"), /function incrementCommunityLike[^\n]*ConditionExpression:"attribute_exists\(PK\)"[^\n]*ConditionalCheckFailedException[^\n]*404/);
   assert.equal(rule.source, "/:path*");
   const headers = Object.fromEntries(rule.headers.map(({ key, value }) => [key, value]));
   assert.match(headers["Strict-Transport-Security"], /max-age=31536000/);
