@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.app", "*.ngrok.io", "192.168.*.*", "10.*.*.*"],
   // No "X-Powered-By: Next.js" banner advertising the framework to scanners.
   poweredByHeader: false,
+  images: {localPatterns: [{pathname: "/icon-192.png", search: ""}]},
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },

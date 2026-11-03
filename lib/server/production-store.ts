@@ -13,7 +13,7 @@ import { validCoordinates, type Place } from "@/lib/weather";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
-import { brandProductUpdate, isReservedBrandName, matchBrandProduct, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
+import { brandProductUpdate, isReservedBrandName, matchBrandProduct, registryIdentityConflict, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
 import { releaseWearAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { ENUMERATION_WINDOW_MS, enumerationBudgetState, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "@/lib/privacy";
@@ -153,12 +153,12 @@ async function reserveBrandName(brandName:string,accountId:string) {
 /** Names held by other brand accounts, which this account's product aliases may not claim. */
 export async function otherBrandNames(ownerId:string,known?:BrandProductRegistration[]) {
   const [claims,registry]=await Promise.all([
-    queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_NAMES"}}).catch(()=>[] as Record<string,unknown>[]),
+    queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_NAMES"}}),
     known?Promise.resolve(known):listRegistryProducts(),
   ]);
   const names=new Set<string>();
   for(const claim of claims)if(claim.accountId!==ownerId&&typeof claim.brandName==="string")names.add(claim.brandName);
-  for(const product of registry)if(product.ownerSubject!==ownerId)names.add(product.brand);
+  for(const product of registry)if(product.ownerSubject!==ownerId)for(const name of [product.brand,...(product.aliases??[])])names.add(name);
   return [...names];
 }
 
@@ -823,9 +823,16 @@ export async function updateBrandProduct(ownerId:string,productId:string,edit:Br
   if(!existing)return null;
   const patch=brandProductUpdate(existing,edit,otherNames);
   if(!Object.keys(patch).length)return existing;
+  if(existing.archived&&edit.archived===false){
+    const conflict=registryIdentityConflict(existing,await listRegistryProducts());
+    if(conflict)throw new RequestRefused(conflict,409);
+  }
   const merged={...existing,...patch} as Record<string,unknown>;
   for(const [key,value] of Object.entries(patch))if(value===null)delete merged[key];
-  await db.send(new PutCommand({TableName:requireTable(),Item:{...merged,PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${existing.brandSlug}#${existing.sku}`},ConditionExpression:"attribute_exists(PK) AND attribute_exists(SK)"}));
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...merged,PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${existing.brandSlug}#${existing.sku}`},ConditionExpression:`attribute_exists(PK) AND attribute_exists(SK) AND ${existing.archived===undefined?"attribute_not_exists(archived)":"archived = :archived"}`,...(existing.archived===undefined?{}:{ExpressionAttributeValues:{":archived":existing.archived}})})).catch(error=>{
+    if(error instanceof Error&&error.name==="ConditionalCheckFailedException")throw new RequestRefused("The product changed. Refresh and try again.",409);
+    throw error;
+  });
   return merged as unknown as BrandProductRegistration;
 }
 
@@ -913,7 +920,26 @@ export async function setHomeCity(ownerId:string,place:Place|null) {
 type StoredPost=StoredCommunityPost&{ownerId:string;sourceOutfitId?:string;sourceBrandLookId?:string};
 // Public feed responses are rebuilt through toPublicOutfitPost so stored private fields
 // (ownerId, imageKey, DynamoDB key attributes) never reach the browser.
-export async function listCommunityPosts():Promise<OutfitPost[]>{const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60}));return (result.Items??[]).map(raw=>toPublicOutfitPost(raw as unknown as StoredPost));}
+async function visibleCommunityPosts(posts:StoredPost[]){
+  const owners=[...new Set(posts.filter(post=>post.sourceType==="brand"||post.sourceBrandLookId).map(post=>post.ownerId).filter(Boolean))];
+  if(!owners.length)return posts.filter(post=>post.sourceType!=="brand"&&!post.sourceBrandLookId);
+  const table=requireTable();
+  const result=await db.send(new BatchGetCommand({RequestItems:{[table]:{Keys:owners.map(id=>({PK:`USER#${id}`,SK:"PROFILE"})),ConsistentRead:true,ProjectionExpression:"id, #role, brandStatus",ExpressionAttributeNames:{"#role":"role"}}}}));
+  const approved=new Set((result.Responses?.[table]??[]).filter(brandApproved).map(account=>account.id));
+  return posts.filter(post=>post.sourceType!=="brand"&&!post.sourceBrandLookId||approved.has(post.ownerId));
+}
+
+export async function listCommunityPosts():Promise<OutfitPost[]>{
+  const visible:StoredPost[]=[];
+  let startKey:Record<string,unknown>|undefined;
+  for(let page=0;page<12&&visible.length<60;page++){
+    const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60,...(startKey?{ExclusiveStartKey:startKey}:{})}));
+    visible.push(...await visibleCommunityPosts((result.Items??[]) as unknown as StoredPost[]));
+    startKey=result.LastEvaluatedKey;
+    if(!startKey)break;
+  }
+  return visible.slice(0,60).map(toPublicOutfitPost);
+}
 export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;caption:string;outfitId:string}){
   const [account,wardrobe,outfits,registry]=await Promise.all([getAccount(ownerId),listWardrobe(ownerId),listOutfits(ownerId),listRegistryProducts()]);
   if(!account)throw new RequestRefused("Account not found.", 404);
@@ -943,13 +969,14 @@ export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;
 // filter, and those queries read oldest-first while the feed renders newest-first, so
 // past 60 posts they could no longer find any post a person could actually see.
 async function findCommunityPostById(postId:string){
-  return findByPaginatedQuery<StoredPost>(
+  const post=await findByPaginatedQuery<StoredPost>(
     (post)=>post.id===postId,
     async (startKey)=>{
       const page=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60,...(startKey?{ExclusiveStartKey:startKey}:{})}));
       return {items:(page.Items??[]) as unknown as StoredPost[],lastKey:page.LastEvaluatedKey};
     },
   );
+  return post?(await visibleCommunityPosts([post]))[0]??null:null;
 }
 
 export async function getPublishedCommunityImage(postId:string,publicGarmentId:string){
@@ -959,7 +986,7 @@ export async function getPublishedCommunityImage(postId:string,publicGarmentId:s
   if(!key)throw new RequestRefused("Published garment image not found.", 404);
   const object=await s3.send(new GetObjectCommand({Bucket:requireBucket(),Key:key}));
   if(!object.Body)throw new RequestRefused("Published garment image not found.", 404);
-  return {bytes:Buffer.from(await object.Body.transformToByteArray()),contentType:object.ContentType??"image/png"};
+  return {bytes:Buffer.from(await object.Body.transformToByteArray()),contentType:object.ContentType??"image/png",brandLook:Boolean(post.sourceType==="brand"||post.sourceBrandLookId)};
 }
 export async function getPublicCommunityPost(postId:string){
   const post=await findCommunityPostById(postId);

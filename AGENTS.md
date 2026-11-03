@@ -46,3 +46,4 @@ Lanes move only when the owner says so; update this table in the same pull reque
   `brand/` objects or a brand's records.
 - Anything that adds a recurring AWS charge states its monthly cost in the pull request.
 - After a merge, confirm `/api/version` reports the merge commit before calling it deployed.
+| **Codex, temporary** | Owner decision 2026-11-03, security fix C: brand registry, production store, Community image route, image optimizer configuration and their tests. |
