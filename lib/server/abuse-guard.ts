@@ -77,14 +77,14 @@ export async function claimSignUp(now = Date.now()): Promise<RateLimitDecision> 
   }
 }
 
-/** One more demo wardrobe across the site (lib/demo-session.ts). Fails open like sign-up; the AI budgets still fail closed. */
-export async function claimDemoWardrobe(now = Date.now()): Promise<RateLimitDecision> {
-  const rule = DURABLE_LIMITS.demoWardrobesSiteWide;
+/** One more demo of any kind across the site (lib/demo-session.ts). Fails open like sign-up; the AI budgets still fail closed. */
+export async function claimDemoSession(now = Date.now()): Promise<RateLimitDecision> {
+  const rule = DURABLE_LIMITS.demoSessionsSiteWide;
   try {
     const { count, resetAt } = await incrementSecurityCounter("demo-wardrobes:site", rule.windowMs, now);
     return durableDecision(count, rule.limit, resetAt, now);
   } catch (error) {
-    failOpen("demo wardrobe ceiling", error);
+    failOpen("demo session ceiling", error);
     return OPEN;
   }
 }
@@ -146,7 +146,16 @@ export function spendAiAllowance(action: AiAction, accountId: string, now = Date
   return chargeAccountAllowance(incrementSecurityCounter, action, accountId, now);
 }
 
-/** Spends one model call from the site's daily ceiling. Pass it to `metered` around each model runner. */
-export function spendSiteModelCall(): Promise<boolean> {
-  return chargeSiteModelCall(incrementSecurityCounter);
+/**
+ * Spends one model call from the site's daily ceiling. Pass it to `metered` around each model runner,
+ * as `siteModelCallFor(session)` so a demo's call is counted against the demos' share.
+ */
+export function spendSiteModelCall(demo = false): Promise<boolean> {
+  return chargeSiteModelCall(incrementSecurityCounter, Date.now(), undefined, demo);
+}
+
+/** The model-call spender for one session: a demo's calls come from the demos' share. */
+export function siteModelCallFor(session: { demo?: unknown }) {
+  const demo = Boolean(session.demo);
+  return () => spendSiteModelCall(demo);
 }

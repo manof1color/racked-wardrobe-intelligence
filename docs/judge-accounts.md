@@ -18,15 +18,25 @@ reads one from `RACKED_TEST_PASSWORD` at runtime.
 ## One click: Try the demo
 
 The finalists' instructions ask for a judge to get in with one click and never type a username or
-password, and for every judge to start from the same place. The sign-in screen does that
-(`app/api/auth/demo/route.ts`, rules in `lib/demo-session.ts`):
+password, and for every judge to start from the same place. The sign-in screen does that with one
+button for each of the four accounts above (`app/api/auth/demo/route.ts`, `lib/server/demo-entry.ts`,
+rules in `lib/demo-session.ts`). Signing in to one of the four addresses with its password opens
+exactly the same thing as its button, never the shared account itself, so no judge can change what
+the next one sees; a full session to a seeded judge account is refused outright (`lib/session.ts`).
 
-- **Try the demo** copies `judge.consumer`'s pieces, outfits and saved inspiration into a new account
+- **Judge Consumer** copies `judge.consumer`'s pieces, outfits and saved inspiration into a new account
   (`demo-session-<uuid>`) and signs the visitor in for 24 hours. The copy has no email and no
   password, and its records carry a DynamoDB `ttl` of 48 hours (TTL is on for the table, read back on 2026-11-01, so DynamoDB removes them in the background after that). Photos are shared with the seeded
   wardrobe, which is safe because deletion only removes photos under the deleting account's own
   folder. Re-seeding `judge.consumer` changes what the next demo starts from.
-- **Try the demo brand** signs into `judge.brand` itself, read-only: product edits, enrollment,
+- **New Consumer** is the same, but empty: a private wardrobe with nothing in it, for the first-run
+  screens. It expires the same way.
+- **New Brand** is a private, empty brand of the judge's own (`demo-session-brand-<uuid>`, approved,
+  with no email, password or brand-name claim). It may enrol up to 5 products and draft Looks, but
+  never publish one. Its products are never written to the product registry, so they never answer a
+  real person's label, a search, a public brand page or a Community card; its photos are stored
+  under `temp/`, which the bucket empties after a day, and its records carry the same 48-hour `ttl`.
+- **Judge Brand** signs into `judge.brand` itself, read-only: product edits, enrollment,
   retiring a product and Brand Looks are refused, so the brand stays the same for everyone. Brand
   Hanger and the metrics work. It is refused unless the account is the seeded one, labelled `DEMO`.
 - **Fill in from photo works in the demo brand**, because it stores nothing: it reads the photo and
@@ -39,14 +49,16 @@ password, and for every judge to start from the same place. The sign-in screen d
   and a security activity log, with every control disabled. No authenticator secret is stored on the
   shared account, and the activity log is made up: the account's real log is every judge's sign-ins,
   so a demo session is never shown it, from Settings or from `/api/account/activity`.
-- **Neither reaches a real person or brand.** A demo wardrobe never joins a product's owner index, so
+- **None reaches a real person or brand.** A demo wardrobe never joins a product's owner index, so
   its wears never reach a brand, and brand metrics skip demo accounts as well. It cannot publish to
-  Community, and its look comparisons are not counted as Community activity. Neither demo can change
+  Community, and its look comparisons are not counted as Community activity. No demo can change
   email, password, two-step sign-in, or sign out other sessions — otherwise one visitor could lock the
   shared demo brand.
 - **Limits.** 10 demo sessions per address per ten minutes on one server, 30 per address per hour
-  across all of them, 120 new demo wardrobes an hour site-wide; 12 scans and 30 Hanger messages a
-  day per demo wardrobe, inside the site's daily AI ceiling.
+  across all of them, 120 new demos of any kind an hour site-wide; 12 scans and 30 Hanger messages a
+  day per demo wardrobe, and 12 photo readings and 30 Brand Hanger questions a day per brand-demo
+  visitor. All demos together may use at most 80% of the day's AI model calls, so real brands and
+  consumers always keep the rest.
 - **Not cleaned up yet:** records a judge adds during a demo (new pieces, wear markers) and photos
   they keep are not given a `ttl`, so they stay after the account expires. The account itself is
   gone, so nobody can reach them.

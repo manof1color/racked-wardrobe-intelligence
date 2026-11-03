@@ -37,8 +37,11 @@ export const DURABLE_LIMITS = {
   resetRequestsPerAddress: { limit: 10, windowMs: 60 * 60 * 1000 },
   /** "Try the demo" from one address: room for a judging panel on one network, not for a script. */
   demoSessionsPerAddress: { limit: 30, windowMs: 60 * 60 * 1000 },
-  /** Demo wardrobes across the whole site. Each is free to make and holds its own AI allowance. */
-  demoWardrobesSiteWide: { limit: 120, windowMs: 60 * 60 * 1000 },
+  /**
+   * Demos of every kind across the whole site. Each is free to open and holds its own AI allowance,
+   * so brand demos count too, not only wardrobes.
+   */
+  demoSessionsSiteWide: { limit: 120, windowMs: 60 * 60 * 1000 },
   /** Two-step codes tried on one account, right or wrong: few enough that guessing six digits is hopeless. */
   twoStepAttemptsPerAccount: { limit: 5, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, DurableRule>;
@@ -121,6 +124,17 @@ export function aiAllowance(action: AiAction, accountCount: number, now = Date.n
 /** Whether one more model call fits under the site's daily ceiling. */
 export function siteModelCallAllowed(callCount: number, ceiling = aiDailyCeiling()) {
   return callCount <= ceiling;
+}
+
+/**
+ * The share of the day's model calls demos may use. Demos are free and anonymous, so without a
+ * share of their own, enough of them would use every call and pause the AI for real brands and
+ * consumers until the next day. The rest is kept for real accounts, whatever demos do.
+ */
+export const DEMO_SITE_CALL_SHARE = 0.8;
+
+export function demoSiteCallLimit(ceiling = aiDailyCeiling()) {
+  return Math.max(1, Math.floor(ceiling * DEMO_SITE_CALL_SHARE));
 }
 
 export function signInPausedMessage(retryAfterSeconds: number) {
