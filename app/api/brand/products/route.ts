@@ -5,8 +5,7 @@ import { asUploadError, MAX_UPLOAD_BYTES, UploadValidationError, validateFrontFi
 import { readCappedFormData } from "@/lib/request-body";
 import { stripImageMetadata } from "@/lib/image-sanitize";
 import { createBrandProductRegistration, registryIdentityConflict } from "@/lib/product-registry";
-import { BRAND_PRODUCT_LIMIT, productLimitMessage } from "@/lib/brand-approval";
-import { brandProductCount, discardBrandImages, getAccount,listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putPrivateImage, saveBrandProduct } from "@/lib/server/production-store";
+import { brandProductCount, brandProductLimit, brandProductLimitMessage, discardBrandImages, getAccount,listOwnedBrandProducts, listRegistryProducts, otherBrandNames, putBrandImage, saveBrandProduct } from "@/lib/server/production-store";
 import type { GarmentView, UploadDescriptor } from "@/lib/platform-types";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 
@@ -25,7 +24,8 @@ export async function POST(request:Request){
   try {
     // A full catalog is refused before any photo is read; saveBrandProduct enforces the same limit
     // in its transaction, so requests sent at once cannot pass it either.
-    if(await brandProductCount(access.account)>=BRAND_PRODUCT_LIMIT)throw new RequestRefused(productLimitMessage(BRAND_PRODUCT_LIMIT),409);
+    // A New Brand demo has a smaller limit (lib/demo-session.ts).
+    if(await brandProductCount(access.account)>=brandProductLimit(session.subject))throw new RequestRefused(brandProductLimitMessage(session.subject),409);
     // Up to three photos, read under the upload cap whatever Content-Length claimed.
     const form=await readCappedFormData(request).catch((error:unknown)=>{throw asUploadError(error);});
     // A product photo is required; back and label photos are optional. Identity comes from the SKU
@@ -48,7 +48,7 @@ export async function POST(request:Request){
     if(conflict)return NextResponse.json({error:conflict},{status:409});
     // Every photo is stored, or none is kept: if one upload or the record write fails, the photos
     // already stored are deleted before the error is answered.
-    const uploads=await Promise.allSettled(cleaned.map(image=>putPrivateImage(session.subject,"brand",image.bytes,image.contentType)));
+    const uploads=await Promise.allSettled(cleaned.map(image=>putBrandImage(session.subject,image.bytes,image.contentType)));
     const storedKeys=uploads.flatMap(upload=>upload.status==="fulfilled"?[upload.value]:[]);
     const failedUpload=uploads.find(upload=>upload.status==="rejected");
     if(failedUpload){await discardBrandImages(session.subject,storedKeys);throw failedUpload.reason;}

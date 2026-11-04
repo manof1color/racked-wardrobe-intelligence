@@ -37,8 +37,11 @@ export const DURABLE_LIMITS = {
   resetRequestsPerAddress: { limit: 10, windowMs: 60 * 60 * 1000 },
   /** "Try the demo" from one address: room for a judging panel on one network, not for a script. */
   demoSessionsPerAddress: { limit: 30, windowMs: 60 * 60 * 1000 },
-  /** Demo wardrobes across the whole site. Each is free to make and holds its own AI allowance. */
-  demoWardrobesSiteWide: { limit: 120, windowMs: 60 * 60 * 1000 },
+  /**
+   * Demos of every kind across the whole site. Each is free to open and holds its own AI allowance,
+   * so brand demos count too, not only wardrobes.
+   */
+  demoSessionsSiteWide: { limit: 120, windowMs: 60 * 60 * 1000 },
   /** Two-step codes tried on one account, right or wrong: few enough that guessing six digits is hopeless. */
   twoStepAttemptsPerAccount: { limit: 5, windowMs: 15 * 60 * 1000 },
 } as const satisfies Record<string, DurableRule>;
@@ -77,6 +80,15 @@ export function aiDailyCeiling(configured: string | undefined = process.env.AI_D
 }
 
 /** Whether a counter at `count` (this request included) is still inside `limit`. */
+export const signInCounterKey = (email: string, knownDevice: boolean) =>
+  `${knownDevice ? "sign-in-known-device" : "sign-in-attempt"}:${email.trim().toLowerCase()}`;
+
+export async function reserveSignInAttempt(increment: (key: string, windowMs: number, now: number) => Promise<{count: number; resetAt: number}>, email: string, knownDevice: boolean, now: number) {
+  const rule = DURABLE_LIMITS.signInFailuresPerEmail;
+  const {count, resetAt} = await increment(signInCounterKey(email, knownDevice), rule.windowMs, now);
+  return durableDecision(count, rule.limit, resetAt, now);
+}
+
 export function durableDecision(count: number, limit: number, resetAt: number, now = Date.now()): RateLimitDecision {
   if (count <= limit) return { allowed: true, retryAfterSeconds: 0 };
   return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now) / 1000)) };
@@ -121,6 +133,17 @@ export function aiAllowance(action: AiAction, accountCount: number, now = Date.n
 /** Whether one more model call fits under the site's daily ceiling. */
 export function siteModelCallAllowed(callCount: number, ceiling = aiDailyCeiling()) {
   return callCount <= ceiling;
+}
+
+/**
+ * The share of the day's model calls demos may use. Demos are free and anonymous, so without a
+ * share of their own, enough of them would use every call and pause the AI for real brands and
+ * consumers until the next day. The rest is kept for real accounts, whatever demos do.
+ */
+export const DEMO_SITE_CALL_SHARE = 0.8;
+
+export function demoSiteCallLimit(ceiling = aiDailyCeiling()) {
+  return Math.max(1, Math.floor(ceiling * DEMO_SITE_CALL_SHARE));
 }
 
 export function signInPausedMessage(retryAfterSeconds: number) {

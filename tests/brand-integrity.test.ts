@@ -125,7 +125,7 @@ test("a brand name is held by one account, reserved before the account exists", 
 
 test("enrollment checks everything before a photo is stored", () => {
   const route = read("app/api/brand/products/route.ts");
-  assert.ok(route.indexOf("registryIdentityConflict(") < route.indexOf("putPrivateImage("), "no orphaned uploads from a rejected enrollment");
+  assert.ok(route.indexOf("registryIdentityConflict(") < route.indexOf("putBrandImage("), "no orphaned uploads from a rejected enrollment");
   assert.match(route, /otherBrandNames:others/);
   assert.match(route, /status:409/);
 });
@@ -169,3 +169,20 @@ test("below the threshold even the owner count is withheld", () => {
   assert.doesNotMatch(suppressedBranch, /metrics\.segmentSize/);
   assert.match(suppressedBranch, /Fewer than \{metrics\.minimumCohortSize\} qualifying owners/);
 });
+
+test("aliases must belong to the enrolling brand and cannot overlap other owners", () => {
+  assert.equal(conflictingAlias(["Northstar"], "Northstar Goods", ["Northstar Atelier"]), "Northstar");
+  assert.equal(conflictingAlias(["Cotton"], "Acme Goods"), "Cotton");
+  assert.equal(conflictingAlias(["Acme, Goods Store"], "Acme Goods Store", ["Acme Goods"]), "Acme, Goods Store");
+});
+
+test("a label answering to products from two owners is ambiguous", () => {
+  const first=product({ownerSubject:"one"});
+  const second=product({id:"second",ownerSubject:"two"});
+  assert.equal(matchBrandProduct([], "Example Brand EX-100", [first,second]), null);
+  assert.equal(matchBrandProduct([], "Example Brand EX-100", [first,{...second,archived:true}])?.product.ownerSubject,"one");
+});
+  const store=readFileSync(new URL("../lib/server/production-store.ts", import.meta.url),"utf8");
+  assert.match(store,/if\(existing\.archived&&edit\.archived===false\)\{\s*const conflict=registryIdentityConflict\(existing,await listRegistryProducts\(\)\);\s*if\(conflict\)throw new RequestRefused\(conflict,409\)/);
+  assert.match(store,/visibleCommunityPosts\(\[post\]\)/);
+  assert.match(store,/visible\.push\(\.\.\.await visibleCommunityPosts\(/);

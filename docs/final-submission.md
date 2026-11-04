@@ -7,7 +7,7 @@ Prepared 2026-10-30 for the CUA Busch School AI Vibe Coding Contest, Fall 2026. 
 | 1 | [README checked against the five things the judges asked for](#1-readme-check) | Done. Three small gaps fixed in the README |
 | 2 | [Three two-sentence summaries](#2-three-two-sentence-summaries) | Drafts, pick one |
 | 3 | [Two-minute answer: "What happens when your AI gets it wrong?"](#3-what-happens-when-your-ai-gets-it-wrong) | Draft, about 2 minutes spoken |
-| 4 | [Demo video shot list](#4-demo-video-shot-list) | Draft, 2:45 planned, written against the merged **Try the demo** |
+| 4 | [Demo video shot list](#4-demo-video-shot-list) | Draft, 2:45 planned, written against the four **Try the demo** buttons |
 | 5 | [Submission email](#5-the-email) | Draft with placeholders |
 
 **To fill in before sending:** `[LIVE LINK]`, `[VIDEO LINK]` and `[Recipient name]`. Only if you also want judges to use the full demo accounts, the passwords go in from your private notes; never commit them to this public repository. **Try the demo** itself needs no password.
@@ -108,17 +108,17 @@ A two-minute spoken answer: 295 words, which is a little under two minutes at a 
 
 ## 4. Demo video shot list
 
-**Target 2:45. Hard maximum 3:00.** It fits the faculty's request for a 2–3 minute recording and the contest's "under 5 minutes", and a short cut forces the strongest story. Two flows, the same two as the five-minute judge path ([JUDGES.md](../JUDGES.md)), entered through the **Try the demo** button.
+**Target 2:45. Hard maximum 3:00.** It fits the faculty's request for a 2–3 minute recording and the contest's "under 5 minutes", and a short cut forces the strongest story. Two flows, the same two as the five-minute judge path ([JUDGES.md](../JUDGES.md)), entered through the **Try the demo** buttons.
 
-> **How Try the demo works** (from the code merged in #196, checked against the sign-in screen's source). It is on the **sign-in screen**, not the home page: from the home page press **Sign in**. **Try the demo →** gives you a fresh private copy of the Judge Consumer wardrobe with no email or password; it expires after a day, and each click makes a new one. **Or see the brand side: try the demo brand**, a link under it, opens the shared Judge Brand **read-only**: opening products, the numbers and Brand Hanger all work, and adding products or Looks is refused. Each demo wardrobe has its own allowance of 12 scans and 30 Hanger messages, so there is room for retakes, and a fresh click starts again.
+> **How Try the demo works** (checked against the sign-in screen's source). It is on the **sign-in screen**, not the home page: from the home page press **Sign in**. Under **Try the demo** are four buttons, one per judge account. **Judge Consumer →** gives you a fresh private copy of the Judge Consumer wardrobe with no email or password; it expires after a day, and each click makes a new one. **Judge Brand →** opens the shared Judge Brand **read-only**: opening products, the numbers and Brand Hanger all work, and adding products or Looks is refused. (**New Consumer** and **New Brand** start empty and are not in the video.) Each demo wardrobe has its own allowance of 12 scans and 30 Hanger messages, so there is room for retakes, and a fresh click starts again.
 
 | Shot | Time | On screen | Action | Narration |
 | ---: | --- | --- | --- | --- |
 | 1 | 0:00–0:12 | Home page | Hold on it | "Brands know what people buy. They don't know what people actually wear. Racked shows them, without anyone's closet ever being exposed." |
-| 2 | 0:12–0:20 | Sign in, then Try the demo | Press **Sign in**, then **Try the demo →** | "It's live on AWS. One click, no password." |
+| 2 | 0:12–0:20 | Sign in, then Judge Consumer | Press **Sign in**, then **Judge Consumer →** | "It's live on AWS. One click, no password." |
 | 3 | 0:20–1:00 | Consumer wardrobe | Tap **+**. Choose the staged photo. Wait for the cards. Point to a **Type** field that is asking. Tick the confirmation. Press **Add** | "I add a garment. Amazon Bedrock's Nova Pro proposes each piece and its type. Where it's unsure, it asks instead of guessing. Nothing is saved until I confirm." |
 | 4 | 1:00–1:25 | Hanger | Ask: *What should I wear with this today?* Show the outfit cards, then **Why these pieces** | "Hanger is an AI stylist that picks its own tools, but every outfit is built in code from clothes this account owns." |
-| 5 | 1:25–1:32 | Brand demo | **Jump cut** to the second window and press **Or see the brand side: try the demo brand** | "Now the brand side." |
+| 5 | 1:25–1:32 | Brand demo | **Jump cut** to the second window and press **Judge Brand →** | "Now the brand side." |
 | 6 | 1:32–1:50 | Judge Limited Overshirt | Open the product. Hold on the message | "Four opted-in owners. Below twenty-five, the brand sees nothing — not even the count." |
 | 7 | 1:50–2:15 | Judge Signature Tee | Open the product. Show the chart, repeat wear, then what it's worn with | "Fifty consenting owners, so the aggregate is released: real wear, repeat wear, and what it's worn with. No names, photos or wardrobes. This is labeled demo data." |
 | 8 | 2:15–2:30 | Brand Hanger | Ask: *Write me a campaign brief for this product.* Show the brief | "Brand Hanger writes from the released totals only." |
@@ -132,7 +132,7 @@ Nine shots, 165 seconds. Narration runs at about 140 words a minute; the same wo
 - **Set up the screen.** Browser window 1440×900, zoom 110%, bookmarks bar hidden, notifications off, other tabs closed. Dismiss the "Add Racked to your Home Screen" banner before shot 3; it covers the bottom tabs.
 - **Stage the scan photo.** Put one clear garment photo on the device, ideally a plain flat lay, and use the file, not the live camera: steadier, and no scan timeout.
 - **Warm up.** Send one Hanger and one Brand Hanger message before recording, so the first answers on camera are not slow.
-- **Use only the demo accounts.** Everything in them is synthetic and labelled `DEMO`. Do not create accounts, and do not scan photos of real people. If a take goes wrong, sign out and press **Try the demo →** again for a fresh one.
+- **Use only the demo accounts.** Everything in them is synthetic and labelled `DEMO`. Do not create accounts, and do not scan photos of real people. If a take goes wrong, sign out and press **Judge Consumer →** again for a fresh one.
 - **Do the brand side in a second, private browser window** already open on the sign-in screen, so you can cut straight to it. Two sessions in one window replace each other.
 - **No password appears**, because **Try the demo** needs none. Do not sign in to any real account on camera, and show no real email.
 - **Two full takes.** Keep the better one and cut dead air in the edit, not on camera.
@@ -175,9 +175,10 @@ Links
 - Code and docs:    https://github.com/manof1color/racked-wardrobe-intelligence
 - One screen for judges: https://github.com/manof1color/racked-wardrobe-intelligence/blob/main/JUDGES.md
 
-Fastest way in: open the live app, press Sign in, then "Try the demo". No
-email and no password; you get a fresh private copy of the demo wardrobe.
-"Try the demo brand" on the same screen opens the brand side, read-only.
+Fastest way in: open the live app and press Sign in. Under "Try the demo"
+are the four judge accounts, one button each, with no email and no password.
+"Judge Consumer" is a fresh private copy of the demo wardrobe; "Judge Brand"
+opens the brand side, read-only.
 
 The five things you asked for (each is also answered in the README):
 
@@ -233,6 +234,6 @@ James Harris
 
 - [ ] Replace `[Recipient name]`, `[LIVE LINK]` and `[VIDEO LINK]`.
 - [ ] Either paste the demo-account passwords from your private notes or delete that block from the email. They must never go into this file or the repository.
-- [ ] Open `/api/version` on the live site and confirm it reports the commit you meant to submit, and that **Try the demo →** is on the sign-in screen.
+- [ ] Open `/api/version` on the live site and confirm it reports the commit you meant to submit, and that the four **Try the demo** buttons are on the sign-in screen.
 - [ ] Watch the exported video once: under 5:00, audible, and no password visible.
 - [ ] Click every link in the email from a signed-out browser.

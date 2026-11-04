@@ -13,7 +13,7 @@ import { validCoordinates, type Place } from "@/lib/weather";
 import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/outfit-contracts";
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
-import { brandProductUpdate, isReservedBrandName, matchBrandProduct, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
+import { brandProductUpdate, isReservedBrandName, matchBrandProduct, registryIdentityConflict, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
 import { releaseWearAnalytics } from "@/lib/metrics";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { ENUMERATION_WINDOW_MS, enumerationBudgetState, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "@/lib/privacy";
@@ -35,7 +35,7 @@ import { ACTIVITY_RETENTION_DAYS, withinActivityRetention, type AccountActivity,
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
 import { acceptanceIncrement, acceptanceOutcome, type AcceptanceOutcome } from "@/lib/ai-acceptance";
-import { demoCopy, demoProfile, DEMO_SOURCE_ACCOUNTS, isDemoAccountId, newDemoAccountId } from "@/lib/demo-session";
+import { demoBrandProfile, demoCopy, demoExpiry, demoProfile, DEMO_BRAND_PRODUCT_LIMIT, DEMO_BRAND_PRODUCT_LIMIT_MESSAGE, DEMO_LOOK_PUBLISH_MESSAGE, DEMO_SOURCE_ACCOUNTS, isDemoAccountId, isSharedDemoAccountId, newDemoAccountId, SHARED_DEMO_ACCOUNT_MESSAGE } from "@/lib/demo-session";
 import sharp from "sharp";
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -153,12 +153,12 @@ async function reserveBrandName(brandName:string,accountId:string) {
 /** Names held by other brand accounts, which this account's product aliases may not claim. */
 export async function otherBrandNames(ownerId:string,known?:BrandProductRegistration[]) {
   const [claims,registry]=await Promise.all([
-    queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_NAMES"}}).catch(()=>[] as Record<string,unknown>[]),
+    queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":"BRAND_NAMES"}}),
     known?Promise.resolve(known):listRegistryProducts(),
   ]);
   const names=new Set<string>();
   for(const claim of claims)if(claim.accountId!==ownerId&&typeof claim.brandName==="string")names.add(claim.brandName);
-  for(const product of registry)if(product.ownerSubject!==ownerId)names.add(product.brand);
+  for(const product of registry)if(product.ownerSubject!==ownerId)for(const name of [product.brand,...(product.aliases??[])])names.add(name);
   return [...names];
 }
 
@@ -189,7 +189,11 @@ export async function verifyAccountPassword(account:AccountRecord,password:strin
   return (await checkPassword(password,account)).ok;
 }
 
+/** The seeded judge accounts are shared by every judge, so nothing may change their sign-in or delete them. */
+function refuseSharedDemoAccount(accountId:string){if(isSharedDemoAccountId(accountId))throw new RequestRefused(SHARED_DEMO_ACCOUNT_MESSAGE,403);}
+
 export async function updateOwnAccount(ownerId:string,input:{displayName:string;email:string;currentPassword:string;newPassword?:string}) {
+  refuseSharedDemoAccount(ownerId);
   const account=await getAccount(ownerId);
   if(!account||!await verifyAccountPassword(account,input.currentPassword))return null;
   const email=normalizeEmail(input.email),displayName=input.displayName.trim().slice(0,100);
@@ -249,6 +253,12 @@ export async function incrementSecurityCounter(name:string,windowMs:number,now=D
   return {count:Number(result.Attributes?.count??1),resetAt};
 }
 
+/** Refund a successful password check in its original window without creating a counter. */
+export async function decrementSecurityCounter(name:string,windowMs:number,now:number){
+  const start=Math.floor(now/windowMs)*windowMs;
+  await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`LIMIT#${securityKey(name)}`,SK:`WINDOW#${start}`},UpdateExpression:"ADD #count :minusOne",ConditionExpression:"#count > :zero",ExpressionAttributeNames:{"#count":"count"},ExpressionAttributeValues:{":minusOne":-1,":zero":0}}));
+}
+
 /** Reads a shared counter without adding to it. */
 export async function readSecurityCounter(name:string,windowMs:number,now=Date.now()){
   const start=Math.floor(now/windowMs)*windowMs;
@@ -295,6 +305,7 @@ export async function listAccountActivity(accountId:string):Promise<AccountActiv
  * invalidates all of them at once; the caller re-issues the current device's cookie.
  */
 export async function endOtherSessions(accountId:string){
+  refuseSharedDemoAccount(accountId);
   const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${accountId}`,SK:"PROFILE"},UpdateExpression:"SET sessionVersion = if_not_exists(sessionVersion, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_NEW"}));
   return result.Attributes as AccountRecord;
 }
@@ -312,13 +323,23 @@ export async function getAccount(id:string) {
  * visitor. The copies are written before the account record, so a session never points at a
  * half-made wardrobe, and every record expires on its own.
  */
-export async function createDemoWardrobe(now=Date.now()){
-  const source=await queryEveryPage({KeyConditionExpression:"PK = :pk",ExpressionAttributeValues:{":pk":`USER#${DEMO_SOURCE_ACCOUNTS.consumer}`}});
+export async function createDemoWardrobe(now=Date.now(),{empty=false}:{empty?:boolean}={}){
   const id=newDemoAccountId(crypto.randomUUID());
-  const copies=source.map(record=>demoCopy(record,id,now)).filter((record):record is Record<string,unknown>=>record!==null);
-  if(!copies.some(record=>String(record.SK).startsWith("GARMENT#")))throw new ProductionConfigurationError("The demo wardrobe is not set up yet.");
-  await Promise.all(copies.map(Item=>db.send(new PutCommand({TableName:requireTable(),Item}))));
+  // New Consumer starts empty, to show the first-run screens; Judge Consumer is a copy.
+  if(!empty){
+    const source=await queryEveryPage({KeyConditionExpression:"PK = :pk",ExpressionAttributeValues:{":pk":`USER#${DEMO_SOURCE_ACCOUNTS.consumer}`}});
+    const copies=source.map(record=>demoCopy(record,id,now)).filter((record):record is Record<string,unknown>=>record!==null);
+    if(!copies.some(record=>String(record.SK).startsWith("GARMENT#")))throw new ProductionConfigurationError("The demo wardrobe is not set up yet.");
+    await Promise.all(copies.map(Item=>db.send(new PutCommand({TableName:requireTable(),Item}))));
+  }
   await db.send(new PutCommand({TableName:requireTable(),Item:demoProfile(id,now),ConditionExpression:"attribute_not_exists(PK)"}));
+  return id;
+}
+
+/** New Brand: a private, empty, approved brand for one visitor (lib/demo-session.ts). It expires on its own. */
+export async function createDemoBrand(now=Date.now()){
+  const id=newDemoAccountId(`brand-${crypto.randomUUID()}`);
+  await db.send(new PutCommand({TableName:requireTable(),Item:demoBrandProfile(id,now),ConditionExpression:"attribute_not_exists(PK)"}));
   return id;
 }
 
@@ -340,7 +361,24 @@ export async function putPrivateImage(ownerId:string,kind:"wardrobe"|"brand",byt
  * not hide the original error.
  */
 export async function discardBrandImages(ownerId:string,keys:string[]){
-  await Promise.all(keys.filter(key=>key.startsWith(`brand/${ownerId}/`)&&!key.includes("..")).map(key=>s3.send(new DeleteObjectCommand({Bucket:requireBucket(),Key:key})).catch(error=>console.error("Failed enrollment photo cleanup failed",{name:error instanceof Error?error.name:"UnknownError"}))));
+  await Promise.all(keys.filter(key=>(key.startsWith(`brand/${ownerId}/`)||key.startsWith(`${PENDING_SCAN_PREFIX}brand/${ownerId}/`))&&!key.includes("..")).map(key=>s3.send(new DeleteObjectCommand({Bucket:requireBucket(),Key:key})).catch(error=>console.error("Failed enrollment photo cleanup failed",{name:error instanceof Error?error.name:"UnknownError"}))));
+}
+
+/**
+ * Stores an enrolled product's photo. A New Brand demo's photos go under temp/, so the bucket deletes
+ * them after a day with the rest of the demo; like a scan, a deployment that may not write there
+ * keeps them with the brand's photos instead.
+ */
+export async function putBrandImage(ownerId:string,bytes:Buffer,contentType:string) {
+  if(!isDemoAccountId(ownerId))return putPrivateImage(ownerId,"brand",bytes,contentType);
+  try {
+    return await putPrivateImage(ownerId,"brand",bytes,contentType,undefined,true);
+  } catch(error) {
+    const name=error instanceof Error?error.name:"UnknownError";
+    if(name!=="AccessDenied"&&name!=="AccessDeniedException")throw error;
+    console.warn("Demo brand photo stored without expiry: s3:PutObject is not granted under temp/",{name});
+    return putPrivateImage(ownerId,"brand",bytes,contentType);
+  }
 }
 
 export async function putScanImage(ownerId:string,bytes:Buffer,contentType:string,subfolder?:"evidence") {
@@ -755,6 +793,7 @@ export async function deleteWardrobeItem(ownerId:string,garmentId:string) {
 }
 
 export async function deleteOwnConsumerAccount(ownerId:string,currentPassword:string) {
+  refuseSharedDemoAccount(ownerId);
   const account=await getAccount(ownerId);
   if(!account||!await verifyAccountPassword(account,currentPassword))return null;
   if(account.role!=="consumer")throw new AccountDeletionUnavailableError("Brand accounts can't be deleted from Settings yet: enrolled products are linked to other people's wardrobes and have to be unlinked safely first.");
@@ -823,9 +862,16 @@ export async function updateBrandProduct(ownerId:string,productId:string,edit:Br
   if(!existing)return null;
   const patch=brandProductUpdate(existing,edit,otherNames);
   if(!Object.keys(patch).length)return existing;
+  if(existing.archived&&edit.archived===false){
+    const conflict=registryIdentityConflict(existing,await listRegistryProducts());
+    if(conflict)throw new RequestRefused(conflict,409);
+  }
   const merged={...existing,...patch} as Record<string,unknown>;
   for(const [key,value] of Object.entries(patch))if(value===null)delete merged[key];
-  await db.send(new PutCommand({TableName:requireTable(),Item:{...merged,PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${existing.brandSlug}#${existing.sku}`},ConditionExpression:"attribute_exists(PK) AND attribute_exists(SK)"}));
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...merged,PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`,...registryIndex(ownerId,existing)},ConditionExpression:`attribute_exists(PK) AND attribute_exists(SK) AND ${existing.archived===undefined?"attribute_not_exists(archived)":"archived = :archived"}`,...(existing.archived===undefined?{}:{ExpressionAttributeValues:{":archived":existing.archived}})})).catch(error=>{
+    if(error instanceof Error&&error.name==="ConditionalCheckFailedException")throw new RequestRefused("The product changed. Refresh and try again.",409);
+    throw error;
+  });
   return merged as unknown as BrandProductRegistration;
 }
 
@@ -851,16 +897,31 @@ export async function brandProductCount(account:AccountRecord){
  * Saves an enrolled product and raises the brand's product count in one transaction, refused once
  * the count reaches the limit (lib/brand-approval.ts), so requests sent at once cannot pass it.
  */
+/**
+ * The registry index keys that put a product in front of every consumer's label, search and public
+ * page. A New Brand demo's products never get them: they exist only in the demo's own catalog, so a
+ * judge's test product can never answer a real person's label. They expire with the demo instead.
+ */
+function registryIndex(ownerId:string,product:{brandSlug:string;sku:string}){
+  // An edit keeps the expiry the product was enrolled with, so editing never extends a demo.
+  const ttl=(product as {ttl?:unknown}).ttl;
+  return isDemoAccountId(ownerId)?{dataClassification:"DEMO",testCohort:true,demoSession:true,ttl:typeof ttl==="number"?ttl:demoExpiry(Date.now())}:{GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${product.brandSlug}#${product.sku}`};
+}
+
+/** How many products this brand may enrol: the catalog limit, or a demo's few. */
+export function brandProductLimit(ownerId:string){return isDemoAccountId(ownerId)?DEMO_BRAND_PRODUCT_LIMIT:BRAND_PRODUCT_LIMIT;}
+export function brandProductLimitMessage(ownerId:string){return isDemoAccountId(ownerId)?DEMO_BRAND_PRODUCT_LIMIT_MESSAGE:productLimitMessage(BRAND_PRODUCT_LIMIT);}
+
 export async function saveBrandProduct(ownerId:string,product:BrandProductRegistration) {
-  const limit=BRAND_PRODUCT_LIMIT;
+  const limit=brandProductLimit(ownerId);
   try{
     await db.send(new TransactWriteCommand({TransactItems:[
-      {Put:{TableName:requireTable(),Item:{...product,PK:`USER#${ownerId}`,SK:`PRODUCT#${product.id}`,GSI1PK:"BRAND_PRODUCTS",GSI1SK:`${product.brandSlug}#${product.sku}`},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}},
+      {Put:{TableName:requireTable(),Item:{...product,PK:`USER#${ownerId}`,SK:`PRODUCT#${product.id}`,...registryIndex(ownerId,product)},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}},
       {Update:{TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:"PROFILE"},UpdateExpression:"SET productCount = productCount + :one",ConditionExpression:"productCount < :limit",ExpressionAttributeValues:{":one":1,":limit":limit}}},
     ]}));
   }catch(error){
     const reasons=(error as {CancellationReasons?:Array<{Code?:string}>}|null)?.CancellationReasons??[];
-    if(error instanceof Error&&error.name==="TransactionCanceledException"&&reasons[1]?.Code==="ConditionalCheckFailed")throw new RequestRefused(productLimitMessage(limit),409);
+    if(error instanceof Error&&error.name==="TransactionCanceledException"&&reasons[1]?.Code==="ConditionalCheckFailed")throw new RequestRefused(brandProductLimitMessage(ownerId),409);
     throw error;
   }
   return product;
@@ -913,7 +974,26 @@ export async function setHomeCity(ownerId:string,place:Place|null) {
 type StoredPost=StoredCommunityPost&{ownerId:string;sourceOutfitId?:string;sourceBrandLookId?:string};
 // Public feed responses are rebuilt through toPublicOutfitPost so stored private fields
 // (ownerId, imageKey, DynamoDB key attributes) never reach the browser.
-export async function listCommunityPosts():Promise<OutfitPost[]>{const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60}));return (result.Items??[]).map(raw=>toPublicOutfitPost(raw as unknown as StoredPost));}
+async function visibleCommunityPosts(posts:StoredPost[]){
+  const owners=[...new Set(posts.filter(post=>post.sourceType==="brand"||post.sourceBrandLookId).map(post=>post.ownerId).filter(Boolean))];
+  if(!owners.length)return posts.filter(post=>post.sourceType!=="brand"&&!post.sourceBrandLookId);
+  const table=requireTable();
+  const result=await db.send(new BatchGetCommand({RequestItems:{[table]:{Keys:owners.map(id=>({PK:`USER#${id}`,SK:"PROFILE"})),ConsistentRead:true,ProjectionExpression:"id, #role, brandStatus",ExpressionAttributeNames:{"#role":"role"}}}}));
+  const approved=new Set((result.Responses?.[table]??[]).filter(brandApproved).map(account=>account.id));
+  return posts.filter(post=>post.sourceType!=="brand"&&!post.sourceBrandLookId||approved.has(post.ownerId));
+}
+
+export async function listCommunityPosts():Promise<OutfitPost[]>{
+  const visible:StoredPost[]=[];
+  let startKey:Record<string,unknown>|undefined;
+  for(let page=0;page<12&&visible.length<60;page++){
+    const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60,...(startKey?{ExclusiveStartKey:startKey}:{})}));
+    visible.push(...await visibleCommunityPosts((result.Items??[]) as unknown as StoredPost[]));
+    startKey=result.LastEvaluatedKey;
+    if(!startKey)break;
+  }
+  return visible.slice(0,60).map(toPublicOutfitPost);
+}
 export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;caption:string;outfitId:string}){
   const [account,wardrobe,outfits,registry]=await Promise.all([getAccount(ownerId),listWardrobe(ownerId),listOutfits(ownerId),listRegistryProducts()]);
   if(!account)throw new RequestRefused("Account not found.", 404);
@@ -943,13 +1023,14 @@ export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;
 // filter, and those queries read oldest-first while the feed renders newest-first, so
 // past 60 posts they could no longer find any post a person could actually see.
 async function findCommunityPostById(postId:string){
-  return findByPaginatedQuery<StoredPost>(
+  const post=await findByPaginatedQuery<StoredPost>(
     (post)=>post.id===postId,
     async (startKey)=>{
       const page=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"},ScanIndexForward:false,Limit:60,...(startKey?{ExclusiveStartKey:startKey}:{})}));
       return {items:(page.Items??[]) as unknown as StoredPost[],lastKey:page.LastEvaluatedKey};
     },
   );
+  return post?(await visibleCommunityPosts([post]))[0]??null:null;
 }
 
 export async function getPublishedCommunityImage(postId:string,publicGarmentId:string){
@@ -959,7 +1040,7 @@ export async function getPublishedCommunityImage(postId:string,publicGarmentId:s
   if(!key)throw new RequestRefused("Published garment image not found.", 404);
   const object=await s3.send(new GetObjectCommand({Bucket:requireBucket(),Key:key}));
   if(!object.Body)throw new RequestRefused("Published garment image not found.", 404);
-  return {bytes:Buffer.from(await object.Body.transformToByteArray()),contentType:object.ContentType??"image/png"};
+  return {bytes:Buffer.from(await object.Body.transformToByteArray()),contentType:object.ContentType??"image/png",brandLook:Boolean(post.sourceType==="brand"||post.sourceBrandLookId)};
 }
 export async function getPublicCommunityPost(postId:string){
   const post=await findCommunityPostById(postId);
@@ -1008,8 +1089,10 @@ export async function listBrandLooks(ownerId:string){
 export async function saveBrandLook(ownerId:string,input:{title:string;caption:string;productIds:string[];published:boolean}){
   const [account,products]=await Promise.all([getAccount(ownerId),listOwnedBrandProducts(ownerId)]);
   if(!account?.brandName)throw new RequestRefused("This account has no brand profile.");
+  const demo=isDemoAccountId(ownerId);
+  if(demo&&input.published)throw new RequestRefused(DEMO_LOOK_PUBLISH_MESSAGE,403);
   const look=createBrandLook({ownerSubject:ownerId,brand:account.brandName,brandSlug:slugify(account.brandName),...input},products);
-  await db.send(new PutCommand({TableName:requireTable(),Item:{...look,PK:`USER#${ownerId}`,SK:`BRANDLOOK#${look.createdAt}#${look.id}`}}));
+  await db.send(new PutCommand({TableName:requireTable(),Item:{...look,PK:`USER#${ownerId}`,SK:`BRANDLOOK#${look.createdAt}#${look.id}`,...(demo?{dataClassification:"DEMO",testCohort:true,ttl:demoExpiry(Date.now())}:{})}}));
   let post:OutfitPost|undefined;
   if(look.published){
     const byId=new Map(products.map(product=>[product.id,product]));
@@ -1164,6 +1247,7 @@ const profileKey=(accountId:string)=>({PK:`USER#${accountId}`,SK:"PROFILE"});
  * quietly replace the authenticator in use.
  */
 export async function beginTwoStepSetup(accountId:string,now=Date.now()){
+  refuseSharedDemoAccount(accountId);
   const secret=createAuthenticatorSecret();
   try{await db.send(new UpdateCommand({TableName:requireTable(),Key:profileKey(accountId),UpdateExpression:"SET twoStepPendingSecret = :sealed, twoStepPendingExpiresAt = :expires",ConditionExpression:"attribute_exists(PK) AND attribute_not_exists(twoStepSecret)",ExpressionAttributeValues:{":sealed":sealSecret(secret,requireAccountSecuritySecret(),accountId),":expires":now+TWO_STEP_SETUP_MS}}));}
   catch(error){if(conditionFailed(error))throw new RequestRefused("Two-step sign-in is already on.",409);throw error;}
