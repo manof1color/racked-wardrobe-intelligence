@@ -1,5 +1,6 @@
 import type { Role } from "./types";
 import { timingSafeEqual } from "node:crypto";
+import { isSharedDemoAccountId } from "./demo-session.ts";
 
 /**
  * `demo`: a session from "Try the demo" (lib/demo-session.ts), which some routes refuse to change things for.
@@ -42,6 +43,9 @@ export async function verifySessionToken(token: string, secret: string, now = Da
 
 export function sessionForAccount(session: SessionPayload, account: SessionAccount | null): SessionPayload | null {
   if (!account || account.role !== session.role || (session.sessionVersion ?? 0) !== (account.sessionVersion ?? 0)) return null;
+  // A seeded judge account is shared by every judge, so it is only ever opened as a demo, which
+  // cannot change it. A full session for one (an old password sign-in) is refused, whatever its age.
+  if (isSharedDemoAccountId(session.subject) && !session.demo) return null;
   return session;
 }
 

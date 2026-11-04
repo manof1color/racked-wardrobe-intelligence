@@ -7,7 +7,7 @@ import { detectGarmentsInLook, type NormalizedBounds } from "@/lib/look-garment-
 import { metered } from "@/lib/ai-budget";
 import { detectLookOrManualReview, prepareSimpleLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
-import { spendAiAllowance, spendSiteModelCall } from "@/lib/server/abuse-guard";
+import { siteModelCallFor, spendAiAllowance } from "@/lib/server/abuse-guard";
 import { privateImageUrl, ProductionConfigurationError, putScanImage, signGarmentConfirmation } from "@/lib/server/production-store";
 
 export const runtime="nodejs";
@@ -60,7 +60,7 @@ export async function POST(request:Request) {
       base64:prepared.data.toString("base64"),
       contentType:"image/jpeg",
       image:{width:prepared.info.width,height:prepared.info.height},
-    },{detect:metered(spendSiteModelCall,detectGarmentsInLook)});
+    },{detect:metered(siteModelCallFor(session),detectGarmentsInLook)});
     const detections=recognition.detections;
 
     stage="storage";

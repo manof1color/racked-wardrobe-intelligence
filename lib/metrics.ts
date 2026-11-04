@@ -85,8 +85,8 @@ export function wearDay(value:string|null){return value?`${value.slice(0,10)}T12
  * 1 owner", or "1 wear this week", describes one person, and a brand that knows a customer owns
  * the product could learn how often they wear it. So every owner count smaller than five is
  * withheld, and so is any count whose complement is smaller than five — "23 of 25 active" says
- * exactly as much about the other two. When one distribution bucket is withheld the next smallest
- * is too, so the total cannot give it back. Weekly wear counts of one to four are withheld, the
+ * exactly as much about the other two. The distribution and its related statistics are withheld together
+ * whenever a bucket is too small to release. Weekly wear counts of one to four are withheld, the
  * total and the average are withheld while the total is under five, and the latest wear is given as
  * a day rather than an instant. Withheld figures are null and named in `withheld`; the dashboard
  * says "withheld", never zero.
@@ -103,25 +103,20 @@ export function releaseWearAnalytics(ownerWearCounts:number[],eventDates:string[
   const activeHidden=smallCell(analytics.activeOwners,total);
   const totalHidden=analytics.actualWears>0&&analytics.actualWears<MINIMUM_CELL_SIZE;
   const repeatHidden=smallCell(counts.filter(value=>value>=2).length,total);
-  const hiddenBuckets=new Set(analytics.wearDistribution.flatMap((bucket,index)=>bucket.owners>0&&bucket.owners<MINIMUM_CELL_SIZE||(index===0&&activeHidden)?[index]:[]));
-  if(hiddenBuckets.size===1){
-    const next=analytics.wearDistribution.map((bucket,index)=>({bucket,index})).filter(({bucket,index})=>bucket.owners>0&&!hiddenBuckets.has(index)).sort((a,b)=>a.bucket.owners-b.bucket.owners)[0];
-    if(next)hiddenBuckets.add(next.index);
-  }
-  const highFrequencyHidden=smallCell(analytics.highFrequencyOwners,total)||hiddenBuckets.has(analytics.wearDistribution.length-1);
-  const wearDistribution=analytics.wearDistribution.map((bucket,index)=>hiddenBuckets.has(index)?{label:bucket.label,owners:null,percentage:null}:bucket);
-  if(hiddenBuckets.size)withheld.push("wearDistribution");
-  const weeklyTrend=analytics.weeklyTrend.map(point=>point.wears>0&&point.wears<MINIMUM_CELL_SIZE?{...point,wears:null}:point);
+  const distributionHidden=analytics.wearDistribution.some(bucket=>smallCell(bucket.owners,total));
+  const wearDistribution=analytics.wearDistribution.map(bucket=>distributionHidden?{label:bucket.label,owners:null,percentage:null}:bucket);
+  if(distributionHidden)withheld.push("wearDistribution");
+  const weeklyTrend=analytics.weeklyTrend.map(point=>distributionHidden||point.wears>0&&point.wears<MINIMUM_CELL_SIZE?{...point,wears:null}:point);
   if(weeklyTrend.some(point=>point.wears===null))withheld.push("weeklyTrend");
   return {
-    actualWears:release("actualWears",analytics.actualWears,totalHidden),
-    activeOwners:release("activeOwners",analytics.activeOwners,activeHidden),
-    repeatWearRate:release("repeatWearRate",analytics.repeatWearRate,repeatHidden),
-    engagementRate:release("engagementRate",analytics.engagementRate,activeHidden),
-    averageWearsPerOwner:release("averageWearsPerOwner",analytics.averageWearsPerOwner,totalHidden),
-    medianWearsPerOwner:analytics.medianWearsPerOwner,
-    zeroWearOwners:release("zeroWearOwners",analytics.zeroWearOwners,activeHidden),
-    highFrequencyOwners:release("highFrequencyOwners",analytics.highFrequencyOwners,highFrequencyHidden),
+    actualWears:release("actualWears",analytics.actualWears,distributionHidden||totalHidden),
+    activeOwners:release("activeOwners",analytics.activeOwners,distributionHidden||activeHidden),
+    repeatWearRate:release("repeatWearRate",analytics.repeatWearRate,distributionHidden||repeatHidden),
+    engagementRate:release("engagementRate",analytics.engagementRate,distributionHidden||activeHidden),
+    averageWearsPerOwner:release("averageWearsPerOwner",analytics.averageWearsPerOwner,distributionHidden||totalHidden),
+    medianWearsPerOwner:release("medianWearsPerOwner",analytics.medianWearsPerOwner,distributionHidden),
+    zeroWearOwners:release("zeroWearOwners",analytics.zeroWearOwners,distributionHidden||activeHidden),
+    highFrequencyOwners:release("highFrequencyOwners",analytics.highFrequencyOwners,distributionHidden||smallCell(analytics.highFrequencyOwners,total)),
     lastWearAt:wearDay(analytics.lastWearAt),
     wearDistribution,
     weeklyTrend,

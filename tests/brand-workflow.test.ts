@@ -81,7 +81,7 @@ test("editing is owner-scoped by key, rate limited, and brand-only", () => {
   const update = store.slice(store.indexOf("export async function updateBrandProduct"), store.indexOf("export async function saveBrandProduct"));
   assert.match(update, /getOwnedBrandProduct\(ownerId,productId\)/);
   assert.match(update, /Key:\{PK:`USER\$\{"\$"\}|PK:`USER#\$\{ownerId\}`,SK:`PRODUCT#\$\{productId\}`/, "the owner is part of the key, not a filter");
-  assert.match(update, /ConditionExpression:"attribute_exists\(PK\) AND attribute_exists\(SK\)"/);
+  assert.match(update, /ConditionExpression:\x60attribute_exists\(PK\) AND attribute_exists\(SK\) AND \$\{existing\.archived/);
 });
 
 // ─── The enumeration budget, said out loud ─────────────────────────────────────
