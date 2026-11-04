@@ -68,3 +68,4 @@ Two pilot brands have created accounts and uploaded products on the live app, so
 - **Authorization tests** run against a local production build with synthetic accounts and a local DynamoDB (`docs/security-verification.md`); they have not been run against the live site, which needs real sign-ins.
 
 Automated repository checks currently include production dependency auditing on every change, weekly Dependabot version updates, and CodeQL scanning on pushes, pull requests, and a weekly schedule. These checks complement rather than replace manual authorization and privacy review.
+- **Community metrics window.** Brand Community metrics use at most 1,000 recent event rows. High volumes of anonymous events can push older activity out of that window.

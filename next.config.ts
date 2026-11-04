@@ -29,7 +29,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {localPatterns: [{pathname: "/icon-192.png", search: ""}]},
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      { source: "/api/:path((?!community/images/[^/]+/[^/]+$).*)", headers: [
+        {key: "Cache-Control", value: "private, no-store"},
+        {key: "Vary", value: "Cookie"},
+      ] },
+    ];
   },
 };
 
