@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { BRAND_STATUS_MESSAGES, brandStatusOf } from "@/lib/brand-approval";
-import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-session";
+import { DEMO_READ_ONLY_MESSAGE, isDemoAccountId } from "@/lib/demo-session";
 import { sessionForAccount, verifySessionToken, type SessionPayload } from "@/lib/session";
 import { getAccount, type AccountRecord } from "@/lib/server/production-store";
 
@@ -15,7 +15,9 @@ export type BrandAccess =
  * The one check every brand route makes before anything else: a valid session, on a brand
  * account, that the owner has approved (lib/brand-approval.ts). It reads the account once — the
  * same strongly consistent read the session check needs — so it costs no more than `getSession`.
- * A route that changes the brand passes `write`, which the demo brand's session is refused.
+ * A route that changes the brand passes `write`, which the shared demo brand's session is refused.
+ * A New Brand demo is a private brand of the visitor's own, so it may write; what it writes stays
+ * out of the registry and expires (lib/demo-session.ts).
  */
 export async function brandAccess({ write = false }: { write?: boolean } = {}): Promise<BrandAccess> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value, secret = process.env.SESSION_SECRET;
@@ -26,6 +28,6 @@ export async function brandAccess({ write = false }: { write?: boolean } = {}): 
   const status = brandStatusOf(account);
   if (!status) return { ok: false, response: NextResponse.json({ error: "Brand account required." }, { status: 403 }) };
   if (status !== "approved") return { ok: false, response: NextResponse.json({ error: BRAND_STATUS_MESSAGES[status], brandStatus: status }, { status: 403 }) };
-  if (write && session.demo) return { ok: false, response: NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE, demo: true }, { status: 403 }) };
+  if (write && session.demo && !isDemoAccountId(session.subject)) return { ok: false, response: NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE, demo: true }, { status: 403 }) };
   return { ok: true, session, account };
 }

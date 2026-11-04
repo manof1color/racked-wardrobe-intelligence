@@ -1,8 +1,8 @@
 import "server-only";
-import { DURABLE_LIMITS, durableDecision, type AiAction, type AiAllowance } from "@/lib/abuse-limits";
+import { DURABLE_LIMITS, durableDecision, reserveSignInAttempt, signInCounterKey, type AiAction, type AiAllowance } from "@/lib/abuse-limits";
 import { chargeAccountAllowance, chargeSiteModelCall } from "@/lib/ai-budget";
-import { UNIDENTIFIED_CLIENT, type RateLimitDecision } from "@/lib/rate-limit";
-import { incrementSecurityCounter, readSecurityCounter } from "@/lib/server/production-store";
+import { type RateLimitDecision } from "@/lib/rate-limit";
+import { decrementSecurityCounter, incrementSecurityCounter } from "@/lib/server/production-store";
 
 /**
  * The shared limits, applied. The two kinds fail in opposite directions when the counter store
@@ -21,49 +21,19 @@ function failOpen(check: string, error: unknown) {
 
 const emailKey = (email: string) => email.trim().toLowerCase();
 
-/** Whether this email address is paused after too many wrong passwords. Reads; does not count. */
-export async function signInPause(email: string, now = Date.now()): Promise<RateLimitDecision> {
-  const rule = DURABLE_LIMITS.signInFailuresPerEmail;
+/** Claims a slot before checking a password, across all server instances. */
+export async function claimSignInAttempt(email: string, knownDevice: boolean, now = Date.now()) {
   try {
-    const { count, resetAt } = await readSecurityCounter(`sign-in-failures:${emailKey(email)}`, rule.windowMs, now);
-    return durableDecision(count + 1, rule.limit, resetAt, now);
+    const decision=await reserveSignInAttempt(incrementSecurityCounter, email, knownDevice, now);
+    return {...decision,reserved:decision.allowed};
   } catch (error) {
-    failOpen("sign-in pause", error);
-    return OPEN;
+    failOpen("sign-in attempt", error);
+    return {...OPEN,reserved:false};
   }
 }
 
-/**
- * A known-device cookie's own failure budget — the same eight wrong passwords per fifteen minutes,
- * counted against the cookie rather than the email (the key is a keyed hash of the cookie). Past it,
- * the cookie no longer exempts its holder from the email's pause.
- */
-export async function knownDevicePause(deviceToken: string, now = Date.now()): Promise<RateLimitDecision> {
-  const rule = DURABLE_LIMITS.signInFailuresPerEmail;
-  try {
-    const { count, resetAt } = await readSecurityCounter(`sign-in-failures-device:${deviceToken}`, rule.windowMs, now);
-    return durableDecision(count + 1, rule.limit, resetAt, now);
-  } catch (error) {
-    failOpen("known-device pause", error);
-    return OPEN;
-  }
-}
-
-export async function countKnownDeviceFailure(deviceToken: string, now = Date.now()) {
-  try {
-    await incrementSecurityCounter(`sign-in-failures-device:${deviceToken}`, DURABLE_LIMITS.signInFailuresPerEmail.windowMs, now);
-  } catch (error) {
-    failOpen("known-device failure count", error);
-  }
-}
-
-/** Counts a wrong password against the email typed — the same write whether or not it has an account. */
-export async function countSignInFailure(email: string, now = Date.now()) {
-  try {
-    await incrementSecurityCounter(`sign-in-failures:${emailKey(email)}`, DURABLE_LIMITS.signInFailuresPerEmail.windowMs, now);
-  } catch (error) {
-    failOpen("sign-in failure count", error);
-  }
+export function releaseSignInAttempt(email: string, knownDevice: boolean, now: number) {
+  return decrementSecurityCounter(signInCounterKey(email, knownDevice), DURABLE_LIMITS.signInFailuresPerEmail.windowMs, now);
 }
 
 export async function claimSignUp(now = Date.now()): Promise<RateLimitDecision> {
@@ -77,14 +47,14 @@ export async function claimSignUp(now = Date.now()): Promise<RateLimitDecision> 
   }
 }
 
-/** One more demo wardrobe across the site (lib/demo-session.ts). Fails open like sign-up; the AI budgets still fail closed. */
-export async function claimDemoWardrobe(now = Date.now()): Promise<RateLimitDecision> {
-  const rule = DURABLE_LIMITS.demoWardrobesSiteWide;
+/** One more demo of any kind across the site (lib/demo-session.ts). Fails open like sign-up; the AI budgets still fail closed. */
+export async function claimDemoSession(now = Date.now()): Promise<RateLimitDecision> {
+  const rule = DURABLE_LIMITS.demoSessionsSiteWide;
   try {
     const { count, resetAt } = await incrementSecurityCounter("demo-wardrobes:site", rule.windowMs, now);
     return durableDecision(count, rule.limit, resetAt, now);
   } catch (error) {
-    failOpen("demo wardrobe ceiling", error);
+    failOpen("demo session ceiling", error);
     return OPEN;
   }
 }
@@ -110,11 +80,9 @@ const ADDRESS_RULES = {
 /**
  * Counts one signed-out request against its client address across every server instance (the
  * address `clientIdentifier` takes from the platform's own forwarding entry). Fails open like the
- * other sign-in checks. A request with no usable address is not counted here: one shared key for
- * all of them would let a single script lock everyone out.
+ * other sign-in checks. Unreadable addresses share the same budget for each action.
  */
 export async function claimAddressRequest(action: keyof typeof ADDRESS_RULES, address: string, now = Date.now()): Promise<RateLimitDecision> {
-  if (address === UNIDENTIFIED_CLIENT) return OPEN;
   const rule = ADDRESS_RULES[action];
   try {
     const { count, resetAt } = await incrementSecurityCounter(`address:${action}:${address}`, rule.windowMs, now);
@@ -146,7 +114,16 @@ export function spendAiAllowance(action: AiAction, accountId: string, now = Date
   return chargeAccountAllowance(incrementSecurityCounter, action, accountId, now);
 }
 
-/** Spends one model call from the site's daily ceiling. Pass it to `metered` around each model runner. */
-export function spendSiteModelCall(): Promise<boolean> {
-  return chargeSiteModelCall(incrementSecurityCounter);
+/**
+ * Spends one model call from the site's daily ceiling. Pass it to `metered` around each model runner,
+ * as `siteModelCallFor(session)` so a demo's call is counted against the demos' share.
+ */
+export function spendSiteModelCall(demo = false): Promise<boolean> {
+  return chargeSiteModelCall(incrementSecurityCounter, Date.now(), undefined, demo);
+}
+
+/** The model-call spender for one session: a demo's calls come from the demos' share. */
+export function siteModelCallFor(session: { demo?: unknown }) {
+  const demo = Boolean(session.demo);
+  return () => spendSiteModelCall(demo);
 }

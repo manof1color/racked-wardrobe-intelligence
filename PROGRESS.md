@@ -459,10 +459,22 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
   each product view records its real bytes) and `tests/synthetic-garment-art.test.ts` (updated pin).
 - **Live:** the photos appear once the judge seed is run again.
 
+## Phase 99 — The four judge accounts on the sign-in screen, and the demo half of the security review (2026-11-03)
+
+- The sign-in screen's **Try the demo** now has one button for each judge account in the README (owner decision, 2026-11-03): **Judge Consumer** (a private copy of the lived-in wardrobe, as before), **New Consumer** (a private, empty wardrobe), **Judge Brand** (the shared demo brand, read-only, Brand Hanger included) and **New Brand** (a private, approved, empty brand of the judge's own). `lib/server/demo-entry.ts` opens all four; `/api/auth/demo` still accepts the old `consumer` and `brand` values.
+- A New Brand may enrol up to 5 products and draft Looks, never publish one. Its products are written without the registry index keys (`registryIndex` in `lib/server/production-store.ts` is now the one place those keys are written), so they never answer a label, a search, a public page or a Community card. Its photos go under `temp/`, which the bucket empties after a day, and its records expire with the other demos.
+- A password sign-in to one of the four seeded judge accounts opens the same demo as its button, before any session, activity entry or known-device cookie. A full session to a seeded judge account is refused in `sessionForAccount`, so an old password session stops working, and the store refuses email, password, sign-out-everywhere, deletion and two-step changes on them.
+- From the 2026-11-02 security review: demos may use at most 80% of the day's AI model calls (`DEMO_SITE_CALL_SHARE`, counted on their own counter before the shared one), so real accounts keep the rest; Brand Hanger on the shared demo brand is counted per visitor (30 questions), not on the shared account's 60; and brand demos now count toward the 120-an-hour site-wide demo ceiling.
+- Tests: `tests/demo-picker.test.ts` (new: the four choices against the README table, the judge-account mapping, refused full sessions, the store guards, New Brand kept out of the registry, the 80% share, Brand Hanger per visitor) and updated pins in `tests/demo-session.test.ts`, `tests/abuse-limits.test.ts`, `tests/brand-integrity.test.ts`, `tests/brand-route-guards.test.ts` and `tests/security-hardening.test.ts`.
+
+## Phase 100 — Shared sign-in attempt limits (2026-11-03)
+
+- Reserve password checks atomically per email and device class. Bind known-device cookies to the account session version and enforce shared limits at a fixed forwarding boundary.
+
+## Phase 101 — Brand registry and Community visibility (2026-11-03)
+
+- Validate alias ownership and ambiguous labels, recheck product reactivation, and require current approval for Brand Looks and photos.
+
 ## Continuous verification
 
-The phase entries above record their historical verification. The current working branch carries **939 passing tests** in 120 files (re-verified 2026-11-03), including session branch coverage at 97.83%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
-
-## Phase 99 — Brand registry and Community visibility (2026-11-03)
-
-- Check alias ownership and ambiguous labels, revalidate product reactivation, and check current approval before serving a brand's Community posts and photos.
+The phase entries above record their historical verification. The current working branch carries **955 passing tests** in 121 files (re-verified 2026-11-03), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.

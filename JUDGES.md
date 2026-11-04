@@ -8,10 +8,12 @@ Live app: https://main.d2iv0khybuuaeh.amplifyapp.com — works on a phone, and c
 
 ## Get in: one click
 
-Open the live app, choose **Sign in**, and press **Try the demo**. No email, no password: you get a
-fresh private copy of a made-up, lived-in wardrobe (Flow 1), the same starting point for every judge,
-gone after a day. **Or see the brand side** opens the made-up demo brand (Flow 2), read-only so
-nobody can change it for the next judge. Neither can publish, change sign-in settings, or reach a
+Open the live app and choose **Sign in**. Under **Try the demo** are the four judge accounts, one
+button each, with no email and no password. **Judge Consumer** is a fresh private copy of a made-up,
+lived-in wardrobe (Flow 1), the same starting point for every judge. **Judge Brand** opens the
+made-up demo brand (Flow 2), read-only so nobody can change it for the next judge, with Brand Hanger.
+**New Consumer** and **New Brand** start empty, to try a first scan or enrol a product from a photo.
+Everything is gone after a day, and none of them can publish, change sign-in settings, or reach a
 real brand.
 
 ## Or sign in to a named account

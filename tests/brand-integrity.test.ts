@@ -125,7 +125,7 @@ test("a brand name is held by one account, reserved before the account exists", 
 
 test("enrollment checks everything before a photo is stored", () => {
   const route = read("app/api/brand/products/route.ts");
-  assert.ok(route.indexOf("registryIdentityConflict(") < route.indexOf("putPrivateImage("), "no orphaned uploads from a rejected enrollment");
+  assert.ok(route.indexOf("registryIdentityConflict(") < route.indexOf("putBrandImage("), "no orphaned uploads from a rejected enrollment");
   assert.match(route, /otherBrandNames:others/);
   assert.match(route, /status:409/);
 });
