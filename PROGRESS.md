@@ -471,6 +471,10 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 
 - Reserve password checks atomically per email and device class. Bind known-device cookies to the account session version and enforce shared limits at a fixed forwarding boundary.
 
+## Phase 101 — Brand registry and Community visibility (2026-11-03)
+
+- Validate alias ownership and ambiguous labels, recheck product reactivation, and require current approval for Brand Looks and photos.
+
 ## Continuous verification
 
-The phase entries above record their historical verification. The current working branch carries **953 passing tests** in 121 files (re-verified 2026-11-03), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
+The phase entries above record their historical verification. The current working branch carries **955 passing tests** in 121 files (re-verified 2026-11-03), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.

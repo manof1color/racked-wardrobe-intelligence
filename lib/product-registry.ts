@@ -218,15 +218,18 @@ function containsCode(labelText:string, code:string) {
  */
 export function matchBrandProduct(_parts:UploadDescriptor[], labelText:string, registry:BrandProductRegistration[]):RegistryMatch|null {
   const gtins=gtinCandidates(labelText);
+  let match:RegistryMatch|null=null;
   for (const product of registry) {
     if (product.archived) continue;
     const productGtin=product.gtin?gtinKey(product.gtin):null;
-    if (productGtin && gtins.has(productGtin)) return {product,method:"gtin"};
+    const gtinMatch=Boolean(productGtin&&gtins.has(productGtin));
     const skuMatch=Boolean(product.sku) && containsCode(labelText,product.sku);
     const brandMatch=(product.aliases ?? []).some((alias)=>normalizeIdentity(alias).length>=5 && containsCode(labelText,alias));
-    if (skuMatch && brandMatch) return {product,method:"brand-sku"};
+    if (!gtinMatch && !(skuMatch && brandMatch)) continue;
+    if (match && match.product.ownerSubject!==product.ownerSubject) return null;
+    if (!match || (gtinMatch && match.method!=="gtin")) match={product,method:gtinMatch?"gtin":"brand-sku"};
   }
-  return null;
+  return match;
 }
 
 /**
@@ -266,7 +269,12 @@ export function isReservedBrandName(name:string) {
  * different brand would let this account's products answer that brand's labels.
  */
 export function conflictingAlias(aliases:string[], ownBrand:string, otherBrandNames:string[]=[]) {
-  const protectedNames=[...reservedBrandNames(),...otherBrandNames]
-    .filter((name)=>normalizeIdentity(name).length>=3&&!containsCode(ownBrand,name));
-  return aliases.find((alias)=>protectedNames.some((name)=>containsCode(alias,name))) ?? null;
+  const brand=normalizeIdentity(ownBrand);
+  const protectedNames=[...reservedBrandNames(),...otherBrandNames].filter(name=>normalizeIdentity(name).length>=3);
+  const words=(value:string)=>value.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/gi," ");
+  return aliases.find(alias=>{
+    const spelling=normalizeIdentity(alias);
+    return (spelling.length>=5&&!brand.includes(spelling)&&!spelling.includes(brand))
+      || protectedNames.some(name=>containsCode(words(alias),name)||containsCode(words(name),alias));
+  }) ?? null;
 }
