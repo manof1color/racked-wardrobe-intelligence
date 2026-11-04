@@ -17,6 +17,9 @@ const allowlist = [
   "RACKED_TABLE_NAME",
   "RACKED_UPLOAD_BUCKET",
   "RACKED_PASSWORD_RESET_FROM",
+  // The owner's addresses for new-brand alerts, and an optional sender (lib/server/brand-signup-email.ts).
+  "RACKED_BRAND_ALERT_TO",
+  "RACKED_BRAND_ALERT_FROM",
   "RACKED_PUBLIC_ORIGIN",
   // Optional: more origins trusted for state-changing requests, such as a custom domain (lib/site-origin.ts).
   "RACKED_ALLOWED_ORIGINS",
