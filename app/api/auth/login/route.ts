@@ -6,10 +6,10 @@ import { deviceLabel } from "@/lib/device-label";
 import { isKnownDevice, KNOWN_DEVICE_COOKIE, knownDeviceCookie } from "@/lib/known-device";
 import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { createSessionToken } from "@/lib/session";
-import { claimAddressRequest, claimDemoSession, countKnownDeviceFailure, countSignInFailure, knownDevicePause, signInPause } from "@/lib/server/abuse-guard";
+import { claimAddressRequest, claimDemoSession, claimSignInAttempt, releaseSignInAttempt } from "@/lib/server/abuse-guard";
+import { authenticateAccount, findAccountByEmail, getAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
 import { SHARED_DEMO_ACCOUNTS } from "@/lib/demo-session";
 import { openDemo } from "@/lib/server/demo-entry";
-import { authenticateAccount, ProductionConfigurationError, recordAccountActivity, recordFailedSignIn } from "@/lib/server/production-store";
 import { createTwoStepChallenge, TWO_STEP_CHALLENGE_COOKIE, TWO_STEP_CHALLENGE_MS, TWO_STEP_CHALLENGE_PATH, twoStepEnabled } from "@/lib/two-step";
 
 export async function POST(request:Request) {
@@ -18,42 +18,27 @@ export async function POST(request:Request) {
   const password=typeof body?.password==="string"?body.password:"";
   if(!email||!password||email.length>254||password.length>1_024)return NextResponse.json({error:"Enter your email and password."},{status:400});
   const secret=process.env.SESSION_SECRET;
-  // A browser that has signed in to this account before carries a signed cookie saying so, and the
-  // per-email pauses below do not apply to it: an attacker typing wrong passwords for someone
-  // else's email can pause their own attempts, never the owner's (lib/known-device.ts). The cookie
-  // has a failure budget of its own, so a copied cookie cannot be used to guess from many
-  // addresses: past eight wrong passwords it is an unknown device again.
-  const deviceToken=(await cookies()).get(KNOWN_DEVICE_COOKIE)?.value;
-  const deviceSigned=Boolean(secret)&&isKnownDevice(deviceToken,email,secret!);
-  const knownDevice=deviceSigned&&(await knownDevicePause(deviceToken!)).allowed;
-  // Both keys slow credential stuffing: one caller cycling emails, and many callers
-  // converging on one account.
-  // The client's address is limited twice: on this instance, and across every instance.
   const client=clientIdentifier(request);
   const byClient=consumeRateLimit(`login:${client}`,RATE_LIMIT_RULES.login);
-  const byEmail=knownDevice?byClient:consumeRateLimit(`login-email:${email.toLowerCase()}`,RATE_LIMIT_RULES.login);
-  const byAddress=byClient.allowed&&byEmail.allowed?await claimAddressRequest("sign-in",client):byClient;
-  if(!byClient.allowed||!byEmail.allowed||!byAddress.allowed){
-    const retryAfter=Math.max(byClient.retryAfterSeconds,byEmail.retryAfterSeconds,byAddress.retryAfterSeconds);
-    return NextResponse.json({error:"Too many sign-in attempts. Try again in a few minutes."},{status:429,headers:{"retry-after":String(retryAfter)}});
-  }
-  // The shared pause holds across every server instance: after repeated wrong passwords an email
-  // address is paused for the rest of the window, whether or not it belongs to an account, so the
-  // answer reveals nothing about which emails do.
-  if(!knownDevice){
-    const paused=await signInPause(email);
-    // An alarm signal for password guessing; the line carries no email address or client address.
-    if(!paused.allowed){console.warn("Sign-in pause engaged");return NextResponse.json({error:signInPausedMessage(paused.retryAfterSeconds)},{status:429,headers:{"retry-after":String(paused.retryAfterSeconds)}});}
-  }
+  const byAddress=byClient.allowed?await claimAddressRequest("sign-in",client):byClient;
+  if(!byAddress.allowed)return NextResponse.json({error:"Too many sign-in attempts. Try again in a few minutes."},{status:429,headers:{"retry-after":String(byAddress.retryAfterSeconds)}});
   const device=deviceLabel(request.headers.get("user-agent"));
   try {
+    const deviceToken=(await cookies()).get(KNOWN_DEVICE_COOKIE)?.value;
+    const now=Date.now();
+    const signed=Boolean(secret)&&isKnownDevice(deviceToken,email,secret!,now);
+    const identified=signed?await findAccountByEmail(email):null;
+    const profile=identified?await getAccount(identified.id):null;
+    const knownDevice=Boolean(profile&&isKnownDevice(deviceToken,email,secret!,now,profile.sessionVersion??0));
+    const byEmail=knownDevice?byClient:consumeRateLimit(`login-email:${email.toLowerCase()}`,RATE_LIMIT_RULES.login);
+    const paused=byEmail.allowed?await claimSignInAttempt(email,knownDevice,now):{...byEmail,reserved:false};
+    if(!paused.allowed){console.warn("Sign-in pause engaged");return NextResponse.json({error:signInPausedMessage(paused.retryAfterSeconds)},{status:429,headers:{"retry-after":String(paused.retryAfterSeconds)}});}
     const account=await authenticateAccount(email,password);
     if(!account){
-      // The same two writes for every wrong password, account or not: count it, and file it where
-      // the owner of that email — if there is one — will see it in their activity log.
-      await Promise.all([countSignInFailure(email),...(deviceSigned?[countKnownDeviceFailure(deviceToken!)]:[]),recordFailedSignIn(email,device).catch(()=>undefined)]);
+      await recordFailedSignIn(email,device).catch(()=>undefined);
       return NextResponse.json({error:"Email or password was incorrect."},{status:401});
     }
+    if(paused.reserved)await releaseSignInAttempt(email,knownDevice,now).catch(()=>undefined);
     if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});
     // The seeded judge accounts in the README are shared by every judge. Their password opens the
     // same demo as the matching button on this screen, never the shared account itself, so no judge
@@ -77,7 +62,7 @@ export async function POST(request:Request) {
     await recordAccountActivity(account.id,"sign-in",device).catch(()=>undefined);
     const response=NextResponse.json({destination:account.role==="consumer"?"/consumer":"/brand"});
     response.cookies.set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:production,path:"/",maxAge:60*60*24*7});
-    const known=knownDeviceCookie(email,secret,production);
+    const known=knownDeviceCookie(email,secret,production,account.sessionVersion);
     response.cookies.set(known.name,known.value,known.options);
     return response;
   }catch(error){

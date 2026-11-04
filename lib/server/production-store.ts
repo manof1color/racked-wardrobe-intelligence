@@ -253,6 +253,12 @@ export async function incrementSecurityCounter(name:string,windowMs:number,now=D
   return {count:Number(result.Attributes?.count??1),resetAt};
 }
 
+/** Refund a successful password check in its original window without creating a counter. */
+export async function decrementSecurityCounter(name:string,windowMs:number,now:number){
+  const start=Math.floor(now/windowMs)*windowMs;
+  await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`LIMIT#${securityKey(name)}`,SK:`WINDOW#${start}`},UpdateExpression:"ADD #count :minusOne",ConditionExpression:"#count > :zero",ExpressionAttributeNames:{"#count":"count"},ExpressionAttributeValues:{":minusOne":-1,":zero":0}}));
+}
+
 /** Reads a shared counter without adding to it. */
 export async function readSecurityCounter(name:string,windowMs:number,now=Date.now()){
   const start=Math.floor(now/windowMs)*windowMs;

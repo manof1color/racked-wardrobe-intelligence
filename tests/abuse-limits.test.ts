@@ -66,34 +66,39 @@ test("counters and failed sign-ins are stored under keyed hashes, never a raw em
 
 test("sign-in checks fail open; AI budgets fail closed", () => {
   const guard = read("lib/server/abuse-guard.ts");
-  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 9, "the six sign-in, known-device, sign-up and reset checks, the per-address check, the demo-wardrobe ceiling, plus the helper");
+  assert.equal((guard.match(/failOpen\(/g) ?? []).length, 6, "the six sign-in, known-device, sign-up and reset checks, the per-address check, the demo-wardrobe ceiling, plus the helper");
   assert.match(guard, /return chargeAccountAllowance\(incrementSecurityCounter, action, accountId, now\);/, "the account allowance uses the fail-closed charge");
   assert.match(guard, /return chargeSiteModelCall\(incrementSecurityCounter, Date\.now\(\), undefined, demo\);/, "and so does the site's ceiling");
 });
 
-test("sign-in checks the shared pause first, and counts every wrong password the same way", () => {
+test("sign-in claims its shared email budget before password verification", () => {
   const login = read("app/api/auth/login/route.ts");
-  assert.ok(login.indexOf("await signInPause(email)") < login.indexOf("await authenticateAccount("), "paused emails never reach the password check");
-  assert.match(login, /signInPausedMessage\(paused\.retryAfterSeconds\)/);
-  assert.match(login, /if\(!account\)\{[\s\S]*?await Promise\.all\(\[countSignInFailure\(email\),\.\.\.\(deviceSigned\?\[countKnownDeviceFailure\(deviceToken!\)\]:\[\]\),recordFailedSignIn\(email,device\)/, "unknown email and wrong password do the same work");
+  const claim = login.indexOf("await claimSignInAttempt(email,knownDevice,now)");
+  assert.ok(claim >= 0 && claim < login.indexOf("await authenticateAccount("));
+  assert.match(login, /recordFailedSignIn\(email,device\)/);
+  assert.match(read("lib/server/abuse-guard.ts"), /reserveSignInAttempt\(incrementSecurityCounter, email, knownDevice, now\)/);
 });
 
-test("REGRESSION: a known-device cookie has its own failure budget, so a copied cookie cannot guess without limit", () => {
-  const login = read("app/api/auth/login/route.ts");
-  assert.match(login, /const knownDevice=deviceSigned&&\(await knownDevicePause\(deviceToken!\)\)\.allowed;/, "past its budget the cookie exempts nothing");
-  assert.match(login, /deviceSigned\?\[countKnownDeviceFailure\(deviceToken!\)\]:\[\]/, "every wrong password with a signed cookie is counted against the cookie");
-  const guard = read("lib/server/abuse-guard.ts");
-  assert.match(guard, /readSecurityCounter\(`sign-in-failures-device:\$\{deviceToken\}`, rule\.windowMs, now\)/);
-  assert.match(guard, /incrementSecurityCounter\(`sign-in-failures-device:\$\{deviceToken\}`, DURABLE_LIMITS\.signInFailuresPerEmail\.windowMs, now\)/);
+test("simultaneous sign-ins share eight reservations per email and device class", async () => {
+  const counts = new Map<string, number>();
+  const increment = async (key: string) => {
+    const count = (counts.get(key) ?? 0) + 1;
+    counts.set(key, count);
+    return {count, resetAt: 900_000};
+  };
+  for (const known of [false, true]) {
+    const results = await Promise.all(Array.from({length: 24}, (_, i) =>
+      reserveSignInAttempt(increment, i % 2 ? "Owner@example.test" : "owner@example.test", known, 0)));
+    assert.equal(results.filter(result => result.allowed).length, 8);
+  }
+  assert.equal(counts.size, 2);
 });
 
 test("a known device is exempt from the per-email pauses, and only those", () => {
   const login = read("app/api/auth/login/route.ts");
   assert.match(login, /const client=clientIdentifier\(request\);\s*const byClient=consumeRateLimit\(`login:\$\{client\}`/, "the per-client limit always applies");
-  assert.match(login, /const byAddress=byClient\.allowed&&byEmail\.allowed\?await claimAddressRequest\("sign-in",client\):byClient;/, "and the same address across every instance");
   assert.match(login, /const byEmail=knownDevice\?byClient:consumeRateLimit\(`login-email:/);
-  assert.match(login, /if\(!knownDevice\)\{\s*const paused=await signInPause\(email\);/);
-  assert.match(login, /const known=knownDeviceCookie\(email,secret,production\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
+  assert.match(login, /const known=knownDeviceCookie\(email,secret,production,account\.sessionVersion\);\s*response\.cookies\.set\(known\.name,known\.value,known\.options\);/, "issued on a successful sign-in");
   assert.match(read("app/api/auth/password-reset/confirm/route.ts"), /knownDeviceCookie\(email,secret,/, "and on a completed password reset, which proves the inbox");
 });
 
@@ -166,9 +171,10 @@ test("signed-out routes also limit each address across every instance, never a m
   }
   const guard = read("lib/server/abuse-guard.ts");
   const claim = guard.slice(guard.indexOf("export async function claimAddressRequest"), guard.indexOf("export async function claimTwoStepAttempt"));
-  assert.match(claim, /if \(address === UNIDENTIFIED_CLIENT\) return OPEN;/, "one key for every unreadable address would let a script lock everyone out");
+  assert.doesNotMatch(claim, /UNIDENTIFIED_CLIENT/, "unreadable addresses spend a shared budget");
   assert.match(claim, /incrementSecurityCounter\(`address:\$\{action\}:\$\{address\}`, rule\.windowMs, now\)/);
   assert.match(claim, /failOpen\(/);
   assert.match(read("app/api/auth/register/route.ts"), /const limit=local\.allowed\?await claimAddressRequest\("sign-up",client\):local;/);
   assert.match(read("app/api/auth/password-reset/request/route.ts"), /const limit=local\.allowed\?await claimAddressRequest\("reset-request",client\):local;/);
 });
+import { reserveSignInAttempt } from "../lib/abuse-limits.ts";

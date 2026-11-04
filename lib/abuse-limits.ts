@@ -80,6 +80,15 @@ export function aiDailyCeiling(configured: string | undefined = process.env.AI_D
 }
 
 /** Whether a counter at `count` (this request included) is still inside `limit`. */
+export const signInCounterKey = (email: string, knownDevice: boolean) =>
+  `${knownDevice ? "sign-in-known-device" : "sign-in-attempt"}:${email.trim().toLowerCase()}`;
+
+export async function reserveSignInAttempt(increment: (key: string, windowMs: number, now: number) => Promise<{count: number; resetAt: number}>, email: string, knownDevice: boolean, now: number) {
+  const rule = DURABLE_LIMITS.signInFailuresPerEmail;
+  const {count, resetAt} = await increment(signInCounterKey(email, knownDevice), rule.windowMs, now);
+  return durableDecision(count, rule.limit, resetAt, now);
+}
+
 export function durableDecision(count: number, limit: number, resetAt: number, now = Date.now()): RateLimitDecision {
   if (count <= limit) return { allowed: true, retryAfterSeconds: 0 };
   return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now) / 1000)) };
