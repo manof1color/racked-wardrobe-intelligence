@@ -40,7 +40,7 @@ Each scoring category, what to look for, and where to check it.
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
 | **Code, docs & GitHub** | 15% | **963 tests** in 122 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **181 merged PRs** counted on 2026-10-30 before this documentation merge; build log through Phase 103 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
-| **Business impact** | 10% | Two real apparel brands have joined the pilot and uploaded products. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even equals roughly 72 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
+| **Business impact** | 10% | Two real apparel brands have joined the pilot and uploaded products. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals roughly 19 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
 
 Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checklist.md).
@@ -106,7 +106,7 @@ The scale is documented, but the claims are kept specific:
 
 **The consumer value:** see what is owned, rediscover underused pieces, build new combinations, repeat saved outfits, and recognize a real wardrobe gap before buying a duplicate.
 
-**The brand value:** use privacy-released repeat-wear, longevity and pairing signals to inform restocks, production quantities, product development, merchandising and campaign creative. At the proposed $149 monthly Standard price, the annual cost is $1,788. As an illustration — not a measured customer result — avoiding about **72 excess units at a $25 landed cost** would cover that annual subscription. The assumptions and formulas are explicit in [Sustainability and business impact](docs/sustainability-and-business-impact.md).
+**The brand value:** use privacy-released repeat-wear, longevity and pairing signals to inform restocks, production quantities, product development, merchandising and campaign creative. At the proposed $40 monthly Pro price, the plan that releases wear data, the annual cost is $480. As an illustration — not a measured customer result — avoiding about **19 excess units at a $25 landed cost** would cover that annual subscription. The assumptions and formulas are explicit in [Sustainability and business impact](docs/sustainability-and-business-impact.md).
 
 **The early market signal:** two independent apparel brands, **_victimdesigns** and **vversatile.usa**, have already agreed to the pilot, created brand accounts and uploaded products. That is observed participation, stronger than hypothetical survey interest. It does **not** yet prove pricing acceptance, recurring usage, waste reduction or financial return; those are the next measurements.
 
@@ -286,18 +286,15 @@ docs/           Judge guides, architecture, privacy, AI use log, evaluation prot
 
 ## Business Model & Pricing (proposed — not currently billed)
 
-Consumers stay free, which solves cold start; brands pay, because post-purchase wear is what they cannot get elsewhere; and the Starter tier prices the wait before a product reaches `k ≥ 25`. No tier weakens consent or the threshold. See [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing).
+Consumers stay free, which solves cold start; brands pay, because post-purchase wear is what they cannot get elsewhere; and the Basic plan prices the wait before a product reaches `k ≥ 25`. The two brand plans ($20 and $40 a month) were set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. No tier weakens consent or the threshold. See [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing).
 
 <!-- pricing:start (generated from lib/pricing.ts; tests/pricing.test.ts) -->
 | Tier | Price | Includes |
 | --- | --- | --- |
 | Consumer Free | $0 | Wardrobe logging, wear tracking, limited Hanger queries |
 | Consumer Pro | $6.99/mo or $59/yr | Unlimited Hanger, advanced analytics, outfit export |
-| Brand SKU Enrollment | $25 one-time + $10/yr/SKU | Verification, registry matching |
-| Brand Starter (below k≥25) | $29/mo | Product enrollment and verification, public Community activity for your products, Brand Looks, and threshold status (released or not yet). No private wear data until a product reaches k ≥ 25. |
-| Brand Standard (post-threshold) | $149/mo | Full aggregate dashboard, CSV export |
-| Brand Growth | $299/mo | Standard + multi-product comparison + Hanger strategy artifacts |
-| A la carte strategy artifact | $15/artifact | For non-subscribers |
+| Brand Basic (below k≥25) | $20/mo | Product enrollment and verification, public Community activity for your products, Brand Looks, and threshold status (released or not yet). No private wear data until a product reaches k ≥ 25. |
+| Brand Pro (post-threshold) | $40/mo | Basic + the full aggregate dashboard for products past k ≥ 25, CSV export, multi-product comparison and Hanger strategy artifacts |
 <!-- pricing:end -->
 
 ---

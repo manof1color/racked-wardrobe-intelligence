@@ -31,7 +31,7 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 
 Two real brands agreed to the pilot, created accounts and uploaded products: participation, not
 payment. Repeat-wear and pairing evidence can inform product, inventory and campaign decisions. At
-the proposed $149 monthly price, avoiding 72 excess units at a $25 landed cost is an illustrative
+the proposed $40 monthly Pro price, avoiding 19 excess units at a $25 landed cost is an illustrative
 annual break-even, not measured pilot ROI.
 
 ## Key technical choices
