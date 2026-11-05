@@ -16,10 +16,9 @@ test("prices are the ones the owner set", () => {
   assert.deepEqual(PRICING_TIERS.map((row) => [row.tier, row.price]), [
     ["Consumer Free", "$0"],
     ["Consumer Pro", "$6.99/mo or $59/yr"],
-    // Owner decision 2026-11-04: three brand plans, enrollment included, no per-product fee.
+    // Owner decision 2026-11-04: two brand plans either side of the threshold, enrollment included.
     ["Brand Basic (below k≥25)", "$20/mo"],
-    ["Brand Advanced (post-threshold)", "$35/mo"],
-    ["Brand Max", "$50/mo"],
+    ["Brand Pro (post-threshold)", "$40/mo"],
   ]);
 });
 

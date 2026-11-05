@@ -81,15 +81,15 @@ markdown margin protected = units kept out of markdown × (full-price contributi
 annual subscription cost = monthly price × 12
 ```
 
-At the proposed Brand Advanced price, the plan that releases wear data:
+At the proposed Brand Pro price, the plan that releases wear data:
 
 ```text
-$35 × 12 = $420 per year
-$420 ÷ $25 landed cost = 16.8 units
+$40 × 12 = $480 per year
+$480 ÷ $25 landed cost = 19.2 units
 ```
 
-Therefore, avoiding roughly **17 excess units at a $25 landed cost** would equal one annual Advanced
-subscription (24 units for Brand Max at $50 a month). This is a break-even illustration, not a forecast or a result from either pilot brand.
+Therefore, avoiding roughly **19 excess units at a $25 landed cost** would equal one annual Pro
+subscription. This is a break-even illustration, not a forecast or a result from either pilot brand.
 It excludes revenue, markdown recovery, implementation costs and taxes. Change either assumption and
 the answer changes.
 
