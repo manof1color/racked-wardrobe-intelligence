@@ -60,7 +60,7 @@ for (const email of EMAILS) {
 }
 
 const products = await queryAll({ KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": `USER#${BRAND_ID}`, ":sk": "PRODUCT#" } });
-check(products.length === 3, "the judge brand has its three products", `${products.length} found`);
+check(products.length === 4, "the judge brand has its four products", `${products.length} found`);
 check(products.some((product) => product.id === RETIRED && product.archived === true), "one product is retired, so retirement can be shown");
 
 for (const product of products) {
@@ -109,6 +109,15 @@ const posts = await queryAll({ KeyConditionExpression: "PK = :pk AND begins_with
 const judgePosts = posts.filter((post) => post.ownerId === CONSUMER_ID || post.ownerId === BRAND_ID);
 check(judgePosts.some((post) => post.sourceType === "consumer"), "the judge account has a published Community look");
 check(judgePosts.some((post) => post.sourceType === "brand"), "the judge brand has a published Brand Look");
+
+const founder = products.find((product) => product.sku === "JDA-004" && !product.archived);
+check(Boolean(founder) && founder.price === 295, "JDA-004 is live at $295");
+for (const [id, photo] of [["judge-brand-post", "look-brand-founder.webp"], ["judge-consumer-post", "look-member-founder.webp"]]) {
+  const post = judgePosts.find((candidate) => candidate.id === id);
+  check(Boolean(post?.imageKey?.endsWith(`/${photo}`)) && await objectExists(post.imageKey), `${id} has an on-person photo`);
+  check(Boolean(founder) && Boolean(post?.publishedGarments?.some((piece) => piece.resolutionState === "EXACT_VERIFIED_PRODUCT" && piece.verifiedProduct?.registryProductId === founder.id && piece.verifiedProduct?.price === 295)), `${id} links to JDA-004 at $295`);
+  if (id === "judge-consumer-post") check(Boolean(post?.publishedGarments?.some((piece) => piece.resolutionState === "GENERIC_UNVERIFIED" && !piece.verifiedProduct)), "the member post has an unlinked closet piece");
+}
 
 const events = await queryAll({ KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": "COMMUNITY", ":sk": "EVENT#" } });
 check(events.some((event) => event.productId === RELEASED), "public activity exists for the released product", `${events.filter((event) => event.productId === RELEASED).length} events`);

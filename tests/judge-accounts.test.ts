@@ -78,16 +78,16 @@ test("the released product clears the k >= 25 threshold and the other two do not
 test("the judge closet shows a verified link and an owner's pick side by side", () => {
   const verified = judgeGarments.filter((garment) => garment.identityStatus === "verified");
   const picked = judgeGarments.filter((garment) => garment.identityStatus === "owner-selected");
-  assert.equal(verified.length, 1);
+  assert.equal(verified.length, 2);
   assert.equal(picked.length, 1);
-  assert.equal(verified[0].GSI1PK, "PRODUCT#judge-product-released", "a verified link joins the brand's owner index");
+  assert.deepEqual(verified.map((piece) => piece.GSI1PK).sort(), ["PRODUCT#judge-product-founder", "PRODUCT#judge-product-released"]);
   assert.equal(picked[0].GSI1PK, undefined, "a pick never does");
   assert.equal(picked[0].registryProductId, null);
   assert.equal(picked[0].selectedProductId, "judge-product-suppressed");
-  for (const garment of [verified[0], picked[0]]) {
+  for (const garment of [...verified, picked[0]]) {
     assert.ok(costPerWearLine(garment as never), "both show cost per wear from the brand's listed price");
   }
-  assert.equal(judgeGarments.length, 12);
+  assert.equal(judgeGarments.length, 13);
 });
 
 // Scope, stated plainly: this covers everything a judge is shown — the judge closet, the brand's
@@ -112,25 +112,26 @@ test("nothing a judge is shown points at an image that was never uploaded", () =
 // slow page to every judge.
 test("every judge image is one of the demo photos, and every photo is used", () => {
   const photos = readdirSync(JUDGE_PHOTO_DIR).filter((name) => name.endsWith(".webp")).map((name) => name.replace(/\.webp$/, "")).sort();
-  const expected = [...judgeGarments.filter((garment) => !String(garment.registryProductId ?? "") && !String(garment.selectedProductId ?? "")).map((garment) => String(garment.id).replace("judge-garment-", "")), ...products.flatMap((product) => ["front", "back", "label"].map((view) => productPhotoName(product.sku, view)))].sort();
+  const expected = ["look-brand-founder", "look-member-founder", ...judgeGarments.filter((garment) => !String(garment.registryProductId ?? "") && !String(garment.selectedProductId ?? "")).map((garment) => String(garment.id).replace("judge-garment-", "")), ...products.flatMap((product) => ["front", "back", "label"].map((view) => productPhotoName(product.sku, view)))].sort();
   assert.deepEqual(photos, expected, "one photo per plain wardrobe piece and per product view, with none left over");
   for (const key of objects) {
     if (key.startsWith(`wardrobe/${JUDGE_SEED_IDS.consumer.id}/`) || key.startsWith(`brand/${JUDGE_SEED_IDS.brand.id}/`)) assert.match(key, /\.webp$/, key);
   }
   // The verified tee and the picked overshirt in the closet show their product's own front photo.
-  for (const [id, sku] of [["judge-garment-verified-tee", "JDA-001"], ["judge-garment-picked-overshirt", "JDA-002"]]) {
+  for (const [id, sku] of [["judge-garment-verified-tee", "JDA-001"], ["judge-garment-picked-overshirt", "JDA-002"], ["judge-garment-verified-founder", "JDA-004"]]) {
     assert.ok(judgeGarments.some((garment) => garment.id === id && String(garment.imageKey).endsWith(`/${id}.webp`)), id);
     assert.ok(photos.includes(productPhotoName(sku, "front")));
   }
   assert.throws(() => judgePhoto("not-a-photo"), /Missing judge photo not-a-photo\.webp/);
 });
 
-test("each demo photo is a 900x1100 WebP under 250 KB, and each product view records its real bytes", async () => {
+test("each demo photo has its expected WebP size, and each product view records its real bytes", async () => {
   for (const name of readdirSync(JUDGE_PHOTO_DIR).filter((file) => file.endsWith(".webp"))) {
     const path = `${JUDGE_PHOTO_DIR}/${name}`;
     const { width, height, format } = await sharp(path).metadata();
-    assert.deepEqual([width, height, format], [JUDGE_PHOTO_SIZE.width, JUDGE_PHOTO_SIZE.height, "webp"], name);
-    assert.ok(statSync(path).size < 250_000, `${name} is ${statSync(path).size} bytes`);
+    const look = name.startsWith("look-");
+    assert.deepEqual([width, height, format], [look ? 1080 : JUDGE_PHOTO_SIZE.width, look ? 1350 : JUDGE_PHOTO_SIZE.height, "webp"], name);
+    assert.ok(statSync(path).size < (look || name.startsWith("jda-004-") ? 120_000 : 250_000), `${name} is ${statSync(path).size} bytes`);
   }
   for (const product of products) {
     for (const [view, record] of Object.entries(product.views ?? {}) as Array<[string, { contentType: string; size: number; sha256?: string; fileName: string }]>) {
@@ -153,6 +154,19 @@ test("saved outfits only contain pieces the judge account owns", () => {
 test("the demo exercises Community, the brand page, and public activity", () => {
   const posts = items.filter((item) => item.PK === "COMMUNITY" && String(item.SK).startsWith("POST#"));
   assert.equal(posts.length, 2, "one consumer look and one Brand Look");
+  for (const [id, photo] of [["judge-brand-post", "look-brand-founder.webp"], ["judge-consumer-post", "look-member-founder.webp"]]) {
+    const post = posts.find((item) => item.id === id);
+    assert.ok(post);
+    assert.ok(String(post.imageKey).endsWith(photo));
+    assert.ok(objects.has(String(post.imageKey)));
+    const pieces = post.publishedGarments as Array<{ resolutionState: string; verifiedProduct?: { registryProductId: string; sku: string; price: number } }>;
+    const jacket = pieces.find((piece) => piece.verifiedProduct?.sku === "JDA-004");
+    assert.equal(jacket?.resolutionState, "EXACT_VERIFIED_PRODUCT");
+    assert.equal(jacket?.verifiedProduct?.registryProductId, "judge-product-founder");
+    assert.equal(jacket?.verifiedProduct?.price, 295);
+    if (id === "judge-consumer-post") assert.equal(pieces.filter((piece) => piece.resolutionState === "GENERIC_UNVERIFIED" && !piece.verifiedProduct).length, 2);
+  }
+  assert.ok(!items.some((item) => item.PK === "PRODUCT#judge-product-founder" && String(item.SK).startsWith("WEAR#")));
   assert.deepEqual(posts.map((post) => post.sourceType).sort(), ["brand", "consumer"]);
   const consumerPost = posts.find((post) => post.sourceType === "consumer")!;
   const verifiedPieces = (consumerPost.publishedGarments as Array<Record<string, unknown>>).filter((garment) => garment.resolutionState === "EXACT_VERIFIED_PRODUCT");
@@ -168,15 +182,15 @@ test("the demo exercises Community, the brand page, and public activity", () => 
 
 test("the seeded catalog behaves the way the live app will read it", () => {
   const live = products.filter((product) => !product.archived);
-  assert.equal(products.length, 3);
-  assert.equal(live.length, 2, "one product is retired on purpose");
+  assert.equal(products.length, 4);
+  assert.equal(live.length, 3, "one product is retired on purpose");
 
   assert.equal(matchBrandProduct([], `${JUDGE_SEED_IDS.brand.name} JDA-001`, products)?.product.sku, "JDA-001", "the label a judge can type verifies");
   assert.equal(matchBrandProduct([], `${JUDGE_SEED_IDS.brand.name} JDA-003`, products), null, "the retired product answers nothing");
 
   const candidates = rankCatalogCandidates({ category: "top", subtype: "t-shirt", color: "navy", pattern: "solid", material: "cotton", brandText: "Judge Demo Atelier" }, products);
   assert.equal(candidates[0]?.sku, "JDA-001", "scanning a navy tee finds the enrolled product");
-  assert.deepEqual(searchCatalog("judge", products).map((result) => result.sku).sort(), ["JDA-001", "JDA-002"], "search finds the live products only");
+  assert.deepEqual(searchCatalog("judge", products).map((result) => result.sku).sort(), ["JDA-001", "JDA-002", "JDA-004"], "search finds the live products only");
 });
 
 test("the seed is a dry run by default in tests, and says what it would write", () => {

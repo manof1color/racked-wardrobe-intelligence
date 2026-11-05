@@ -137,13 +137,15 @@ const OUTFITS = [
   { key: "weekend", name: "Judge Weekend Look", pieces: ["tee", "jean", "sneaker", "verified"], wears: 5 },
 ];
 
-// Three products on purpose. One clears the k>=25 release threshold so a judge sees released
+// Three products demonstrate analytics and lifecycle. The Founder Jacket is for Community only. One clears the k>=25 release threshold so a judge sees released
 // metrics immediately; one stays deliberately below it so they can see suppression working; one is
 // retired, so they can see that a retired product keeps its owners and leaves the public page.
+const FOUNDER = { key: "founder", id: "judge-product-founder", sku: "JDA-004", name: "Judge Founder Jacket", category: "outerwear", subtype: "jacket", color: "brown", pattern: "solid", material: "suede", style: ["casual", "utility"], price: 295 };
 const PRODUCTS = [
   { key: "released", id: "judge-product-released", sku: "JDA-001", name: "Judge Signature Tee", category: "top", subtype: "t-shirt", color: "navy", pattern: "solid", material: "cotton", style: ["minimal", "everyday"], price: 48 },
   { key: "suppressed", id: "judge-product-suppressed", sku: "JDA-002", name: "Judge Limited Overshirt", category: "outerwear", subtype: "denim-jacket", color: "olive", pattern: "solid", material: "cotton", style: ["utility", "casual"], price: 128 },
   { key: "retired", id: "judge-product-retired", sku: "JDA-003", name: "Judge Archive Cap", category: "accessory", subtype: "hat", color: "black", pattern: "solid", material: "cotton", style: ["casual"], price: 32, archived: true },
+  FOUNDER,
 ];
 
 async function accountItem({ id, email, role, displayName, brandName = null, brandSlug = null, brandDataSharing = false }) {
@@ -267,6 +269,11 @@ async function seedConsumer(products) {
   imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.webp`, photoBytes(productPhotoName(products.released.sku, "front")), CONSUMER_ID);
   await linkVerified({ ownerId: CONSUMER_ID, product: PRODUCTS[0], garmentId: verifiedId, wearCount: 5, lastWornDays: 3, imageKey: imageKeys.verified });
 
+  const founderId = "judge-garment-verified-founder";
+  ids.founder = founderId;
+  imageKeys.founder = await putObject(`wardrobe/${CONSUMER_ID}/${founderId}.webp`, photoBytes(productPhotoName(FOUNDER.sku, "front")), CONSUMER_ID);
+  await linkVerified({ ownerId: CONSUMER_ID, product: FOUNDER, garmentId: founderId, wearCount: 0, imageKey: imageKeys.founder });
+
   const pickedId = "judge-garment-picked-overshirt";
   ids.picked = pickedId;
   imageKeys.picked = await putObject(`wardrobe/${CONSUMER_ID}/${pickedId}.webp`, photoBytes(productPhotoName(products.suppressed.sku, "front")), CONSUMER_ID);
@@ -296,21 +303,21 @@ async function seedCommunity({ imageKeys }, products) {
   const postId = "judge-consumer-post";
   const postCreated = at(5);
   const pieces = [
-    { key: "verified", name: products.released.name, category: "top", subtype: "t-shirt", color: "navy", verified: PRODUCTS[0] },
+    { ...FOUNDER, verified: FOUNDER },
     { key: "jean", name: "Judge Indigo Jean", category: "bottom", subtype: "jeans", color: "indigo" },
     { key: "sneaker", name: "Judge White Sneaker", category: "shoe", subtype: "sneakers", color: "white" },
   ];
   const publishedGarments = pieces.map((piece, index) => ({
     publicGarmentId: `${postId}-item-${index + 1}`,
     name: piece.name, category: piece.category, subtype: piece.subtype, color: piece.color,
-    pattern: "solid", material: "cotton", style: ["everyday"], imageKey: imageKeys[piece.key],
+    pattern: "solid", material: piece.verified?.material ?? "cotton", style: piece.verified?.style ?? ["everyday"], imageKey: imageKeys[piece.key],
     resolutionState: piece.verified ? "EXACT_VERIFIED_PRODUCT" : "GENERIC_UNVERIFIED",
     ...(piece.verified ? { verifiedProduct: { registryProductId: piece.verified.id, sku: piece.verified.sku, name: piece.verified.name, brand: BRAND_NAME, brandSlug: BRAND_SLUG, commerceState: "EXACT_AVAILABLE", outboundUrl: `/api/products/${encodeURIComponent(piece.verified.id)}/outbound?sourcePostId=${encodeURIComponent(postId)}`, price: piece.verified.price, currency: "USD" } } : {}),
   }));
   await putItem({
     id: postId, ownerId: CONSUMER_ID, sourceOutfitId: "judge-outfit-weekend", sourceType: "consumer",
     handle: "@judge_demo", outfitTitle: "Judge Weekend Look", caption: "Clearly labeled synthetic Community Look for competition testing.",
-    image: "", createdAt: postCreated, likes: 9, publishedGarments, garments: [], products: [],
+    image: "", imageKey: await putObject(`wardrobe/${CONSUMER_ID}/look-member-founder.webp`, photoBytes("look-member-founder"), CONSUMER_ID), createdAt: postCreated, likes: 9, publishedGarments, garments: [], products: [],
     fictional: true, testCohort: true, dataClassification: "DEMO",
     PK: "COMMUNITY", SK: `POST#${postCreated}#${postId}`,
   });
@@ -330,8 +337,8 @@ async function seedCommunity({ imageKeys }, products) {
 
   // A saved inspiration, so Hanger's private style signal is not empty for the judge account.
   await putItem({
-    postId, outfitTitle: "Judge Weekend Look", styleHints: ["everyday"], colors: ["navy", "indigo", "white"],
-    categories: ["top", "bottom", "shoe"], subtypes: ["t-shirt", "jeans", "sneakers"], createdAt: at(2),
+    postId, outfitTitle: "Judge Weekend Look", styleHints: ["everyday"], colors: ["brown", "indigo", "white"],
+    categories: ["outerwear", "bottom", "shoe"], subtypes: ["jacket", "jeans", "sneakers"], createdAt: at(2),
     testCohort: true, dataClassification: "DEMO",
     PK: `USER#${CONSUMER_ID}`, SK: `INSPIRATION#${postId}`,
   });
@@ -342,7 +349,7 @@ async function seedCommunity({ imageKeys }, products) {
   await putItem({
     id: lookId, ownerSubject: BRAND_ID, brand: BRAND_NAME, brandSlug: BRAND_SLUG,
     title: "Judge Demo Atelier Look 1", caption: "Clearly labeled synthetic Brand Look for competition testing.",
-    productIds: [products.released.id, products.suppressed.id], createdAt: lookCreated, sourceType: "brand", published: true,
+    productIds: [products.founder.id], createdAt: lookCreated, sourceType: "brand", published: true,
     testCohort: true, dataClassification: "DEMO",
     PK: `USER#${BRAND_ID}`, SK: `BRANDLOOK#${lookCreated}#${lookId}`,
   });
@@ -350,8 +357,8 @@ async function seedCommunity({ imageKeys }, products) {
   await putItem({
     id: brandPostId, ownerId: BRAND_ID, sourceBrandLookId: lookId, sourceType: "brand",
     handle: `@${BRAND_SLUG.replaceAll("-", "_")}`, outfitTitle: "Judge Demo Atelier Look 1",
-    caption: "Clearly labeled synthetic Brand Look for competition testing.", image: "", createdAt: lookCreated, likes: 4,
-    publishedGarments: [products.released, products.suppressed].map((product, index) => ({
+    caption: "Clearly labeled synthetic Brand Look for competition testing.", image: "", imageKey: await putObject(`wardrobe/${BRAND_ID}/look-brand-founder.webp`, photoBytes("look-brand-founder"), BRAND_ID), createdAt: lookCreated, likes: 4,
+    publishedGarments: [products.founder].map((product, index) => ({
       publicGarmentId: `${brandPostId}-item-${index + 1}`,
       name: product.name, category: product.category, subtype: product.subtype, color: product.color,
       pattern: product.pattern, material: product.material, style: product.style, imageKey: product.views.front.storageKey,
@@ -486,9 +493,9 @@ export async function buildJudgeSeed({ now = seedClock(), existing } = {}) {
     // What a real run deletes before it writes. A plain dry run reads nothing, so it counts zero.
     deletesBeforeWrite: { countedFrom: deleteSource, ...plannedDeletes, total: Object.values(plannedDeletes).reduce((sum, count) => sum + count, 0), ...(dryRun ? {} : deletion) },
     releasedChart: { weeks: weeklyWearBuckets(releasedWears, new Date(seedNow)), problems: judgeChartProblems(releasedWears, new Date(seedNow)) },
-    judgeConsumer: { email: CONSUMER_EMAIL, wardrobePieces: WARDROBE.length + 2, savedOutfits: OUTFITS.length, verifiedPiece: PRODUCTS[0].sku, ownerPickedPiece: PRODUCTS[1].sku, publishedLook: community.consumerPostId, savedInspiration: 1, brandDataSharing: true },
+    judgeConsumer: { email: CONSUMER_EMAIL, wardrobePieces: WARDROBE.length + 3, savedOutfits: OUTFITS.length, verifiedPiece: PRODUCTS[0].sku, ownerPickedPiece: PRODUCTS[1].sku, publishedLook: community.consumerPostId, savedInspiration: 1, brandDataSharing: true },
   freshConsumer: { email: FRESH_CONSUMER_EMAIL, wardrobePieces: 0, purpose: "first-run experience" },
-    judgeBrand: { email: BRAND_EMAIL, brand: BRAND_NAME, publicPage: `/brands/${BRAND_SLUG}`, releasedProduct: PRODUCTS[0].sku, suppressedProduct: PRODUCTS[1].sku, retiredProduct: PRODUCTS[2].sku, brandLook: community.lookId, publicActivityEvents: community.events },
+    judgeBrand: { email: BRAND_EMAIL, brand: BRAND_NAME, publicPage: `/brands/${BRAND_SLUG}`, releasedProduct: PRODUCTS[0].sku, suppressedProduct: PRODUCTS[1].sku, retiredProduct: PRODUCTS[2].sku, communityProduct: FOUNDER.sku, brandLook: community.lookId, publicActivityEvents: community.events },
   freshBrand: { email: FRESH_BRAND_EMAIL, brand: FRESH_BRAND_NAME, products: 0, purpose: "live enrollment from one photo" },
     // Per-product wear counts, because a single cohort total — which spans both products and omits
     // the judge's own wears — was once quoted as the released product's figure. It was not.
