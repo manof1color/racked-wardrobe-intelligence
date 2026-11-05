@@ -29,8 +29,8 @@ only through registry evidence — a barcode, or the brand together with its own
 the owner picked from the catalog is stored as their claim and never reaches a brand. Consumers are
 free; brands pay, because post-purchase wear is what they cannot buy anywhere else.
 
-Two real brands agreed to the pilot, created accounts and uploaded products: participation, not
-payment. Repeat-wear and pairing evidence can inform product, inventory and campaign decisions. At
+Two real brands agreed to the pilot, created accounts and uploaded products, and one accepted the
+proposed $20/mo Basic plan in writing: participation and a price acceptance, not payment. Repeat-wear and pairing evidence can inform product, inventory and campaign decisions. At
 the proposed $40 monthly Pro price, avoiding 19 excess units at a $25 landed cost is an illustrative
 annual break-even, not measured pilot ROI.
 
@@ -46,7 +46,7 @@ annual break-even, not measured pilot ROI.
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **963 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
+- **964 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
   on every pull request, with a build log through Phase 103 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-11-03).
 
 ## Lessons learned

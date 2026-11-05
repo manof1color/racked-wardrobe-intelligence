@@ -28,6 +28,9 @@ const nextConfig: NextConfig = {
   // No "X-Powered-By: Next.js" banner advertising the framework to scanners.
   poweredByHeader: false,
   images: {localPatterns: [{pathname: "/icon-192.png", search: ""}]},
+  // The pages that state pilot facts check the evidence files at runtime (lib/server/pilot-evidence.ts),
+  // so the files ship with those pages; a deployment without them would leave the claim out.
+  outputFileTracingIncludes: {"/": ["./docs/pilot-evidence/**"], "/pricing": ["./docs/pilot-evidence/**"]},
   async headers() {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },

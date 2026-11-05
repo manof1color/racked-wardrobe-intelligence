@@ -104,10 +104,15 @@ As of 2026-10-29, two independent apparel brands, **_victimdesigns** and **vvers
 That is observed participation and implementation feasibility, not hypothetical survey intent. It is
 fair to call it an **early market signal** or **pilot adoption**.
 
+On 2026-11-04, _victimdesigns also accepted the proposed pricing in writing: asked whether it would
+commit to $20 a month for the Basic plan or $40 for the higher plan if the project continued, it
+replied "yeah those prices are fine", and chose Basic (redacted message in `docs/pilot-evidence/`).
+Nothing is billed during the pilot.
+
 It does not yet prove:
 
 - written problem validation;
-- pricing acceptance or willingness to pay;
+- payment, or willingness to pay from more than one brand;
 - recurring usage;
 - a production, restocking or campaign decision influenced by Racked;
 - avoided inventory, markdowns or waste;
