@@ -13,7 +13,10 @@ const stored = {
 
 test("public community posts contain only the allowlisted outfit fields",()=>{
   const post=toPublicOutfitPost(stored);
-  assert.deepEqual(Object.keys(post).sort(),["caption","createdAt","garments","handle","id","image","likes","outfitTitle","products","sourceType"]);
+  // `photo` is the optional public path to the person-wearing-it photo, built only when the post has one.
+  const expected=["caption","createdAt","garments","handle","id","image","likes","outfitTitle","products","sourceType"];
+  assert.deepEqual(Object.keys(post).sort(),[...expected,...("photo" in post?["photo"]:[])].sort());
+  if("photo" in post)assert.match(String(post.photo),/^\/api\/community\/images\/[^/]+\/legacy-primary$/);
   assert.equal(post.image,"/api/community/images/post-1/public-top");
   assert.equal(post.garments.length,2);
 });
