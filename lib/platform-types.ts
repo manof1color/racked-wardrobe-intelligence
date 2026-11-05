@@ -97,6 +97,8 @@ export interface OutfitPost {
   outfitTitle: string;
   caption: string;
   image: string;
+  /** The photo of a person wearing the outfit, when the post has one; otherwise the feed shows its pieces. */
+  photo?: string;
   createdAt: string;
   likes: number;
   sourceType: "consumer" | "brand";

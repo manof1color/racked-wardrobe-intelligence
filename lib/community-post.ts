@@ -75,6 +75,7 @@ export function toPublicOutfitPost(stored: StoredCommunityPost): OutfitPost {
     outfitTitle:String(stored.outfitTitle??""),
     caption:String(stored.caption??""),
     image:primaryImage,
+    ...(stored.imageKey?{photo:imagePath(id,"legacy-primary")}:{}),
     createdAt:String(stored.createdAt??""),
     likes:Number(stored.likes??0)||0,
     sourceType:stored.sourceType==="brand"?"brand":"consumer",
