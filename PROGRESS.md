@@ -494,6 +494,13 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - **Save look** is the existing Hanger-inspiration bookmark; it adds nothing to the owner's closet. Unpublish stays on the owner's own posts only. No new endpoints, no new data.
 - Tests: `tests/community-piece.test.ts`.
 
+## Phase 105 — Community demo posts: one jacket, on a brand and on a member (2026-11-05)
+
+- The judge seed adds **JDA-004 Judge Founder Jacket**, a fictional $295 Judge Demo Atelier product labelled `DEMO`, with AI-generated front, back and label photos. It has no wear cohort; it exists for Community.
+- The brand post and the judge member's post each carry an AI-generated photo of a fictional adult wearing that jacket, stored as the post's `imageKey`. Both link it to the same product through the seeded verified record, never through resemblance, so both lead to the same product and price. The member's jeans and sneakers are closet pieces with no link and no price.
+- The Judge Consumer wardrobe is now 13 pieces with two verified brand pieces. The verifier checks four products, both on-person photos, both jacket links, and an unlinked closet piece.
+- The images were approved by the owner. The live demo changes only when the owner re-runs the seed.
+
 ## Continuous verification
 
 The phase entries above record their historical verification. The current working branch carries **973 passing tests** in 123 files (re-verified 2026-11-05), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
