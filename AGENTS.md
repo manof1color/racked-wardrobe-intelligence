@@ -33,6 +33,7 @@ verification gate (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pn
 | **Codex, temporary** | Owner decision 2026-11-03, security fix B: sign-in, address limits, known-device code and their tests. |
 | **Codex, temporary** | Owner decision 2026-11-03, security fix C: brand registry, production store, Community image route, image optimizer configuration and their tests. |
 | **Codex, temporary** | Owner decision 2026-11-03, security fix D: Community likes, analytics and rendering, API cache headers and their tests. |
+| **Claude Code, temporary** | Owner decision 2026-11-04, brand approval tools: `scripts/brand-approval.mjs`, the `brands:*` package scripts and the alert settings in `scripts/write-amplify-env.mjs`. |
 
 Lanes move only when the owner says so; update this table in the same pull request.
 
