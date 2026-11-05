@@ -38,7 +38,7 @@ Each scoring category, what to look for, and where to check it.
 | **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **973 tests** in 123 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **181 merged PRs** counted on 2026-10-30 before this documentation merge; build log through Phase 104 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **Code, docs & GitHub** | 15% | **973 tests** in 123 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **181 merged PRs** counted on 2026-10-30 before this documentation merge; build log through Phase 105 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Two real apparel brands have joined the pilot and uploaded products. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals roughly 19 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
@@ -71,7 +71,7 @@ The demo is two flows and nothing else. Everything outside them is built and wor
 
 | Account | Address | What it shows |
 | --- | --- | --- |
-| Judge Consumer | `judge.consumer@racked.local` | A lived-in wardrobe: 12 pieces, saved outfits, a realistic wear spread, one **verified** brand piece |
+| Judge Consumer | `judge.consumer@racked.local` | A lived-in wardrobe: 13 pieces, saved outfits, a realistic wear spread, two **verified** brand pieces |
 | Judge Brand | `judge.brand@racked.local` | One product with **50 opted-in owners** (released) beside one with 4 (suppressed) |
 | New Consumer | `judge.newconsumer@racked.local` | Empty on purpose: scan a real photo and see the first-run states |
 | New Brand | `judge.newbrand@racked.local` | No products: enrol one from a single photo with **Fill in from photo** (a private brand per judge, up to 5 products) |
@@ -331,6 +331,6 @@ Nothing needs installing to try Racked: open the live app and use the demo accou
 
 ---
 
-**Last updated:** 2026-11-05 — the Community feed shows the outfit and its pieces; test totals and coverage rechecked
+**Last updated:** 2026-11-05 — the Community demo posts show one jacket on a brand and a member; test totals and coverage rechecked
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026

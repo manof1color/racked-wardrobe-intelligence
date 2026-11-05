@@ -10,7 +10,7 @@ reads one from `RACKED_TEST_PASSWORD` at runtime.
 
 | Account | What it is for |
 | --- | --- |
-| `judge.consumer@racked.local` | A lived-in wardrobe: 12 pieces, 2 saved outfits, real wear history, one piece **verified** against a brand product, one linked by the owner's **own pick**, a published Community look, and a saved inspiration |
+| `judge.consumer@racked.local` | A lived-in wardrobe: 13 pieces, 2 saved outfits, real wear history, two pieces **verified** against a brand product, one linked by the owner's **own pick**, a published Community look, and a saved inspiration |
 | `judge.newconsumer@racked.local` | Empty. Scan a real photo, watch pieces arrive, and see the honest first-run states |
 | `judge.brand@racked.local` | **Judge Demo Atelier**: one product with **50 opted-in owners**, so the dashboard shows what a live product looks like; one with **4**, deliberately below the `k ≥ 25` threshold, so suppression is visible beside it; one retired; and a published Brand Look |
 | `judge.newbrand@racked.local` | **Judge New Label**, no products. Enroll one live from a single photo |
@@ -71,7 +71,7 @@ the next one sees; a full session to a seeded judge account is refused outright 
    only the first came from label evidence.
 2. **Ask Hanger for an outfit.** Pieces are chosen by the server from this wardrobe, and the reply
    is rejected if it names anything that isn't in the selection. Ask again and it rotates.
-3. **Open Community**, then **Recreate with my wardrobe** on the judge's own look. It splits the
+3. **Open Community.** Compare the DEMO brand and member photos wearing the Judge Founder Jacket (JDA-004). Both jacket cards lead to the same $295 product. The member's closet jeans and sneakers have no price. The jacket has no seeded wear events. Then select **Recreate with my wardrobe** on the judge's own look. It splits the
    look into what this account owns and what is missing, with the reason for each match.
 4. **Sign in as `judge.brand`.** `Judge Signature Tee` (JDA-001) releases metrics: 50 opted-in
    owners, a wear chart, repeat-wear rate. `Judge Limited Overshirt` (JDA-002) has four owners, so
