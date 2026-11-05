@@ -17,12 +17,12 @@ People get a private wardrobe and an AI stylist that help them use more of what 
 | **Built for** | CUA Busch School AI Vibe Coding Contest, Fall 2026 |
 
 <!-- pilot:start (generated from data/pilot-status.json; tests/pilot-claims.test.ts) -->
-**Pilot status (2026-11-04):** Two apparel brands, **_victimdesigns** and **vversatile.usa**, have agreed to join the Racked pilot, created brand accounts and uploaded their products.
+**Pilot status (2026-11-05):** Two apparel brands, **_victimdesigns** and **vversatile.usa**, have agreed to join the Racked pilot, created brand accounts, uploaded their products and accepted pilot pricing.
 
 | Brand | What it has done | Evidence |
 | --- | --- | --- |
 | _victimdesigns | agreed to join the pilot by phone; created a brand account; uploaded products; accepted pilot pricing (Brand Basic) | [victimdesigns-pricing-2026-11-04.jpg](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg) |
-| vversatile.usa | agreed to join the pilot by phone; created a brand account; uploaded products | Agreed by phone; its brand account and uploaded products are live on Racked |
+| vversatile.usa | agreed to join the pilot by phone; created a brand account; uploaded products; accepted pilot pricing (Brand Basic) | [vversatile-pricing-2026-11-05.jpg](docs/pilot-evidence/vversatile-pricing-2026-11-05.jpg) |
 
 Not claimed: payment. Nothing is billed.
 <!-- pilot:end -->
@@ -108,7 +108,7 @@ The scale is documented, but the claims are kept specific:
 
 **The brand value:** use privacy-released repeat-wear, longevity and pairing signals to inform restocks, production quantities, product development, merchandising and campaign creative. At the proposed $40 monthly Pro price, the plan that releases wear data, the annual cost is $480. As an illustration — not a measured customer result — avoiding about **19 excess units at a $25 landed cost** would cover that annual subscription. The assumptions and formulas are explicit in [Sustainability and business impact](docs/sustainability-and-business-impact.md).
 
-**The early market signal:** two independent apparel brands, **_victimdesigns** and **vversatile.usa**, have already agreed to the pilot, created brand accounts and uploaded products, and _victimdesigns accepted the proposed pricing in writing on 2026-11-04 (the $20/mo Basic plan; [redacted message](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg)). That is observed participation and one written price acceptance, stronger than hypothetical survey interest. It does **not** yet prove payment, recurring usage, waste reduction or financial return; nothing is billed during the pilot, and those are the next measurements.
+**The early market signal:** two independent apparel brands, **_victimdesigns** and **vversatile.usa**, have already agreed to the pilot, created brand accounts and uploaded products, and both accepted the proposed pricing in writing: _victimdesigns on 2026-11-04 ([redacted message](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg)) and vversatile.usa on 2026-11-05 ([redacted message](docs/pilot-evidence/vversatile-pricing-2026-11-05.jpg)), each choosing the $20/mo Basic plan while using full pilot access. vversatile.usa's wording is "down to try it", a willingness to try rather than a signed commitment. That is observed participation and two written price acceptances, stronger than hypothetical survey interest. It does **not** yet prove payment, recurring usage, waste reduction or financial return; nothing is billed during the pilot, and those are the next measurements.
 
 Kenya's circular-economy work identifies textiles, apparel and fashion as a priority and emphasizes extending product life and minimizing waste ([State Department for Environment and Climate Change](https://environment.go.ke/index.php/ministry-validates-national-circular-economy-strategy-and-implementation-plan-2027-2032)). UNEP has also documented Kenyan businesses returning textile waste to use through collection and upcycling ([UNEP](https://www.unep.org/en/news-and-stories/story/kenya-textiles-get-second-life)).
 

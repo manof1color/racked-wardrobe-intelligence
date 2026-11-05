@@ -109,10 +109,15 @@ commit to $20 a month for the Basic plan or $40 for the higher plan if the proje
 replied "yeah those prices are fine", and chose Basic (redacted message in `docs/pilot-evidence/`).
 Nothing is billed during the pilot.
 
+On 2026-11-05, vversatile.usa answered the same question (while it had full access to every pilot
+feature) with "Yea id be down to try it fs" and then "Looking at basic to try first" (redacted message
+in `docs/pilot-evidence/`). That is a willingness to try the Basic plan, not a signed commitment. The owner reports that the brand
+agreed more firmly in a follow-up phone call; no record of the call is filed.
+
 It does not yet prove:
 
 - written problem validation;
-- payment, or willingness to pay from more than one brand;
+- payment, or a signed commitment to pay;
 - recurring usage;
 - a production, restocking or campaign decision influenced by Racked;
 - avoided inventory, markdowns or waste;
