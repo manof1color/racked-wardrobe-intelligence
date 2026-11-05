@@ -90,7 +90,7 @@ scan got the category right 92.8% of the time. I don't claim sales lift or purch
 
 > *"Consumers stay free, because the wardrobe has to earn its place on its own. Brands pay, because
 > post-purchase wear is what they cannot get anywhere else. Two real apparel brands have already
-> agreed to the pilot, created accounts and uploaded products, and one has accepted our pricing in
+> agreed to the pilot, created accounts and uploaded products, and both have accepted our pricing in
 > writing — not yet payment. At
 > the proposed Pro price, helping a brand avoid roughly 19 excess units at a $25 landed cost
 > would cover a year, although that is a break-even illustration, not a result I claim. Also built
