@@ -39,9 +39,11 @@ test("only the post record goes — the outfit, wardrobe, photos, and wear histo
 test("only the owner sees the control, after a second confirming tap", () => {
   assert.match(page, /consumer\?listOwnCommunityPostIds\(consumer\):Promise\.resolve\(\[\]\)/, "own post ids are loaded for consumers only");
   assert.match(page, /canPost=\{false\} initialInspiredPostIds=\{\[\]\} initialOwnPostIds=\{\[\]\}/, "and never for a signed-out visitor");
-  assert.match(feed, /\{ownPostIds\.has\(post\.id\)&&<div className="look-owner-actions">/);
+  const card = read("components/community-post-card.tsx");
+  assert.match(feed, /isOwn=\{ownPostIds\.has\(post\.id\)\}/, "the feed tells each card whether the post is the viewer's own");
+  assert.match(card, /\{props\.isOwn && <div className="look-owner-actions">/, "only the owner's own posts show the control");
   assert.match(feed, /confirmUnpublishId===post\.id/);
-  assert.match(feed, /Confirm unpublish/);
+  assert.match(card, /Confirm unpublish/);
   assert.match(feed, /method:"DELETE"/);
   assert.match(feed, /setPosts\(current=>current\.filter\(item=>item\.id!==post\.id\)\)/, "the look leaves the feed at once");
   assert.match(feed, /setOwnPostIds\(current=>new Set\(\[\.\.\.current,data\.post\.id\]\)\)/, "a look just published can be taken down straight away");

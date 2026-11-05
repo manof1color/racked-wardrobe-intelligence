@@ -1,27 +1,15 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { dataLabel, hasShoppablePiece, provenanceLabel } from "@/lib/look-language";
-import { RecreatePanel } from "./recreate-panel";
+import { CommunityPostCard } from "./community-post-card";
+import { CommunityPieceSheet } from "./community-piece-sheet";
 import { ShopTheLook } from "./shop-the-look";
 import { availableCategories, availableStyles, filterLooks, type LookCategory, type LookStyle } from "@/lib/look-discovery";
-import type { OutfitPost } from "@/lib/platform-types";
+import type { OutfitPost, PublicOutfitGarment } from "@/lib/platform-types";
 import type { RecreateLookResult } from "@/lib/recreate-look";
 
 interface SavedOutfitOption { id:string; name:string; pieceCount:number }
 type Filter = "all" | "consumer" | "brand";
-
-function OutfitGallery({ post }: { post: OutfitPost }) {
-  const images = post.garments.filter((garment) => garment.image);
-  if (images.length === 0) return <div className="look-gallery-empty">Outfit image unavailable</div>;
-  if (images.length === 1) return <div className="look-hero-single"><img src={images[0].image} alt={post.outfitTitle} /></div>;
-  return <div className="look-gallery" role="group" aria-label={`${post.outfitTitle}: ${images.length} pieces`}>
-    {images.map((garment) => <figure key={garment.publicGarmentId}>
-      <img src={garment.image} alt={garment.name} />
-    </figure>)}
-  </div>;
-}
 
 export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initialOwnPostIds,savedOutfits}:{initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[]}) {
   const [posts,setPosts]=useState(initialPosts);
@@ -39,6 +27,8 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initi
   const [pendingRecreate,setPendingRecreate]=useState<string|null>(null);
   const [recreations,setRecreations]=useState<Record<string,RecreateLookResult>>({});
   const [shopping,setShopping]=useState<OutfitPost|null>(null);
+  // The piece whose detail is open, with the post it was opened from.
+  const [openPiece,setOpenPiece]=useState<{garment:PublicOutfitGarment;post:OutfitPost}|null>(null);
   // Looks this person published. Only they see an Unpublish control, and only on their own posts.
   const [ownPostIds,setOwnPostIds]=useState(()=>new Set(initialOwnPostIds));
   const [confirmUnpublishId,setConfirmUnpublishId]=useState<string|null>(null);
@@ -145,44 +135,14 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initi
 
     {visible.length===0
       ? <div className="empty-wardrobe"><h2>{posts.length===0?"No public outfits yet.":"No looks match this search."}</h2><p>{posts.length===0?"Be the first to share a look built from your saved wardrobe.":"Try a different style, piece, or search term."}</p>{filtersActive&&posts.length>0&&<button type="button" className="button button-accent" onClick={clearFilters}>Clear filters</button>}</div>
-      : <div className="look-grid">{visible.map(post=>{
-        const provenance=provenanceLabel(post.sourceType);
-        const synthetic=dataLabel(post);
-        const recreated=recreations[post.id];
-        const shoppable=hasShoppablePiece(post.garments);
-        const verifiedCount=post.garments.filter(garment=>garment.verifiedProduct).length;
-        return <article className={`look-card source-${provenance.kind}`} key={post.id}>
-          <OutfitGallery post={post}/>
-          <div className="look-body">
-            <div className="look-meta">
-              <span className={`look-source ${provenance.kind}`} title={provenance.description}>{provenance.label}</span>
-              {post.sourceType==="brand"&&post.products[0]
-                ? <Link className="look-handle" href={`/brands/${post.products[0].brandSlug}`}>{post.products[0].brand}</Link>
-                : <span className="look-handle">{post.handle}</span>}
-              {synthetic&&<span className="look-demo" title={synthetic.detail}>{synthetic.label}</span>}
-            </div>
-            <h2>{post.outfitTitle}</h2>
-            <p className="look-caption">{post.caption}</p>
-            <p className="look-pieces">{post.garments.length} piece{post.garments.length===1?"":"s"}{verifiedCount>0?` · ${verifiedCount} verified product${verifiedCount===1?"":"s"}`:""}</p>
+      : <div className="cfeed">{visible.map(post=><CommunityPostCard key={post.id} post={post} canPost={canPost}
+        isOwn={ownPostIds.has(post.id)} confirmingUnpublish={confirmUnpublishId===post.id} pendingUnpublish={pendingUnpublish===post.id}
+        pendingLike={pendingLike===post.id} inspired={inspiredPostIds.has(post.id)} pendingRecreate={pendingRecreate===post.id} recreated={recreations[post.id]}
+        onLike={()=>like(post.id)} onRecreate={()=>recreate(post.id)} onShop={()=>setShopping(post)} onOpenPiece={garment=>setOpenPiece({garment,post})}
+        onAskUnpublish={()=>setConfirmUnpublishId(post.id)} onCancelUnpublish={()=>setConfirmUnpublishId(null)} onConfirmUnpublish={()=>unpublish(post)}/>)}</div>}
 
-            <div className="look-actions">
-              {canPost
-                ? <button type="button" className="button button-accent button-small" disabled={pendingRecreate===post.id||post.garments.length===0} onClick={()=>recreate(post.id)}>{pendingRecreate===post.id?"Checking your wardrobe…":"Recreate with my wardrobe"}</button>
-                : <Link className="button button-accent button-small" href="/login">Recreate with my wardrobe</Link>}
-              {shoppable&&<button type="button" className="button button-light button-small" onClick={()=>setShopping(post)}>Shop the look</button>}
-              <button type="button" className="like-button" disabled={pendingLike===post.id||inspiredPostIds.has(post.id)} onClick={()=>like(post.id)} aria-label={inspiredPostIds.has(post.id)?`${post.outfitTitle} is saved as Hanger inspiration.`:`Save ${post.outfitTitle} as Hanger inspiration. Currently ${post.likes}.`}>{inspiredPostIds.has(post.id)?"♥ Inspired":`♡ ${post.likes}`}{pendingLike===post.id?" saving…":""}</button>
-            </div>
-
-            {ownPostIds.has(post.id)&&<div className="look-owner-actions">
-              {confirmUnpublishId===post.id
-                ? <><button type="button" className="button button-small confirm-unpublish" disabled={pendingUnpublish===post.id} onClick={()=>unpublish(post)}>{pendingUnpublish===post.id?"Taking it down…":"Confirm unpublish"}</button><button type="button" className="text-button" onClick={()=>setConfirmUnpublishId(null)}>Cancel</button><small>This takes the look out of Community for everyone. Your saved outfit and wardrobe stay as they are; anyone who saved it as inspiration keeps only the style words, never a photo or your name.</small></>
-                : <button type="button" className="text-button" aria-label={`Unpublish ${post.outfitTitle} from Community`} onClick={()=>setConfirmUnpublishId(post.id)}>Your look · Unpublish</button>}
-            </div>}
-
-            {recreated&&<RecreatePanel result={recreated} canShop={shoppable} onShop={()=>setShopping(post)}/>}
-          </div>
-        </article>;
-      })}</div>}
+    {openPiece&&<CommunityPieceSheet garment={openPiece.garment} post={openPiece.post} posts={posts} onClose={()=>setOpenPiece(null)}
+      onOpenPost={postId=>{setOpenPiece(null);window.setTimeout(()=>document.getElementById(`post-${postId}`)?.scrollIntoView({behavior:"smooth",block:"start"}),50);}}/>}
 
     {shopping&&<ShopTheLook post={shopping} onClose={()=>setShopping(null)}/>}
   </>;
