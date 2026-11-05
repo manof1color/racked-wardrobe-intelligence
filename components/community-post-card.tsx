@@ -69,7 +69,7 @@ export function CommunityPostCard(props: CommunityPostCardProps) {
     {pieces.length > 0 && <section className="cpost-pieces" aria-label="Pieces in this look">
       <h3>Pieces in this look</h3>
       <ul>{pieces.map(({ garment, card }) => <li key={card.id}>
-        <button type="button" className="piece-card" onClick={() => props.onOpenPiece(garment)} aria-label={`${card.name}${card.price ? `, ${card.price}` : ", from a personal closet, not for sale"}. Open details.`}>
+        <button type="button" className="piece-card" onClick={() => props.onOpenPiece(garment)}>
           <span className="piece-thumb">{card.thumb ? <img src={card.thumb} alt="" loading="lazy" /> : <span aria-hidden="true">{card.name.slice(0, 1)}</span>}</span>
           <span className="piece-name">{card.name}</span>
           <span className={`piece-price${card.price ? "" : " none"}`}>{card.price ?? (card.kind === "catalog" ? card.brand : "Closet piece")}</span>
@@ -78,7 +78,7 @@ export function CommunityPostCard(props: CommunityPostCardProps) {
     </section>}
 
     <div className="cpost-actions">
-      <button type="button" className="like-button" disabled={props.pendingLike || props.inspired} onClick={props.onLike} aria-label={props.inspired ? `${post.outfitTitle} is saved as Hanger inspiration.` : `Save ${post.outfitTitle} as Hanger inspiration. Currently ${post.likes}.`}>{props.inspired ? "♥ Saved" : `♡ Save look · ${post.likes}`}{props.pendingLike ? " saving…" : ""}</button>
+      <button type="button" className="like-button" disabled={props.pendingLike || props.inspired} onClick={props.onLike} title={props.inspired ? `${post.outfitTitle} is saved as Hanger inspiration` : `Save ${post.outfitTitle} as Hanger inspiration`}><span aria-hidden="true">{props.inspired ? "♥ " : "♡ "}</span>{props.inspired ? "Saved" : `Save look · ${post.likes}`}{props.pendingLike ? " saving…" : ""}</button>
       {canPost
         ? <button type="button" className="button button-accent button-small" disabled={props.pendingRecreate || post.garments.length === 0} onClick={props.onRecreate}>{props.pendingRecreate ? "Checking your wardrobe…" : "Recreate with my wardrobe"}</button>
         : <Link className="button button-accent button-small" href="/login">Recreate with my wardrobe</Link>}
