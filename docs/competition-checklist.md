@@ -125,7 +125,7 @@ This is the judge’s index for the CUA rubric.
 
 - [x] Measures actual wears, active owners, engagement, repeat-wear rate, average/median frequency, high-frequency use, zero-wear opportunity, and eligible cohort.
 - [x] Converts authorized SKU enrollment into a product traceability path.
-- [x] Publishes a proposed business model with an emerging-brand Starter tier for the pre-threshold period, on a labeled in-app `/pricing` page and in the [one-page summary](one-page-summary.md); nothing is billed.
+- [x] Publishes a proposed business model with an emerging-brand Basic plan for the pre-threshold period, on a labeled in-app `/pricing` page and in the [one-page summary](one-page-summary.md); nothing is billed.
 - [x] Provides Consumer and Brand agents with inspectable evidence.
 - [x] [Presentation script](demo-script.md) is written for the format judges actually run — a 5:00 live demo on a hard timer plus 3:00 of Q&A, with the answers prepared — and the [one-page summary](one-page-summary.md) carries the required problem, solution, technical choices, and lessons-learned sections on one page. Both reflect the production flow.
 - [x] `LICENSE` at the repository root: source-available for reading and evaluation, all rights reserved, with no grant to reuse the work.

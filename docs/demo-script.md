@@ -91,7 +91,7 @@ scan got the category right 92.8% of the time. I don't claim sales lift or purch
 > *"Consumers stay free, because the wardrobe has to earn its place on its own. Brands pay, because
 > post-purchase wear is what they cannot get anywhere else. Two real apparel brands have already
 > agreed to the pilot, created accounts and uploaded products — participation, not yet payment. At
-> the proposed Standard price, helping a brand avoid roughly 72 excess units at a $25 landed cost
+> the proposed Advanced price, helping a brand avoid roughly 17 excess units at a $25 landed cost
 > would cover a year, although that is a break-even illustration, not a result I claim. Also built
 > and running, but not in these five minutes: Community, Recreate This Look, Shop the Look, and batch
 > brand enrollment."*
@@ -114,8 +114,8 @@ Judges score here. Answer in two sentences, then stop.
 | **"Is the AI doing real work, or writing text around a rule engine?"** | Both, deliberately. Bedrock does the vision and the conversation, and decides which tools to use; a deterministic ranker picks the outfit, so the model explains a selection it cannot override — and a reply listing outfits the ranker never built is refused. |
 | **"What is your accuracy?"** | 92.8% on garment category, with a 95% interval of 89.3–95.3%, on 300 photos from an independent public dataset. I locked every answer by hash before the first model call and ran the exact code the app runs. The first round found 89.7% and one clear mistake — hoodies called outerwear — so I fixed it and re-measured on 300 fresh photos rather than the ones I tuned on. Exact type is 74.6%, which is why the person always confirms before anything is saved. |
 | **"What would you do differently?"** | I built background removal before I had evidence it worked on real phone photos, and it erased white garments against pale walls. The fix was to stop cutting pieces out and show an honest bounded crop. |
-| **"Who pays, and how much?"** | Brands. $25 per SKU to enrol, $149 a month once a product crosses the privacy threshold, $29 before it does — priced low deliberately, because a brand under the threshold gets benchmarks, not customer data. |
-| **"How does this create financial value for a brand?"** | Wear and pairing evidence can inform restocks, production quantities, product design, merchandising and campaign creative. At $149 a month, avoiding about 72 excess units at a $25 landed cost would cover a year; that is an explicit break-even scenario, not measured pilot ROI. |
+| **"Who pays, and how much?"** | Brands, on three plans: $20 a month before a product crosses the privacy threshold, $35 once it does, and $50 for the most analysis. Set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. Consumers stay free. |
+| **"How does this create financial value for a brand?"** | Wear and pairing evidence can inform restocks, production quantities, product design, merchandising and campaign creative. At $35 a month, avoiding about 17 excess units at a $25 landed cost would cover a year; that is an explicit break-even scenario, not measured pilot ROI. |
 | **"Does the pilot prove there is a market?"** | It is an early market signal: two independent apparel brands agreed to participate, created accounts and uploaded products, which is stronger than hypothetical interest. It does not yet prove willingness to pay, recurring demand or product-market fit, so those are the next validations. |
 | **"What breaks first at scale?"** | Per-instance limits are only a first layer: shared DynamoDB counters and fail-closed model-call budgets now bound abuse and AI usage. Edge rate limiting and production-scale validation remain follow-ups, not claims. |
 

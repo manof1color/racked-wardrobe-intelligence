@@ -1,6 +1,6 @@
 /**
  * The price tiers have one source (lib/pricing.ts). The /pricing page renders it, the README table is
- * generated from it, and the Starter tier promises nothing the product does not do.
+ * generated from it, and the Basic plan promises nothing the product does not do.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -16,11 +16,10 @@ test("prices are the ones the owner set", () => {
   assert.deepEqual(PRICING_TIERS.map((row) => [row.tier, row.price]), [
     ["Consumer Free", "$0"],
     ["Consumer Pro", "$6.99/mo or $59/yr"],
-    ["Brand SKU Enrollment", "$25 one-time + $10/yr/SKU"],
-    ["Brand Starter (below k≥25)", "$29/mo"],
-    ["Brand Standard (post-threshold)", "$149/mo"],
-    ["Brand Growth", "$299/mo"],
-    ["A la carte strategy artifact", "$15/artifact"],
+    // Owner decision 2026-11-04: three brand plans, enrollment included, no per-product fee.
+    ["Brand Basic (below k≥25)", "$20/mo"],
+    ["Brand Advanced (post-threshold)", "$35/mo"],
+    ["Brand Max", "$50/mo"],
   ]);
 });
 
@@ -39,10 +38,10 @@ test("the pricing page renders the shared tiers and declares none of its own", (
   assert.doesNotMatch(page, /price: "\$/, "no tier is declared in the page");
 });
 
-test("Starter promises only what the product shows below the threshold", () => {
-  const starter = PRICING_TIERS.find((row) => row.tier.startsWith("Brand Starter"));
-  assert.ok(starter);
-  assert.match(starter.includes, /No private wear data until a product reaches k ≥ 25\./);
+test("Basic promises only what the product shows below the threshold", () => {
+  const basic = PRICING_TIERS.find((row) => row.tier.startsWith("Brand Basic"));
+  assert.ok(basic);
+  assert.match(basic.includes, /No private wear data until a product reaches k ≥ 25\./);
   // The needles are built from parts so this file does not contain them.
   const needles = ["progress-to-" + "threshold", "category " + "benchmarks"];
   const files = execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" }).split("\n").filter((file) => /\.(ts|tsx|md|mjs|json|yaml|yml)$/.test(file));
