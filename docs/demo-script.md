@@ -90,7 +90,8 @@ scan got the category right 92.8% of the time. I don't claim sales lift or purch
 
 > *"Consumers stay free, because the wardrobe has to earn its place on its own. Brands pay, because
 > post-purchase wear is what they cannot get anywhere else. Two real apparel brands have already
-> agreed to the pilot, created accounts and uploaded products — participation, not yet payment. At
+> agreed to the pilot, created accounts and uploaded products, and one has accepted our pricing in
+> writing — not yet payment. At
 > the proposed Pro price, helping a brand avoid roughly 19 excess units at a $25 landed cost
 > would cover a year, although that is a break-even illustration, not a result I claim. Also built
 > and running, but not in these five minutes: Community, Recreate This Look, Shop the Look, and batch
@@ -129,7 +130,7 @@ Judges score here. Answer in two sentences, then stop.
 | The podium laptop cannot sign in | Use the judge credentials delivered privately before demo day; they are seeded and verified beforehand. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-11-04):** 963 tests in 122 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-11-04):** 964 tests in 122 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 

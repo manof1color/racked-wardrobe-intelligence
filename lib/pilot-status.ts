@@ -5,13 +5,14 @@
  * and the pricing page, so no surface can say more than the evidence.
  *
  * - "agreed to join the pilot" needs a recorded agreement (phone, or in writing).
- * - "accepted pricing" needs a written form (signed letter or email) and evidence files that exist.
+ * - "accepted pricing" needs a written form (signed letter, email, or a direct message from the
+ *   brand's own account) and evidence files that exist.
  *   A phone agreement never renders it.
  * - "customer" needs `paid: true`.
  * - A brand's name renders only with its permission.
  */
 export type AgreementForm = "phone" | "written";
-export type PricingForm = "signed-loi" | "written-email" | "verbal";
+export type PricingForm = "signed-loi" | "written-email" | "written-message" | "verbal";
 
 export interface PilotBrand {
   label: string;
@@ -42,7 +43,7 @@ export const displayName = (brand: PilotBrand, index: number) => (brand.namePerm
 /** Whether a brand's pricing acceptance is evidenced: written, with every evidence file present. */
 export function pricingAccepted(brand: PilotBrand, exists: (path: string) => boolean) {
   const form = brand.pricing.form;
-  return (form === "signed-loi" || form === "written-email") && brand.evidence.length > 0 && brand.evidence.every(exists);
+  return (form === "signed-loi" || form === "written-email" || form === "written-message") && brand.evidence.length > 0 && brand.evidence.every(exists);
 }
 
 /** What one brand has done, in the words the evidence allows. */

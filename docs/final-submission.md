@@ -150,7 +150,7 @@ On GitHub, edit README.md and drag the MP4 in directly under the title; GitHub u
 
 ### Do not say
 
-Anything about sales lift, purchase intent, demographics, fit, virtual try-on or production-scale results; Racked does not claim them (README, *Evidence, and what is not claimed*). Say "synthetic demo data" whenever a brand number is on screen. "Two apparel brands in pilot" is the pilot block's claim as it stands (the brands agreed to join, made accounts and uploaded products); do not add pricing or payment.
+Anything about sales lift, purchase intent, demographics, fit, virtual try-on or production-scale results; Racked does not claim them (README, *Evidence, and what is not claimed*). Say "synthetic demo data" whenever a brand number is on screen. "Two apparel brands in pilot" is the pilot block's claim as it stands (the brands agreed to join, made accounts and uploaded products). One, _victimdesigns, accepted the proposed pricing in writing; say "one brand has accepted our pricing in writing" if you mention it, and do not claim payment.
 
 ---
 

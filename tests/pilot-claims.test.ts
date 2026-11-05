@@ -26,9 +26,12 @@ const two = (patch: Partial<PilotBrand> = {}): PilotStatus => ({ asOf: "2026-10-
 const never = () => false;
 const always = () => true;
 
-test("today's data says the brands agreed, created accounts and uploaded, and nothing about price or payment", () => {
+test("today's data says the brands agreed, created accounts and uploaded; one has accepted pricing in writing, none has paid", () => {
   assert.equal(status.brands.length, 2);
   for (const entry of status.brands) assert.equal(entry.paid, false);
+  // Only _victimdesigns has written evidence (2026-11-04), so the shared sentence still says nothing
+  // about pricing: it names only what every brand has done.
+  assert.deepEqual(status.brands.map((entry) => pricingAccepted(entry, exists)), [true, false]);
   const sentence = pilotSentence(status, exists)!;
   assert.match(sentence, /^Two apparel brands, \*\*_victimdesigns\*\* and \*\*vversatile\.usa\*\*, have agreed to join the Racked pilot, created brand accounts and uploaded their products\.$/);
   assert.doesNotMatch(sentence, /pricing|paid|customer|revenue|\$/i);
@@ -61,8 +64,17 @@ test("a brand is named only with permission, and a claim a brand has not earned 
   assert.match(pilotSentence({ asOf: "x", brands: [brand()] }, never)!, /^One apparel brand, \*\*Brand\*\*, has agreed/);
 });
 
+test("a direct message from the brand's own account counts as written, with its evidence", () => {
+  const message = brand({ pricing: { tier: "Brand Basic", price: "$20/mo", acceptedOn: "2026-11-04", form: "written-message", billingStarts: null }, evidence: ["docs/pilot-evidence/a.jpg"] });
+  assert.equal(pricingAccepted(message, always), true);
+  assert.equal(pricingAccepted(message, never), false, "the file must exist");
+  assert.equal(pricingAccepted({ ...message, evidence: [] }, always), false, "and must be filed");
+  assert.match(brandFacts(message, always).join("; "), /accepted pilot pricing \(Brand Basic\)/);
+});
+
 test("the pricing page note appears only for evidenced acceptance", () => {
-  assert.equal(pricingNote(status, exists), null);
+  assert.equal(pricingNote(status, exists), "Accepted by 1 pilot brand — not yet billed.");
+  assert.equal(pricingNote(status, never), null, "without the file, nothing is claimed");
   const written = brand({ pricing: { tier: "Brand Starter", price: "$29/mo", acceptedOn: "2026-11-01", form: "signed-loi", billingStarts: "2026-12-01" }, evidence: ["docs/pilot-evidence/a.pdf"] });
   assert.equal(pricingNote({ asOf: "x", brands: [written] }, always), "Accepted by 1 pilot brand — billing starts 2026-12-01.");
   assert.equal(pricingNote({ asOf: "x", brands: [{ ...written, pricing: { ...written.pricing, billingStarts: null } }] }, always), "Accepted by 1 pilot brand — not yet billed.");
