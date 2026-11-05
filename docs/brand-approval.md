@@ -21,45 +21,59 @@ There is no automated proof yet, so check by hand:
 - The brand name matches a real, findable brand, and is not a near-copy of one.
 - If in doubt, leave the account pending. A pending brand can see nothing about anyone.
 
-## Commands (AWS CloudShell, owner only)
+## Find out when a brand registers
 
-Set the table name first. It is `RACKED_TABLE_NAME` in Amplify; print only that value, never the
-whole environment map, which holds `SESSION_SECRET`.
+Every new brand registration emails the owner: the brand name, the address it registered with, its
+account id and the exact command that approves it (`lib/brand-signup-alert.ts`). It goes only to the
+owner's addresses, never to the person registering, and an unsent alert never fails a registration.
+
+It is off until two Amplify settings exist (one-time, owner only):
+
+1. In the AWS console, **Amazon SES → Identities → Create identity → Email address**, enter the
+   owner's address in us-east-2, and click the link SES emails. While the account is in the SES
+   sandbox, both the sender and the recipient must be verified, so verifying the owner's own address
+   covers both.
+2. In Amplify, add `RACKED_BRAND_ALERT_TO` (up to three comma-separated owner addresses) and
+   `RACKED_BRAND_ALERT_FROM` (the verified sender; `RACKED_PASSWORD_RESET_FROM` is used if this is
+   unset), then redeploy. The compute role already allows `ses:SendEmail` (`infra/template.yaml`).
+
+## Commands (owner only)
+
+Sign in to AWS on your own computer first, then run these from the repository. They use the
+production table (`RACKED_TABLE_NAME` overrides it) and us-east-2 (`scripts/brand-approval.mjs`).
 
 ```bash
-TABLE=racked-production-table   # replace with the real RACKED_TABLE_NAME
+aws login --profile racked-benchmark
 ```
 
-List brands waiting for approval. This scans the table once: a few cents at most, and usually less.
+List brands waiting for approval, oldest first. It reads only, with one filtered scan of the table: a
+few cents at most.
 
 ```bash
-aws dynamodb scan --table-name "$TABLE" --region us-east-2 \
-  --filter-expression "#role = :brand AND brandStatus = :pending" \
-  --expression-attribute-names '{"#role":"role"}' \
-  --expression-attribute-values '{":brand":{"S":"brand"},":pending":{"S":"pending"}}' \
-  --projection-expression "id, email, brandName, createdAt" --output table
+pnpm brands:pending
 ```
 
-Approve one, by the `id` from that list. The condition refuses anything that is not a brand account.
+`pnpm brands:list` shows every brand account and its status. Temporary demo brands are left out.
+
+Approve one by the `id` from that list, or from the alert email. It shows the brand, its address and
+its current status, then asks you to type `approve` before it changes anything. It writes only that
+account's `brandStatus` (and when it changed), and only if the account is a brand.
 
 ```bash
-ACCOUNT_ID=00000000-0000-0000-0000-000000000000   # the id to approve
-aws dynamodb update-item --table-name "$TABLE" --region us-east-2 \
-  --key "{\"PK\":{\"S\":\"USER#$ACCOUNT_ID\"},\"SK\":{\"S\":\"PROFILE\"}}" \
-  --update-expression "SET brandStatus = :status" \
-  --condition-expression "#role = :brand" \
-  --expression-attribute-names '{"#role":"role"}' \
-  --expression-attribute-values '{":status":{"S":"approved"},":brand":{"S":"brand"}}'
+pnpm brands:approve <account-id>
 ```
 
-To **revoke** a brand, run the same command with `"revoked"` in place of `"approved"`. It takes effect
-on the brand's next request:
+The shared judge brands and the temporary demo brands are refused: their status belongs to the seed
+and the demo. Add `--yes` to skip the confirmation.
+
+To **revoke** a brand, run `pnpm brands:revoke <account-id>`. It takes effect on the brand's next
+request:
 
 - Every brand route refuses it.
 - Its products leave the public registry: searches, matches, label verification and its public page.
 - Pieces consumers already linked keep their link.
 
-To restore it, set it back to `"approved"`. Nothing is deleted either way.
+To restore it, approve it again. Nothing is deleted either way.
 
 ## Limits
 
@@ -77,4 +91,4 @@ To restore it, set it back to `"approved"`. Nothing is deleted either way.
   the owner deals with it. Revoking the account stops it using the name. Freeing the name for the
   real brand means deleting that account's `BRANDNAME#<slug>` claim item, which should be a reviewed
   step, not a one-off console edit.
-- There is no notification when an account is approved; the brand sees it on its next visit.
+- The brand is not emailed when it is approved; it sees the change on its next visit.

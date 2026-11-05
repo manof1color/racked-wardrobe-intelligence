@@ -24,6 +24,10 @@
     "usage:snapshot": "node scripts/pilot-usage-snapshot.mjs",
     "verify:live": "node scripts/verify-live.mjs",
     "verify:aws": "node scripts/verify-aws.mjs",
+    "brands:pending": "node scripts/brand-approval.mjs pending",
+    "brands:list": "node scripts/brand-approval.mjs list",
+    "brands:approve": "node scripts/brand-approval.mjs approve",
+    "brands:revoke": "node scripts/brand-approval.mjs revoke",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "audit:prod": "pnpm audit --prod --audit-level high"

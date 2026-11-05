@@ -8,6 +8,7 @@ import { clientIdentifier, consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate
 import { createSessionToken } from "@/lib/session";
 import { failureResponse } from "@/lib/api-errors";
 import { createAccount, recordAccountActivity, setBrandDataSharing } from "@/lib/server/production-store";
+import { notifyOwnerOfBrandSignup } from "@/lib/server/brand-signup-email";
 import type { Role } from "@/lib/types";
 import { passwordValidationError } from "@/lib/account-security";
 
@@ -37,6 +38,9 @@ export async function POST(request:Request) {
     const account=await createAccount({email:body.email,password:body.password!,role:body.role,displayName:body.displayName,brandName:body.brandName});
     if(!secret)return NextResponse.json({error:"Session security is not configured."},{status:503});
     await recordAccountActivity(account.id,"account-created",deviceLabel(request.headers.get("user-agent"))).catch(()=>undefined);
+    // A new brand starts pending; the owner is emailed so it is not left waiting unseen. Best-effort:
+    // an unsent alert never fails the registration (lib/server/brand-signup-email.ts).
+    if(account.role==="brand")await notifyOwnerOfBrandSignup({accountId:account.id,brandName:account.brandName??"",email:account.email,createdAt:account.createdAt});
     // Brand sharing is asked once, at sign-up, and starts off unless ticked. It is recorded like any
     // later change in Settings (the words shown, and when); if that write fails the account simply
     // starts with sharing off, which Settings can change.
