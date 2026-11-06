@@ -94,7 +94,7 @@ Purchase history stops at the transaction. It cannot show whether a product was 
 
 ## Why This Matters: More Wear, Less Waste
 
-Racked began with James Harris's experience in Kenya, where he saw the consequences of clothing waste and wanted to connect consumer usefulness with better information for brands. The product works before disposal: recycling tries to recover value after clothing becomes waste; Racked helps a garment remain useful in the wardrobe and gives its maker evidence about what earned continued use.
+Racked began with my experience in Kenya, where I saw the consequences of clothing waste and wanted to connect consumer usefulness with better information for brands. The product works before disposal: recycling tries to recover value after clothing becomes waste; Racked helps a garment remain useful in the wardrobe and gives its maker evidence about what earned continued use.
 
 The scale is documented, but the claims are kept specific:
 
