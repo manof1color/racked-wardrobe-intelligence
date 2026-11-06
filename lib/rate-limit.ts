@@ -51,6 +51,7 @@ export const RATE_LIMIT_RULES = {
   communityLike: { limit: 40, windowMs: 5 * 60 * 1000 },
   outboundClick: { limit: 30, windowMs: 5 * 60 * 1000 },
   demoPurchase: { limit: 20, windowMs: 5 * 60 * 1000 },
+  testCheckout: { limit: 10, windowMs: 5 * 60 * 1000 },
   recreateLook: { limit: 30, windowMs: 5 * 60 * 1000 },
   similarProducts: { limit: 30, windowMs: 5 * 60 * 1000 },
   // Search runs as a person types, so it allows more than a one-shot lookup.

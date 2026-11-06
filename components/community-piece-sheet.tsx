@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { looksWithProduct, pieceCard, postPhoto } from "@/lib/community-piece";
+import { offersTestCheckout } from "@/lib/test-checkout";
+import { TestCheckoutButton } from "./test-checkout-button";
 import type { OutfitPost, PublicOutfitGarment } from "@/lib/platform-types";
 
 /**
@@ -10,7 +12,7 @@ import type { OutfitPost, PublicOutfitGarment } from "@/lib/platform-types";
  * is verified as; a closet piece says plainly that it is not for sale. "Seen in these looks" lists the
  * other posts with the same exact product, so a brand's look and a member's look lead to one product.
  */
-export function CommunityPieceSheet({ garment, post, posts, onClose, onOpenPost }: { garment: PublicOutfitGarment; post: OutfitPost; posts: OutfitPost[]; onClose: () => void; onOpenPost: (postId: string) => void }) {
+export function CommunityPieceSheet({ garment, post, posts, testCheckout, onClose, onOpenPost }: { garment: PublicOutfitGarment; post: OutfitPost; posts: OutfitPost[]; testCheckout: boolean; onClose: () => void; onOpenPost: (postId: string) => void }) {
   const card = pieceCard(garment);
   const closeButton = useRef<HTMLButtonElement>(null);
   const others = looksWithProduct(posts, card.registryProductId, post.id);
@@ -43,6 +45,7 @@ export function CommunityPieceSheet({ garment, post, posts, onClose, onOpenPost 
           <p className="piece-sheet-detail">{card.language.detail}</p>
           {(garment.color || garment.material) && <p className="piece-sheet-attrs">{[garment.color, garment.material].filter(Boolean).join(" · ")}</p>}
           {card.outboundUrl && <a className="button button-accent" href={card.outboundUrl} target="_blank" rel="nofollow sponsored noopener noreferrer">Shop on brand site ↗</a>}
+          {offersTestCheckout(testCheckout, post, card) && <TestCheckoutButton productId={card.registryProductId!} />}
         </div>
       </div>
 

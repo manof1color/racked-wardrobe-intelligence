@@ -185,6 +185,7 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 .piece-sheet-image{aspect-ratio:1;background:#eeeae1;display:grid;place-items:center;overflow:hidden}.piece-sheet-image img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
 .piece-sheet-info{display:flex;flex-direction:column;align-items:flex-start;gap:8px}.piece-sheet-info h3{font-family:Georgia,serif;font-size:1.35rem;font-weight:400;margin:0}
 .piece-brand{font-size:.74rem;font-weight:800;color:var(--muted)}a.piece-brand:hover{text-decoration:underline}
+.test-checkout{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:4px}.test-checkout small{font-size:.72rem;line-height:1.5;color:var(--muted)}.test-checkout-error{font-size:.78rem;font-weight:800;margin:0}.test-checkout-result{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:520px;margin:32px auto;padding:20px;border:2px solid var(--ink);background:var(--white)}.test-checkout-result h1{font-family:Georgia,serif;font-size:1.6rem;font-weight:400;margin:0}.test-checkout-result p{margin:0;line-height:1.5}
 .piece-sheet-price{font-size:1.4rem;font-weight:900;margin:0}.piece-sheet-closet{font-size:.8rem;font-weight:800;color:var(--muted);margin:0}
 .piece-sheet-detail,.piece-sheet-attrs{font-size:.72rem;line-height:1.5;color:var(--muted);margin:0}
 .piece-seen{margin-top:18px}.piece-seen h3{font-size:.62rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px}

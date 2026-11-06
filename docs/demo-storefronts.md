@@ -1,6 +1,8 @@
 # Fictional demo storefronts
 
 > Every page under `/demo-store` is a **fictional shop for a fictional brand**. The in-page Demo Bag and $0.00 checkout are an interaction simulation only: no payment is processed, no order is created, and no personal detail is collected. Each page carries a persistent banner saying so.
+>
+> Separately, the Community item sheet for a priced fictional piece can offer a Stripe **test-mode** checkout (`lib/test-checkout.ts`). It too moves no money and creates no order.
 
 ## Why these exist
 

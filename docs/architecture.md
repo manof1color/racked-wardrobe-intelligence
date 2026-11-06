@@ -164,6 +164,7 @@ components/garment-editor.tsx      Editing a saved piece
 components/agent-panels.tsx        Hanger chat: outfit cards, Save/Record, weather and location controls
 components/home-city-setting.tsx   The home city Hanger uses for the forecast
 components/demo-purchase-panel.tsx $0 fictional bag and checkout simulation
+components/test-checkout-button.tsx Stripe test-mode checkout for fictional products (lib/test-checkout.ts)
 components/brand-dashboard.tsx     Aggregate metrics, charts, CSV export, Hanger dock
 infra/template.yaml            DynamoDB, S3, least-privilege Amplify compute role
 ```
