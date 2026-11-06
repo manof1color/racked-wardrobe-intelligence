@@ -1,3 +1,4 @@
+import { JUDGE_LOOKS, JUDGE_LOOK_PRODUCTS } from "./lib/judge-community-looks.mjs";
 // Seeds the clearly labeled DEMO accounts a judge signs into.
 //
 // Judge note: every record written here is synthetic. Accounts use reserved .local addresses,
@@ -146,6 +147,7 @@ const PRODUCTS = [
   { key: "suppressed", id: "judge-product-suppressed", sku: "JDA-002", name: "Judge Limited Overshirt", category: "outerwear", subtype: "denim-jacket", color: "olive", pattern: "solid", material: "cotton", style: ["utility", "casual"], price: 128 },
   { key: "retired", id: "judge-product-retired", sku: "JDA-003", name: "Judge Archive Cap", category: "accessory", subtype: "hat", color: "black", pattern: "solid", material: "cotton", style: ["casual"], price: 32, archived: true },
   FOUNDER,
+  ...JUDGE_LOOK_PRODUCTS,
 ];
 
 async function accountItem({ id, email, role, displayName, brandName = null, brandSlug = null, brandDataSharing = false }) {
@@ -199,7 +201,7 @@ async function seedBrand() {
   const products = {};
   for (const product of PRODUCTS) {
     const views = {};
-    for (const view of ["front", "back", "label"]) {
+    for (const view of product.frontOnly ? ["front"] : ["front", "back", "label"]) {
       const bytes = photoBytes(productPhotoName(product.sku, view));
       const key = `brand/${BRAND_ID}/${product.sku}-${view}.webp`;
       await putObject(key, bytes, BRAND_ID);
@@ -219,6 +221,41 @@ async function seedBrand() {
     });
   }
   return products;
+}
+
+async function seedExtraCommunityLooks(products) {
+  for (const look of JUDGE_LOOKS) {
+    const ownerId = look.member ? `judge-member-${look.member}` : BRAND_ID;
+    const sourceType = look.member ? "consumer" : "brand";
+    const createdAt = at(look.daysAgo);
+    const caption = `Clearly labeled synthetic ${look.member ? "Community" : "Brand"} Look for competition testing.`;
+    const imageKey = await putObject(`wardrobe/${ownerId}/${look.photo}.webp`, photoBytes(look.photo), ownerId);
+    const publishedGarments = [];
+    const productIds = [];
+    for (const [index, piece] of look.pieces.entries()) {
+      const { name, category, subtype, color, pattern, material, style } = piece;
+      const product = piece.sku ? products[piece.key] : null;
+      const publicGarmentId = `${look.id}-item-${index + 1}`;
+      const thumbnail = product?.views.front.storageKey ?? await putObject(`wardrobe/${ownerId}/${piece.photo}.webp`, photoBytes(piece.photo), ownerId);
+      if (product) productIds.push(product.id);
+      publishedGarments.push({
+        publicGarmentId, name, category, subtype, color, pattern, material, style, imageKey: thumbnail,
+        resolutionState: product ? "EXACT_VERIFIED_PRODUCT" : "GENERIC_UNVERIFIED",
+        ...(product ? { verifiedProduct: { registryProductId: product.id, sku: product.sku, name: product.name, brand: BRAND_NAME, brandSlug: BRAND_SLUG, commerceState: "EXACT_AVAILABLE", outboundUrl: `/api/products/${encodeURIComponent(product.id)}/outbound?sourcePostId=${encodeURIComponent(look.id)}`, price: product.price, currency: product.currency } } : {}),
+      });
+    }
+    if (look.brandLookId) await putItem({
+      id: look.brandLookId, ownerSubject: BRAND_ID, brand: BRAND_NAME, brandSlug: BRAND_SLUG,
+      title: look.title, caption, productIds, createdAt, sourceType, published: true,
+      testCohort: true, dataClassification: "DEMO", PK: `USER#${BRAND_ID}`, SK: `BRANDLOOK#${createdAt}#${look.brandLookId}`,
+    });
+    await putItem({
+      id: look.id, ownerId, sourceType, ...(look.brandLookId ? { sourceBrandLookId: look.brandLookId } : {}),
+      handle: look.member ? `@demo_${look.member}` : `@${BRAND_SLUG.replaceAll("-", "_")}`,
+      outfitTitle: look.title, caption, image: "", imageKey, createdAt, likes: 0, publishedGarments, garments: [], products: [],
+      fictional: true, testCohort: true, dataClassification: "DEMO", PK: "COMMUNITY", SK: `POST#${createdAt}#${look.id}`,
+    });
+  }
 }
 
 /** Links a product to one owner, with its wear events, exactly as a verified save would. */
@@ -395,9 +432,9 @@ async function seedCohortLinks(products, ownerIds) {
 const DATED_FAMILIES = [
   ...PRODUCTS.map((product) => ({ label: "wearEvents", PK: `PRODUCT#${product.id}`, prefix: "WEAR#", owned: () => true })),
   { label: "communityEvents", PK: "COMMUNITY", prefix: "EVENT#", owned: (item) => /#judge-\d+$/.test(String(item.SK)) },
-  { label: "communityPosts", PK: "COMMUNITY", prefix: "POST#", owned: (item) => item.id === "judge-consumer-post" || item.id === "judge-brand-post" },
+  { label: "communityPosts", PK: "COMMUNITY", prefix: "POST#", owned: (item) => item.id === "judge-consumer-post" || item.id === "judge-brand-post" || JUDGE_LOOKS.some((look) => look.id === item.id) },
   { label: "outfits", PK: `USER#${CONSUMER_ID}`, prefix: "OUTFIT#", owned: (item) => String(item.id ?? "").startsWith("judge-outfit-") },
-  { label: "brandLooks", PK: `USER#${BRAND_ID}`, prefix: "BRANDLOOK#", owned: (item) => item.id === "judge-brand-look" },
+  { label: "brandLooks", PK: `USER#${BRAND_ID}`, prefix: "BRANDLOOK#", owned: (item) => item.id === "judge-brand-look" || JUDGE_LOOKS.some((look) => look.brandLookId && look.brandLookId === item.id) },
 ];
 
 /**
@@ -482,6 +519,7 @@ export async function buildJudgeSeed({ now = seedClock(), existing } = {}) {
   const products = await seedBrand();
   const consumer = await seedConsumer(products);
   const community = await seedCommunity(consumer, products);
+  await seedExtraCommunityLooks(products);
   const cohort = await seedCohortLinks(products, owners.ids);
   const optedInOwnersForReleased = owners.ids.length + 1; // the cohort, plus the judge consumer
   const plannedDeletes = Object.fromEntries(Object.entries(plan).map(([label, keys]) => [label, keys.length]));

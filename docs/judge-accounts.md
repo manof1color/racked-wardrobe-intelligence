@@ -71,7 +71,7 @@ the next one sees; a full session to a seeded judge account is refused outright 
    only the first came from label evidence.
 2. **Ask Hanger for an outfit.** Pieces are chosen by the server from this wardrobe, and the reply
    is rejected if it names anything that isn't in the selection. Ask again and it rotates.
-3. **Open Community.** Compare the DEMO brand and member photos wearing the Judge Founder Jacket (JDA-004). Both jacket cards lead to the same $295 product. The member's closet jeans and sneakers have no price. The jacket has no seeded wear events. Then select **Recreate with my wardrobe** on the judge's own look. It splits the
+3. **Open Community.** Compare the DEMO brand and member photos wearing the Judge Founder Jacket (JDA-004). Both jacket cards lead to the same $295 product. The member's closet jeans and sneakers have no price. The jacket has no seeded wear events. Scroll for fifteen more fictional looks across streetwear, minimal, casual, workwear, athletic, outdoor, evening, and formal styles. Some looks show several priced catalog pieces alongside unpriced member pieces. Then select **Recreate with my wardrobe** on the judge's own look. It splits the
    look into what this account owns and what is missing, with the reason for each match.
 4. **Sign in as `judge.brand`.** `Judge Signature Tee` (JDA-001) releases metrics: 50 opted-in
    owners, a wear chart, repeat-wear rate. `Judge Limited Overshirt` (JDA-002) has four owners, so

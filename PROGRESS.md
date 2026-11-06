@@ -510,6 +510,13 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - A profile lists the member's looks among the 60 most recent posts the feed reads, not older ones.
 - Tests: `tests/community-author.test.ts`, and an accessibility check of the profile page, including the trip there and back.
 
+## Phase 107 — Fifteen more Community looks, streetwear to formal (2026-11-05)
+
+- The judge seed adds fifteen fictional posts across eight styles, for men and women, each with an AI-generated photo of a fictional adult wearing the outfit. Six are brand posts and nine are member posts. Nine have two or three priced pieces; the rest pair one priced piece with unpriced closet pieces.
+- Judge Demo Atelier gains 26 fictional products, JDA-005 to JDA-030, with a front photo only, because Community shows only the front. They have no wear cohort, so the released and suppressed products, the chart and the Judge Consumer closet are unchanged.
+- A re-seed replaces these posts rather than adding to them, and a test covers it. Another test proves each post lands in its intended style filter.
+- The images were approved by the owner. The live demo changes only when the owner re-runs the seed.
+
 ## Continuous verification
 
 The phase entries above record their historical verification. The current working branch carries **979 passing tests** in 124 files (re-verified 2026-11-05), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.

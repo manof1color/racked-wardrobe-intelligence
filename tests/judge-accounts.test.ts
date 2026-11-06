@@ -1,3 +1,6 @@
+import { JUDGE_LOOKS, JUDGE_LOOK_PRODUCTS } from "../scripts/lib/judge-community-looks.mjs";
+import { GARMENT_TAXONOMY } from "../lib/garment-taxonomy.ts";
+import { classifyLookStyles } from "../lib/look-discovery.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -112,7 +115,7 @@ test("nothing a judge is shown points at an image that was never uploaded", () =
 // slow page to every judge.
 test("every judge image is one of the demo photos, and every photo is used", () => {
   const photos = readdirSync(JUDGE_PHOTO_DIR).filter((name) => name.endsWith(".webp")).map((name) => name.replace(/\.webp$/, "")).sort();
-  const expected = ["look-brand-founder", "look-member-founder", ...judgeGarments.filter((garment) => !String(garment.registryProductId ?? "") && !String(garment.selectedProductId ?? "")).map((garment) => String(garment.id).replace("judge-garment-", "")), ...products.flatMap((product) => ["front", "back", "label"].map((view) => productPhotoName(product.sku, view)))].sort();
+  const expected = ["look-brand-founder", "look-member-founder", ...JUDGE_LOOKS.flatMap((look) => [look.photo, ...look.pieces.flatMap((piece: { photo?: string }) => piece.photo ? [piece.photo] : [])]), ...judgeGarments.filter((garment) => !String(garment.registryProductId ?? "") && !String(garment.selectedProductId ?? "")).map((garment) => String(garment.id).replace("judge-garment-", "")), ...products.flatMap((product) => Object.keys(product.views).map((view) => productPhotoName(product.sku, view)))].sort();
   assert.deepEqual(photos, expected, "one photo per plain wardrobe piece and per product view, with none left over");
   for (const key of objects) {
     if (key.startsWith(`wardrobe/${JUDGE_SEED_IDS.consumer.id}/`) || key.startsWith(`brand/${JUDGE_SEED_IDS.brand.id}/`)) assert.match(key, /\.webp$/, key);
@@ -131,7 +134,7 @@ test("each demo photo has its expected WebP size, and each product view records 
     const { width, height, format } = await sharp(path).metadata();
     const look = name.startsWith("look-");
     assert.deepEqual([width, height, format], [look ? 1080 : JUDGE_PHOTO_SIZE.width, look ? 1350 : JUDGE_PHOTO_SIZE.height, "webp"], name);
-    assert.ok(statSync(path).size < (look || name.startsWith("jda-004-") ? 120_000 : 250_000), `${name} is ${statSync(path).size} bytes`);
+    assert.ok(statSync(path).size < (look || name.startsWith("jda-004-") || JUDGE_LOOK_PRODUCTS.some((product) => name === productPhotoName(product.sku, "front") + ".webp") || name.startsWith("closet-") ? 120_000 : 250_000), `${name} is ${statSync(path).size} bytes`);
   }
   for (const product of products) {
     for (const [view, record] of Object.entries(product.views ?? {}) as Array<[string, { contentType: string; size: number; sha256?: string; fileName: string }]>) {
@@ -153,7 +156,21 @@ test("saved outfits only contain pieces the judge account owns", () => {
 
 test("the demo exercises Community, the brand page, and public activity", () => {
   const posts = items.filter((item) => item.PK === "COMMUNITY" && String(item.SK).startsWith("POST#"));
-  assert.equal(posts.length, 2, "one consumer look and one Brand Look");
+  assert.equal(posts.length, 2 + JUDGE_LOOKS.length);
+  for (const look of JUDGE_LOOKS) {
+    const post = posts.find((item) => item.id === look.id);
+    assert.ok(post);
+    assert.ok(objects.has(String(post.imageKey)));
+    const garments = post.publishedGarments as Parameters<typeof classifyLookStyles>[0]["garments"];
+    assert.ok(classifyLookStyles({ garments }).some((style) => style === look.style), look.id);
+    for (const garment of garments ?? []) {
+      const subtypes: readonly string[] = GARMENT_TAXONOMY[garment.category as keyof typeof GARMENT_TAXONOMY] ?? [];
+      assert.ok(subtypes.includes(garment.subtype ?? ""), garment.name);
+      assert.ok(objects.has(String((garment as { imageKey?: string }).imageKey)), garment.name);
+    }
+    assert.deepEqual((garments ?? []).flatMap((piece) => piece.verifiedProduct ? [[piece.verifiedProduct.sku, piece.verifiedProduct.price]] : []),
+      look.pieces.flatMap((piece: { sku?: string; price?: number }) => piece.sku ? [[piece.sku, piece.price]] : []), look.id);
+  }
   for (const [id, photo] of [["judge-brand-post", "look-brand-founder.webp"], ["judge-consumer-post", "look-member-founder.webp"]]) {
     const post = posts.find((item) => item.id === id);
     assert.ok(post);
@@ -167,7 +184,7 @@ test("the demo exercises Community, the brand page, and public activity", () => 
     if (id === "judge-consumer-post") assert.equal(pieces.filter((piece) => piece.resolutionState === "GENERIC_UNVERIFIED" && !piece.verifiedProduct).length, 2);
   }
   assert.ok(!items.some((item) => item.PK === "PRODUCT#judge-product-founder" && String(item.SK).startsWith("WEAR#")));
-  assert.deepEqual(posts.map((post) => post.sourceType).sort(), ["brand", "consumer"]);
+  assert.deepEqual(posts.slice(0, 2).map((post) => post.sourceType).sort(), ["brand", "consumer"]);
   const consumerPost = posts.find((post) => post.sourceType === "consumer")!;
   const verifiedPieces = (consumerPost.publishedGarments as Array<Record<string, unknown>>).filter((garment) => garment.resolutionState === "EXACT_VERIFIED_PRODUCT");
   assert.equal(verifiedPieces.length, 1, "so Shop the Look has exactly one openable piece");
@@ -177,20 +194,21 @@ test("the demo exercises Community, the brand page, and public activity", () => 
   assert.deepEqual(events.map((event) => event.eventType).sort(), ["demo-purchase", "outbound-product-click", "product-click", "recreate-look-request"]);
   for (const event of events) assert.ok(!("ownerId" in event) && !("ownerPK" in event), "public activity is identity-free");
   assert.equal(items.filter((item) => String(item.SK).startsWith("INSPIRATION#")).length, 1);
-  assert.equal(items.filter((item) => String(item.SK).startsWith("BRANDLOOK#")).length, 1);
+  assert.equal(items.filter((item) => String(item.SK).startsWith("BRANDLOOK#")).length, 1 + JUDGE_LOOKS.filter((look) => look.brandLookId).length);
 });
 
 test("the seeded catalog behaves the way the live app will read it", () => {
   const live = products.filter((product) => !product.archived);
-  assert.equal(products.length, 4);
-  assert.equal(live.length, 3, "one product is retired on purpose");
+  assert.equal(products.length, 4 + JUDGE_LOOK_PRODUCTS.length);
+  assert.equal(live.length, 3 + JUDGE_LOOK_PRODUCTS.length, "one product is retired on purpose");
 
   assert.equal(matchBrandProduct([], `${JUDGE_SEED_IDS.brand.name} JDA-001`, products)?.product.sku, "JDA-001", "the label a judge can type verifies");
   assert.equal(matchBrandProduct([], `${JUDGE_SEED_IDS.brand.name} JDA-003`, products), null, "the retired product answers nothing");
 
   const candidates = rankCatalogCandidates({ category: "top", subtype: "t-shirt", color: "navy", pattern: "solid", material: "cotton", brandText: "Judge Demo Atelier" }, products);
   assert.equal(candidates[0]?.sku, "JDA-001", "scanning a navy tee finds the enrolled product");
-  assert.deepEqual(searchCatalog("judge", products).map((result) => result.sku).sort(), ["JDA-001", "JDA-002", "JDA-004"], "search finds the live products only");
+  for (const product of live) assert.equal(searchCatalog(product.sku, products)[0]?.sku, product.sku);
+  assert.deepEqual(searchCatalog("JDA-003", products), [], "archived products stay out of search");
 });
 
 test("the seed is a dry run by default in tests, and says what it would write", () => {
@@ -289,9 +307,9 @@ test("a re-run deletes only the seeded, dated records it is about to rewrite, so
   const yesterdayOf = (test: (item: Record<string, unknown>) => boolean) => yesterday.filter(test).length;
   assert.equal(count("wearEvents"), yesterdayOf((item) => String(item.SK).startsWith("WEAR#")));
   assert.equal(count("communityEvents"), 4);
-  assert.equal(count("communityPosts"), 2);
+  assert.equal(count("communityPosts"), 2 + JUDGE_LOOKS.length);
   assert.equal(count("outfits"), 2);
-  assert.equal(count("brandLooks"), 1);
+  assert.equal(count("brandLooks"), 1 + JUDGE_LOOKS.filter((look) => look.brandLookId).length);
   const planned = new Set(Object.values(plan).flat().map((key) => `${key.PK}|${key.SK}`));
   for (const item of foreign) assert.ok(!planned.has(`${item.PK}|${item.SK}`), `never deletes ${item.SK}`);
 
@@ -305,9 +323,9 @@ test("a re-run deletes only the seeded, dated records it is about to rewrite, so
   for (const item of todayItems) table.set(`${item.PK}|${item.SK}`, item);
   const rows = [...table.values()].filter((item) => item.testCohort === true);
   const seededOf = (test: (item: Record<string, unknown>) => boolean) => rows.filter(test).length;
-  assert.equal(seededOf((item) => item.PK === "COMMUNITY" && String(item.SK).startsWith("POST#") && String(item.id).startsWith("judge-")), 2);
+  assert.equal(seededOf((item) => item.PK === "COMMUNITY" && String(item.SK).startsWith("POST#") && String(item.id).startsWith("judge-")), 2 + JUDGE_LOOKS.length);
   assert.equal(seededOf((item) => String(item.SK).startsWith("OUTFIT#")), 2);
-  assert.equal(seededOf((item) => String(item.SK).startsWith("BRANDLOOK#")), 1);
+  assert.equal(seededOf((item) => String(item.SK).startsWith("BRANDLOOK#")), 1 + JUDGE_LOOKS.filter((look) => look.brandLookId).length);
   assert.equal(seededOf((item) => /^EVENT#.*#judge-\d+$/.test(String(item.SK))), 4);
   assert.equal(seededOf((item) => String(item.SK).startsWith("WEAR#")), todayItems.filter((item) => String(item.SK).startsWith("WEAR#")).length);
 });
