@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { BackButton } from "./back-button";
 import { CommunityPostCard } from "./community-post-card";
 import { CommunityPieceSheet } from "./community-piece-sheet";
 import { ShopTheLook } from "./shop-the-look";
@@ -11,7 +12,7 @@ import type { RecreateLookResult } from "@/lib/recreate-look";
 interface SavedOutfitOption { id:string; name:string; pieceCount:number }
 type Filter = "all" | "consumer" | "brand";
 
-export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initialOwnPostIds,savedOutfits}:{initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[]}) {
+export function CommunityFeed({profile,initialPosts,canPost,initialInspiredPostIds,initialOwnPostIds,savedOutfits}:{profile?:{name:string;initials:string};initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[]}) {
   const [posts,setPosts]=useState(initialPosts);
   const [title,setTitle]=useState("");
   const [caption,setCaption]=useState("");
@@ -75,7 +76,15 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initi
   }
 
   return <>
-    <section className="community-hero">
+    {profile
+      ? <section className="cprofile">
+        <BackButton fallback="/community"/>
+        <div className="cprofile-who">
+          <span className="cpost-avatar" aria-hidden="true">{profile.initials}</span>
+          <div><h1>{profile.name}</h1><p>{posts.length} shared look{posts.length===1?"":"s"}</p></div>
+        </div>
+      </section>
+      : <><section className="community-hero">
       <div className="eyebrow">OUTFIT DISCOVERY</div>
       <h1>See the outfit.<br/><em>Then check your closet.</em></h1>
       <p>Every look here was explicitly published by the person or brand who built it. Open one and Racked will tell you how much of it you can already wear from your own wardrobe.</p>
@@ -120,10 +129,10 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initi
         {`Showing ${visible.length} of ${posts.length} look${posts.length===1?"":"s"}`}
         {filtersActive&&<button type="button" className="text-button" onClick={clearFilters}>Clear filters</button>}
       </p>
-    </div>
+    </div></>}
 
     {canPost&&composerOpen&&savedOutfits.length>0&&<form className="post-composer" onSubmit={publish}>
-      <div><strong>Share a saved outfit</strong><span>Only the pieces in the outfit you pick become public. Nothing else in your wardrobe is exposed.</span></div>
+      <div><strong>Share a saved outfit</strong><span>Only the pieces in the outfit you pick become public, and the look also appears on your Community profile. Nothing else in your wardrobe is exposed.</span></div>
       <select aria-label="Saved outfit" value={outfitId} onChange={event=>setOutfitId(event.target.value)} required>{savedOutfits.map(outfit=><option key={outfit.id} value={outfit.id}>{outfit.name} · {outfit.pieceCount} pieces</option>)}</select>
       <input aria-label="Outfit title" placeholder="Outfit title" value={title} onChange={event=>setTitle(event.target.value)} required/>
       <input aria-label="Caption" placeholder="What made this outfit work?" value={caption} onChange={event=>setCaption(event.target.value)} required/>
@@ -134,9 +143,9 @@ export function CommunityFeed({initialPosts,canPost,initialInspiredPostIds,initi
     {notice&&<div className="agent-action-status" role="status">✓ {notice}</div>}
 
     {visible.length===0
-      ? <div className="empty-wardrobe"><h2>{posts.length===0?"No public outfits yet.":"No looks match this search."}</h2><p>{posts.length===0?"Be the first to share a look built from your saved wardrobe.":"Try a different style, piece, or search term."}</p>{filtersActive&&posts.length>0&&<button type="button" className="button button-accent" onClick={clearFilters}>Clear filters</button>}</div>
+      ? <div className="empty-wardrobe"><h2>{posts.length===0?(profile?"No shared looks here any more.":"No public outfits yet."):"No looks match this search."}</h2><p>{posts.length===0?"Be the first to share a look built from your saved wardrobe.":"Try a different style, piece, or search term."}</p>{filtersActive&&posts.length>0&&<button type="button" className="button button-accent" onClick={clearFilters}>Clear filters</button>}</div>
       : <div className="cfeed">{visible.map(post=><CommunityPostCard key={post.id} post={post} canPost={canPost}
-        isOwn={ownPostIds.has(post.id)} confirmingUnpublish={confirmUnpublishId===post.id} pendingUnpublish={pendingUnpublish===post.id}
+        isOwn={ownPostIds.has(post.id)} linkAuthor={!profile} confirmingUnpublish={confirmUnpublishId===post.id} pendingUnpublish={pendingUnpublish===post.id}
         pendingLike={pendingLike===post.id} inspired={inspiredPostIds.has(post.id)} pendingRecreate={pendingRecreate===post.id} recreated={recreations[post.id]}
         onLike={()=>like(post.id)} onRecreate={()=>recreate(post.id)} onShop={()=>setShopping(post)} onOpenPiece={garment=>setOpenPiece({garment,post})}
         onAskUnpublish={()=>setConfirmUnpublishId(post.id)} onCancelUnpublish={()=>setConfirmUnpublishId(null)} onConfirmUnpublish={()=>unpublish(post)}/>)}</div>}

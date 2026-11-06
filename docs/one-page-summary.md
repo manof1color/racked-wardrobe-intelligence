@@ -46,8 +46,8 @@ annual break-even, not measured pilot ROI.
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **973 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
-  on every pull request, with a build log through Phase 105 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-11-03).
+- **979 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
+  on every pull request, with a build log through Phase 106 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-11-03).
 
 ## Lessons learned
 
