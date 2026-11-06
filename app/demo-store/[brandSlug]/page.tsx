@@ -29,7 +29,7 @@ export default async function DemoStorefront({params}:{params:Promise<{brandSlug
     <section className="demo-store-hero">
       <div className="eyebrow">DEMONSTRATION CATALOG</div>
       <h1>{brand}</h1>
-      <p>This is a fictional shop built inside Racked so the &ldquo;Shop the Look&rdquo; journey can be demonstrated end to end. {brand} is not a real company, these products do not exist, and nothing here can be bought.</p>
+      <p>This is a fictional shop built inside Racked so the &ldquo;Shop the Look&rdquo; journey can be demonstrated end to end. {brand} is not a real company, these products do not exist, and nothing ships. Where a test card is offered it runs in Stripe test mode, so no real money moves.</p>
     </section>
 
     <section className="demo-store-grid">

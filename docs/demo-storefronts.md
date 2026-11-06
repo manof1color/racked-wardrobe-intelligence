@@ -1,8 +1,8 @@
 # Fictional demo storefronts
 
-> Every page under `/demo-store` is a **fictional shop for a fictional brand**. The in-page Demo Bag and $0.00 checkout are an interaction simulation only: no payment is processed, no order is created, and no personal detail is collected. Each page carries a persistent banner saying so.
+> Every page under `/demo-store` is a **fictional shop for a fictional brand**: a fictional product, no real money, and nothing ships. The in-page Demo Bag and $0.00 checkout are an interaction simulation only: no payment is processed, no order is created, and no personal detail is collected. Each page carries a persistent banner saying so.
 >
-> Separately, the Community item sheet for a priced fictional piece can offer a Stripe **test-mode** checkout (`lib/test-checkout.ts`). It too moves no money and creates no order.
+> A fictional product page, and the Community item sheet for a priced fictional piece, can also offer **Pay with a test card**, a Stripe **test-mode** checkout (`lib/test-checkout.ts`). It appears only when a Stripe test key is configured, never for a pilot or real brand's product, moves no money, creates no order, and records nothing. Only the $0.00 Demo Bag adds to the brand dashboard's simulation count.
 
 ## Why these exist
 
@@ -12,7 +12,7 @@ Racked's "Shop the Look" path needs a real, always-available HTTPS destination t
 
 - Storefronts render **only** for products classified `DEMO` (or legacy `testCohort: true`). A `PILOT` or `REGULAR` brand returns 404 — a real brand can never have a fake shop rendered on its behalf. Enforced by `isDemoStorefrontBrand()` and covered by a regression test.
 - No real company, logo, wordmark, or domain is imitated. The three brands are Racked's own inventions.
-- The working **Demo Bag** advances through add-to-bag and $0.00 completion. Completing it now records one identity-free demonstration event so the owning fictional brand sees it arrive live on its dashboard. There is still no payment provider, order record, address field, email field, or persistent cart, and the event is written only for `DEMO` products.
+- The working **Demo Bag** advances through add-to-bag and $0.00 completion. Completing it now records one identity-free demonstration event so the owning fictional brand sees it arrive live on its dashboard. There is still no order record, address field, email field, or persistent cart, and the event is written only for `DEMO` products.
 - Pages are marked `robots: { index: false, follow: false }`.
 
 ## Fictional product photography

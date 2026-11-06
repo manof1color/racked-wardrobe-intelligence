@@ -157,7 +157,7 @@ Style is *derived from the published pieces*, never a tag someone typed.
 | **Shop the Look** | An in-app inspection sheet. Only a registry-verified exact product with a validated destination is openable. Similar or unverified pieces are never presented as the exact item worn. |
 
 For fictional demo brands, Shop the Look opens a clearly labelled **$0.00 checkout
-simulation**. No payment is taken. Completing it records an identity-free
+simulation**. No payment is taken. When a Stripe test key is configured the product page also offers **Pay with a test card**, a Stripe test-mode payment: fictional product, no real money, nothing ships, and nothing recorded. Completing it records an identity-free
 demonstration event the fictional brand sees arrive live.
 
 A priced fictional piece's sheet can also offer **Buy with a test card**, which opens

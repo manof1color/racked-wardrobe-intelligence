@@ -46,7 +46,7 @@ test("product copy always states the product is fictional and checkout never cha
   assert.match(copy, /fictional/i);
   assert.match(copy, /never charges/i);
   assert.match(DEMO_STORE_DISCLAIMER, /not a real shop/i);
-  assert.match(DEMO_STORE_DISCLAIMER, /no payment is ever collected/i);
+  assert.match(DEMO_STORE_DISCLAIMER, /no real money is ever taken/i);
 });
 
 test("prices format as currency without throwing on an odd code", () => {

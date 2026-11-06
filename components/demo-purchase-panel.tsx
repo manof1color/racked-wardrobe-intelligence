@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { TestCheckoutButton } from "./test-checkout-button";
 
 type DemoPurchaseStep = "product" | "bag" | "complete";
 
 // Judge note: completing this simulation now writes one identity-free demonstration
 // event so the owning fictional brand can watch it arrive on its dashboard during a
 // live demo. It still takes no payment, creates no order, and collects nothing about
-// the person. If the recording call fails the simulation still completes — the point of
+// the person. The separate "Pay with a test card" button (Stripe test mode, offered only when the
+// page says so) records nothing here: it never touches the demonstration count. If the recording call fails the simulation still completes — the point of
 // the step is the commerce handoff, not the counter.
-export function DemoPurchasePanel({ productId, productName, unavailable, sourcePostId }: { productId: string; productName: string; unavailable: boolean; sourcePostId?: string }) {
+export function DemoPurchasePanel({ productId, productName, unavailable, sourcePostId, testCheckout = false }: { productId: string; productName: string; unavailable: boolean; sourcePostId?: string; testCheckout?: boolean }) {
   const [step, setStep] = useState<DemoPurchaseStep>("product");
   const [busy, setBusy] = useState(false);
   const [recorded, setRecorded] = useState(false);
@@ -52,5 +54,5 @@ export function DemoPurchasePanel({ productId, productName, unavailable, sourceP
     <button type="button" className="text-button" disabled={busy} onClick={() => setStep("product")}>Remove from demo bag</button>
   </section>;
 
-  return <><button type="button" className="button button-dark button-full" onClick={() => setStep("bag")}>Add to demo bag</button><p className="demo-product-nosale">This is a working purchase simulation for competition testing. It never asks for payment, contact, shipping, or account information.</p></>;
+  return <><button type="button" className="button button-dark button-full" onClick={() => setStep("bag")}>Add to demo bag</button><p className="demo-product-nosale">The demo bag is a purchase simulation for competition testing. It asks for no card, contact, shipping, or account information. This is a fictional product: no real money moves and nothing ships.</p>{testCheckout && <TestCheckoutButton productId={productId} label="Pay with a test card" />}</>;
 }
