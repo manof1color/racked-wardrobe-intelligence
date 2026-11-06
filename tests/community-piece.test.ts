@@ -106,7 +106,10 @@ test("the feed is one column of post cards, each with its pieces under the photo
   assert.ok(card.indexOf("<PostPhoto post={post} />") < card.indexOf('aria-label="Pieces in this look"'), "the pieces sit directly beneath the photo");
   assert.match(card, /<section className="cpost-pieces" aria-label="Pieces in this look">/);
   assert.match(card, /card\.price \?\? \(card\.kind === "catalog" \? card\.brand : "Closet piece"\)/, "a closet piece says so instead of showing a price");
-  assert.match(card, /Save look · /, "Save look is the existing inspiration bookmark, and adds nothing to the closet");
+  assert.match(card, /props\.inspired \? "Saved" : "Save look"/, "Save look is the existing inspiration bookmark, and adds nothing to the closet");
+  assert.match(card, /<HeartIcon filled=\{props\.inspired\} \/>/, "the action is a heart icon, filled once saved");
+  assert.match(card, /<span className="like-count">\{post\.likes\}<\/span>/, "the count shown is the real saved count");
+  assert.doesNotMatch(card, /comment|share|bookmark/i, "Racked has no comments, shares or bookmarks to show");
   assert.match(card, /Your look · Unpublish/, "only the owner's own posts offer to unpublish");
   const sheet = read("components/community-piece-sheet.tsx");
   assert.match(sheet, /role="dialog" aria-modal="true"/);
