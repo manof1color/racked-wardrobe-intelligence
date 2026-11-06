@@ -50,10 +50,10 @@ test("the amount is the catalog's price in cents, or the storefront's own fictio
   assert.equal(testCheckoutAmount({ sku: "A", category: "top", price: 0 }), fictional, "zero is not a price");
 });
 
-test("Stripe is asked for one labelled card payment, with a placeholder email and configured return addresses", () => {
+test("Stripe is asked for one labelled payment, with a placeholder email and configured return addresses", () => {
   const form = testCheckoutForm(product, ORIGIN);
   assert.equal(form.get("mode"), "payment");
-  assert.equal(form.get("payment_method_types[0]"), "card");
+  assert.equal([...form.keys()].some((name) => name.startsWith("payment_method_types")), false, "REGRESSION: Stripe answered 400 to payment_method_types on the account's current API version");
   assert.equal(form.get("line_items[0][quantity]"), "1");
   assert.equal(form.get("line_items[0][price_data][unit_amount]"), "18900");
   assert.equal(form.get("line_items[0][price_data][product_data][name]"), "Transit Bomber (fictional demo)");
