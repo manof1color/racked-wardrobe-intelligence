@@ -14,7 +14,7 @@ export default function PricingPage() {
     </header>
     <div className="eyebrow" style={{ marginTop: "60px" }}>BUSINESS MODEL</div>
     <h1>Planned pricing.</h1>
-    <p className="lead">This is the proposed business model for Racked. <strong>Nothing on this page is currently billed</strong> — every account and feature in the competition build is free, and no payment method is ever collected.</p>
+    <p className="lead">This is the proposed business model for Racked. <strong>Nothing on this page is currently billed</strong> — every account and feature in the competition build is free, and no real payment is ever collected. Fictional demo products can be tried with a Stripe test card, where no money moves.</p>
     <div className="pricing-disclaimer" role="note"><strong>Planned pricing — not yet billed.</strong> The tiers below are a forward-looking proposal, not an active offer.</div>
     {accepted&&<p className="pricing-pilot">{accepted}</p>}
     <div className="table-scroll" role="region" aria-label="Proposed tiers" tabIndex={0}>

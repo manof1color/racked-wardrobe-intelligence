@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { DemoPurchasePanel } from "@/components/demo-purchase-panel";
 import { DEMO_STORE_DISCLAIMER, demoProductImagePath, demoStoreBrandPath, formatPrice, isDemoStorefrontBrand, storefrontDescription, storefrontPrice } from "@/lib/demo-storefront";
 import { listPublicBrandProducts } from "@/lib/server/production-store";
+import { stripeTestKey, testCheckoutRefusal } from "@/lib/test-checkout";
 
 export async function generateMetadata({params}:{params:Promise<{brandSlug:string;sku:string}>}):Promise<Metadata>{
   const {brandSlug,sku}=await params;
@@ -21,6 +22,8 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
   if(!product)notFound();
   const price=storefrontPrice(product);
   const unavailable=product.availability==="unavailable"||product.availability==="discontinued";
+  // Offered only with a Stripe test key, and only for a product the checkout route would itself accept.
+  const testCheckout=Boolean(stripeTestKey(process.env.STRIPE_SECRET_KEY))&&testCheckoutRefusal(product)===null;
 
   return <main className="demo-store">
     <div className="demo-store-banner" role="note"><strong>Demonstration only</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
@@ -44,7 +47,7 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
           <div><dt>Availability</dt><dd>{unavailable?"Not available":"Demonstration only"}</dd></div>
         </dl>
 
-        <DemoPurchasePanel productId={product.id} productName={product.name} unavailable={unavailable}/>
+        <DemoPurchasePanel productId={product.id} productName={product.name} unavailable={unavailable} testCheckout={testCheckout}/>
 
         <Link className="text-link" href={`/brands/${brandSlug}`}>See how this product is measured on Racked →</Link>
       </div>
