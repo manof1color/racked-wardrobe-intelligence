@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { failureResponse } from "@/lib/api-errors";
-import { deleteOutfit, listOutfits, listWardrobe, saveOutfit, updateOutfitItems } from "@/lib/server/production-store";
+import { deleteOutfit, listOutfits, listWardrobe, renameOutfit, saveOutfit, updateOutfitItems } from "@/lib/server/production-store";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { onlyFields, readId, readIdList, readJsonObject, readText } from "@/lib/request-input";
 
@@ -38,8 +38,15 @@ export async function PATCH(request: Request) {
   if(!limit.allowed)return NextResponse.json({error:"Too many outfit changes at once. Try again in a few minutes."},{status:429,headers:{"retry-after":String(limit.retryAfterSeconds)}});
   try{
     const body=await readJsonObject(request);
-    onlyFields(body,["outfitId","itemIds"]);
+    onlyFields(body,["outfitId","itemIds","name"]);
     const outfitId=readId(body.outfitId,"saved outfit");
+    // A rename changes only the name. Pieces change through itemIds, which also redraws the board.
+    if(body.itemIds===undefined){
+      const name=readText(body.name,{label:"the outfit name",max:200});
+      const renamed=await renameOutfit(session.subject,outfitId,name);
+      if(!renamed)return NextResponse.json({error:"Saved outfit not found."},{status:404});
+      return NextResponse.json({outfit:renamed});
+    }
     const itemIds=readIdList(body.itemIds,{label:"wardrobe pieces",min:1,max:10});
     const outfit=await updateOutfitItems(session.subject,outfitId,itemIds);
     if(!outfit)return NextResponse.json({error:"Saved outfit not found."},{status:404});

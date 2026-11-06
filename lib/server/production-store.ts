@@ -645,6 +645,18 @@ export async function updateOutfitItems(ownerId:string,outfitId:string,itemIds:s
   }
 }
 
+export async function renameOutfit(ownerId:string,outfitId:string,name:string) {
+  const outfit=(await listOutfits(ownerId)).find(entry=>entry.id===outfitId);
+  if(!outfit)return null;
+  const result=await db.send(new UpdateCommand({
+    TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`OUTFIT#${outfit.createdAt}#${outfit.id}`},
+    UpdateExpression:"SET #name = :name",ConditionExpression:"attribute_exists(PK)",
+    ExpressionAttributeNames:{"#name":"name"},ExpressionAttributeValues:{":name":name},ReturnValues:"ALL_NEW",
+  }));
+  const updated=result.Attributes as unknown as SavedOutfit;
+  return {...updated,boardImageUrl:await privateImageUrl(updated.boardImageKey)};
+}
+
 export async function deleteOutfit(ownerId:string,outfitId:string) {
   const outfit=(await listOutfits(ownerId)).find(entry=>entry.id===outfitId);
   if(!outfit)return false;

@@ -24,6 +24,15 @@ for (const view of ["home", "looks", "closet", "outfits"]) {
   });
 }
 
+test("axe: a saved outfit's detail, and the way back to the list", async ({ page }, testInfo) => {
+  await openConsumer(page, "outfits");
+  await page.locator(".outfit-row").first().click();
+  await expect(page.getByRole("button", { name: "Wear This Again" })).toBeVisible();
+  await expectNoSeriousViolations(page, testInfo, "outfit detail");
+  await page.getByRole("button", { name: "Back to saved outfits" }).click();
+  await expect(page.locator(".outfit-row").first()).toBeVisible();
+});
+
 test("axe: consumer closet with a piece open for editing", async ({ page }, testInfo) => {
   await openConsumer(page, "closet");
   await page.getByRole("button", { name: /^Edit piece:/ }).first().click();
