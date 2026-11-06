@@ -1021,3 +1021,13 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 /* "Try the demo" on the sign-in screen (lib/demo-session.ts) */
 .demo-entry{margin:26px 0 6px;padding:20px;background:var(--acid);display:flex;flex-direction:column;gap:12px}.demo-entry h2{font-family:Georgia,serif;font-weight:400;font-size:1.5rem;letter-spacing:-.02em;margin:0}.demo-entry p{font-size:.76rem;line-height:1.5;margin:0}.demo-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.demo-choice{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--ink);color:var(--paper);border:0;padding:12px 14px;cursor:pointer;font:inherit}.demo-choice strong{font-size:.86rem;font-weight:900}.demo-choice span{font-size:.7rem;line-height:1.4;opacity:.82}.demo-choice:hover:not(:disabled),.demo-choice:focus-visible{background:#000}.demo-choice:focus-visible{outline:3px solid var(--ink);outline-offset:2px}.demo-choice:disabled{opacity:.5;cursor:not-allowed}@media(max-width:480px){.demo-choices{grid-template-columns:1fr}}
 .demo-notice{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--acid);color:var(--ink);padding:10px 34px;font-size:.74rem;line-height:1.4}.demo-notice strong{font-size:.62rem;font-weight:950;letter-spacing:.12em}.demo-notice a{text-decoration:underline;font-weight:800}@media(max-width:640px){.demo-notice{padding:10px 18px}.demo-entry{padding:16px}}
+
+/* Community profile, and the Back button it shares with the brand page */
+.back-button{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;background:none;border:0;font:inherit;font-size:.86rem;font-weight:800;color:var(--ink);cursor:pointer}.back-button:hover{text-decoration:underline}
+.brand-profile>.back-button{margin:10px 0 0}
+.cprofile{max-width:640px;margin:14px auto 22px}
+.cprofile-who{display:flex;align-items:center;gap:14px;margin-top:8px}
+.cprofile-who .cpost-avatar{width:64px;height:64px;font-size:1rem}
+.cprofile-who h1{margin:0;font-size:1.5rem;line-height:1.2;overflow-wrap:anywhere}
+.cprofile-who p{margin:2px 0 0;font-size:.85rem;color:var(--muted)}
+a.cpost-avatar:hover{opacity:.85}

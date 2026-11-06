@@ -13,6 +13,18 @@ for (const route of PUBLIC_ROUTES) {
   });
 }
 
+test("axe: a member's Community profile, opened from their name, with a Back button", async ({ page }, testInfo) => {
+  await page.route("**/api/community/images/**", request => request.fulfill({ status: 404 }));
+  await page.goto("/community", { waitUntil: "networkidle" });
+  await page.locator('.cpost-who a[href^="/community/people/"]').first().click();
+  await page.waitForURL("**/community/people/**");
+  await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("fixture_stylist");
+  await expectNoSeriousViolations(page, testInfo, "community profile");
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.waitForURL("**/community");
+});
+
 // The policy is enforced, with a fresh nonce on every page response, and every script Next.js
 // writes into the page carries it.
 test("every page is served an enforced policy with a nonce of its own", async ({ page, request, cspViolations }) => {

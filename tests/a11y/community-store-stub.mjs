@@ -18,7 +18,7 @@ function attribute(value) {
 const garment = (publicGarmentId, name, category, unverifiedBrandLabel) => ({ publicGarmentId, name, category, color: "indigo", resolutionState: "GENERIC_UNVERIFIED", ...(unverifiedBrandLabel ? { unverifiedBrandLabel } : {}) });
 
 const posts = [
-  { PK: "COMMUNITY", SK: "POST#2", id: "fixture-post-2", handle: "fixture_stylist", outfitTitle: "Weekend denim", caption: "A fixture post for accessibility checks.", createdAt: "2026-10-26T12:00:00.000Z", likes: 4, sourceType: "consumer", fictional: true, dataClassification: "DEMO", publishedGarments: [garment("g1", "White tee", "top"), garment("g2", "Indigo jean", "bottom", "Fixture Denim Co")] },
+  { PK: "COMMUNITY", SK: "POST#2", id: "fixture-post-2", ownerId: "fixture-member", handle: "fixture_stylist", outfitTitle: "Weekend denim", caption: "A fixture post for accessibility checks.", createdAt: "2026-10-26T12:00:00.000Z", likes: 4, sourceType: "consumer", fictional: true, dataClassification: "DEMO", publishedGarments: [garment("g1", "White tee", "top"), garment("g2", "Indigo jean", "bottom", "Fixture Denim Co")] },
   { PK: "COMMUNITY", SK: "POST#1", id: "fixture-post-1", handle: "fixture_brand", outfitTitle: "Utility layers", caption: "Another invented post.", createdAt: "2026-10-25T12:00:00.000Z", likes: 2, sourceType: "brand", fictional: true, dataClassification: "DEMO", publishedGarments: [garment("g3", "Olive jacket", "outerwear")] },
 ];
 
