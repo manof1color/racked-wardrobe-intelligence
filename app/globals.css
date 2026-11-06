@@ -177,6 +177,15 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 .piece-name{font-size:.72rem;font-weight:800;line-height:1.3}
 .piece-price{font-size:.7rem;font-weight:900;color:var(--ink)}.piece-price.none{font-weight:700;color:var(--muted)}
 .cpost-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px 16px}
+.cpost-actions .like-button{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-width:44px;min-height:44px;margin:0 4px 0 -8px;padding:0 8px;font-size:.82rem;font-weight:800;color:var(--ink);border-radius:2px}
+.cpost-actions .heart-icon{display:block;flex:0 0 auto}
+.cpost-actions .like-button:not(:disabled):hover .heart-icon{color:var(--coral-dark)}
+.cpost-actions .like-button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.cpost-actions .like-button.saved{color:var(--coral-dark);opacity:1;cursor:default}
+.cpost-actions .like-count{font-variant-numeric:tabular-nums}
+.cpost-actions .like-state{font-size:.7rem;font-weight:800;color:var(--muted)}
+.cpost-actions>.button{flex:0 1 auto}
+@media(max-width:480px){.cpost-actions>.button{flex:1 1 100%}}
 .cpost .look-owner-actions,.cpost .recreate-panel{margin:0 16px 16px}
 .piece-backdrop{position:fixed;inset:0;z-index:60;background:rgba(23,25,20,.55);display:flex;align-items:flex-end;justify-content:center}
 .piece-sheet{background:var(--paper);width:min(560px,100%);max-height:92dvh;overflow-y:auto;padding:18px 18px 28px;border-top:1px solid var(--ink)}

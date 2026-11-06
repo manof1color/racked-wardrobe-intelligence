@@ -18,6 +18,13 @@ function PostPhoto({ post }: { post: OutfitPost }) {
   </div>;
 }
 
+/** Outline heart; filled when the look is saved, so the saved state is a shape and a word, not only a colour. */
+function HeartIcon({ filled }: { filled: boolean }) {
+  return <svg className="heart-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+    <path d="M12 20.5C5 15.8 3 12.4 3 9.1 3 6.6 4.9 4.8 7.2 4.8c1.9 0 3.7 1 4.8 2.8 1.1-1.8 2.9-2.8 4.8-2.8C19.1 4.8 21 6.6 21 9.1c0 3.3-2 6.7-9 11.4z" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+  </svg>;
+}
+
 export interface CommunityPostCardProps {
   post: OutfitPost;
   canPost: boolean;
@@ -83,7 +90,13 @@ export function CommunityPostCard(props: CommunityPostCardProps) {
     </section>}
 
     <div className="cpost-actions">
-      <button type="button" className="like-button" disabled={props.pendingLike || props.inspired} onClick={props.onLike} title={props.inspired ? `${post.outfitTitle} is saved as Hanger inspiration` : `Save ${post.outfitTitle} as Hanger inspiration`}><span aria-hidden="true">{props.inspired ? "♥ " : "♡ "}</span>{props.inspired ? "Saved" : `Save look · ${post.likes}`}{props.pendingLike ? " saving…" : ""}</button>
+      <button type="button" className={`like-button${props.inspired ? " saved" : ""}`} disabled={props.pendingLike || props.inspired} onClick={props.onLike} title={props.inspired ? `${post.outfitTitle} is saved as Hanger inspiration` : `Save ${post.outfitTitle} as Hanger inspiration`}>
+        <HeartIcon filled={props.inspired} />
+        <span className="sr-only">{props.inspired ? "Saved" : "Save look"}</span>
+        <span className="like-count">{post.likes}</span>
+        {props.inspired && <span className="like-state" aria-hidden="true">Saved</span>}
+        {props.pendingLike && <span className="sr-only">saving…</span>}
+      </button>
       {canPost
         ? <button type="button" className="button button-accent button-small" disabled={props.pendingRecreate || post.garments.length === 0} onClick={props.onRecreate}>{props.pendingRecreate ? "Checking your wardrobe…" : "Recreate with my wardrobe"}</button>
         : <Link className="button button-accent button-small" href="/login">Recreate with my wardrobe</Link>}
