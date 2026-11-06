@@ -1031,3 +1031,37 @@ body:has(.modal-backdrop) .mobile-tab-bar,body:has(.modal-backdrop) .hanger-laun
 .cprofile-who h1{margin:0;font-size:1.5rem;line-height:1.2;overflow-wrap:anywhere}
 .cprofile-who p{margin:2px 0 0;font-size:.85rem;color:var(--muted)}
 a.cpost-avatar:hover{opacity:.85}
+
+
+/* Saved outfits: the list, and one outfit's detail */
+.outfit-list{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:760px}
+.outfit-row{width:100%;display:flex;align-items:center;gap:14px;padding:12px 14px;min-height:76px;background:var(--white);border:1px solid var(--line);border-radius:10px;font:inherit;color:inherit;text-align:left;cursor:pointer}.outfit-row:hover{border-color:var(--ink)}
+.outfit-row-text{flex:1;min-width:0;display:grid;gap:3px}.outfit-row-text strong{font-size:.95rem;font-weight:800;overflow-wrap:anywhere}.outfit-row-text small{font-size:.74rem;color:var(--muted)}
+.outfit-row-thumbs{display:flex;flex:none}.outfit-row-thumbs>span{width:44px;height:52px;border-radius:7px;overflow:hidden;background:var(--cream);border:2px solid var(--white);margin-left:-10px}.outfit-row-thumbs>span:first-child{margin-left:0}.outfit-row-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.outfit-row-chevron{flex:none;font-size:1.4rem;line-height:1;color:var(--muted)}
+.outfit-detail{max-width:760px;min-width:0}
+.outfit-detail-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.outfit-back{flex:none;width:44px;height:44px;display:grid;place-items:center;background:var(--white);border:1px solid var(--line);border-radius:8px;font-size:1.5rem;line-height:1;color:var(--ink);cursor:pointer}.outfit-back:hover{border-color:var(--ink)}
+.outfit-detail-title{flex:1;min-width:0}.outfit-detail-title h2{margin:0;font-family:inherit;font-size:1.45rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}.outfit-detail-title p{margin:4px 0 0;font-size:.82rem;color:var(--muted)}
+.outfit-detail-wears{flex:none;display:grid;justify-items:center;gap:1px}.outfit-detail-wears strong{font-size:1.2rem;line-height:1.1}.outfit-detail-wears small{font-size:.6rem;font-weight:700;letter-spacing:.06em;color:var(--muted);background:var(--cream);padding:2px 6px;border-radius:999px}
+.outfit-edit{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;background:var(--white);border:1px solid var(--ink);border-radius:8px;font:inherit;font-size:.82rem;font-weight:700;color:var(--ink);cursor:pointer}.outfit-edit:hover{background:var(--cream)}
+.outfit-rename{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}.outfit-rename input{flex:1 1 160px;min-width:0;min-height:44px;padding:0 12px;border:1px solid var(--ink);border-radius:8px;background:var(--white);font:inherit;font-size:1rem}
+.outfit-detail-board{margin-bottom:12px;border-radius:10px}
+.outfit-tiles{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:24px}.outfit-tiles.scrolls{grid-auto-columns:minmax(120px,23%);overflow-x:auto;padding-bottom:6px}
+.outfit-tile{position:relative;margin:0;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--cream);min-width:0}.outfit-tile img{width:100%;height:100%;object-fit:cover;display:block}
+.outfit-tile figcaption{position:absolute;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:5px;max-width:calc(100% - 16px);padding:4px 9px;border-radius:999px;background:rgba(23,25,20,.82);color:#fff;font-size:.68rem;font-weight:600;white-space:nowrap;overflow:hidden}
+.outfit-tile-fallback{width:100%;height:100%;display:grid;place-items:center;font-size:1.3rem;font-weight:800;color:var(--muted)}
+.outfit-pieces h3{margin:0 0 12px;font-family:inherit;font-size:.82rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.outfit-pieces ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.outfit-pieces li{background:var(--white);border:1px solid var(--line);border-radius:10px}.outfit-pieces li.confirming{border-color:var(--coral-dark)}
+.outfit-piece-row{display:flex;align-items:center;gap:14px;padding:8px 8px 8px 14px}
+.outfit-piece-thumb{flex:none;width:60px;height:50px;border-radius:7px;overflow:hidden;background:var(--cream)}.outfit-piece-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.outfit-piece-text{flex:1;min-width:0;display:grid;gap:2px}.outfit-piece-text strong{font-size:.92rem;font-weight:700;overflow-wrap:anywhere}.outfit-piece-text small{font-size:.76rem;color:var(--muted)}
+.outfit-piece-menu{position:relative;flex:none}.outfit-kebab{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;border-radius:8px;font-size:1.25rem;color:var(--ink);cursor:pointer}.outfit-kebab:hover{background:var(--cream)}
+.outfit-menu{position:absolute;right:4px;top:42px;z-index:5;min-width:170px;background:var(--white);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(23,25,20,.14);overflow:hidden}.outfit-menu button{width:100%;min-height:44px;padding:0 14px;background:none;border:0;font:inherit;font-size:.84rem;text-align:left;cursor:pointer}.outfit-menu button:hover{background:var(--cream)}
+.outfit-piece-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:0 14px 12px}.outfit-piece-confirm small{flex:1 1 100%;font-size:.76rem;color:var(--muted)}.outfit-piece-confirm .confirm-remove{min-height:40px;padding:0 14px;background:#5d1712;color:#fff;border:0;border-radius:8px;font:inherit;font-size:.8rem;font-weight:700;cursor:pointer}
+.outfit-detail-actions{display:grid;gap:10px;margin-top:24px}
+.outfit-wear,.outfit-delete{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50px;border-radius:8px;font:inherit;font-size:.92rem;font-weight:800;cursor:pointer}
+.outfit-wear{background:var(--coral);border:1px solid var(--coral);color:var(--ink)}.outfit-wear:hover{background:var(--coral-hover)}.outfit-wear:disabled{opacity:.5;cursor:default}
+.outfit-delete{background:var(--white);border:1px solid var(--ink);color:var(--ink)}.outfit-delete:hover{background:var(--cream)}.outfit-delete.confirm-delete{background:#5d1712;border-color:#5d1712;color:#fff}
+@media(max-width:560px){.outfit-row-thumbs>span:nth-child(n+4){display:none}.outfit-detail-head{gap:10px;flex-wrap:wrap}.outfit-detail-title{flex:1 1 40%}.outfit-detail-title h2{font-size:1.25rem}.outfit-edit{padding:0 12px}.outfit-tile figcaption{left:5px;bottom:5px;padding:3px 7px;font-size:.62rem;gap:3px}.outfit-tiles{gap:6px}.outfit-tile figcaption svg{display:none}}
+.section-block.outfits-view:has(>.outfit-detail){margin-top:0;padding-top:10px}
