@@ -99,6 +99,8 @@ export interface OutfitPost {
   image: string;
   /** The photo of a person wearing the outfit, when the post has one; otherwise the feed shows its pieces. */
   photo?: string;
+  /** Opens the member's profile. An opaque key, never the account id (lib/community-author.ts). */
+  authorKey?: string;
   createdAt: string;
   likes: number;
   sourceType: "consumer" | "brand";

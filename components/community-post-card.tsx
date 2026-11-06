@@ -22,6 +22,8 @@ export interface CommunityPostCardProps {
   post: OutfitPost;
   canPost: boolean;
   isOwn: boolean;
+  /** False on the person's own profile page, where the name would link to the page already open. */
+  linkAuthor?: boolean;
   confirmingUnpublish: boolean;
   pendingUnpublish: boolean;
   pendingLike: boolean;
@@ -49,13 +51,16 @@ export function CommunityPostCard(props: CommunityPostCardProps) {
   const name = authorName(post);
   const brand = post.sourceType === "brand";
   const pieces = post.garments.map((garment) => ({ garment, card: pieceCard(garment) }));
+  const profileHref = !brand && post.authorKey && props.linkAuthor !== false ? `/community/people/${post.authorKey}` : null;
   return <article className={`cpost source-${provenance.kind}`} id={`post-${post.id}`}>
     <header className="cpost-head">
-      <span className="cpost-avatar" aria-hidden="true">{authorInitials(name)}</span>
+      {profileHref
+        ? <Link className="cpost-avatar" href={profileHref} aria-hidden="true" tabIndex={-1}>{authorInitials(name)}</Link>
+        : <span className="cpost-avatar" aria-hidden="true">{authorInitials(name)}</span>}
       <div className="cpost-who">
         {brand && post.products[0]
           ? <Link href={`/brands/${post.products[0].brandSlug}`}>{name}</Link>
-          : <strong>{name}</strong>}
+          : profileHref ? <Link href={profileHref}>{name}</Link> : <strong>{name}</strong>}
         {brand && <span className="cpost-verified" title={provenance.description}>Brand</span>}
         <small>{timeAgo(post.createdAt)}{synthetic ? ` · ${synthetic.label}` : ""}</small>
       </div>

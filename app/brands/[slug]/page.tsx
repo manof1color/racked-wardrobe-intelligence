@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackButton } from "@/components/back-button";
 import { brandProfileSummary, splitBrandProfileLooks } from "@/lib/brand-profile";
 import { dataLabel, shoppableLanguage } from "@/lib/look-language";
 import { listCommunityPosts, listPublicBrandProducts } from "@/lib/server/production-store";
@@ -46,6 +47,8 @@ export default async function BrandProfile({params}:{params:Promise<{slug:string
       <Link className="wordmark" href="/">RACKED<span>.</span></Link>
       <nav><Link href="/community">Community</Link><Link href="/pricing">Pricing</Link><Link href="/login">Brand sign in</Link></nav>
     </header>
+
+    <BackButton fallback="/community"/>
 
     <section className="brand-profile-hero">
       <div>

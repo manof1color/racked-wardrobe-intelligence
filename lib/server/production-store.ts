@@ -15,6 +15,7 @@ import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
 import { brandProductUpdate, isReservedBrandName, matchBrandProduct, registryIdentityConflict, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
 import { releaseWearAnalytics } from "@/lib/metrics";
+import { communityAuthorKey } from "@/lib/community-author";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
 import { ENUMERATION_WINDOW_MS, enumerationBudgetState, MAX_DISTINCT_PRODUCTS_PER_WINDOW, type AggregateQueryEvent } from "@/lib/privacy";
 import { findByPaginatedQuery } from "@/lib/community-lookup";
@@ -983,6 +984,12 @@ async function visibleCommunityPosts(posts:StoredPost[]){
   return posts.filter(post=>post.sourceType!=="brand"&&!post.sourceBrandLookId||approved.has(post.ownerId));
 }
 
+/** The public post, plus the key that opens a member's profile. Brands have their own page instead. */
+function publicCommunityPost(stored:StoredPost):OutfitPost{
+  const post=toPublicOutfitPost(stored);
+  const ownerId=stored.ownerId,secret=process.env.SESSION_SECRET;
+  return post.sourceType==="consumer"&&ownerId&&secret?{...post,authorKey:communityAuthorKey(ownerId,secret)}:post;
+}
 export async function listCommunityPosts():Promise<OutfitPost[]>{
   const visible:StoredPost[]=[];
   let startKey:Record<string,unknown>|undefined;
@@ -992,7 +999,7 @@ export async function listCommunityPosts():Promise<OutfitPost[]>{
     startKey=result.LastEvaluatedKey;
     if(!startKey)break;
   }
-  return visible.slice(0,60).map(toPublicOutfitPost);
+  return visible.slice(0,60).map(publicCommunityPost);
 }
 export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;caption:string;outfitId:string}){
   const [account,wardrobe,outfits,registry]=await Promise.all([getAccount(ownerId),listWardrobe(ownerId),listOutfits(ownerId),listRegistryProducts()]);
@@ -1015,7 +1022,7 @@ export async function addCommunityPost(ownerId:string,input:{outfitTitle:string;
   const post:StoredPost={id:crypto.randomUUID(),ownerId,sourceOutfitId:outfit.id,sourceType:"consumer",handle:`@${account.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,30)}`,outfitTitle:input.outfitTitle,caption:input.caption,image:"",createdAt,likes:0,publishedGarments,garments:[],products:[]};
   for(const garment of post.publishedGarments??[]){if(garment.verifiedProduct?.outboundUrl)garment.verifiedProduct.outboundUrl=garment.verifiedProduct.outboundUrl.replace("__POST_ID__",encodeURIComponent(post.id??""));}
   await db.send(new PutCommand({TableName:requireTable(),Item:{...post,PK:"COMMUNITY",SK:`POST#${createdAt}#${post.id}`}}));
-  return toPublicOutfitPost(post);
+  return publicCommunityPost(post);
 }
 
 // Shared newest-first, bounded lookup for a community post by its public id. Replaces
