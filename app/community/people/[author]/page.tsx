@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { isCommunityAuthorKey, looksByAuthor } from "@/lib/community-author";
 import { authorInitials, authorName } from "@/lib/community-piece";
 import { getConsumerInspirationProfile, listCommunityPosts, listOutfits, listOwnCommunityPostIds } from "@/lib/server/production-store";
+import { stripeTestKey } from "@/lib/test-checkout";
 import { AppShell } from "@/components/app-shell";
 import { CommunityFeed } from "@/components/community-feed";
 import { WorkspaceMobileNav } from "@/components/workspace-mobile-nav";
@@ -28,7 +29,7 @@ export default async function CommunityProfilePage({ params }: { params: Promise
     consumer ? getConsumerInspirationProfile(consumer) : Promise.resolve({ postIds: [] }),
     consumer ? listOwnCommunityPostIds(consumer) : Promise.resolve([]),
   ]);
-  const feed = <CommunityFeed profile={profile} initialPosts={looks} canPost={session?.role === "consumer"} initialInspiredPostIds={inspiration.postIds} initialOwnPostIds={ownPostIds} savedOutfits={outfits.map((outfit) => ({ id: outfit.id, name: outfit.name, pieceCount: outfit.itemIds.length }))} />;
+  const feed = <CommunityFeed profile={profile} testCheckout={Boolean(stripeTestKey(process.env.STRIPE_SECRET_KEY))} initialPosts={looks} canPost={session?.role === "consumer"} initialInspiredPostIds={inspiration.postIds} initialOwnPostIds={ownPostIds} savedOutfits={outfits.map((outfit) => ({ id: outfit.id, name: outfit.name, pieceCount: outfit.itemIds.length }))} />;
   if (session) return <AppShell role={session.role}><main className="community-page">{feed}</main><WorkspaceMobileNav role={session.role} active="community" /></AppShell>;
   return <main className="community-page"><header className="community-nav"><Link className="wordmark" href="/">RACKED<span>.</span></Link><nav><Link href="/community">Community</Link><Link href="/login">Sign in</Link></nav></header>{feed}</main>;
 }

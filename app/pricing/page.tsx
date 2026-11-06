@@ -30,6 +30,6 @@ export default function PricingPage() {
       <article><span>03</span><h2>Basic exists for emerging brands</h2><p>The target customer — an emerging brand — often cannot reach the k ≥ 25 privacy threshold immediately. The Basic plan prices that waiting period honestly: enrollment and verification, Community presence, Brand Looks, and whether a product has reached the threshold yet. It shows no private wear data and no fabricated aggregates.</p></article>
       <article><span>04</span><h2>Privacy is not a paid unlock</h2><p>No tier weakens the privacy model. Consent, the k ≥ 25 threshold, and aggregate-only release apply identically at every price point; paying more buys more analysis of released aggregates, never more access to people.</p></article>
     </section>
-    <p className="auth-fineprint" style={{ textAlign: "left", fontSize: ".72rem", color: "var(--muted)" }}>No billing, checkout, or payment integration exists in this application. See the <Link href="/privacy" style={{ textDecoration: "underline" }}>privacy page</Link> for the data model that applies to every tier.</p>
+    <p className="auth-fineprint" style={{ textAlign: "left", fontSize: ".72rem", color: "var(--muted)" }}>Racked does not bill anyone through this application and takes no real payments. The only payment step is Stripe test mode on fictional demo products, where no money moves. See the <Link href="/privacy" style={{ textDecoration: "underline" }}>privacy page</Link> for the data model that applies to every tier.</p>
   </main>;
 }

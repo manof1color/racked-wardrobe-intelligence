@@ -12,7 +12,7 @@ import type { RecreateLookResult } from "@/lib/recreate-look";
 interface SavedOutfitOption { id:string; name:string; pieceCount:number }
 type Filter = "all" | "consumer" | "brand";
 
-export function CommunityFeed({profile,initialPosts,canPost,initialInspiredPostIds,initialOwnPostIds,savedOutfits}:{profile?:{name:string;initials:string};initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[]}) {
+export function CommunityFeed({profile,initialPosts,canPost,initialInspiredPostIds,initialOwnPostIds,savedOutfits,testCheckout=false}:{profile?:{name:string;initials:string};initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[];testCheckout?:boolean}) {
   const [posts,setPosts]=useState(initialPosts);
   const [title,setTitle]=useState("");
   const [caption,setCaption]=useState("");
@@ -150,7 +150,7 @@ export function CommunityFeed({profile,initialPosts,canPost,initialInspiredPostI
         onLike={()=>like(post.id)} onRecreate={()=>recreate(post.id)} onShop={()=>setShopping(post)} onOpenPiece={garment=>setOpenPiece({garment,post})}
         onAskUnpublish={()=>setConfirmUnpublishId(post.id)} onCancelUnpublish={()=>setConfirmUnpublishId(null)} onConfirmUnpublish={()=>unpublish(post)}/>)}</div>}
 
-    {openPiece&&<CommunityPieceSheet garment={openPiece.garment} post={openPiece.post} posts={posts} onClose={()=>setOpenPiece(null)}
+    {openPiece&&<CommunityPieceSheet garment={openPiece.garment} post={openPiece.post} posts={posts} testCheckout={testCheckout} onClose={()=>setOpenPiece(null)}
       onOpenPost={postId=>{setOpenPiece(null);window.setTimeout(()=>document.getElementById(`post-${postId}`)?.scrollIntoView({behavior:"smooth",block:"start"}),50);}}/>}
 
     {shopping&&<ShopTheLook post={shopping} onClose={()=>setShopping(null)}/>}

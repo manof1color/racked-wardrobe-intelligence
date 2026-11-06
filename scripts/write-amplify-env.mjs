@@ -29,6 +29,8 @@ const allowlist = [
   "RACKED_PASSWORD_SCHEME",
   // Set to "report" to make the Content Security Policy report-only again (lib/content-security-policy.ts).
   "RACKED_CSP_MODE",
+  // Optional: a Stripe TEST key for checkout on fictional products. A live key is ignored (lib/test-checkout.ts).
+  "STRIPE_SECRET_KEY",
 ];
 
 // The commit this artifact was built from. Amplify sets AWS_COMMIT_ID in the build container; it
