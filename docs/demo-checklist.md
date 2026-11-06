@@ -73,7 +73,8 @@ All fictional demo products carry a Racked demo-storefront URL, fictional USD pr
 - [ ] Confirm **Shop the Look** appears and exact, similar, unverified, and unavailable states stay visually distinct
 - [ ] Confirm the exact-product outbound link redirects through `/api/products/[id]/outbound` to the internal fictional storefront
 - [ ] Select **Add to demo bag**, then **Complete demo purchase — $0.00**
-- [ ] Confirm the completion screen states no card, payment, order, shipping, contact, or account data was collected
+- [ ] Confirm the demo bag's completion screen states no card, payment, order, shipping, contact, or account data was collected
+- [ ] With a Stripe test key set, confirm a fictional product page also shows **Pay with a test card**, that it opens Stripe's test page and returns to a test-payment confirmation, and that the brand dashboard's simulation count does not change
 - [ ] Use the visible **Return to Racked** button to return to Community
 
 ## Before you present: the two moments that can cost you

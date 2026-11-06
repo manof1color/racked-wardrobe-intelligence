@@ -3,14 +3,15 @@ import type { BrandProductRegistration } from "./platform-types.ts";
 // Judge note: these are fictional storefronts for Racked's own fictional demo brands.
 // They exist so the Shop the Look commerce path has a real, always-available HTTPS
 // destination to demonstrate against. They never imitate a real company, they sell
-// nothing, and they collect nothing. A brand is only given a storefront when its
+// nothing real, and they take no real money. A priced product may offer Stripe test mode with a test
+// card (lib/test-checkout.ts); the $0.00 demo bag stays a separate simulation. A brand is only given a storefront when its
 // products are classified as demonstration data, so a genuine pilot brand can never
 // be rendered as a fake shop.
 
 export const DEMO_STORE_BASE = "/demo-store";
 
 export const DEMO_STORE_DISCLAIMER =
-  "Fictional demo storefront — not a real shop. No products are for sale and no payment is ever collected.";
+  "Fictional demo storefront — not a real shop. The products are fictional, no real money is ever taken, and nothing ships. Where a test card is offered, it runs in Stripe test mode.";
 
 export function demoStoreBrandPath(brandSlug: string) {
   return `${DEMO_STORE_BASE}/${encodeURIComponent(brandSlug)}`;
@@ -110,5 +111,5 @@ const COPY_BY_CATEGORY: Record<string, string> = {
 /** Fictional product copy. Deterministic, and never a real marketing claim. */
 export function storefrontDescription(product: Pick<BrandProductRegistration, "name" | "category">) {
   const base = COPY_BY_CATEGORY[product.category?.toLowerCase() ?? ""] ?? "A demonstration product used to exercise Racked's wardrobe and wear features.";
-  return `${base} ${product.name} is a fictional product created to demonstrate Racked; it does not exist, and its checkout simulation never charges.`;
+  return `${base} ${product.name} is a fictional product created to demonstrate Racked; it does not exist, its demo bag never charges, and any test-card payment runs in Stripe test mode with no real money.`;
 }

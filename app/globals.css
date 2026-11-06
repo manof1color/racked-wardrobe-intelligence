@@ -87,8 +87,8 @@
 .demo-store-card{border:1px solid var(--line);background:var(--white)}
 .demo-store-card a{display:flex;flex-direction:column;height:100%}
 .demo-store-card a:hover{background:#faf8f2}
-.demo-store-image{background:#eeeae1;height:250px;display:grid;place-items:center}
-.demo-store-image img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
+.demo-store-image{background:#eeeae1;height:250px;display:grid;place-items:center;overflow:hidden}
+.demo-store-image img{width:100%;height:250px;object-fit:contain;mix-blend-mode:multiply}
 .demo-store-card-copy{padding:15px;display:flex;flex-direction:column;gap:4px}
 .demo-store-card-copy strong{font-family:Georgia,serif;font-size:1.05rem;font-weight:400}
 .demo-store-card-copy small{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}

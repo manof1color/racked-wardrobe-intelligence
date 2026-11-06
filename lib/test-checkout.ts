@@ -51,12 +51,14 @@ export function testCheckoutAmount(product: Pick<BrandProductRegistration, "sku"
   return Math.round((exact ? product.price! : storefrontPrice(product)) * 100);
 }
 
-/** What Stripe is asked to show. The return addresses come from configuration, never from the request. */
+/**
+ * What Stripe is asked to show. No `payment_method_types`: Stripe rejects it on current API versions
+ * (400, 2026-11-06) and takes payment methods from the Dashboard settings, where card is on by default.
+ * The return addresses come from configuration, never from the request. */
 export function testCheckoutForm(product: CheckoutProduct, origin: string) {
   const name = product.name.slice(0, 200);
   return new URLSearchParams({
     mode: "payment",
-    "payment_method_types[0]": "card",
     customer_email: PLACEHOLDER_EMAIL,
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "usd",
