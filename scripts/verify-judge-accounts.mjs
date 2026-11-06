@@ -1,3 +1,4 @@
+import { JUDGE_LOOKS, JUDGE_LOOK_PRODUCTS } from "./lib/judge-community-looks.mjs";
 // Checks the seeded judge accounts against the live table, read-only.
 //
 // Judge note: this script writes nothing and needs no password. It answers one question — will a
@@ -60,7 +61,7 @@ for (const email of EMAILS) {
 }
 
 const products = await queryAll({ KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": `USER#${BRAND_ID}`, ":sk": "PRODUCT#" } });
-check(products.length === 4, "the judge brand has its four products", `${products.length} found`);
+check(products.length === 4 + JUDGE_LOOK_PRODUCTS.length, "the judge brand has all its products", `${products.length} found`);
 check(products.some((product) => product.id === RETIRED && product.archived === true), "one product is retired, so retirement can be shown");
 
 for (const product of products) {
@@ -117,6 +118,22 @@ for (const [id, photo] of [["judge-brand-post", "look-brand-founder.webp"], ["ju
   check(Boolean(post?.imageKey?.endsWith(`/${photo}`)) && await objectExists(post.imageKey), `${id} has an on-person photo`);
   check(Boolean(founder) && Boolean(post?.publishedGarments?.some((piece) => piece.resolutionState === "EXACT_VERIFIED_PRODUCT" && piece.verifiedProduct?.registryProductId === founder.id && piece.verifiedProduct?.price === 295)), `${id} links to JDA-004 at $295`);
   if (id === "judge-consumer-post") check(Boolean(post?.publishedGarments?.some((piece) => piece.resolutionState === "GENERIC_UNVERIFIED" && !piece.verifiedProduct)), "the member post has an unlinked closet piece");
+}
+
+for (const expected of JUDGE_LOOK_PRODUCTS) {
+  const product = products.find((candidate) => candidate.sku === expected.sku);
+  check(Boolean(product && !product.archived && product.price === expected.price), `${expected.sku} is live at its listed price`);
+}
+for (const look of JUDGE_LOOKS) {
+  const post = posts.find((candidate) => candidate.id === look.id && candidate.testCohort === true);
+  check(Boolean(post?.imageKey?.endsWith(`/${look.photo}.webp`)) && await objectExists(post.imageKey), `${look.id} has its photo`);
+  const actual = post?.publishedGarments ?? [];
+  const matches = look.pieces.length === actual.length && look.pieces.every((piece, index) => {
+    const item = actual[index];
+    return piece.sku ? item.resolutionState === "EXACT_VERIFIED_PRODUCT" && item.verifiedProduct?.registryProductId === piece.id && item.verifiedProduct?.price === piece.price
+      : item.resolutionState === "GENERIC_UNVERIFIED" && !item.verifiedProduct;
+  });
+  check(matches, `${look.id} has its expected priced and unpriced pieces`);
 }
 
 const events = await queryAll({ KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)", ExpressionAttributeValues: { ":pk": "COMMUNITY", ":sk": "EVENT#" } });
