@@ -101,6 +101,48 @@ Close on the loop: **consumer utility → confirmed wear → privacy-safe brand 
 
 ---
 
+## Optional, only if asked or time allows: saved looks and the test card (about 1 minute)
+
+Not part of the five-minute path. Use it for a judge who asks "can people buy things?" or "what happens
+to a look I like?". Steps below are read from the code; lines marked **OWNER CONFIRM** have not been
+run end to end on the live site by anyone but you.
+
+**Saved from Community** — signed in as the judge Consumer (a demo session may heart and unheart; it may not publish).
+
+1. Tap **Community** in the bottom bar. Tap the **heart** under any look: it fills, the word **Saved**
+   appears and the count goes up by one.
+2. Open the **Outfits** tab. Under your own outfits, **Saved from Community** now lists that look. Open it:
+   it shows the look as Community does, with no wear button, because these are other people's clothes.
+3. Tap the heart again: *"Removed from your Outfits."* The count drops by one. Tap it once more to keep it.
+4. To show **rename**: in **Outfits**, open one of your own saved outfits, tap **Rename**, type a name in
+   **Outfit name** and save.
+   **OWNER CONFIRM** by hand on the demo account, once, before presenting: the heart, the unsave and the rename.
+
+**The Stripe test card** — Stripe *test mode*, a *fictional* product, no real money, nothing ships.
+
+1. Open `/demo-store/racked-test-atelier/RTA-001`. The banner says it is a fictional shop. The page leads
+   with **Pay with a test card**, with **Add to demo bag · $0.00 simulation** as a link beneath it. Checked
+   read-only on production on 2026-11-07, before the layout change in #233 deployed: the test-card button was
+   on the page, which means a Stripe test key is configured.
+2. Tap **Pay with a test card**. Stripe's own hosted page opens with the product named "(fictional demo)" and a
+   notice: *Stripe test mode. Use card 4242 4242 4242 4242, any future date and any CVC. Do not enter a real card.*
+3. Enter **4242 4242 4242 4242**, **any future expiry date** and **any CVC** (and any name or postcode if Stripe
+   asks for them). Pay.
+4. Racked returns to a page that says **Test payment complete**, with the product and price, and a
+   **Return to Racked** button.
+   **OWNER CONFIRM:** that a full test payment completes on the live site. You reported on 2026-11-07 that
+   Stripe now works, after the fixes for its 400 errors (#232 is the latest). I have not run a payment on
+   production, because live checks stay read-only, and PROGRESS.md still lists a full test payment from the
+   deployed site as to be confirmed. The same Community route (open a priced fictional piece in a Community
+   look, then **Buy with a test card**) is also unconfirmed by hand.
+5. Say: *"That is Stripe's test mode. No money moved, no order exists and nothing ships. Racked takes no real
+   payments and nobody is billed during the pilot."*
+
+If Stripe is slow or the button is missing, skip it. The **Add to demo bag** link on the same page still works
+and needs no external service.
+
+---
+
 ## Prepared answers for the 3-minute Q&A
 
 Judges score here. Answer in two sentences, then stop.
@@ -109,12 +151,13 @@ Judges score here. Answer in two sentences, then stop.
 | --- | --- |
 | **"How do you solve cold start? An empty closet is useless and a brand sees nothing until 25 owners."** | The consumer side has to be worth using alone — organizing a closet, building outfits, cost per wear — and it is. Brand intelligence switches on later, per product, and until it does the dashboard says so plainly instead of showing invented numbers. |
 | **"You call them agents. What actually calls a model?"** | Three things: finding garments in a photo, the consumer Hanger — which is the only real agent, choosing its own tools — and Brand Hanger's reply once a product is released. Everything else, including the outfit ranker, the privacy gate, and brand verification, is deterministic code; the README has one row per action. |
-| **"Isn't a public outfit feed at odds with privacy-first?"** | It is private by default: nothing is public until someone picks one saved outfit and presses Publish, and only that outfit appears, under new IDs. Its owner can unpublish it at any time. That is also why it isn't in the demo — it's on the roadmap. |
+| **"Isn't a public outfit feed at odds with privacy-first?"** | It is private by default: nothing is public until someone picks one saved outfit and presses Publish, and only that outfit appears, under new IDs. Its owner can unpublish it at any time. Community is built and live, and a judge can open it, but it is not in the five minutes because it is not one of the two flows. |
 | **"How much of this did you actually write?"** | I directed it and reviewed every change; the history is public, pull request by pull request. Open any file and I will walk you through it — the ranker, the session guard, or the registry match. |
 | **"What stops someone claiming they own a product they don't?"** | Nothing stops them *claiming* it — that is why a claim and evidence are stored as different things. A pick shows them their own product details; only a barcode or brand-plus-style-code match against the registry ever reaches a brand. |
 | **"Is the AI doing real work, or writing text around a rule engine?"** | Both, deliberately. Bedrock does the vision and the conversation, and decides which tools to use; a deterministic ranker picks the outfit, so the model explains a selection it cannot override — and a reply listing outfits the ranker never built is refused. |
 | **"What is your accuracy?"** | 92.8% on garment category, with a 95% interval of 89.3–95.3%, on 300 photos from an independent public dataset. I locked every answer by hash before the first model call and ran the exact code the app runs. The first round found 89.7% and one clear mistake — hoodies called outerwear — so I fixed it and re-measured on 300 fresh photos rather than the ones I tuned on. Exact type is 74.6%, which is why the person always confirms before anything is saved. |
 | **"What would you do differently?"** | I built background removal before I had evidence it worked on real phone photos, and it erased white garments against pale walls. The fix was to stop cutting pieces out and show an honest bounded crop. |
+| **"Do you take payments? Is the Stripe part real?"** | No. Racked takes no real payments and bills nobody during the pilot. The only payment step is Stripe's test mode on fictional demo products: a test card, no real money, nothing ships, no subscription, and a real or pilot brand's product is refused before Stripe is called. |
 | **"Who pays, and how much?"** | Brands, on two plans: $20 a month before a product crosses the privacy threshold, and $40 once it does. Set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. Consumers stay free. |
 | **"How does this create financial value for a brand?"** | Wear and pairing evidence can inform restocks, production quantities, product design, merchandising and campaign creative. At $40 a month, avoiding about 19 excess units at a $25 landed cost would cover a year; that is an explicit break-even scenario, not measured pilot ROI. |
 | **"Does the pilot prove there is a market?"** | It is an early market signal: two independent apparel brands agreed to participate, created accounts and uploaded products, which is stronger than hypothetical interest. It does not yet prove willingness to pay, recurring demand or product-market fit, so those are the next validations. |
@@ -128,6 +171,7 @@ Judges score here. Answer in two sentences, then stop.
 | Bedrock is unavailable entirely | Show the **needs your label** card: no invented attributes, nothing lost, never a dead end. Hanger still answers from the wardrobe and says it was written without the stylist model. |
 | A cohort is below 25 | That *is* the privacy demo. Show it and say so. |
 | The podium laptop cannot sign in | Use the judge credentials delivered privately before demo day; they are seeded and verified beforehand. |
+| The Stripe test page is slow, or the test button is missing | Skip it. Use the $0.00 demo bag on the same fictional product page, and say the test payment is optional and in test mode only. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
 **Verification snapshot (2026-11-07):** 1028 tests in 129 files. Read the current README scorecard during the demo rather than memorising this dated count.
@@ -135,5 +179,5 @@ Judges score here. Answer in two sentences, then stop.
 ## Claims discipline
 
 Say **observed**, not **caused**. Racked does not claim recognition accuracy beyond the [measured benchmark](evaluation-results.md), sales lift, conversion,
-purchase intent, demographics, fit prediction, or production-scale validation. Every number on screen
+purchase intent, demographics, fit prediction, or production-scale validation. Racked takes no real payments: the only payment step is Stripe test mode on fictional products. Every number on screen
 during this demo is synthetic demonstration data and is labeled as such in the interface.
