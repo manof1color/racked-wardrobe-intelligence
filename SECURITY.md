@@ -50,7 +50,7 @@ Do not publish any password — including synthetic test-cohort credentials, whi
 
 ## Still open
 
-Two pilot brands have created accounts and uploaded products on the live app, so these are live gaps rather than pre-launch tasks:
+Three pilot brands have created accounts and uploaded products on the live app, so these are live gaps rather than pre-launch tasks:
 
 - **Inline styles are still allowed.** The Content Security Policy keeps `style-src 'unsafe-inline'`: React writes style attributes throughout the app. Injected CSS cannot run script, but it can restyle a page; removing it means moving those styles into classes.
 - **Edge rate limiting (AWS WAF).** Per-address limits belong at the edge, where the real client address is known.

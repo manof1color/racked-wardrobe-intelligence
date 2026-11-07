@@ -29,7 +29,7 @@ only through registry evidence — a barcode, or the brand together with its own
 the owner picked from the catalog is stored as their claim and never reaches a brand. Consumers are
 free; brands pay, because post-purchase wear is what they cannot buy anywhere else.
 
-Two real brands agreed to the pilot, created accounts and uploaded products, and both accepted the
+Three real brands agreed to the pilot, created accounts and uploaded products, and all accepted the
 proposed prices in writing: participation and price acceptance, not payment. Repeat-wear and pairing evidence can inform product, inventory and campaign decisions. At
 the proposed $40 monthly Pro price, avoiding 19 excess units at a $25 landed cost is an illustrative
 annual break-even, not measured pilot ROI. No real payments: the only

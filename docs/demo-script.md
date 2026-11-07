@@ -89,9 +89,9 @@ scan got the category right 92.8% of the time. I don't claim sales lift or purch
 ## 4:30–5:00 — Close, and the roadmap
 
 > *"Consumers stay free, because the wardrobe has to earn its place on its own. Brands pay, because
-> post-purchase wear is what they cannot get anywhere else. Two real apparel brands have already
-> agreed to the pilot, created accounts and uploaded products, and both have accepted our pricing in
-> writing — not yet payment. At
+> post-purchase wear is what they cannot get anywhere else. Three real apparel brands have already
+> agreed to the pilot, created accounts and uploaded products, and all three have accepted our pricing in
+> writing, one of them on the $40 Pro plan — not yet payment. At
 > the proposed Pro price, helping a brand avoid roughly 19 excess units at a $25 landed cost
 > would cover a year, although that is a break-even illustration, not a result I claim. Also built
 > and running, but not in these five minutes: Community, Recreate This Look, Shop the Look, and batch
@@ -160,7 +160,7 @@ Judges score here. Answer in two sentences, then stop.
 | **"Do you take payments? Is the Stripe part real?"** | No. Racked takes no real payments and bills nobody during the pilot. The only payment step is Stripe's test mode on fictional demo products: a test card, no real money, nothing ships, no subscription, and a real or pilot brand's product is refused before Stripe is called. |
 | **"Who pays, and how much?"** | Brands, on two plans: $20 a month before a product crosses the privacy threshold, and $40 once it does. Set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. Consumers stay free. |
 | **"How does this create financial value for a brand?"** | Wear and pairing evidence can inform restocks, production quantities, product design, merchandising and campaign creative. At $40 a month, avoiding about 19 excess units at a $25 landed cost would cover a year; that is an explicit break-even scenario, not measured pilot ROI. |
-| **"Does the pilot prove there is a market?"** | It is an early market signal: two independent apparel brands agreed to participate, created accounts and uploaded products, which is stronger than hypothetical interest. It does not yet prove willingness to pay, recurring demand or product-market fit, so those are the next validations. |
+| **"Does the pilot prove there is a market?"** | It is an early market signal: three independent apparel brands agreed to participate, created accounts and uploaded products, which is stronger than hypothetical interest. It does not yet prove willingness to pay, recurring demand or product-market fit, so those are the next validations. |
 | **"What breaks first at scale?"** | Per-instance limits are only a first layer: shared DynamoDB counters and fail-closed model-call budgets now bound abuse and AI usage. Edge rate limiting and production-scale validation remain follow-ups, not claims. |
 
 ## Failure handling

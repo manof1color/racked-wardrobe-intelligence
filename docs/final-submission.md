@@ -122,7 +122,7 @@ A two-minute spoken answer: 295 words, which is a little under two minutes at a 
 | 6 | 1:32–1:50 | Judge Limited Overshirt | Open the product. Hold on the message | "Four opted-in owners. Below twenty-five, the brand sees nothing — not even the count." |
 | 7 | 1:50–2:15 | Judge Signature Tee | Open the product. Show the chart, repeat wear, then what it's worn with | "Fifty consenting owners, so the aggregate is released: real wear, repeat wear, and what it's worn with. No names, photos or wardrobes. This is labeled demo data." |
 | 8 | 2:15–2:30 | Brand Hanger | Ask: *Write me a campaign brief for this product.* Show the brief | "Brand Hanger writes from the released totals only." |
-| 9 | 2:30–2:45 | Title card | Hold: 92.8% on 300 locked photos · two pilot brands · privacy gate · live link and repository | "92.8 percent category accuracy on 300 independent photos. Two apparel brands in pilot. Racked." |
+| 9 | 2:30–2:45 | Title card | Hold: 92.8% on 300 locked photos · three pilot brands · privacy gate · live link and repository | "92.8 percent category accuracy on 300 independent photos. Three apparel brands in pilot. Racked." |
 
 Nine shots, 165 seconds. Narration runs at about 140 words a minute; the same words are in [the transcript](demo-transcript.md), which makes the video usable without captions.
 

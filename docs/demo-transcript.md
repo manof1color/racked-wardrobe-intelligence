@@ -38,4 +38,4 @@ Brand Hanger writes from the released totals only.
 
 **2:30–2:45 · Title card**
 
-92.8 percent category accuracy on 300 independent photos. Two apparel brands in pilot. Racked.
+92.8 percent category accuracy on 300 independent photos. Three apparel brands in pilot. Racked.

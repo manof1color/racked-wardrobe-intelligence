@@ -118,6 +118,14 @@ feature) with "Yea id be down to try it fs" and then "Looking at basic to try fi
 in `docs/pilot-evidence/`). That is a willingness to try the Basic plan, not a signed commitment. The owner reports that the brand
 agreed more firmly in a follow-up phone call; no record of the call is filed.
 
+On 2026-11-07 a third Instagram apparel brand, **Project Qadar**, chose the higher plan in writing,
+after a phone call: "Go ahead and put me in for the $40 advanced plan as we talked about on the
+phone" (redacted message in `docs/pilot-evidence/`). The advanced plan is the one the site calls Pro,
+which releases wear data once a product passes the privacy threshold. The owner confirms the brand has
+since created a brand account, uploaded products and agreed to be named. This is the first written
+choice of the $40 plan; it is still a stated choice, not a signed commitment or a payment, and nothing
+is billed during the pilot.
+
 It does not yet prove:
 
 - written problem validation;

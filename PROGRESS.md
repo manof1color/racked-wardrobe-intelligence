@@ -550,6 +550,7 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - Filed the second `_victimdesigns` message, redacted: on 2026-11-06 it answered "basic" when asked which plan it would commit to. The price acceptance stays dated 2026-11-04. Both filed messages say $20 and $40 without "a month", so the docs quote them that way. It is a stated plan choice if the project continues, not a signed commitment or a payment.
 - The fictional product page now leads with **Pay with a test card**, with the $0.00 demo bag as a link beneath it (#233). The bag stays because it is the only path that feeds the brand dashboard and needs no outside service.
 - Verified before writing: production `/api/version` reported `main`'s head (73c7a58) at the start of this pass, and the public Community and fictional storefront pages are served with test checkout switched on. A full test payment was **not** run by me on production, because live checks stay read-only; the owner reported on 2026-11-07 that Stripe works.
+- A third pilot brand, **Project Qadar**, chose the $40 plan (Brand Pro) in an Instagram direct message on 2026-11-07, filed redacted in `docs/pilot-evidence/`. The owner confirms it created a brand account, uploaded products and agreed to be named. `data/pilot-status.json` has the entry, so the README block, landing line and pricing note now count three brands. Nothing is billed.
 
 ## Continuous verification
 
