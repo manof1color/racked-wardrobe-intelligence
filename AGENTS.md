@@ -36,6 +36,7 @@ verification gate (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pn
 | **Claude Code, temporary** | Owner decision 2026-11-04, brand approval tools: `scripts/brand-approval.mjs`, the `brands:*` package scripts and the alert settings in `scripts/write-amplify-env.mjs`. |
 
 | **Claude Code, temporary** | Owner request 2026-11-06, Stripe test checkout: the `STRIPE_SECRET_KEY` line in `scripts/write-amplify-env.mjs`. |
+| **Claude Code, temporary** | Owner request 2026-11-07, enumeration-budget message: the one error sentence in `lib/server/production-store.ts` (inside Codex's security fix C lane). Removed when this change merges. |
 
 Lanes move only when the owner says so; update this table in the same pull request.
 
