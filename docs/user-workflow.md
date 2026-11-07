@@ -104,9 +104,19 @@ this way, with separate Save and Record actions.
 
 ### 6. Outfits — wear it again
 
-Saved outfits with piece thumbnails. One tap records a repeat wear. You can remove a single
-piece from an outfit or delete the whole outfit; both are two-step. Deleting an outfit
-deliberately **keeps** its historical wear events, so past usage totals are never falsified.
+The Outfits tab is a list of your saved outfits. Tapping one opens its own page: a back arrow,
+the name, piece count, saved date and wears, the pieces as labelled photos, then **Pieces in this
+outfit** as a list. **Rename** (the pencil beside the name, field **Outfit name**) changes only the
+name. **Wear This Again** records a repeat wear. Each piece's **Remove from outfit** and **Delete
+Outfit** are both two-step. Deleting an outfit deliberately **keeps** its historical wear events,
+so past usage totals are never falsified.
+
+Below your own outfits, **Saved from Community** lists looks other people published that you
+hearted in Community. Tapping one opens the look as Community shows it, with **Recreate with my
+wardrobe** and **Shop the look** where available. Tapping the heart there removes it from your
+Outfits ("Removed from your Outfits"), and tapping it again saves it again, unless the look has
+since left Community. They are other people's clothes, so they have no wear button and are never
+logged as wears. A look that has left Community shows only the style words you kept.
 
 ### 7. Hanger — the conversational stylist
 
@@ -156,13 +166,17 @@ Style is *derived from the published pieces*, never a tag someone typed.
 | **Shop the Look** | An in-app inspection sheet. Only a registry-verified exact product with a validated destination is openable. Similar or unverified pieces are never presented as the exact item worn. |
 
 For fictional demo brands, Shop the Look opens a clearly labelled **$0.00 checkout
-simulation**. No payment is taken. When a Stripe test key is configured the product page also offers **Pay with a test card**, a Stripe test-mode payment: fictional product, no real money, nothing ships, and nothing recorded. Completing it records an identity-free
-demonstration event the fictional brand sees arrive live.
+simulation** (the demo bag). No payment is taken. Completing the demo bag records an
+identity-free demonstration event the fictional brand sees arrive live.
 
-A priced fictional piece's sheet can also offer **Buy with a test card**, which opens
-Stripe's hosted test page (card `4242 4242 4242 4242`). No money moves, no order exists,
-nothing is stored, and the brand's counts do not change. It appears only when a Stripe test
-key is configured, and never for a real or pilot brand.
+Separately, when a Stripe **test** key is configured, a fictional product page offers **Pay with a
+test card**, and a priced fictional piece's sheet in Community offers **Buy with a test card**.
+Either opens Stripe's hosted test page. Enter the test card `4242 4242 4242 4242`, any future
+expiry date and any CVC; never a real card. This is the only payment step in Racked, and it is
+Stripe test mode on fictional products only: no money moves, no order exists, nothing ships, there
+is no subscription, nothing is stored, and the brand's counts do not change. It never appears for a
+real or pilot brand's product. Racked takes no real payments, and brands are not billed during the
+pilot.
 
 ### 9. Settings
 
@@ -170,7 +184,7 @@ Brand data sharing on/off, account details, sign out. Turning sharing off remove
 future brand aggregates.
 
 **Delete account** is its own card: enter your current password and type DELETE. Your wardrobe
-and photos, saved outfits, wear history, Community posts, saved inspiration, and consent
+and photos, saved outfits, wear history, Community posts, saved Community looks, and consent
 settings are removed, and you are signed out. Brand accounts cannot yet be deleted here.
 
 ---

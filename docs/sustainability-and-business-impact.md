@@ -104,9 +104,13 @@ As of 2026-10-29, two independent apparel brands, **_victimdesigns** and **vvers
 That is observed participation and implementation feasibility, not hypothetical survey intent. It is
 fair to call it an **early market signal** or **pilot adoption**.
 
-On 2026-11-04, _victimdesigns also accepted the proposed pricing in writing: asked whether it would
-commit to $20 a month for the Basic plan or $40 for the higher plan if the project continued, it
-replied "yeah those prices are fine", and chose Basic (redacted message in `docs/pilot-evidence/`).
+On 2026-11-04, _victimdesigns accepted the proposed prices in writing: asked whether it would be open
+to $20 for the basic brand plan and $40 for the brand advanced plan, and whether it would commit to one
+of those price points if the project continued, it replied "yeah those prices are fine" (redacted
+message in `docs/pilot-evidence/`). On 2026-11-06 it answered a follow-up asking whether it would
+commit to "the basic plan or the pro plan" with "basic" (redacted message in `docs/pilot-evidence/`).
+That is a stated plan choice if the project continues, not a signed commitment or a payment. The
+prices are quoted as the messages wrote them, $20 and $40; neither filed message says "a month".
 Nothing is billed during the pilot.
 
 On 2026-11-05, vversatile.usa answered the same question (while it had full access to every pilot

@@ -521,7 +521,7 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 
 - The Outfits tab is now a list of saved outfits. Tapping one opens its own page: a back arrow, the name, piece count, saved date and wears, the pieces as labelled photos, then **Pieces in this outfit** as a list, with **Wear This Again** and **Delete Outfit** below. Pieces run top to shoes with outerwear last. The design follows the owner's mockup.
 - The back arrow and a phone's back gesture both return to the list (`components/outfit-views.tsx`).
-- **Edit** renames the outfit. `PATCH /api/consumer/outfits` now accepts a name for the signed-in owner's own outfit, under the existing rate limit, and changes nothing else, so the private board is not redrawn.
+- **Rename** (the pencil beside the name) renames the outfit. `PATCH /api/consumer/outfits` now accepts a name for the signed-in owner's own outfit, under the existing rate limit, and changes nothing else, so the private board is not redrawn.
 - Each piece's menu holds **Remove from outfit**. The safeguards are unchanged: removing a piece and deleting an outfit each ask for confirmation, the garment stays in the wardrobe, and wear history is kept.
 - Tests: `tests/outfit-detail.test.ts`, and an accessibility check of the page and the way back.
 
@@ -541,6 +541,15 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - Fix: production's Stripe log showed `POST /v1/checkout/sessions` answering 400 because `payment_method_types` is no longer accepted on the account's API version (2026-10-28). It was our request, not a Stripe setting. The parameter is removed; Stripe takes payment methods from the Dashboard, where card is on by default. Not yet confirmed against Stripe itself: that needs a real test payment after deploy.
 - Tests: `tests/demo-store-test-card.test.ts`.
 - Fix (2026-11-07): the test checkout still answered 400 after that change. Stripe's log gave a second reason: Managed Payments is on by default for the account and refuses `custom_text`. The request now sends `managed_payments[enabled]=false`, which keeps the test-card instructions on Stripe's page. The same request was accepted by Stripe in the sandbox, as an open, unpaid test session. A full test payment from the deployed site is still to be confirmed.
+
+## Phase 111 — Community heart saves to Outfits, and the final documentation pass (2026-11-07)
+
+- Community cards use a heart icon row with a tidier phone layout (#229). For a signed-in Consumer the heart now **saves** the look to the Outfits tab under **Saved from Community**, and a second tap **unsaves** it (#230). `PATCH /api/community` takes the wanted state (`{postId, saved}`), never "toggle", so a doubled request changes nothing the second time. The public count moves only when the conditional write actually created or removed the person's save, and is put back if the count update fails (`lib/saved-looks.ts`, `lib/save-toggle.ts`).
+- A save keeps only the post id and bounded style words. Saved looks are other people's clothes: no wear button, never logged as wears, not part of the wardrobe Hanger builds from. A look that has left Community keeps only its style words. `GET /api/consumer/saved-looks` lists a person's own saves.
+- Documentation only, no behaviour change: README, this file, the competition checklist, demo script, one-page summary, final handoff, user workflow, demo storefronts, architecture and backend API were read against the code and corrected. Payments wording now says what the code does: Stripe **test mode** on fictional products only, no real money, nothing ships, no subscription, nothing stored. The demo script gained an optional saved-looks and test-card segment, with the steps an owner has to confirm by hand marked. The privacy page's deletion sentence now says "saved Community looks" instead of "saved inspiration".
+- Filed the second `_victimdesigns` message, redacted: on 2026-11-06 it answered "basic" when asked which plan it would commit to. The price acceptance stays dated 2026-11-04. Both filed messages say $20 and $40 without "a month", so the docs quote them that way. It is a stated plan choice if the project continues, not a signed commitment or a payment.
+- The fictional product page now leads with **Pay with a test card**, with the $0.00 demo bag as a link beneath it (#233). The bag stays because it is the only path that feeds the brand dashboard and needs no outside service.
+- Verified before writing: production `/api/version` reported `main`'s head (73c7a58) at the start of this pass, and the public Community and fictional storefront pages are served with test checkout switched on. A full test payment was **not** run by me on production, because live checks stay read-only; the owner reported on 2026-11-07 that Stripe works.
 
 ## Continuous verification
 
