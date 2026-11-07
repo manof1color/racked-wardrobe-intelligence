@@ -103,7 +103,7 @@
 .demo-product-facts div{border-top:1px solid var(--line);padding-top:9px}
 .demo-product-facts dt{font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
 .demo-product-facts dd{margin:5px 0 0;font-size:.82rem}
-.demo-product-nosale{font-size:.62rem;color:var(--muted);line-height:1.6;margin:12px 0 18px}
+.demo-product-nosale{font-size:.62rem;color:var(--muted);line-height:1.6;margin:8px 0 14px}.demo-bag-link{display:block;margin:12px 0 0;font-size:.82rem;font-weight:800;text-decoration:underline;color:var(--ink)}.test-checkout .button-full{width:100%}
 .demo-store-footer{border-top:1px solid var(--line);margin-top:50px;padding-top:20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:.68rem;color:var(--muted)}
 
 /* Find similar suggestions */

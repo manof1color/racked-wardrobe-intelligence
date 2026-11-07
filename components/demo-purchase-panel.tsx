@@ -54,5 +54,13 @@ export function DemoPurchasePanel({ productId, productName, unavailable, sourceP
     <button type="button" className="text-button" disabled={busy} onClick={() => setStep("product")}>Remove from demo bag</button>
   </section>;
 
-  return <><button type="button" className="button button-dark button-full" onClick={() => setStep("bag")}>Add to demo bag</button><p className="demo-product-nosale">The demo bag is a purchase simulation for competition testing. It asks for no card, contact, shipping, or account information. This is a fictional product: no real money moves and nothing ships.</p>{testCheckout && <TestCheckoutButton productId={productId} label="Pay with a test card" />}</>;
+  // With a Stripe test key the test card is the main action and the $0.00 bag steps back to a quiet link,
+  // so the page shows one button and one short note. Without it the bag is the only action, as before.
+  return <>
+    {testCheckout && <TestCheckoutButton productId={productId} label="Pay with a test card" fullWidth />}
+    {testCheckout
+      ? <button type="button" className="text-button demo-bag-link" onClick={() => setStep("bag")}>Add to demo bag · $0.00 simulation</button>
+      : <button type="button" className="button button-dark button-full" onClick={() => setStep("bag")}>Add to demo bag</button>}
+    {!testCheckout && <p className="demo-product-nosale">A purchase simulation that asks for no card, contact, shipping or account details. Fictional product: no real money moves and nothing ships.</p>}
+  </>;
 }

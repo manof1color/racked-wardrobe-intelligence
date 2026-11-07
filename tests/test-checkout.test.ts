@@ -54,6 +54,7 @@ test("Stripe is asked for one labelled payment, with a placeholder email and con
   const form = testCheckoutForm(product, ORIGIN);
   assert.equal(form.get("mode"), "payment");
   assert.equal([...form.keys()].some((name) => name.startsWith("payment_method_types")), false, "REGRESSION: Stripe answered 400 to payment_method_types on the account's current API version");
+  assert.equal(form.get("managed_payments[enabled]"), "false", "REGRESSION: Stripe answered 400 because Managed Payments, on by default for the account, refuses custom_text");
   assert.equal(form.get("line_items[0][quantity]"), "1");
   assert.equal(form.get("line_items[0][price_data][unit_amount]"), "18900");
   assert.equal(form.get("line_items[0][price_data][product_data][name]"), "Transit Bomber (fictional demo)");
