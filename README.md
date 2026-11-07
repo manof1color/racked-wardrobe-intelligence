@@ -259,7 +259,7 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 
 **1028 passing tests** in 129 files (verified 2026-11-07). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
-Coverage over the whole suite (2026-11-07): **96.34% of lines, 87.68% of branches, 94.53% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
+Coverage over the whole suite (2026-11-07): **96.35% of lines, 87.71% of branches, 94.53% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
 
 | What is protected | Tests |
 | --- | --- |

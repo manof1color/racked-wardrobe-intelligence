@@ -120,24 +120,26 @@ run end to end on the live site by anyone but you.
 
 **The Stripe test card** — Stripe *test mode*, a *fictional* product, no real money, nothing ships.
 
-1. Open `/demo-store/racked-test-atelier/RTA-001`. The banner says it is a fictional shop. The page offers
-   **Add to demo bag** (the $0.00 simulation) and **Pay with a test card**. Checked read-only on production
-   on 2026-11-07: both buttons are on the page, which means a Stripe test key is configured.
+1. Open `/demo-store/racked-test-atelier/RTA-001`. The banner says it is a fictional shop. The page leads
+   with **Pay with a test card**, with **Add to demo bag · $0.00 simulation** as a link beneath it. Checked
+   read-only on production on 2026-11-07, before the layout change in #233 deployed: the test-card button was
+   on the page, which means a Stripe test key is configured.
 2. Tap **Pay with a test card**. Stripe's own hosted page opens with the product named "(fictional demo)" and a
    notice: *Stripe test mode. Use card 4242 4242 4242 4242, any future date and any CVC. Do not enter a real card.*
 3. Enter **4242 4242 4242 4242**, **any future expiry date** and **any CVC** (and any name or postcode if Stripe
    asks for them). Pay.
 4. Racked returns to a page that says **Test payment complete**, with the product and price, and a
    **Return to Racked** button.
-   **OWNER CONFIRM:** that a full test payment completes on the live site. The code fix for Stripe's 400 error
-   shipped on 2026-11-06 and PROGRESS.md records it as not yet confirmed against Stripe; nobody has run it
-   through production since, because live checks stay read-only. The same Community route (open a priced
-   fictional piece in a Community look, then **Buy with a test card**) is also unconfirmed by hand.
+   **OWNER CONFIRM:** that a full test payment completes on the live site. You reported on 2026-11-07 that
+   Stripe now works, after the fixes for its 400 errors (#232 is the latest). I have not run a payment on
+   production, because live checks stay read-only, and PROGRESS.md still lists a full test payment from the
+   deployed site as to be confirmed. The same Community route (open a priced fictional piece in a Community
+   look, then **Buy with a test card**) is also unconfirmed by hand.
 5. Say: *"That is Stripe's test mode. No money moved, no order exists and nothing ships. Racked takes no real
    payments and nobody is billed during the pilot."*
 
-If Stripe is slow or the button is missing, skip it. The $0.00 demo bag on the same page still works and needs
-no external service.
+If Stripe is slow or the button is missing, skip it. The **Add to demo bag** link on the same page still works
+and needs no external service.
 
 ---
 
