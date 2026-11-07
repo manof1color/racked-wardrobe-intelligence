@@ -1235,7 +1235,7 @@ async function enforceAggregateEnumerationBudget(ownerId:string,productId:string
       if(!(error instanceof Error&&error.name==="ConditionalCheckFailedException"))throw error;
     }
   }
-  throw new EnumerationBudgetError("Aggregate release is limited to a few distinct products in a short window. Revisit a recently viewed product or try again in a few minutes.");
+  throw new EnumerationBudgetError(`Aggregate release is limited to ${MAX_DISTINCT_PRODUCTS_PER_WINDOW} distinct products in any ${ENUMERATION_WINDOW_MS/3_600_000} hours. Revisit a recently viewed product or try again tomorrow.`);
 }
 
 /** How many distinct products this brand has opened in the current window. Read-only: it claims no slot. */
