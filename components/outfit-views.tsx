@@ -97,7 +97,7 @@ export function OutfitDetail(props: OutfitDetailProps) {
             <p>{piecesLabel(pieces.length)} · {savedLabel(outfit.createdAt)}</p>
           </div>
           <div className="outfit-detail-wears"><strong>{outfit.wears}</strong><small>{outfit.wears === 1 ? "WEAR" : "WEARS"}</small></div>
-          <button type="button" className="outfit-edit" onClick={() => setEditing(true)}><span aria-hidden="true">✎</span>Edit</button>
+          <button type="button" className="outfit-edit outfit-rename-button" aria-label={`Rename ${outfit.name}`} onClick={() => setEditing(true)}><span aria-hidden="true">✎</span>Rename</button>
         </>}
     </header>
 

@@ -35,6 +35,11 @@ export interface CommunityPostCardProps {
   pendingUnpublish: boolean;
   pendingLike: boolean;
   inspired: boolean;
+  /**
+   * What the heart does: "toggle" saves and unsaves for a signed-in Consumer, "sign-in" sends a
+   * signed-out visitor to sign in, and "count" only shows the count (a brand account).
+   */
+  saveMode?: "toggle" | "sign-in" | "count";
   pendingRecreate: boolean;
   recreated?: RecreateLookResult;
   onLike: () => void;
@@ -53,6 +58,7 @@ export interface CommunityPostCardProps {
  */
 export function CommunityPostCard(props: CommunityPostCardProps) {
   const { post, canPost } = props;
+  const saveMode = props.saveMode ?? (canPost ? "toggle" : "sign-in");
   const provenance = provenanceLabel(post.sourceType);
   const synthetic = dataLabel(post);
   const name = authorName(post);
@@ -90,13 +96,21 @@ export function CommunityPostCard(props: CommunityPostCardProps) {
     </section>}
 
     <div className="cpost-actions">
-      <button type="button" className={`like-button${props.inspired ? " saved" : ""}`} disabled={props.pendingLike || props.inspired} onClick={props.onLike} title={props.inspired ? `${post.outfitTitle} is saved as Hanger inspiration` : `Save ${post.outfitTitle} as Hanger inspiration`}>
-        <HeartIcon filled={props.inspired} />
-        <span className="sr-only">{props.inspired ? "Saved" : "Save look"}</span>
-        <span className="like-count">{post.likes}</span>
-        {props.inspired && <span className="like-state" aria-hidden="true">Saved</span>}
-        {props.pendingLike && <span className="sr-only">saving…</span>}
-      </button>
+      {saveMode === "toggle"
+        ? <button type="button" className={`like-button${props.inspired ? " saved" : ""}`} disabled={props.pendingLike} onClick={props.onLike} title={props.inspired ? `Remove ${post.outfitTitle} from your Outfits` : `Save ${post.outfitTitle} to your Outfits`}>
+          <HeartIcon filled={props.inspired} />
+          <span className="sr-only">{props.inspired ? "Saved" : "Save look"}</span>
+          <span className="like-count">{post.likes}</span>
+          {props.inspired && <span className="like-state" aria-hidden="true">Saved</span>}
+          {props.pendingLike && <span className="sr-only">saving…</span>}
+        </button>
+        : saveMode === "sign-in"
+          ? <Link className="like-button" href="/login" title="Sign in to save looks to your Outfits">
+            <HeartIcon filled={false} />
+            <span className="sr-only">Sign in to save this look</span>
+            <span className="like-count">{post.likes}</span>
+          </Link>
+          : <span className="like-button like-static"><HeartIcon filled={false} /><span className="sr-only">Saves:</span><span className="like-count">{post.likes}</span></span>}
       {canPost
         ? <button type="button" className="button button-accent button-small" disabled={props.pendingRecreate || post.garments.length === 0} onClick={props.onRecreate}>{props.pendingRecreate ? "Checking your wardrobe…" : "Recreate with my wardrobe"}</button>
         : <Link className="button button-accent button-small" href="/login">Recreate with my wardrobe</Link>}

@@ -151,8 +151,7 @@ Style is *derived from the published pieces*, never a tag someone typed.
 
 | Action | What happens |
 | --- | --- |
-| **Like** | Increments a public counter. Brands see the number, never who. |
-| **Save as inspiration** | Stores bounded style/colour/category signals in *your* private partition. Hanger may use them only when your current request gives no direction. |
+| **Heart (save)** | Signed in: saves the look to your Outfits tab under *Saved from Community*, and tap again to remove it. Each person adds at most one to the look's public count, and removing the save takes that one away. The save keeps a reference to the post plus bounded style/colour/category words in *your* private partition; the photo, pieces and author are read from the live post, so a look taken out of Community keeps only those style words. Hanger may use the words only when your current request gives no direction, and removing the save removes them. Saved looks are other people's clothes: no wear button, never wears, points or part of your wardrobe. Brands see the count, never who. Signed out: the heart asks you to sign in. |
 | **Recreate with my wardrobe** | Server-side, against your account only. Splits the look into what you own and what is missing, with the reason each match was chosen. |
 | **Shop the Look** | An in-app inspection sheet. Only a registry-verified exact product with a validated destination is openable. Similar or unverified pieces are never presented as the exact item worn. |
 

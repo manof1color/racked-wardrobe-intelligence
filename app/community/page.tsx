@@ -13,7 +13,7 @@ export default async function CommunityPage(){
   const consumer=session?.role==="consumer"?session.subject:null;
   const [posts,outfits,inspiration,ownPostIds]=await Promise.all([listCommunityPosts(),consumer?listOutfits(consumer):Promise.resolve([]),consumer?getConsumerInspirationProfile(consumer):Promise.resolve({postIds:[]}),consumer?listOwnCommunityPostIds(consumer):Promise.resolve([])]);
   const testCheckout=Boolean(stripeTestKey(process.env.STRIPE_SECRET_KEY));
-  const feed=<main className="community-page"><CommunityFeed testCheckout={testCheckout} initialPosts={posts} canPost={session?.role==="consumer"} initialInspiredPostIds={inspiration.postIds} initialOwnPostIds={ownPostIds} savedOutfits={outfits.map(outfit=>({id:outfit.id,name:outfit.name,pieceCount:outfit.itemIds.length}))}/></main>;
+  const feed=<main className="community-page"><CommunityFeed testCheckout={testCheckout} initialPosts={posts} canPost={session?.role==="consumer"} signedIn initialInspiredPostIds={inspiration.postIds} initialOwnPostIds={ownPostIds} savedOutfits={outfits.map(outfit=>({id:outfit.id,name:outfit.name,pieceCount:outfit.itemIds.length}))}/></main>;
   if(session)return <AppShell role={session.role}>{feed}<WorkspaceMobileNav role={session.role} active="community"/></AppShell>;
   return <main className="community-page"><header className="community-nav"><Link className="wordmark" href="/">RACKED<span>.</span></Link><nav><Link href="/">About</Link><Link href="/login">Sign in</Link></nav></header><CommunityFeed testCheckout={testCheckout} initialPosts={posts} canPost={false} initialInspiredPostIds={[]} initialOwnPostIds={[]} savedOutfits={[]}/></main>;
 }

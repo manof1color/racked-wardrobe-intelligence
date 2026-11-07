@@ -31,7 +31,8 @@ import { createPasswordResetToken, PASSWORD_RESET_WINDOW_MS, passwordResetIsUsab
 import { accountDeletionInventory, communityPostChangeForDeletedImage, outfitChangesForGarmentDeletion, ownedObjectKey, sharedEvidenceKeyToDelete } from "@/lib/deletion-plan";
 import { readHangerConversation, type HangerConversationState } from "@/lib/hanger-memory";
 import { OUTFIT_BOARD_HEIGHT, OUTFIT_BOARD_WIDTH, outfitBoardLayout } from "@/lib/outfit-board";
-import { boundedInspirationStrings, consumerInspirationProfile, consumerInspirationRecord, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
+import { removeAllSaves, savedLookCards, setLookSaved, SavedLookNotFound, type SavedLookCard, type SavedLookStorage, type StoredSave } from "@/lib/saved-looks";
+import { boundedInspirationStrings, consumerInspirationProfile, type ConsumerInspirationProfile, type ConsumerInspirationRecord } from "@/lib/consumer-inspiration";
 import { ACTIVITY_RETENTION_DAYS, withinActivityRetention, type AccountActivity, type AccountActivityType } from "@/lib/device-label";
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
@@ -823,7 +824,11 @@ export async function deleteOwnConsumerAccount(ownerId:string,currentPassword:st
   const referencedPhotos=await deleteOwnedObjects(ownerId,inventory.objectKeys);
   const sweep=await sweepOwnedPrefix(ownerId);
 
-  // 4. Records, profile last: until it goes the account still exists, so a retry finishes.
+  // 4. Saved Community looks, each taking its one away from the post's count. A save is removed
+  //    before its count changes, so a retried deletion never takes the same one off twice.
+  await removeAllSaves(savedLookStorage(),ownerId,inventory.recordKeys.filter(key=>key.SK.startsWith("INSPIRATION#")).map(key=>key.SK.slice("INSPIRATION#".length)));
+
+  // 5. Records, profile last: until it goes the account still exists, so a retry finishes.
   const profile=inventory.recordKeys.filter(key=>key.SK==="PROFILE");
   await inBatches(inventory.recordKeys.filter(key=>key.SK!=="PROFILE"),10,key=>db.send(new DeleteCommand({TableName:requireTable(),Key:key})));
   for(const key of profile)await db.send(new DeleteCommand({TableName:requireTable(),Key:key}));
@@ -1128,37 +1133,63 @@ async function currentCommunityLikes(post:StoredPost) {
   return Number(result.Item?.likes??0);
 }
 
-export async function incrementCommunityLike(postId:string){const post=await findCommunityPostById(postId);if(!post)throw new RequestRefused("Community post not found.", 404);const result=await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)",ReturnValues:"UPDATED_NEW"})).catch(error=>{if(error instanceof Error&&error.name==="ConditionalCheckFailedException")throw new RequestRefused("Community post not found.",404);throw error;});return Number(result.Attributes?.likes??0);}
 
 /**
- * Saves an intentional Community inspiration under the signed-in Consumer only.
- * The public post receives one aggregate like, while the private record retains a
- * bounded attribute snapshot for Hanger — never the creator identity or images.
+ * Saved Community looks (lib/saved-looks.ts) on DynamoDB. A save is the person's private
+ * `INSPIRATION#<postId>` record under their own partition; the owner always comes from the session.
+ * The public post holds only the aggregate count, never who saved it.
  */
-export async function saveConsumerInspiration(ownerId:string,postId:string) {
-  const post=await findCommunityPostById(postId);
-  if(!post)throw new RequestRefused("Community post not found.", 404);
-  const publicPost=toPublicOutfitPost(post);
-  const record=consumerInspirationRecord(publicPost);
-  const inspirationKey={PK:`USER#${ownerId}`,SK:`INSPIRATION#${postId}`};
-  const existing=await db.send(new GetCommand({TableName:requireTable(),Key:inspirationKey,ProjectionExpression:"postId"}));
-  if(existing.Item)return {likes:await currentCommunityLikes(post),inspired:true,alreadySaved:true};
-  try{
-    await db.send(new PutCommand({TableName:requireTable(),Item:{...record,...inspirationKey},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}));
-  }catch(error){
-    const raced=await db.send(new GetCommand({TableName:requireTable(),Key:inspirationKey,ProjectionExpression:"postId"}));
-    if(!raced.Item)throw error;
-    return {likes:await currentCommunityLikes(post),inspired:true,alreadySaved:true};
-  }
-  try{
-    await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)"}));
-  }catch(error){
-    // Keep the private inspiration and public aggregate consistent if the second
-    // write fails; this uses only the role's existing least-privilege actions.
-    await db.send(new DeleteCommand({TableName:requireTable(),Key:inspirationKey})).catch(()=>undefined);
-    throw error;
-  }
-  return {likes:await currentCommunityLikes(post),inspired:true,alreadySaved:false};
+function savedLookStorage():SavedLookStorage {
+  const key=(ownerId:string,postId:string)=>({PK:`USER#${ownerId}`,SK:`INSPIRATION#${postId}`});
+  const found=new Map<string,Promise<StoredPost|null>>();
+  const stored=(postId:string)=>{if(!found.has(postId))found.set(postId,findCommunityPostById(postId));return found.get(postId)!;};
+  return {
+    async findPost(postId){const post=await stored(postId);return post?publicCommunityPost(post):null;},
+    async getSave(ownerId,postId){const result=await db.send(new GetCommand({TableName:requireTable(),Key:key(ownerId,postId),ConsistentRead:true}));return (result.Item as StoredSave|undefined)??null;},
+    async createSave(ownerId,save){
+      try{await db.send(new PutCommand({TableName:requireTable(),Item:{...save,...key(ownerId,save.postId)},ConditionExpression:"attribute_not_exists(PK) AND attribute_not_exists(SK)"}));return true;}
+      catch(error){if(conditionFailed(error))return false;throw error;}
+    },
+    async removeSave(ownerId,postId){
+      try{const result=await db.send(new DeleteCommand({TableName:requireTable(),Key:key(ownerId,postId),ConditionExpression:"attribute_exists(PK)",ReturnValues:"ALL_OLD"}));return (result.Attributes as StoredSave|undefined)??null;}
+      catch(error){if(conditionFailed(error))return null;throw error;}
+    },
+    async restoreSave(ownerId,save){
+      await db.send(new PutCommand({TableName:requireTable(),Item:{...save,...key(ownerId,save.postId)},ConditionExpression:"attribute_not_exists(PK)"})).catch(error=>{if(!conditionFailed(error))throw error;});
+    },
+    async incrementLikes(postId){
+      const post=await stored(postId);
+      if(!post)throw new RequestRefused("Community post not found.",404);
+      await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = if_not_exists(likes, :zero) + :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK)"})).catch(error=>{if(conditionFailed(error))throw new RequestRefused("Community post not found.",404);throw error;});
+    },
+    async decrementLikes(postId){
+      const post=await stored(postId);
+      if(!post)return;
+      // Never below zero; a post that has gone has no count to correct.
+      await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:post.PK,SK:post.SK},UpdateExpression:"SET likes = likes - :one",ExpressionAttributeValues:{":zero":0,":one":1},ConditionExpression:"attribute_exists(PK) AND likes > :zero"})).catch(error=>{if(!conditionFailed(error))throw error;});
+    },
+    async currentLikes(postId){const post=await stored(postId);return post?await currentCommunityLikes(post):0;},
+  };
+}
+
+/**
+ * Saves or unsaves a Community look for the signed-in Consumer only. `saved` is the state the
+ * person wants, so repeating a request changes nothing. Saving also keeps the look's style words
+ * as private Hanger inspiration, as the heart always has; unsaving removes them.
+ */
+export async function setCommunityLookSaved(ownerId:string,postId:string,saved:boolean) {
+  try{return await setLookSaved(savedLookStorage(),ownerId,postId,saved);}
+  catch(error){if(error instanceof SavedLookNotFound)throw new RequestRefused("Community post not found.",404);throw error;}
+}
+
+/** The person's own saved Community looks for the Outfits tab. Gone looks keep only style words. */
+export async function listSavedCommunityLooks(ownerId:string):Promise<SavedLookCard[]> {
+  const saves=await queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`USER#${ownerId}`,":sk":"INSPIRATION#"}}) as unknown as StoredSave[];
+  if(!saves.length)return [];
+  const wanted=new Set(saves.map(save=>save.postId));
+  const posts=(await queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":"COMMUNITY",":sk":"POST#"}}) as unknown as StoredPost[]).filter(post=>wanted.has(String(post.id)));
+  const visible=await visibleCommunityPosts(posts);
+  return savedLookCards(saves,new Map(visible.map(post=>[String(post.id),publicCommunityPost(post)])));
 }
 
 export async function getConsumerInspirationProfile(ownerId:string):Promise<ConsumerInspirationProfile> {

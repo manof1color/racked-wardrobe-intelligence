@@ -29,7 +29,7 @@ export default async function CommunityProfilePage({ params }: { params: Promise
     consumer ? getConsumerInspirationProfile(consumer) : Promise.resolve({ postIds: [] }),
     consumer ? listOwnCommunityPostIds(consumer) : Promise.resolve([]),
   ]);
-  const feed = <CommunityFeed profile={profile} testCheckout={Boolean(stripeTestKey(process.env.STRIPE_SECRET_KEY))} initialPosts={looks} canPost={session?.role === "consumer"} initialInspiredPostIds={inspiration.postIds} initialOwnPostIds={ownPostIds} savedOutfits={outfits.map((outfit) => ({ id: outfit.id, name: outfit.name, pieceCount: outfit.itemIds.length }))} />;
+  const feed = <CommunityFeed profile={profile} testCheckout={Boolean(stripeTestKey(process.env.STRIPE_SECRET_KEY))} initialPosts={looks} canPost={session?.role === "consumer"} signedIn={Boolean(session)} initialInspiredPostIds={inspiration.postIds} initialOwnPostIds={ownPostIds} savedOutfits={outfits.map((outfit) => ({ id: outfit.id, name: outfit.name, pieceCount: outfit.itemIds.length }))} />;
   if (session) return <AppShell role={session.role}><main className="community-page">{feed}</main><WorkspaceMobileNav role={session.role} active="community" /></AppShell>;
   return <main className="community-page"><header className="community-nav"><Link className="wordmark" href="/">RACKED<span>.</span></Link><nav><Link href="/community">Community</Link><Link href="/login">Sign in</Link></nav></header>{feed}</main>;
 }

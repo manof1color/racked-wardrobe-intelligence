@@ -31,7 +31,8 @@ test("every response carries the browser security headers", async () => {
   const privateHeaders=Object.fromEntries(apiRule.headers.map(({key,value})=>[key,value]));
   assert.equal(privateHeaders["Cache-Control"],"private, no-store");
   assert.equal(privateHeaders.Vary,"Cookie");
-  assert.match(read("lib/server/production-store.ts"), /function incrementCommunityLike[^\n]*ConditionExpression:"attribute_exists\(PK\)"[^\n]*ConditionalCheckFailedException[^\n]*404/);
+  // A save's count update on a post that has just gone answers 404, never a new item with a count.
+  assert.match(read("lib/server/production-store.ts"), /async incrementLikes\(postId\)\{[^]*?ConditionExpression:"attribute_exists\(PK\)"[^\n]*conditionFailed\(error\)\)throw new RequestRefused\("Community post not found\.",404\)/);
   assert.equal(rule.source, "/:path*");
   const headers = Object.fromEntries(rule.headers.map(({ key, value }) => [key, value]));
   assert.match(headers["Strict-Transport-Security"], /max-age=31536000/);

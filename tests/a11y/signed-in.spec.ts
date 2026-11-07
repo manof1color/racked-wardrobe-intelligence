@@ -33,6 +33,24 @@ test("axe: a saved outfit's detail, and the way back to the list", async ({ page
   await expect(page.locator(".outfit-row").first()).toBeVisible();
 });
 
+test("axe: a saved Community look opens as its post, the heart unsaves it, and a gone look shows style words only", async ({ page }, testInfo) => {
+  // On a phone the install tip can appear over the card's action row; dismiss it as a person would.
+  await page.addLocatorHandler(page.getByRole("button", { name: "Dismiss installation tip" }), async (dismiss) => { await dismiss.click(); });
+  await openConsumer(page, "outfits");
+  await expect(page.getByRole("heading", { name: "2 saved looks" })).toBeVisible();
+  await page.locator(".saved-look-list .outfit-row").first().click();
+  await expect(page.getByRole("button", { name: "Recreate with my wardrobe" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Wear This Again" })).toHaveCount(0);
+  await expectNoSeriousViolations(page, testInfo, "saved look detail");
+  await page.getByRole("button", { name: /^Saved/ }).click();
+  await expect(page.getByRole("button", { name: /^Save look/ })).toBeVisible();
+  await page.getByRole("button", { name: "Back to Outfits" }).click();
+  await expect(page.getByRole("heading", { name: "1 saved look" })).toBeVisible();
+  await page.locator(".saved-look-list .outfit-row").first().click();
+  await expect(page.getByText("minimal", { exact: true })).toBeVisible();
+  await expectNoSeriousViolations(page, testInfo, "saved look no longer in Community");
+});
+
 test("axe: consumer closet with a piece open for editing", async ({ page }, testInfo) => {
   await openConsumer(page, "closet");
   await page.getByRole("button", { name: /^Edit piece:/ }).first().click();
