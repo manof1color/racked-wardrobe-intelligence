@@ -15,7 +15,7 @@ test("the product page offers the test card only with a Stripe test key and only
 test("the panel reuses the existing button, and the $0.00 demo bag is the only path that records", () => {
   const panel = read("components/demo-purchase-panel.tsx");
   assert.match(panel, /import \{ TestCheckoutButton \} from "\.\/test-checkout-button"/);
-  assert.match(panel, /testCheckout && <TestCheckoutButton productId=\{productId\} label="Pay with a test card" \/>/);
+  assert.match(panel, /testCheckout && <TestCheckoutButton productId=\{productId\} label="Pay with a test card" fullWidth \/>/);
   assert.equal(panel.split("/demo-purchase`").length - 1, 1, "one call records a demonstration event");
   assert.match(panel, /Complete demo purchase — \$0\.00/);
   assert.doesNotMatch(read("components/test-checkout-button.tsx"), /demo-purchase/, "a test card payment records nothing");
