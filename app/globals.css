@@ -179,9 +179,9 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 .cpost-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px 16px}
 .cpost-actions .like-button{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-width:44px;min-height:44px;margin:0 4px 0 -8px;padding:0 8px;font-size:.82rem;font-weight:800;color:var(--ink);border-radius:2px}
 .cpost-actions .heart-icon{display:block;flex:0 0 auto}
-.cpost-actions .like-button:not(:disabled):hover .heart-icon{color:var(--coral-dark)}
+.cpost-actions .like-button:not(:disabled):not(.like-static):hover .heart-icon{color:var(--coral-dark)}
 .cpost-actions .like-button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
-.cpost-actions .like-button.saved{color:var(--coral-dark);opacity:1;cursor:default}
+.cpost-actions .like-button{cursor:pointer;text-decoration:none}.cpost-actions .like-button.saved{color:var(--coral-dark)}.cpost-actions .like-button.saved:disabled{opacity:.55}.cpost-actions .like-static{cursor:default}
 .cpost-actions .like-count{font-variant-numeric:tabular-nums}
 .cpost-actions .like-state{font-size:.7rem;font-weight:800;color:var(--muted)}
 .cpost-actions>.button{flex:0 1 auto}
@@ -1075,3 +1075,9 @@ a.cpost-avatar:hover{opacity:.85}
 .outfit-delete{background:var(--white);border:1px solid var(--ink);color:var(--ink)}.outfit-delete:hover{background:var(--cream)}.outfit-delete.confirm-delete{background:#5d1712;border-color:#5d1712;color:#fff}
 @media(max-width:560px){.outfit-row-thumbs>span:nth-child(n+4){display:none}.outfit-detail-head{gap:10px;flex-wrap:wrap}.outfit-detail-title{flex:1 1 40%}.outfit-detail-title h2{font-size:1.25rem}.outfit-edit{padding:0 12px}.outfit-tile figcaption{left:5px;bottom:5px;padding:3px 7px;font-size:.62rem;gap:3px}.outfit-tiles{gap:6px}.outfit-tile figcaption svg{display:none}}
 .section-block.outfits-view:has(>.outfit-detail){margin-top:0;padding-top:10px}
+.saved-looks{margin-top:40px;max-width:760px}.saved-looks .section-title{margin-bottom:6px}
+.saved-looks-note{font-size:.8rem;line-height:1.5;color:var(--muted);margin:0 0 14px;max-width:560px}
+.saved-looks .empty-match{min-height:0;align-items:flex-start;text-align:left;padding:18px;background:var(--white);border:1px solid var(--line);border-radius:10px}.saved-looks .empty-match h3,.saved-looks .empty-match p{margin:0 0 8px}
+.saved-look-detail .cfeed{max-width:620px;margin:0}.saved-look-detail .outfit-detail-title .eyebrow{margin-bottom:4px}
+.saved-look-gone{max-width:560px;display:grid;gap:14px;justify-items:start;padding:18px;background:var(--white);border:1px solid var(--line);border-radius:10px}.saved-look-gone p{margin:0;font-size:.86rem;line-height:1.55}
+.saved-look-words{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}.saved-look-words li{padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:.74rem;font-weight:700;background:var(--paper)}

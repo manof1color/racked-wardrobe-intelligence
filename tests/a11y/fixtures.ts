@@ -9,6 +9,7 @@ import type { BrandMetrics } from "../../lib/metrics.ts";
 import type { AgentReply, BrandCommunityMetrics, BrandProductRegistration, GarmentAnalysis } from "../../lib/platform-types.ts";
 import type { DetectedLookGarment } from "../../lib/look-garment-detection.ts";
 import type { SavedOutfit, WardrobeItem } from "../../lib/types.ts";
+import type { SavedLookCard } from "../../lib/saved-looks.ts";
 
 /** A 1×1 PNG, served for every image the harness asks for. */
 export const PIXEL_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
@@ -91,6 +92,19 @@ const brandReply: AgentReply = {
   actions:[{ label:"Draft a strategy brief", type:"strategy-brief", payload:{ theme:"repeat wear" } }],
 };
 
+/** Saved from Community: one look still published, one its author took down (style words only). */
+export const savedLooks: SavedLookCard[] = [
+  { kind: "live", postId: "fixture-post-1", savedAt: "2026-10-26T12:00:00.000Z", post: {
+    id: "fixture-post-1", handle: "@fixture_member", outfitTitle: "Fixture rainy-day layers", caption: "Synthetic fixture caption.", image: "", photo: "/demo-products/LTO-001.webp",
+    createdAt: "2026-10-25T12:00:00.000Z", likes: 12, sourceType: "consumer", fictional: true, dataClassification: "DEMO", products: [],
+    garments: [
+      { publicGarmentId: "fixture-g1", name: "Fixture trench", category: "outerwear", color: "beige", style: ["classic"], image: "/demo-products/LTO-002.webp", resolutionState: "GENERIC_UNVERIFIED" },
+      { publicGarmentId: "fixture-g2", name: "Fixture straight jean", category: "bottom", color: "indigo", image: "/demo-products/RTA-001.webp", resolutionState: "GENERIC_UNVERIFIED" },
+    ],
+  } },
+  { kind: "gone", postId: "fixture-post-2", savedAt: "2026-10-20T12:00:00.000Z", styleWords: ["minimal", "black", "white", "top", "shoe"] },
+];
+
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
@@ -104,6 +118,11 @@ export async function mockSignedInApi(page: Page) {
     const method = request.method();
     switch (pathname) {
       case "/api/consumer/wardrobe": return method === "POST" ? json(route, { item: { ...wardrobe[0], id: `saved-${Date.now()}` } }) : json(route, { items: wardrobe, outfits });
+      case "/api/consumer/saved-looks": return json(route, { looks: savedLooks });
+      case "/api/community": {
+        const body = request.postDataJSON() as { postId: string; saved: boolean };
+        return json(route, { postId: body.postId, saved: body.saved, inspired: body.saved, likes: body.saved ? 12 : 11 });
+      }
       case "/api/consumer/consent": return json(route, { brandDataSharing: true });
       case "/api/points": return json(route, { today: "2026-10-29", total: 42, streak: { streak: 3, best: 5, loggedToday: false }, week: { points: 9, daysLogged: 3, days: ["2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29"].map((day, index) => ({ day, points: [0, 4, 0, 0, 2, 0, 3][index], logged: [false, true, false, false, true, false, true][index] })) } });
       case "/api/consumer/outfits": return json(route, { outfit: { id: "saved-outfit", name: "Hanger outfit", itemIds: ["w1", "w2"], createdAt: "2026-10-28T12:00:00.000Z", wears: 0 } });

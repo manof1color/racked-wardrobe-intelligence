@@ -8,11 +8,12 @@ import { ShopTheLook } from "./shop-the-look";
 import { availableCategories, availableStyles, filterLooks, type LookCategory, type LookStyle } from "@/lib/look-discovery";
 import type { OutfitPost, PublicOutfitGarment } from "@/lib/platform-types";
 import type { RecreateLookResult } from "@/lib/recreate-look";
+import { createSaveToggle, saveLookRequest } from "@/lib/save-toggle";
 
 interface SavedOutfitOption { id:string; name:string; pieceCount:number }
 type Filter = "all" | "consumer" | "brand";
 
-export function CommunityFeed({profile,initialPosts,canPost,initialInspiredPostIds,initialOwnPostIds,savedOutfits,testCheckout=false}:{profile?:{name:string;initials:string};initialPosts:OutfitPost[];canPost:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[];testCheckout?:boolean}) {
+export function CommunityFeed({profile,initialPosts,canPost,signedIn=false,initialInspiredPostIds,initialOwnPostIds,savedOutfits,testCheckout=false}:{profile?:{name:string;initials:string};initialPosts:OutfitPost[];canPost:boolean;signedIn?:boolean;initialInspiredPostIds:string[];initialOwnPostIds:string[];savedOutfits:SavedOutfitOption[];testCheckout?:boolean}) {
   const [posts,setPosts]=useState(initialPosts);
   const [title,setTitle]=useState("");
   const [caption,setCaption]=useState("");
@@ -51,10 +52,19 @@ export function CommunityFeed({profile,initialPosts,canPost,initialInspiredPostI
     if(!response.ok){setError(data.error??"Post could not be published.");return;}
     setPosts(current=>[data.post,...current]);setOwnPostIds(current=>new Set([...current,data.post.id]));setTitle("");setCaption("");setComposerOpen(false);
   }
-  async function like(postId:string){
-    setPendingLike(postId);setError("");
-    try{const response=await fetch("/api/community",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({postId})});const data=await response.json();if(!response.ok)throw new Error(data.error??"Inspiration could not be saved.");setPosts(current=>current.map(item=>item.id===postId?{...item,likes:data.likes}:item));if(data.inspired)setInspiredPostIds(current=>new Set([...current,postId]));}
-    catch(reason){setError(reason instanceof Error?reason.message:"Like could not be recorded.");}finally{setPendingLike(null);}
+  // The heart saves the look to this person's Outfits tab, and a second tap takes it back out.
+  const saveToggle=useMemo(()=>createSaveToggle(saveLookRequest),[]);
+  async function toggleSave(post:OutfitPost){
+    const wasSaved=inspiredPostIds.has(post.id);
+    setError("");setNotice("");setPendingLike(post.id);
+    try{
+      const answer=await saveToggle.toggle(post.id,{saved:wasSaved,likes:post.likes},state=>{
+        setPosts(current=>current.map(item=>item.id===post.id?{...item,likes:state.likes}:item));
+        setInspiredPostIds(current=>{const next=new Set(current);if(state.saved)next.add(post.id);else next.delete(post.id);return next;});
+      });
+      if(answer)setNotice(answer.saved?`Saved “${post.outfitTitle}” to your Outfits, under Saved from Community.`:`Removed “${post.outfitTitle}” from your Outfits.`);
+    }catch(reason){setError(reason instanceof Error?reason.message:"The look could not be saved.");}
+    finally{if(!saveToggle.isPending(post.id))setPendingLike(current=>current===post.id?null:current);}
   }
   async function unpublish(post:OutfitPost){
     setPendingUnpublish(post.id);setError("");setNotice("");
@@ -147,7 +157,7 @@ export function CommunityFeed({profile,initialPosts,canPost,initialInspiredPostI
       : <div className="cfeed">{visible.map(post=><CommunityPostCard key={post.id} post={post} canPost={canPost}
         isOwn={ownPostIds.has(post.id)} linkAuthor={!profile} confirmingUnpublish={confirmUnpublishId===post.id} pendingUnpublish={pendingUnpublish===post.id}
         pendingLike={pendingLike===post.id} inspired={inspiredPostIds.has(post.id)} pendingRecreate={pendingRecreate===post.id} recreated={recreations[post.id]}
-        onLike={()=>like(post.id)} onRecreate={()=>recreate(post.id)} onShop={()=>setShopping(post)} onOpenPiece={garment=>setOpenPiece({garment,post})}
+        onLike={()=>toggleSave(post)} saveMode={canPost?"toggle":signedIn?"count":"sign-in"} onRecreate={()=>recreate(post.id)} onShop={()=>setShopping(post)} onOpenPiece={garment=>setOpenPiece({garment,post})}
         onAskUnpublish={()=>setConfirmUnpublishId(post.id)} onCancelUnpublish={()=>setConfirmUnpublishId(null)} onConfirmUnpublish={()=>unpublish(post)}/>)}</div>}
 
     {openPiece&&<CommunityPieceSheet garment={openPiece.garment} post={openPiece.post} posts={posts} testCheckout={testCheckout} onClose={()=>setOpenPiece(null)}

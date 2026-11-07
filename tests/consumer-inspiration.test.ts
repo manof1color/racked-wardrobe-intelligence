@@ -60,10 +60,11 @@ test("production wiring scopes inspiration to the session and passes only profil
   const communityRoute=fs.readFileSync(new URL("../app/api/community/route.ts",import.meta.url),"utf8");
   const hangerRoute=fs.readFileSync(new URL("../app/api/agents/consumer/route.ts",import.meta.url),"utf8");
   const store=fs.readFileSync(new URL("../lib/server/production-store.ts",import.meta.url),"utf8");
-  assert.match(communityRoute,/saveConsumerInspiration\(session\.subject,body\.postId\)/);
+  assert.match(communityRoute,/setCommunityLookSaved\(session\.subject,postId,body\?\.saved!==false\)/,"the saver is the session; a body without saved still saves");
   assert.match(store,/SK:`INSPIRATION#\$\{postId\}`/);
   assert.match(store,/ConditionExpression:"attribute_not_exists\(PK\) AND attribute_not_exists\(SK\)"/);
-  assert.match(store,/DeleteCommand\(\{TableName:requireTable\(\),Key:inspirationKey\}\)/,"a failed counter update must roll back the private marker");
+  const core=fs.readFileSync(new URL("../lib/saved-looks.ts",import.meta.url),"utf8");
+  assert.match(core,/await storage\.removeSave\(ownerId,postId\)\.catch/,"a failed counter update must roll back the private marker");
   assert.match(hangerRoute,/inspirationStyleHints:\s*inspiration\.styleHints/);
   assert.doesNotMatch(hangerRoute,/inspiration\.postIds/,"post ids are not needed by the model or ranking engine");
 });
