@@ -540,6 +540,7 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - Fix: on the All Products page, a percentage height inside a grid item did not resolve, so photos grew past their 250px frame and over the card text, and `mix-blend-mode: multiply` darkened the overlap. Measured before the fix on a production build with fixture products: images 417px tall at 375px wide and 441px at 1280px, inside a 250px frame. The frame now clips and the image has an explicit height.
 - Fix: production's Stripe log showed `POST /v1/checkout/sessions` answering 400 because `payment_method_types` is no longer accepted on the account's API version (2026-10-28). It was our request, not a Stripe setting. The parameter is removed; Stripe takes payment methods from the Dashboard, where card is on by default. Not yet confirmed against Stripe itself: that needs a real test payment after deploy.
 - Tests: `tests/demo-store-test-card.test.ts`.
+- Fix (2026-11-07): the test checkout still answered 400 after that change. Stripe's log gave a second reason: Managed Payments is on by default for the account and refuses `custom_text`. The request now sends `managed_payments[enabled]=false`, which keeps the test-card instructions on Stripe's page. The same request was accepted by Stripe in the sandbox, as an open, unpaid test session. A full test payment from the deployed site is still to be confirmed.
 
 ## Continuous verification
 
