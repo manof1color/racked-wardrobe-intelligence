@@ -2,7 +2,7 @@
 import { useState } from "react";
 
 /** Sends a fictional product to Stripe's hosted test page. The server sets the price and checks the product. */
-export function TestCheckoutButton({ productId, label = "Buy with a test card" }: { productId: string; label?: string }) {
+export function TestCheckoutButton({ productId, label = "Buy with a test card", fullWidth = false }: { productId: string; label?: string; fullWidth?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,7 +24,7 @@ export function TestCheckoutButton({ productId, label = "Buy with a test card" }
   }
 
   return <div className="test-checkout">
-    <button type="button" className="button button-dark" disabled={busy} onClick={start}>{busy ? "Opening Stripe…" : label}</button>
+    <button type="button" className={fullWidth ? "button button-dark button-full" : "button button-dark"} disabled={busy} onClick={start}>{busy ? "Opening Stripe…" : label}</button>
     <small>Stripe test mode on a fictional product. No real money moves and nothing ships. Do not enter a real card.</small>
     {error && <p className="test-checkout-error" role="alert">{error}</p>}
   </div>;
