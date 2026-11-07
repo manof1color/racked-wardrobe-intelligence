@@ -2,7 +2,7 @@
 
 > Every page under `/demo-store` is a **fictional shop for a fictional brand**: a fictional product, no real money, and nothing ships. The in-page Demo Bag and $0.00 checkout are an interaction simulation only: no payment is processed, no order is created, and no personal detail is collected. Each page carries a persistent banner saying so.
 >
-> A fictional product page, and the Community item sheet for a priced fictional piece, can also offer **Pay with a test card**, a Stripe **test-mode** checkout (`lib/test-checkout.ts`). It appears only when a Stripe test key is configured, never for a pilot or real brand's product, moves no money, creates no order, and records nothing. Only the $0.00 Demo Bag adds to the brand dashboard's simulation count.
+> A fictional product page, and the Community item sheet for a priced fictional piece, can also offer a Stripe **test-mode** checkout (**Pay with a test card** on the product page, **Buy with a test card** in the Community sheet; card `4242 4242 4242 4242`, any future date, any CVC) (`lib/test-checkout.ts`). It appears only when a Stripe test key is configured, never for a pilot or real brand's product, moves no money, creates no order, and records nothing. Only the $0.00 Demo Bag adds to the brand dashboard's simulation count.
 
 ## Why these exist
 
@@ -44,13 +44,13 @@ demoStoreProductUrl("https://main.d2iv0khybuuaeh.amplifyapp.com", "synthetic-str
 
 ## Seeded brands and SKUs
 
-Verified against the live API on 2026-08-14. **Re-verify before relying on this list** — do not copy brand names out of planning documents.
+Verified on 2026-11-07 from the public storefront pages (read-only page views of `/demo-store/<slug>`). **Re-verify before relying on this list** — do not copy brand names out of planning documents.
 
 | Brand | Slug | SKUs |
 | --- | --- | --- |
-| Racked Test Atelier | `racked-test-atelier` | RTA-001 … RTA-006 |
-| Synthetic Stride Lab | `synthetic-stride-lab` | SSL-001 … SSL-006 |
-| Lumen Test Objects | `lumen-test-objects` | LTO-001 … LTO-006 |
+| Racked Test Atelier | `racked-test-atelier` | RTA-001 … RTA-010 |
+| Synthetic Stride Lab | `synthetic-stride-lab` | SSL-001 … SSL-010 |
+| Lumen Test Objects | `lumen-test-objects` | LTO-001 … LTO-010 |
 
 ## Pricing and copy
 

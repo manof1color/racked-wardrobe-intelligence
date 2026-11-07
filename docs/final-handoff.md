@@ -1,6 +1,6 @@
 # Final Engineering Handoff
 
-Verified on 2026-08-13 against production and the implementation merged through PR #39.
+Originally verified on 2026-08-13 against production and the implementation merged through PR #39. Revised 2026-11-07 for the code freeze: the sections on payments, tests, recognition accuracy and Community saves below are current; the contracts and the production-verification numbers are as of August and are labelled so.
 
 ## Implemented and verified
 
@@ -13,11 +13,11 @@ Verified on 2026-08-13 against production and the implementation merged through 
 - Brand dashboards and Brand Hanger separate private `k >= 25` wear analytics from intentionally public Community activity.
 - Production contains three fictional DEMO brands, 30 synthetic products, six Brand Looks, 25 synthetic Consumers, saved/public outfits, and 76 wear events per hero product.
 
-Production verification confirmed the apparel demo login, 10 owned products, two Brand Looks, 76 confirmed wears, 25 eligible owners, 88% engagement, 76% repeat wear, 11 public Looks, 37 inspirations, and 15 recreate requests. These are deterministic synthetic demo results, not commercial evidence.
+As of 2026-08-13, production verification confirmed the apparel demo login, 10 owned products, two Brand Looks, 76 confirmed wears, 25 eligible owners, 88% engagement, 76% repeat wear, 11 public Looks, 37 inspirations, and 15 recreate requests. These are deterministic synthetic demo results, not commercial evidence.
 
 ## Test and security status
 
-The gate is `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm audit:prod`. The current implementation carries **402 passing tests** (re-verified 2026-09-18). The Add Racked action opens the native installer where browsers support it and otherwise opens explicit device-specific instructions; iOS correctly preserves the required Safari Share → Add to Home Screen confirmation. One-photo intake supports up to 16 wardrobe units, retains matching left/right footwear as one pair, performs request-budget-safe local display isolation, rejects nearly erased transparent output, and regression-tests split-side grouping without collapsing neighboring pairs. Consumer Hanger recognizes explicit requests for exact owned garments or unambiguous natural-language aliases, locks them before compatibility/underuse scoring, honors exclusions, and cannot invent unknown pieces. It may use private, bounded signals from intentionally saved Community inspirations only when the current request supplies no conflicting style. It retains up to 100 owner-validated prior recommendation IDs, rotates repeated creation prompts through unseen pieces, and uses one canonical ordered selection for the written list, owned-piece image projection, Save/Wear IDs, saved title, and private board. Model prose and client actions are checked against that selection before persistence. AI cannot grant verified brand identity. Brand and Community responses exclude private wardrobe records, inspiration profiles, owner IDs, emails, evidence images, S3 keys, and individual wear histories. Private wear remains consent-filtered and suppressed below 25 owners. Public Community metrics use only published records and identity-free events.
+The gate is `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm audit:prod`. The current implementation carries **1028 passing tests** (re-verified 2026-11-07). The Add Racked action opens the native installer where browsers support it and otherwise opens explicit device-specific instructions; iOS correctly preserves the required Safari Share → Add to Home Screen confirmation. One-photo intake supports up to 16 wardrobe units, retains matching left/right footwear as one pair, performs request-budget-safe local display isolation, rejects nearly erased transparent output, and regression-tests split-side grouping without collapsing neighboring pairs. Consumer Hanger recognizes explicit requests for exact owned garments or unambiguous natural-language aliases, locks them before compatibility/underuse scoring, honors exclusions, and cannot invent unknown pieces. It may use private, bounded signals from intentionally saved Community inspirations only when the current request supplies no conflicting style. It retains up to 100 owner-validated prior recommendation IDs, rotates repeated creation prompts through unseen pieces, and uses one canonical ordered selection for the written list, owned-piece image projection, Save/Wear IDs, saved title, and private board. Model prose and client actions are checked against that selection before persistence. AI cannot grant verified brand identity. Brand and Community responses exclude private wardrobe records, inspiration profiles, owner IDs, emails, evidence images, S3 keys, and individual wear histories. Private wear remains consent-filtered and suppressed below 25 owners. Public Community metrics use only published records and identity-free events.
 
 ## Final contracts for frontend work
 
@@ -57,7 +57,8 @@ Optional brand-owned fields are `productUrl`, `affiliateUrl`, `price`, `currency
 
 - `POST /api/garments/detect`: whole-look detection; one bounded crop per piece.
 - `POST /api/garments/verify`: label-code check against the registry; writes nothing.
-- `POST /api/community`: publishes one owned saved outfit.
+- `POST /api/community`: publishes one owned saved outfit. `PATCH /api/community` takes `{postId, saved}` and saves or unsaves a Look for a signed-in Consumer; `GET /api/consumer/saved-looks` lists the account's own saves for **Saved from Community**.
+- `POST /api/products/[productId]/test-checkout`: starts a Stripe test-mode Checkout session for a fictional `DEMO` product; 503 unless the key is a test key.
 - `POST /api/community/[postId]/recreate`: account-bound Recreate response.
 - `GET /api/products/[productId]/outbound`: controlled validated redirect.
 - `GET/POST /api/brand/looks`: owned-product Brand Looks.
@@ -67,12 +68,12 @@ Legacy category-only garments are normalized to valid subtypes. Saved outfits re
 
 ## Limitations and deferred work
 
-- Recognition accuracy has not been measured against a labeled evaluation set. Whole-look detection now uses the US Nova Pro geographic profile with a configuration-only Nova Lite fallback, but that model policy is not itself an accuracy result; the crowded-scene phone evaluation remains required.
+- Recognition accuracy on the live scan path is measured only on the benchmark in `docs/evaluation-results-r2.md` (92.8% of garments in the right category on 300 locked, independent photos); the crowded-scene phone evaluation on a real shoe rack remains required, and nothing beyond the benchmark is claimed. Whole-look detection uses the US Nova Pro geographic profile with a configuration-only Nova Lite fallback.
 - Multi-piece foreground isolation is display preparation, not virtual try-on or body-fit prediction. Synchronous intake uses local silhouette isolation, conservative edge transparency, and finally the ordinary bounded photo, so one scan never creates a remote cleanup call for every detected piece. It measures the returned alpha channel and refuses any transparent result with too little clearly visible, solid subject. Whole-look recognition also ends before the general vision deadline so storage retains request time. The validated Bedrock segmentation helper remains available for a future asynchronous flow but is not an intake gate. A recognition-provider failure creates a zero-confidence editable manual-review item rather than inventing attributes or blocking intake. Existing garments are not silently rewritten—new whole-look scans receive this processing.
 - Product identity still requires registry GTIN or brand-plus-SKU evidence.
 - Community aggregation currently reads the latest 1,000 identity-free events; production scale needs counters or pagination.
 - Legal brand-authority verification and account-deletion automation remain future operations work.
 - Similar-product destination selection and production affiliate-provider integration remain future work.
-- Real checkout, real payments, fulfillment, returns, payouts, DMs, follower graph, and virtual try-on remain intentionally out of scope.
+- Real checkout, real payments, subscriptions, billing, fulfillment, returns, payouts, DMs, follower graph, and virtual try-on remain intentionally out of scope. The only payment step is Stripe **test mode** on fictional `DEMO` products (`lib/test-checkout.ts`), which moves no money and stores nothing.
 
 Frontend agents must preserve resolution labels, alternatives/manual correction, Consumer-vs-Brand Looks, DEMO/PILOT badges, Recreate evidence, controlled shopping routes, and the visible split between public Community activity and private thresholded wear analytics. Never infer exact identity from AI confidence or submit client-provided wardrobe data to Recreate.
