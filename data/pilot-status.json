@@ -26,6 +26,19 @@
       "pricing": { "tier": "Brand Basic", "price": "$20/mo", "acceptedOn": "2026-11-05", "form": "written-message", "billingStarts": null },
       "paid": false,
       "evidence": ["docs/pilot-evidence/vversatile-pricing-2026-11-05.jpg"]
+    },
+    {
+      "label": "projectqadar",
+      "publicName": "Project Qadar",
+      "namePermission": true,
+      "relationship": null,
+      "agreedToPilot": { "form": "written", "onOrBefore": "2026-11-07", "reconfirmedOn": null },
+      "accountCreated": true,
+      "productsUploaded": true,
+      "productsEnrolled": null,
+      "pricing": { "tier": "Brand Pro", "price": "$40/mo", "acceptedOn": "2026-11-07", "form": "written-message", "billingStarts": null },
+      "paid": false,
+      "evidence": ["docs/pilot-evidence/projectqadar-plan-2026-11-07.jpg"]
     }
   ]
 }
