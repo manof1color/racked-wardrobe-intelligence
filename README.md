@@ -7,6 +7,8 @@
 
 People get a private wardrobe and an AI stylist that help them use more of what they already own. Brands get consented intelligence about which products earn repeat wear and what they are worn with, released only for groups of at least 25 people — never names, photos, or wardrobes. The result is one feedback loop for consumer value, lower-waste decisions, and better-informed products.
 
+**[Start the demo](https://main.d2iv0khybuuaeh.amplifyapp.com/login) · [Judge guide](JUDGES.md) · [Evidence](#evidence-and-what-is-not-claimed) · [One-page summary](docs/one-page-summary.md)**
+
 | | |
 | --- | --- |
 | **Judges, start here** | [JUDGES.md](JUDGES.md) — one screen: the two demo flows, how to sign in, and where every piece of evidence is |
@@ -39,9 +41,9 @@ Each scoring category, what to look for, and where to check it.
 | **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **1064 tests** in 132 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **215 merged PRs** counted on 2026-11-07 before this documentation merge; build log through Phase 112 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **Code, docs & GitHub** | 15% | **1067 tests** in 132 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **215 merged PRs** counted on 2026-11-07 before this documentation merge; build log through Phase 112 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
-| **Business impact** | 10% | Three real apparel brands have joined the pilot and uploaded products, and one chose the $40 Pro plan in writing. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals roughly 19 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
+| **Business impact** | 10% | Three real apparel brands have joined the pilot and uploaded products, and one chose the $40 Pro plan in writing. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals 20 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
 
 Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checklist.md).
@@ -50,7 +52,7 @@ Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checkli
 
 ## Five-Minute Judge Path
 
-The demo is two flows and nothing else. Everything outside them is built and working, and listed on the [roadmap](#roadmap).
+Open the [sign-in page](https://main.d2iv0khybuuaeh.amplifyapp.com/login) and press **Try the demo**: choose **Judge Consumer** for the first flow, then **Judge Brand** for the second. The demo is two flows and nothing else. Everything outside them is built and working, and listed under [Additional Live Features](#additional-live-features).
 
 **A person: scan → confirm → recommendation** (2½ minutes) — **Judge Consumer** on the sign-in screen
 
@@ -107,7 +109,7 @@ The scale is documented, but the claims are kept specific:
 
 **The consumer value:** see what is owned, rediscover underused pieces, build new combinations, repeat saved outfits, and recognize a real wardrobe gap before buying a duplicate.
 
-**The brand value:** use privacy-released repeat-wear, longevity and pairing signals to inform restocks, production quantities, product development, merchandising and campaign creative. At the proposed $40 monthly Pro price, the plan that releases wear data, the annual cost is $480. As an illustration — not a measured customer result — avoiding about **19 excess units at a $25 landed cost** would cover that annual subscription. The assumptions and formulas are explicit in [Sustainability and business impact](docs/sustainability-and-business-impact.md).
+**The brand value:** use privacy-released repeat-wear, longevity and pairing signals to inform restocks, production quantities, product development, merchandising and campaign creative. At the proposed $40 monthly Pro price, the plan that releases wear data, the annual cost is $480. As an illustration — not a measured customer result — avoiding **20 excess units at a $25 landed cost** would cover that annual subscription ($480 ÷ $25 = 19.2, so 20 whole units). The assumptions and formulas are explicit in [Sustainability and business impact](docs/sustainability-and-business-impact.md).
 
 **The early market signal:** three independent apparel brands, **_victimdesigns**, **vversatile.usa** and **Project Qadar**, have agreed to the pilot, created brand accounts and uploaded products, and all three accepted the proposed pricing in writing. _victimdesigns on 2026-11-04 ([redacted message](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg)) and vversatile.usa on 2026-11-05 ([redacted message](docs/pilot-evidence/vversatile-pricing-2026-11-05.jpg)) each said it would look at the Basic plan ($20 as the messages put it) while using full pilot access. Project Qadar chose the higher plan on 2026-11-07: "Go ahead and put me in for the $40 advanced plan as we talked about on the phone" ([redacted message](docs/pilot-evidence/projectqadar-plan-2026-11-07.jpg)); the advanced plan is the one this site calls Pro. vversatile.usa's wording is "down to try it", a willingness to try rather than a signed commitment. That is observed participation and three written price acceptances, stronger than hypothetical survey interest. It does **not** yet prove payment, recurring usage, waste reduction or financial return; nothing is billed during the pilot, and those are the next measurements.
 
@@ -149,7 +151,7 @@ Amplify deploys `main` automatically; DynamoDB is one on-demand table; S3 is pri
 
 ---
 
-## Roadmap
+## Additional Live Features
 
 Built, live and tested, but outside the five-minute demo:
 
@@ -163,7 +165,9 @@ Built, live and tested, but outside the five-minute demo:
 | **Wear points and daily streak** | Recording what you wear earns private points — 1 per piece a day, +3 for a piece back in rotation after 60 days, up to 15 a day — and a daily streak for every day with a recorded wear, with "Log today's outfit" on Home, or **Log with a photo**: Racked suggests the pieces from your own closet and records nothing until you confirm them. Earned identically whether or not you share with brands, never seen by a brand, and each piece reaches brand data at most once a day | [`wear-points.ts`](lib/wear-points.ts) · [`wear-photo-match.ts`](lib/wear-photo-match.ts) · [rules](docs/brand-linking-incentives.md#wear-points-owner-decision-2026-10-29) |
 | **Outfits, wear and Looks** | Saved outfits with private flat-lay boards, one-tap repeat wear, and a swipe-through builder that uses the same ranker as Hanger with no AI call | [`looks-builder.tsx`](components/looks-builder.tsx) |
 
-**Next:** raise exact-type recognition (74.6% today) and the dress/top boundary, now the most common miss in the [measured benchmark](docs/evaluation-results-r2.md); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md).
+### Next Steps
+
+Not built yet: raise exact-type recognition (74.6% today) and the dress/top boundary, now the most common miss in the [measured benchmark](docs/evaluation-results-r2.md); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md).
 
 ---
 
@@ -224,13 +228,15 @@ Both rounds together cost **$3.51 of Bedrock time** as counted (with a 1.5× saf
 **Real use: not measured yet.** Racked has counted, since 2026-10-28, how often people keep the AI's proposal for a scanned piece unchanged, as anonymous daily totals for real (non-demo) accounts. The first snapshot will be published here, with any count under 5 shown as "fewer than 5".
 <!-- real-use:end -->
 
-**Synthetic demo cohort.** The main cohort seed deterministically defines each of three hero products with **76 confirmed wears across 25 opted-in owners** — reproducible seed expectations, not a live-table audit or real-user statistics. It shows what a brand would see once the privacy gate opens:
+**Synthetic demo cohort.** The main cohort seed deterministically defines each of three hero products with **76 confirmed wears across 25 opted-in owners** — reproducible seed expectations, not a live-table audit or real-user statistics. The table shows **raw synthetic seed values**, the plain calculation before any release rule. They are not what a brand sees for this cohort:
 
-| Signal | Seed result | The question it answers |
-| --- | ---: | --- |
-| Engagement | **22 of 25 active owners (88%)** | How many owners have worn it at least once? |
-| Repeat use | **19 of 25 repeat wearers (76%)** | Is it earning repeated use? |
-| Zero-wear opportunity | **3 of 25 owners** | Where could styling help? |
+| Signal | Raw synthetic seed value | The question it answers | Brand dashboard |
+| --- | ---: | --- | --- |
+| Engagement | **22 of 25 active owners (88%)** | How many owners have worn it at least once? | Withheld |
+| Repeat use | **19 of 25 repeat wearers (76%)** | Is it earning repeated use? | Withheld |
+| Zero-wear opportunity | **3 of 25 owners** | Where could styling help? | Withheld |
+
+**Why a 25-owner cohort still releases none of these.** Passing `k ≥ 25` protects the cohort, not a small group inside it. The release rules (`releaseWearAnalytics` in [`lib/metrics.ts`](lib/metrics.ts)) withhold any owner count under 5, and any count whose remainder is under 5: "22 of 25 active" also says that 3 have never worn it. Here the "0 wears" and "1 wear" groups hold 3 owners each, so the wear breakdown is withheld, and with it every figure derived from it: total wears, active owners, engagement, repeat wear, zero-wear owners, the average and median, the high-frequency count and the weekly trend. The dashboard shows "withheld", never zero, and releases only the day of the latest wear. The **Judge Signature Tee** in the demo, with 50 owners, is the product where figures are released.
 
 Before the benchmark, a label-coverage audit of 1,000 dataset records found **93.9%** map to Racked's categories, **62.6%** are specific enough for exact-type scoring, and **94.0%** carry usable brand annotations. These measure benchmark compatibility, not model accuracy ([report](data/evaluation-label-coverage.json)).
 
@@ -258,7 +264,7 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite, a production build and [accessibility checks](docs/accessibility.md) (axe on the public pages and, through a fixture-only harness, the signed-in screens, plus keyboard-only passes of both demo flows) on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. `main` is protected: every change arrives by pull request, and `verify`, `accessibility` and CodeQL (`Analyze JavaScript and TypeScript`) must pass; force pushes and deletion are blocked (read back from GitHub's public API on 2026-11-01).
 
-**1064 passing tests** in 132 files (verified 2026-11-08). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**1067 passing tests** in 132 files (verified 2026-11-08). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
 Coverage over the whole suite (2026-11-08): **96.50% of lines, 88.01% of branches, 94.75% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
 
@@ -276,7 +282,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: wardrobe, photo intake, Looks, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry
 lib/server/     All DynamoDB and S3 access, with every ownership check
-tests/          132 test files, 1064 tests (node --test)
+tests/          132 test files, 1067 tests (node --test)
 scripts/        Judge and demo seeds, verification, evaluation, owner-run tools (dry run by default)
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol

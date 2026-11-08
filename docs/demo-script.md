@@ -16,8 +16,8 @@ matters as much as the first.
 **Three rules this script is built around.**
 
 1. **Two flows, nothing else.** A person: *scan → confirm → recommendation*. A brand: *anonymous
-   cohort → wear evidence → campaign brief*. Every other feature is built and working, and it goes on
-   the roadmap line at the close — not on screen. Each extra feature is one more thing that can break
+   cohort → wear evidence → campaign brief*. Every other feature is built and working, and it goes in
+   the "also live" line at the close — not on screen. Each extra feature is one more thing that can break
    or blur the story.
 2. **Open with something that cannot be staged.** Scan a garment you are wearing, live. It answers
    "does this actually work" in the first minute, before anyone wonders.
@@ -86,13 +86,13 @@ Read the current test count off the scorecard rather than from memory. Then the 
 one real number is recognition: on 300 independent photos, locked before the first call, the live
 scan got the category right 92.8% of the time. I don't claim sales lift or purchase intent."*
 
-## 4:30–5:00 — Close, and the roadmap
+## 4:30–5:00 — Close, and what else is live
 
 > *"Consumers stay free, because the wardrobe has to earn its place on its own. Brands pay, because
 > post-purchase wear is what they cannot get anywhere else. Three real apparel brands have already
 > agreed to the pilot, created accounts and uploaded products, and all three have accepted our pricing in
 > writing, one of them on the $40 Pro plan — not yet payment. At
-> the proposed Pro price, helping a brand avoid roughly 19 excess units at a $25 landed cost
+> the proposed Pro price, helping a brand avoid 20 excess units at a $25 landed cost
 > would cover a year, although that is a break-even illustration, not a result I claim. Also built
 > and running, but not in these five minutes: Community, Recreate This Look, Shop the Look, and batch
 > brand enrollment."*
@@ -159,7 +159,7 @@ Judges score here. Answer in two sentences, then stop.
 | **"What would you do differently?"** | I built background removal before I had evidence it worked on real phone photos, and it erased white garments against pale walls. The fix was to stop cutting pieces out and show an honest bounded crop. |
 | **"Do you take payments? Is the Stripe part real?"** | No. Racked takes no real payments and bills nobody during the pilot. The only payment step is Stripe's test mode on fictional demo products: a test card, no real money, nothing ships, no subscription, and a real or pilot brand's product is refused before Stripe is called. |
 | **"Who pays, and how much?"** | Brands, on two plans: $20 a month before a product crosses the privacy threshold, and $40 once it does. Set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. Consumers stay free. |
-| **"How does this create financial value for a brand?"** | Wear and pairing evidence can inform restocks, production quantities, product design, merchandising and campaign creative. At $40 a month, avoiding about 19 excess units at a $25 landed cost would cover a year; that is an explicit break-even scenario, not measured pilot ROI. |
+| **"How does this create financial value for a brand?"** | Wear and pairing evidence can inform restocks, production quantities, product design, merchandising and campaign creative. At $40 a month, avoiding 20 excess units at a $25 landed cost would cover a year; that is an explicit break-even scenario, not measured pilot ROI. |
 | **"Does the pilot prove there is a market?"** | It is an early market signal: three independent apparel brands agreed to participate, created accounts and uploaded products, which is stronger than hypothetical interest. It does not yet prove willingness to pay, recurring demand or product-market fit, so those are the next validations. |
 | **"What breaks first at scale?"** | Per-instance limits are only a first layer: shared DynamoDB counters and fail-closed model-call budgets now bound abuse and AI usage. Edge rate limiting and production-scale validation remain follow-ups, not claims. |
 
@@ -174,7 +174,7 @@ Judges score here. Answer in two sentences, then stop.
 | The Stripe test page is slow, or the test button is missing | Skip it. Use the $0.00 demo bag on the same fictional product page, and say the test payment is optional and in test mode only. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-11-08):** 1064 tests in 132 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-11-08):** 1067 tests in 132 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 
