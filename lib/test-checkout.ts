@@ -54,11 +54,14 @@ export function testCheckoutAmount(product: Pick<BrandProductRegistration, "sku"
 /**
  * What Stripe is asked to show. No `payment_method_types`: Stripe rejects it on current API versions
  * (400, 2026-11-06) and takes payment methods from the Dashboard settings, where card is on by default.
+ * Managed Payments is switched off per request: it is on by default for this account and refuses
+ * `custom_text` (400, 2026-11-07), which carries the test-card instructions judges need on the page.
  * The return addresses come from configuration, never from the request. */
 export function testCheckoutForm(product: CheckoutProduct, origin: string) {
   const name = product.name.slice(0, 200);
   return new URLSearchParams({
     mode: "payment",
+    "managed_payments[enabled]": "false",
     customer_email: PLACEHOLDER_EMAIL,
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "usd",

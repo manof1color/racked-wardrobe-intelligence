@@ -27,13 +27,13 @@ const never = () => false;
 const always = () => true;
 
 test("today's data says the brands agreed, created accounts and uploaded; one has accepted pricing in writing, none has paid", () => {
-  assert.equal(status.brands.length, 2);
+  assert.equal(status.brands.length, 3);
   for (const entry of status.brands) assert.equal(entry.paid, false);
-  // Both brands now have written evidence (2026-11-04 and 2026-11-05), so the shared sentence may say
+  // Every brand now has written evidence (2026-11-04, 2026-11-05 and 2026-11-07), so the shared sentence may say
   // so; it still says nothing about payment.
-  assert.deepEqual(status.brands.map((entry) => pricingAccepted(entry, exists)), [true, true]);
+  assert.deepEqual(status.brands.map((entry) => pricingAccepted(entry, exists)), [true, true, true]);
   const sentence = pilotSentence(status, exists)!;
-  assert.match(sentence, /^Two apparel brands, \*\*_victimdesigns\*\* and \*\*vversatile\.usa\*\*, have agreed to join the Racked pilot, created brand accounts, uploaded their products and accepted pilot pricing\.$/);
+  assert.match(sentence, /^Three apparel brands, \*\*_victimdesigns\*\*, \*\*vversatile\.usa\*\* and \*\*Project Qadar\*\*, have agreed to join the Racked pilot, created brand accounts, uploaded their products and accepted pilot pricing\.$/);
   assert.doesNotMatch(sentence, /paid|customer|revenue|\$/i);
 });
 
@@ -73,7 +73,7 @@ test("a direct message from the brand's own account counts as written, with its 
 });
 
 test("the pricing page note appears only for evidenced acceptance", () => {
-  assert.equal(pricingNote(status, exists), "Accepted by 2 pilot brands — not yet billed.");
+  assert.equal(pricingNote(status, exists), "Accepted by 3 pilot brands — not yet billed.");
   assert.equal(pricingNote(status, never), null, "without the file, nothing is claimed");
   const written = brand({ pricing: { tier: "Brand Starter", price: "$29/mo", acceptedOn: "2026-11-01", form: "signed-loi", billingStarts: "2026-12-01" }, evidence: ["docs/pilot-evidence/a.pdf"] });
   assert.equal(pricingNote({ asOf: "x", brands: [written] }, always), "Accepted by 1 pilot brand — billing starts 2026-12-01.");
@@ -89,6 +89,7 @@ test("the README block and the landing line match the data file", () => {
   assert.equal(readme.slice(start, end), renderPilotBlock(status, exists));
   // Each brand's row links its own redacted written confirmation; the phone agreement is still labelled as phone.
   assert.match(readme.slice(start, end), /agreed to join the pilot by phone; created a brand account; uploaded products; accepted pilot pricing \(Brand Basic\) \| \[vversatile-pricing-2026-11-05\.jpg\]/);
+  assert.match(readme.slice(start, end), /\| Project Qadar \| agreed to join the pilot in writing; created a brand account; uploaded products; accepted pilot pricing \(Brand Pro\) \| \[projectqadar-plan-2026-11-07\.jpg\]/);
   assert.doesNotMatch(readme, /no written record/);
   assert.ok(start < readme.indexOf("## Judge Scorecard"), "it sits on the first screen, under the opening table");
   const page = read("app/page.tsx");
@@ -109,5 +110,5 @@ test("no file calls a brand a customer, partner or user-in-production", () => {
   const offenders = files.flatMap((file) => read(file).split(/\r?\n/).filter((line) => claim.test(line)).map((line) => `${file}: ${line.slice(0, 80)}`));
   assert.deepEqual(offenders, []);
   assert.doesNotMatch(read("AGENTS.md"), /real brand customers/);
-  assert.match(read("SECURITY.md"), /Two pilot brands have created accounts and uploaded products on the live app/);
+  assert.match(read("SECURITY.md"), /Three pilot brands have created accounts and uploaded products on the live app/);
 });

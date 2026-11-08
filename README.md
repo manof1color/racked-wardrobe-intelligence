@@ -17,12 +17,13 @@ People get a private wardrobe and an AI stylist that help them use more of what 
 | **Built for** | CUA Busch School AI Vibe Coding Contest, Fall 2026 |
 
 <!-- pilot:start (generated from data/pilot-status.json; tests/pilot-claims.test.ts) -->
-**Pilot status (2026-11-05):** Two apparel brands, **_victimdesigns** and **vversatile.usa**, have agreed to join the Racked pilot, created brand accounts, uploaded their products and accepted pilot pricing.
+**Pilot status (2026-11-07):** Three apparel brands, **_victimdesigns**, **vversatile.usa** and **Project Qadar**, have agreed to join the Racked pilot, created brand accounts, uploaded their products and accepted pilot pricing.
 
 | Brand | What it has done | Evidence |
 | --- | --- | --- |
-| _victimdesigns | agreed to join the pilot by phone; created a brand account; uploaded products; accepted pilot pricing (Brand Basic) | [victimdesigns-pricing-2026-11-04.jpg](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg) |
+| _victimdesigns | agreed to join the pilot by phone; created a brand account; uploaded products; accepted pilot pricing (Brand Basic) | [victimdesigns-pricing-2026-11-04.jpg](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg), [victimdesigns-plan-choice-2026-11-06.jpg](docs/pilot-evidence/victimdesigns-plan-choice-2026-11-06.jpg) |
 | vversatile.usa | agreed to join the pilot by phone; created a brand account; uploaded products; accepted pilot pricing (Brand Basic) | [vversatile-pricing-2026-11-05.jpg](docs/pilot-evidence/vversatile-pricing-2026-11-05.jpg) |
+| Project Qadar | agreed to join the pilot in writing; created a brand account; uploaded products; accepted pilot pricing (Brand Pro) | [projectqadar-plan-2026-11-07.jpg](docs/pilot-evidence/projectqadar-plan-2026-11-07.jpg) |
 
 Not claimed: payment. Nothing is billed.
 <!-- pilot:end -->
@@ -38,9 +39,9 @@ Each scoring category, what to look for, and where to check it.
 | **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **1064 tests** in 132 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **181 merged PRs** counted on 2026-10-30 before this documentation merge; build log through Phase 111 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **Code, docs & GitHub** | 15% | **1064 tests** in 132 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **215 merged PRs** counted on 2026-11-07 before this documentation merge; build log through Phase 112 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
-| **Business impact** | 10% | Two real apparel brands have joined the pilot and uploaded products. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals roughly 19 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
+| **Business impact** | 10% | Three real apparel brands have joined the pilot and uploaded products, and one chose the $40 Pro plan in writing. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals roughly 19 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
 
 Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checklist.md).
@@ -108,7 +109,7 @@ The scale is documented, but the claims are kept specific:
 
 **The brand value:** use privacy-released repeat-wear, longevity and pairing signals to inform restocks, production quantities, product development, merchandising and campaign creative. At the proposed $40 monthly Pro price, the plan that releases wear data, the annual cost is $480. As an illustration — not a measured customer result — avoiding about **19 excess units at a $25 landed cost** would cover that annual subscription. The assumptions and formulas are explicit in [Sustainability and business impact](docs/sustainability-and-business-impact.md).
 
-**The early market signal:** two independent apparel brands, **_victimdesigns** and **vversatile.usa**, have already agreed to the pilot, created brand accounts and uploaded products, and both accepted the proposed pricing in writing: _victimdesigns on 2026-11-04 ([redacted message](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg)) and vversatile.usa on 2026-11-05 ([redacted message](docs/pilot-evidence/vversatile-pricing-2026-11-05.jpg)), each choosing the $20/mo Basic plan while using full pilot access. vversatile.usa's wording is "down to try it", a willingness to try rather than a signed commitment. That is observed participation and two written price acceptances, stronger than hypothetical survey interest. It does **not** yet prove payment, recurring usage, waste reduction or financial return; nothing is billed during the pilot, and those are the next measurements.
+**The early market signal:** three independent apparel brands, **_victimdesigns**, **vversatile.usa** and **Project Qadar**, have agreed to the pilot, created brand accounts and uploaded products, and all three accepted the proposed pricing in writing. _victimdesigns on 2026-11-04 ([redacted message](docs/pilot-evidence/victimdesigns-pricing-2026-11-04.jpg)) and vversatile.usa on 2026-11-05 ([redacted message](docs/pilot-evidence/vversatile-pricing-2026-11-05.jpg)) each said it would look at the Basic plan ($20 as the messages put it) while using full pilot access. Project Qadar chose the higher plan on 2026-11-07: "Go ahead and put me in for the $40 advanced plan as we talked about on the phone" ([redacted message](docs/pilot-evidence/projectqadar-plan-2026-11-07.jpg)); the advanced plan is the one this site calls Pro. vversatile.usa's wording is "down to try it", a willingness to try rather than a signed commitment. That is observed participation and three written price acceptances, stronger than hypothetical survey interest. It does **not** yet prove payment, recurring usage, waste reduction or financial return; nothing is billed during the pilot, and those are the next measurements.
 
 Kenya's circular-economy work identifies textiles, apparel and fashion as a priority and emphasizes extending product life and minimizing waste ([State Department for Environment and Climate Change](https://environment.go.ke/index.php/ministry-validates-national-circular-economy-strategy-and-implementation-plan-2027-2032)). UNEP has also documented Kenyan businesses returning textile waste to use through collection and upcycling ([UNEP](https://www.unep.org/en/news-and-stories/story/kenya-textiles-get-second-life)).
 
@@ -233,7 +234,7 @@ Both rounds together cost **$3.51 of Bedrock time** as counted (with a 1.5× saf
 
 Before the benchmark, a label-coverage audit of 1,000 dataset records found **93.9%** map to Racked's categories, **62.6%** are specific enough for exact-type scoring, and **94.0%** carry usable brand annotations. These measure benchmark compatibility, not model accuracy ([report](data/evaluation-label-coverage.json)).
 
-Racked does **not** claim recognition accuracy beyond the measured benchmark above, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. Every seeded record is synthetic and classified `DEMO`. Pricing is a proposal; nothing is billed.
+Racked does **not** claim recognition accuracy beyond the measured benchmark above, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. Every seeded record is synthetic and classified `DEMO`. Pricing is a proposal; nothing is billed, and Racked takes no real payments: the only payment step is Stripe **test mode** on fictional demo products, where no money moves.
 
 ---
 
@@ -249,7 +250,7 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 - **Abuse costs the attacker, not Racked.** Rate limits on every write, and daily AI budgets per account and site-wide that fail closed.
 - **People can leave.** Deleting a piece, an outfit, a Community look, or the whole consumer account is owner-scoped and retry-safe.
 
-**Disclaimer.** The AI can be wrong. Its recognition accuracy is measured above and is high but not perfect, which is why nothing is saved until a person confirms it. The demo accounts and cohort are synthetic and labelled `DEMO`, pricing is a proposal and nothing is billed, and Racked does not claim recognition accuracy beyond the measured benchmark, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. This is a contest entry, source-available for evaluation under its [LICENSE](LICENSE), not a finished commercial service.
+**Disclaimer.** The AI can be wrong. Its recognition accuracy is measured above and is high but not perfect, which is why nothing is saved until a person confirms it. The demo accounts and cohort are synthetic and labelled `DEMO`, pricing is a proposal and nothing is billed, the only payment step is Stripe test mode on fictional products (a test card, no real money, nothing ships, no subscription), and Racked does not claim recognition accuracy beyond the measured benchmark, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. This is a contest entry, source-available for evaluation under its [LICENSE](LICENSE), not a finished commercial service.
 
 ---
 
@@ -257,9 +258,9 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite, a production build and [accessibility checks](docs/accessibility.md) (axe on the public pages and, through a fixture-only harness, the signed-in screens, plus keyboard-only passes of both demo flows) on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. `main` is protected: every change arrives by pull request, and `verify`, `accessibility` and CodeQL (`Analyze JavaScript and TypeScript`) must pass; force pushes and deletion are blocked (read back from GitHub's public API on 2026-11-01).
 
-**1064 passing tests** in 132 files (verified 2026-11-07). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**1064 passing tests** in 132 files (verified 2026-11-08). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
-Coverage over the whole suite (2026-11-07): **96.50% of lines, 87.96% of branches, 94.75% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
+Coverage over the whole suite (2026-11-08): **96.50% of lines, 88.01% of branches, 94.75% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
 
 | What is protected | Tests |
 | --- | --- |
@@ -286,7 +287,7 @@ docs/           Judge guides, architecture, privacy, AI use log, evaluation prot
 
 ## Business Model & Pricing (proposed — not currently billed)
 
-Consumers stay free, which solves cold start; brands pay, because post-purchase wear is what they cannot get elsewhere; and the Basic plan prices the wait before a product reaches `k ≥ 25`. The two brand plans ($20 and $40 a month) were set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. No tier weakens consent or the threshold. See [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing).
+Consumers stay free, which solves cold start; brands pay, because post-purchase wear is what they cannot get elsewhere; and the Basic plan prices the wait before a product reaches `k ≥ 25`. The two brand plans ($20 and $40 a month) were set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. No tier weakens consent or the threshold. Nobody is billed: fictional demo products can be tried with a Stripe **test card** (`4242 4242 4242 4242`, any future date, any CVC), which moves no money. See [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing).
 
 <!-- pricing:start (generated from lib/pricing.ts; tests/pricing.test.ts) -->
 | Tier | Price | Includes |
@@ -331,6 +332,6 @@ Nothing needs installing to try Racked: open the live app and use the demo accou
 
 ---
 
-**Last updated:** 2026-11-07 — Log with a photo: Racked suggests the pieces you are wearing from your own closet, and nothing is recorded until you confirm them; test totals and coverage rechecked
+**Last updated:** 2026-11-08 — Log with a photo: Racked suggests the pieces you are wearing from your own closet, and nothing is recorded until you confirm them; test totals and coverage re-measured
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026
