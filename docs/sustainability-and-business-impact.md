@@ -88,8 +88,8 @@ $40 × 12 = $480 per year
 $480 ÷ $25 landed cost = 19.2 units
 ```
 
-Therefore, avoiding roughly **19 excess units at a $25 landed cost** would equal one annual Pro
-subscription. This is a break-even illustration, not a forecast or a result from either pilot brand.
+Therefore, avoiding **20 excess units at a $25 landed cost** would cover one annual Pro
+subscription: 19 units come to $475, so 20 whole units are the first to reach $480. This is a break-even illustration, not a forecast or a result from either pilot brand.
 It excludes revenue, markdown recovery, implementation costs and taxes. Change either assumption and
 the answer changes.
 

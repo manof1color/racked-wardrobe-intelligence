@@ -56,7 +56,7 @@ evidence → campaign brief. Check those first; the rest only matters if a judge
 - [ ] Expected category/subtype known, so a wrong classification can be corrected calmly on camera
 - [ ] Manual-correction path rehearsed — correcting the AI **is** part of the story, not a failure
 
-## If a judge asks: Recreate This Look (roadmap — not in the demo)
+## If a judge asks: Recreate This Look (live — not in the demo)
 
 Use public post `demo-consumer-post-01` (**Synthetic Consumer Look 01**) while signed in as `demo.consumer.recreate@racked.local` (synthetic `DEMO`; password comes only from runtime `RACKED_TEST_PASSWORD`). Expected: `RTA-001` exact; owned `SSL-002` strongly substitutes for post product `SSL-001`; jewelry missing.
 
@@ -65,7 +65,7 @@ Use public post `demo-consumer-post-01` (**Synthetic Consumer Look 01**) while s
 - [ ] Expected result known: which pieces should be owned, which substituted, which missing
 - [ ] A genuinely missing piece exists, so the "you're missing" column is not empty
 
-## If a judge asks: Shop the Look (roadmap — not in the demo)
+## If a judge asks: Shop the Look (live — not in the demo)
 
 All fictional demo products carry a Racked demo-storefront URL, fictional USD price, and availability. At least 29 are available; `LTO-010` is deliberately unavailable. All remain `DEMO`. Nine committed AI-generated, unbranded product photographs cover representative apparel, footwear, and jewelry SKUs.
 
