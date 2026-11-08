@@ -9,8 +9,8 @@ export default function manifest():MetadataRoute.Manifest {
     start_url:"/consumer",
     scope:"/",
     display:"standalone",
-    background_color:"#f5f2ea",
-    theme_color:"#171914",
+    background_color:"#f7f2eb",
+    theme_color:"#08132b",
     orientation:"portrait-primary",
     categories:["lifestyle","shopping","utilities"],
     icons:[
