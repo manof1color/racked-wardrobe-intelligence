@@ -7,7 +7,8 @@ import type { Page, Route } from "@playwright/test";
 import { wardrobe as demoWardrobe, savedOutfits as demoOutfits } from "../../lib/demo-data.ts";
 import type { BrandMetrics } from "../../lib/metrics.ts";
 import type { AgentReply, BrandCommunityMetrics, BrandProductRegistration, GarmentAnalysis } from "../../lib/platform-types.ts";
-import type { DetectedLookGarment } from "../../lib/look-garment-detection.ts";
+import { parseLookGarmentDetections, type DetectedLookGarment } from "../../lib/look-garment-detection.ts";
+import { handleWearPhotoScan, type WearPhotoScanDependencies } from "../../lib/wear-photo-scan.ts";
 import type { SavedOutfit, WardrobeItem } from "../../lib/types.ts";
 import type { SavedLookCard } from "../../lib/saved-looks.ts";
 
@@ -105,6 +106,42 @@ export const savedLooks: SavedLookCard[] = [
   { kind: "gone", postId: "fixture-post-2", savedAt: "2026-10-20T12:00:00.000Z", styleWords: ["minimal", "black", "white", "top", "shoe"] },
 ];
 
+/**
+ * Log with a photo: a fake detector, answering in the model's own loose wording. Against the fixture
+ * closet it gives two likely matches (the tee and the jean), one unsure piece (the jacket) and one
+ * with nothing in the closet (the sneakers).
+ */
+export function photoDetections(): DetectedLookGarment[] {
+  return parseLookGarmentDetections({ garments: [
+    { name: "white ribbed tee", category: "Top", subtype: "T-shirt", color: "Off-white", pattern: "Ribbed", material: "Cotton", confidence: 86, bounds: { x: 0.25, y: 0.1, width: 0.5, height: 0.3 } },
+    { name: "dark wash jeans", category: "Bottoms", subtype: "Jeans", color: "Dark blue", pattern: "Solid", material: "Denim", confidence: 80, bounds: { x: 0.25, y: 0.42, width: 0.5, height: 0.4 } },
+    { name: "olive bomber jacket", category: "Outerwear", subtype: "Bomber jacket", color: "Olive green", pattern: "Solid", material: "Nylon", confidence: 74, bounds: { x: 0.05, y: 0.08, width: 0.9, height: 0.45 } },
+    { name: "white leather sneakers", category: "Footwear", subtype: "low top sneakers", wearableUnit: "pair", color: "White", material: "Leather", confidence: 82, bounds: { x: 0.3, y: 0.85, width: 0.4, height: 0.13 } },
+  ] }, { width: 1200, height: 1600 });
+}
+
+/** The real scan handler with a fixture session and closet, the fake detector, and budgets that allow. */
+export function photoScanDependencies(overrides: Partial<WearPhotoScanDependencies> = {}): WearPhotoScanDependencies {
+  return {
+    getSession: async () => ({ subject: "fixture-consumer", role: "consumer" }),
+    consumeRateLimit: () => ({ allowed: true, retryAfterSeconds: 0 }),
+    listCloset: async () => wardrobe,
+    spendAllowance: async () => ({ allowed: true }),
+    spendSiteModelCall: async () => true,
+    detect: async () => photoDetections(),
+    aiConfigured: () => true,
+    log: () => undefined,
+    ...overrides,
+  };
+}
+
+/** Answers the browser's photo upload by running lib/wear-photo-scan.ts on the bytes it actually sent. */
+export async function answerPhotoScan(route: Route, dependencies = photoScanDependencies()) {
+  const request = route.request();
+  const scanned = await handleWearPhotoScan(new Request(request.url(), { method: "POST", headers: request.headers(), body: new Uint8Array(request.postDataBuffer() ?? Buffer.alloc(0)) }), dependencies);
+  return route.fulfill({ status: scanned.status, headers: Object.fromEntries(scanned.headers), body: Buffer.from(await scanned.arrayBuffer()) });
+}
+
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
@@ -129,6 +166,7 @@ export async function mockSignedInApi(page: Page) {
       case "/api/wears": return json(route, { counts: { w1: 19, w2: 16 }, outfitWears: 1, points: { awarded: 2, rediscovered: 0, capped: false, repeat: false } });
       case "/api/consumer/location": return json(route, { homeCity: null, results: [] });
       case "/api/garments/detect": return json(route, { detections });
+      case "/api/wears/photo": return answerPhotoScan(route);
       case "/api/catalog": return json(route, { candidates: [], products: [] });
       case "/api/agents/consumer": return method === "GET" ? json(route, { turns: [], remembered: "", weatherPlace: "Fixture City" }) : json(route, { reply: consumerReply, remembered: "" });
       case "/api/agents/brand": return json(route, { reply: brandReply });

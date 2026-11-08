@@ -116,6 +116,7 @@ app/api/auth/password-reset/   Enumeration-safe request + single-use reset confi
 app/api/garments/detect/       One-photo multi-piece detection + a private bounded crop per piece
 app/api/consumer/…             Wardrobe, outfits, consent, home city — always scoped to the signed-in account
 app/api/wears/                 Confirmed wear events + saved-outfit wear totals
+app/api/wears/photo/           Log with a photo: closet suggestions from a photo; records and stores nothing
 app/api/brand/…                Brand-owned products and consent-filtered k≥25 aggregates
 app/api/agents/…               Hanger conversations; the consumer one is stored, resumable, and clearable
 app/api/community/images/      Public post-scoped image proxy; never exposes private S3 keys

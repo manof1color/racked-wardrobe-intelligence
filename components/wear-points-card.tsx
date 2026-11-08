@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import type { SavedOutfit, WardrobeItem } from "@/lib/types";
 import { DAILY_POINTS_CAP, REDISCOVERY_BONUS, REDISCOVERY_DAYS, streakLine, type streakOn } from "@/lib/wear-points";
 import { localDay } from "@/lib/wear-client";
+import { WearPhotoLog } from "./wear-photo-log";
 
 interface PointsWeek {
   points: number;
@@ -33,6 +34,7 @@ export function WearPointsCard({ items, outfits, refreshKey, onWearOutfit, onWea
   const [logging, setLogging] = useState(false);
   const [chosen, setChosen] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const panelId = useId();
 
   useEffect(() => {
@@ -63,7 +65,12 @@ export function WearPointsCard({ items, outfits, refreshKey, onWearOutfit, onWea
         </ol>}
       </>}
       <p className="points-rule">1 point per piece you wear, +{REDISCOVERY_BONUS} for one unworn in {REDISCOVERY_DAYS} days, up to {DAILY_POINTS_CAP} a day. Private to you; brands never see them.</p>
-      <button type="button" className="button button-accent" aria-expanded={logging} aria-controls={`${panelId}-log`} onClick={() => setLogging((open) => !open)}>{logging ? "Close" : "Log today's outfit"}</button>
+      <div className="points-actions">
+        <button type="button" className="button button-accent" aria-expanded={logging} aria-controls={`${panelId}-log`} onClick={() => setLogging((open) => !open)}>{logging ? "Close" : "Log today's outfit"}</button>
+        {/* The same wear, found from a photo: the person confirms every piece before it is recorded. */}
+        <button type="button" className="button button-dark" onClick={() => { setLogging(false); setPhotoOpen(true); }}>Log with a photo</button>
+      </div>
+      {photoOpen && <WearPhotoLog items={items} onRecord={onWearPieces} onClose={() => setPhotoOpen(false)} />}
       {logging && <div id={`${panelId}-log`} className="points-log">
         {outfits.length > 0 && <fieldset><legend>Wore a saved outfit?</legend>
           <ul>{outfits.slice(0, 6).map((outfit) => <li key={outfit.id}><button type="button" disabled={busy} onClick={() => run(() => onWearOutfit(outfit))}>{outfit.name}</button></li>)}</ul>
