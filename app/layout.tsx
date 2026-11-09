@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "Racked — Sell what fits their real life.",
     description: "Explainable wardrobe intelligence for consumers and emerging apparel brands.",
     type: "website",
-    images: [{ url:"/og.png", width:1536, height:1024, alt:"Racked explainable wardrobe intelligence" }],
+    images: [{ url:"/og.png", width:1200, height:630, alt:"Racked explainable wardrobe intelligence" }],
   },
   twitter: {
     card:"summary_large_image",
