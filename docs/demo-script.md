@@ -130,11 +130,10 @@ run end to end on the live site by anyone but you.
    asks for them). Pay.
 4. Racked returns to a page that says **Test payment complete**, with the product and price, and a
    **Return to Racked** button.
-   **OWNER CONFIRM:** that a full test payment completes on the live site. You reported on 2026-11-07 that
-   Stripe now works, after the fixes for its 400 errors (#232 is the latest). I have not run a payment on
-   production, because live checks stay read-only, and PROGRESS.md still lists a full test payment from the
-   deployed site as to be confirmed. The same Community route (open a priced fictional piece in a Community
-   look, then **Buy with a test card**) is also unconfirmed by hand.
+   The owner ran a full test payment on the live site from a Community look (a priced fictional piece, then
+   **Buy with a test card**), after the fixes for Stripe's 400 errors (#232 is the latest), and Stripe's test
+   payments list showed it as succeeded. This page uses the same button and route.
+   **OWNER CONFIRM:** that a payment started from this page also completes.
 5. Say: *"That is Stripe's test mode. No money moved, no order exists and nothing ships. Racked takes no real
    payments and nobody is billed during the pilot."*
 
@@ -174,7 +173,7 @@ Judges score here. Answer in two sentences, then stop.
 | The Stripe test page is slow, or the test button is missing | Skip it. Use the $0.00 demo bag on the same fictional product page, and say the test payment is optional and in test mode only. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-11-08):** 1072 tests in 133 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-11-08):** 1074 tests in 133 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 
