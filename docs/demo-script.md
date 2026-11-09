@@ -130,10 +130,10 @@ run end to end on the live site by anyone but you.
    asks for them). Pay.
 4. Racked returns to a page that says **Test payment complete**, with the product and price, and a
    **Return to Racked** button.
-   The owner ran a full test payment on the live site on 2026-11-07, after the fixes for Stripe's 400 errors
-   (#232 is the latest), and Stripe's test payments list showed it as succeeded.
-   **OWNER CONFIRM:** that the Community route (open a priced fictional piece in a Community look, then
-   **Buy with a test card**) also works, if it was not the route used.
+   The owner ran a full test payment on the live site from a Community look (a priced fictional piece, then
+   **Buy with a test card**), after the fixes for Stripe's 400 errors (#232 is the latest), and Stripe's test
+   payments list showed it as succeeded. This page uses the same button and route.
+   **OWNER CONFIRM:** that a payment started from this page also completes.
 5. Say: *"That is Stripe's test mode. No money moved, no order exists and nothing ships. Racked takes no real
    payments and nobody is billed during the pilot."*
 
