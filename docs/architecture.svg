@@ -112,5 +112,5 @@
     <text x="547" y="1018" font-size="20" fill="#171914">encrypted · 1-hour links</text>
   </g>
   <rect x="30" y="1045" width="1140" height="65" rx="14" fill="#fffdf8" stroke="#d9d4c8" stroke-width="2"/>
-  <text x="52" y="1073" font-size="20" fill="#171914"><tspan x="52">Pull request → CI: audit · lint · type check · tests · build + CodeQL</tspan><tspan x="52" dy="26">→ merge to main → Amplify builds → /api/version reports the commit</tspan></text>
+  <text x="52" y="1074" font-size="20" fill="#171914"><tspan x="52">Pull request → CI: audit · lint · type check · tests · build + CodeQL</tspan><tspan x="52" dy="26">→ merge to main → Amplify builds → /api/version reports the commit</tspan></text>
 </svg>

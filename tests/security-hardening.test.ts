@@ -241,3 +241,19 @@ test("REGRESSION: an unknown email takes as long to reject as a wrong password",
   // the same derivation work either way.
   assert.match(signIn, /const account=await findAccountByEmail\(email\);\s*const checked=await checkPassword\(password,account\);\s*if\(!account\|\|!checked\.ok\)return null;/);
 });
+
+test("the README's security section keeps its evidence and its limits, and nothing from the private report", () => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const start = readme.indexOf("## Security Testing and Hardening");
+  assert.ok(start > 0);
+  const text = readme.slice(start, readme.indexOf("## Testing and CI"));
+  assert.match(text, /github\.com\/cloudflare\/security-audit-skill/);
+  for (const merged of [211, 214, 215, 216]) assert.ok(text.includes(`pull/${merged})`), `links the fix in #${merged}`);
+  assert.match(text, /\*\*63 of 63 checks passed\*\*/);
+  const verification = readFileSync(new URL("../docs/security-verification.md", import.meta.url), "utf8");
+  assert.match(verification, /63 of 63 checks passed/, "the number the README quotes is on record");
+  assert.match(text, /This was not a hired penetration test/);
+  assert.match(text, /not the live site/);
+  assert.match(text, /Edge rate limiting and upload malware scanning are not in place/);
+  assert.doesNotMatch(text, /racked-security-audit|confirmed issues|needs-validation|\b\d+ (medium|low)\b/i, "REGRESSION guard: the audit report is confidential");
+});
