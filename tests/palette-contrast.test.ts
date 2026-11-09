@@ -5,7 +5,9 @@ import test from "node:test";
 // The brand palette (black ink, tan accent, brown text and emphasis, cream paper, sand, olive tints)
 // is defined once, in the :root block of app/globals.css. The variable names --coral*, --acid and
 // --lilac are legacy: they now hold tan, a pale tan tint and an olive tint. These checks keep the pairs people actually read inside
-// WCAG AA, and keep the manifest, icon and offline page in step with the stylesheet.
+// WCAG AA, and keep the manifest, icon and offline page in step with the stylesheet. The display
+// type (Anton, SIL Open Font License) is bundled and served from this site, so its file, its
+// licence and the content security policy that allows it are checked here too.
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const css = read("app/globals.css");
 const rootBlock = css.match(/:root\{([^}]*)\}/)?.[1] ?? "";
@@ -51,7 +53,8 @@ test("the web app manifest, app icon and offline page use the stylesheet's ink a
   assert.ok(manifest.includes(`theme_color:"${colour("ink")}"`));
   assert.ok(manifest.includes(`background_color:"${colour("paper")}"`));
   const icon = read("public/icon.svg").toLowerCase();
-  assert.ok(icon.includes(`fill="${colour("ink")}"`) && icon.includes(`fill="${colour("coral")}"`), "icon.svg uses the ink tile and the tan letter");
+  assert.ok(icon.includes(`fill="${colour("ink")}"`), "icon.svg is an ink tile");
+  assert.ok(icon.includes('aria-label="racked"') && icon.includes('stroke="#fff"') && !icon.includes("<text"), "icon.svg is the bracketed RACKED mark, drawn as paths so no font is needed");
   const offline = read("public/offline.html").toLowerCase();
   assert.ok(offline.includes(`name="theme-color" content="${colour("ink")}"`));
 });
@@ -63,4 +66,20 @@ test("the retired coral, lime, lilac and navy-blue palette values are gone from 
     const text = read(path).toLowerCase();
     for (const value of retired) assert.ok(!text.includes(value), `${path} still contains retired colour ${value}`);
   }
+});
+
+test("the display font is bundled with its licence and no serif stack is left in the stylesheet", () => {
+  const face = css.match(/@font-face\{font-family:Anton;src:url\("(\/fonts\/[^"]+\.woff2)"\)/);
+  assert.ok(face, "the Anton @font-face must point at a woff2 under /fonts/");
+  const font = readFileSync(new URL(`../public${face[1]}`, import.meta.url));
+  assert.equal(font.subarray(0, 4).toString("latin1"), "wOF2", "the font file is a real woff2");
+  assert.match(read("public/fonts/OFL-Anton.txt"), /SIL OPEN FONT LICENSE Version 1\.1/i);
+  assert.ok(!/georgia/i.test(css), "headings use --display and body copy uses --sans");
+  assert.match(css, /--display:Anton,/);
+});
+
+test("the content security policy lets the site serve its own fonts and nothing more", () => {
+  const policy = read("lib/content-security-policy.ts");
+  assert.match(policy, /"font-src 'self' data:"/);
+  assert.ok(!/fonts\.(googleapis|gstatic)\.com/.test(policy + css), "no third-party font host");
 });

@@ -1,5 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Racked">
+  <title>Racked</title>
   <rect width="512" height="512" rx="112" fill="#0e0e0c"/>
-  <path d="M121 118h172c66 0 105 35 105 91 0 44-24 72-63 84l78 101h-91l-66-91h-53v91h-82V118Zm82 66v56h82c20 0 31-10 31-28 0-19-11-28-31-28h-82Z" fill="#9d805e"/>
-  <circle cx="402" cy="113" r="25" fill="#f4ebdd"/>
+  <g fill="none" stroke="#fff" stroke-width="9" stroke-linejoin="miter" stroke-linecap="butt">
+    <path d="M84 234V190H128M384 190H428V234M84 290V334H128M384 334H428V290"/>
+    <g stroke-width="7.5" stroke-linejoin="bevel"><path transform="translate(118 242)" d="M0 40V0H16.72C23.56 0 25.84 5 25.84 11C25.84 17 23.56 22 16.72 22H0M15.2 22L25.84 40"/><path transform="translate(168 242)" d="M0 40L12.92 0L25.84 40M5.32 27H20.52"/><path transform="translate(218 242)" d="M25.08 10C21.28 3 16.72 0 12.92 0C4.56 0 0 9 0 20C0 31 4.56 40 12.92 40C16.72 40 21.28 37 25.08 30"/><path transform="translate(268 242)" d="M0 0V40M25.08 0L0 23M7.6 15L25.84 40"/><path transform="translate(318 242)" d="M25.84 0H0V40H25.84M0 20H21.28"/><path transform="translate(368 242)" d="M0 0V40H11.4C21.28 40 25.84 32 25.84 20C25.84 8 21.28 0 11.4 0H0Z"/></g>
+  </g>
 </svg>
