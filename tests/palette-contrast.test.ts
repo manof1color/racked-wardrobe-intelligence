@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-// The brand palette (black ink, tan accent, brown text and emphasis, cream paper, sand, olive tints)
-// is defined once, in the :root block of app/globals.css. The variable names --coral*, --acid and
-// --lilac are legacy: they now hold tan, a pale tan tint and an olive tint. These checks keep the pairs people actually read inside
+// The brand palette (black ink, one terracotta accent with a darker shade for text and emphasis,
+// cream paper, sand) is defined once, in the :root block of app/globals.css. The variable names
+// --coral*, --acid, --lilac and --green are legacy: the last three now hold terracotta tints. These checks keep the pairs people actually read inside
 // WCAG AA, and keep the manifest, icon and offline page in step with the stylesheet. The display
 // type (Anton, SIL Open Font License) is bundled and served from this site, so its file, its
 // licence and the content security policy that allows it are checked here too.
@@ -59,9 +59,10 @@ test("the web app manifest, app icon and offline page use the stylesheet's ink a
   assert.ok(offline.includes(`name="theme-color" content="${colour("ink")}"`));
 });
 
-test("the retired coral, lime, lilac and navy-blue palette values are gone from the stylesheet, icon and offline page", () => {
+test("the retired coral, lime, lilac, navy-blue, tan and olive palette values are gone from the stylesheet, icon and offline page", () => {
   const retired = ["#ff6846", "#c23a1f", "#d5f66d", "#cfc5ff", "#171914", "#f5f2ea", "#ece6d8", "#6848d6", "#4b3aa8",
-    "#08132b", "#0066ff", "#0052cc", "#0047b3", "#d6e4ff", "#f7f2eb", "#e4d6c5"];
+    "#08132b", "#0066ff", "#0052cc", "#0047b3", "#d6e4ff", "#f7f2eb", "#e4d6c5",
+    "#9d805e", "#b39776", "#5a412b", "#cfcdb0", "#6b6840", "#413c26"];
   for (const path of ["app/globals.css", "app/manifest.ts", "public/icon.svg", "public/offline.html"]) {
     const text = read(path).toLowerCase();
     for (const value of retired) assert.ok(!text.includes(value), `${path} still contains retired colour ${value}`);
