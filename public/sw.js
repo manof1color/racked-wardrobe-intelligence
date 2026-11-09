@@ -1,4 +1,4 @@
-const CACHE="racked-shell-v2";
+const CACHE="racked-shell-v3";
 const OFFLINE=["/offline.html","/icon-192.png","/icon-512.png"];
 
 self.addEventListener("install",(event)=>{
