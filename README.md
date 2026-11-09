@@ -15,7 +15,9 @@ People get a private wardrobe and an AI stylist that help them use more of what 
 | **Live application** | https://main.d2iv0khybuuaeh.amplifyapp.com — installable on a phone |
 | **What is deployed right now** | [`/api/version`](https://main.d2iv0khybuuaeh.amplifyapp.com/api/version) returns the exact commit Amplify built |
 | **Measured AI recognition** | **92.8% of garments placed in the right category** (272 of 293; 95% CI 89.3%–95.3%) by the live scan, on 300 independent, publicly licensed photos with answers locked before the first model call — up from 89.7% after one measured fix — [results](docs/evaluation-results-r2.md) |
-| **Stack** | Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Pro, Nova Lite) · GitHub Actions · CodeQL |
+| **Stack** | Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Pro, Nova Lite) · GitHub Actions · CodeQL · Stripe Checkout (test mode only) |
+| **Security** | Audited with Cloudflare's open-source security-audit skill, a 63-check attack harness, and CodeQL on every change: [how it was tested and what stops an attacker](#security-testing-and-hardening) |
+| **Payments** | None real. The one payment step is Stripe **test mode** on fictional products: [try it with the test card](#stripe-test-mode-no-real-money) |
 | **Built for** | CUA Busch School AI Vibe Coding Contest, Fall 2026 |
 
 <!-- pilot:start (generated from data/pilot-status.json; tests/pilot-claims.test.ts) -->
@@ -41,10 +43,10 @@ Each scoring category, what to look for, and where to check it.
 | **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **1072 tests** in 133 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **215 merged PRs** counted on 2026-11-07 before this documentation merge; build log through Phase 114 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **Code, docs & GitHub** | 15% | **1074 tests** in 133 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **224 merged PRs** counted on 2026-11-08 before this documentation merge; build log through Phase 114 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Three real apparel brands have joined the pilot and uploaded products, and one chose the $40 Pro plan in writing. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals 20 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
-| **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [SECURITY.md](SECURITY.md) |
+| **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [Security testing](#security-testing-and-hardening) · [SECURITY.md](SECURITY.md) |
 
 Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checklist.md).
 
@@ -163,6 +165,7 @@ Built, live and tested, but outside the five-minute demo:
 | **Brand enrollment** | Up to six products at once; **Fill in from photo** proposes the details and the brand supplies the style code. New brands are approved before they can enroll, up to 300 products each | [`brand-product-enrollment.tsx`](components/brand-product-enrollment.tsx) · [brand approval](docs/brand-approval.md) |
 | **Batch scanning** | Up to **6 photos** in one pass, every piece in one review list, bounded at 24 pieces | [`garment-intake.tsx`](components/garment-intake.tsx) |
 | **Wear points and daily streak** | Recording what you wear earns private points — 1 per piece a day, +3 for a piece back in rotation after 60 days, up to 15 a day — and a daily streak for every day with a recorded wear, with "Log today's outfit" on Home, or **Log with a photo**: Racked suggests the pieces from your own closet and records nothing until you confirm them. Earned identically whether or not you share with brands, never seen by a brand, and each piece reaches brand data at most once a day | [`wear-points.ts`](lib/wear-points.ts) · [`wear-photo-match.ts`](lib/wear-photo-match.ts) · [rules](docs/brand-linking-incentives.md#wear-points-owner-decision-2026-10-29) |
+| **Stripe test checkout** | A fictional product can be paid for on Stripe's hosted test page with a test card. No money moves, no order is created, and a real brand's product is refused | [`test-checkout.ts`](lib/test-checkout.ts) · [how to try it](#stripe-test-mode-no-real-money) |
 | **Outfits, wear and Looks** | Saved outfits with private flat-lay boards, one-tap repeat wear, and a swipe-through builder that uses the same ranker as Hanger with no AI call | [`looks-builder.tsx`](components/looks-builder.tsx) |
 
 ### Next Steps
@@ -242,6 +245,17 @@ Before the benchmark, a label-coverage audit of 1,000 dataset records found **93
 
 Racked does **not** claim recognition accuracy beyond the measured benchmark above, sales lift, purchase intent, demographic inference, virtual try-on, or production-scale validation. Every seeded record is synthetic and classified `DEMO`. Pricing is a proposal; nothing is billed, and Racked takes no real payments: the only payment step is Stripe **test mode** on fictional demo products, where no money moves.
 
+### What we chose not to build, and why
+
+| Not built | Why |
+| --- | --- |
+| **Real payments or billing** | Three real brands use the live app, and taking their money is not the goal during the pilot. The [checkout accepts only Stripe test keys](#stripe-test-mode-no-real-money) |
+| **Any brand view below 25 owners, at any price** | No tier weakens consent or the threshold. A paid exception would break the promise the product is built on |
+| **Virtual try-on, body-fit prediction or demographic inference** | Each would need the AI to infer body shape or personal traits, which it is [never allowed to do](#how-ai-is-used). Looks are flat-lay compositions |
+| **A custom-trained model** | Racked uses Amazon Nova as supplied, writes its domain knowledge down and tests it, and measures accuracy on locked photos |
+
+Edge rate limiting, upload malware scanning and automated brand approval are open items, not decisions; [SECURITY.md](SECURITY.md) lists them.
+
 ---
 
 ## Privacy and Security
@@ -260,11 +274,45 @@ The full list, with what is still open, is in [SECURITY.md](SECURITY.md) and [do
 
 ---
 
+## Security Testing and Hardening
+
+Racked holds photos of what people own, and real brands use it, so protecting that data got as much work as any feature. I attacked and reviewed the app in several independent ways, and each one changed the code.
+
+**How it was tested**
+
+| Method | What it did | What came of it |
+| --- | --- | --- |
+| **Code audit** with Cloudflare's open-source [security-audit skill](https://github.com/cloudflare/security-audit-skill) (2026-11-02) | A multi-phase review of the whole codebase, with each finding verified independently | Fixes merged in [#211](https://github.com/manof1color/racked-wardrobe-intelligence/pull/211), [#214](https://github.com/manof1color/racked-wardrobe-intelligence/pull/214), [#215](https://github.com/manof1color/racked-wardrobe-intelligence/pull/215) and [#216](https://github.com/manof1color/racked-wardrobe-intelligence/pull/216): demo protections, sign-in limits shared across servers, brand registry and Community visibility, and guards on Community writes and analytics releases. The report stays private because this repository is public |
+| **Attack harness** ([`scripts/security-harness/`](scripts/security-harness)) | Drives the real routes of a production build with synthetic accounts: password guessing, forged addresses, one account reaching for another's data, privileged fields, cohorts one owner short of release | **63 of 63 checks passed**, and the leak check passed (2026-10-27) |
+| **Live probes** after a deploy, read-only and signed out | Cross-site writes, forged `X-Forwarded-Host`, oversized bodies, and requests for `/.env` and `/.git` | 403, 403, 413 and 404. The public scripts hold no credentials and no source maps |
+| **AI attack tests** ([`ai-privacy-boundaries.test.ts`](tests/ai-privacy-boundaries.test.ts)) | Injected tool calls (`delete_account`, `set_role`), an instruction hidden in a garment name, tool arguments naming another account | Each one changes nothing |
+| **CodeQL, dependency audit and Dependabot** | CodeQL on every pull request and weekly, a production dependency audit on every change, Dependabot weekly; CodeQL and the audit must pass before anything reaches `main` | Reviewing one CodeQL alert properly found password hashes at an eighth of OWASP's minimum cost. They were raised to it |
+| **Secret scan** (October 2026) | Every line added in every commit on every branch, plus the built browser code | No credential was found, and no `.env` file was ever committed |
+| **Three hardening passes** (2026-10-21 to 2026-10-26) | Looked for real gaps instead of new features | Among what they closed: no browser security headers, rate limits that did not hold across servers, and request bodies that were never checked |
+
+**What an attacker runs into**
+
+| Attack | What stops it |
+| --- | --- |
+| Injected scripts | An enforced Content Security Policy with a fresh nonce on every page. An injected script or event handler does not run |
+| Forged cross-site requests | Every write must carry an allowlisted Origin. A request's own Host or `X-Forwarded-Host` earns no trust |
+| Password guessing | An email is paused after eight wrong passwords in fifteen minutes, on a counter shared by every server. Hashes are scrypt, and brands can turn on two-step sign-in |
+| Reaching another account's data | Identity comes only from the session, every referenced item is checked in that account's own partition, and fields naming an owner or role are refused |
+| Singling out one person through brand data | Consent, `k ≥ 25`, any figure about fewer than five owners withheld, and six products a day per brand |
+| Prompt injection against Hanger | Wardrobe search reaches only the signed-in account, and the outfit builder is the only way an outfit reaches the screen |
+| Bots, and running up the AI bill | A signed bot trap, a site-wide sign-up cap, and daily AI budgets that fail closed |
+| Harvesting errors and logs | Failures answer with a generic message and a short reference. Logs hold no email, IP address or request body |
+| Hostile uploads | Photos are type-allowlisted, size-limited, capped at 64 megapixels and stored as fresh encodings, in private encrypted storage |
+
+**What this does not prove.** This was not a hired penetration test. I ran these reviews myself with AI coding tools. The authorization checks ran against a local production build, not the live site, because that would need real sign-ins. Edge rate limiting and upload malware scanning are not in place, and no noise is added to released totals. The full list is under [Still open in SECURITY.md](SECURITY.md#still-open), and how to repeat each check is in [docs/security-verification.md](docs/security-verification.md).
+
+---
+
 ## Testing and CI
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite, a production build and [accessibility checks](docs/accessibility.md) (axe on the public pages and, through a fixture-only harness, the signed-in screens, plus keyboard-only passes of both demo flows) on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. `main` is protected: every change arrives by pull request, and `verify`, `accessibility` and CodeQL (`Analyze JavaScript and TypeScript`) must pass; force pushes and deletion are blocked (read back from GitHub's public API on 2026-11-01).
 
-**1072 passing tests** in 133 files (verified 2026-11-08). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**1074 passing tests** in 133 files (verified 2026-11-08). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
 Coverage over the whole suite (2026-11-08): **96.50% of lines, 88.01% of branches, 94.75% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
 
@@ -282,7 +330,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: wardrobe, photo intake, Looks, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry
 lib/server/     All DynamoDB and S3 access, with every ownership check
-tests/          133 test files, 1072 tests (node --test)
+tests/          133 test files, 1074 tests (node --test)
 scripts/        Judge and demo seeds, verification, evaluation, owner-run tools (dry run by default)
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -293,7 +341,7 @@ docs/           Judge guides, architecture, privacy, AI use log, evaluation prot
 
 ## Business Model & Pricing (proposed — not currently billed)
 
-Consumers stay free, which solves cold start; brands pay, because post-purchase wear is what they cannot get elsewhere; and the Basic plan prices the wait before a product reaches `k ≥ 25`. The two brand plans ($20 and $40 a month) were set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. No tier weakens consent or the threshold. Nobody is billed: fictional demo products can be tried with a Stripe **test card** (`4242 4242 4242 4242`, any future date, any CVC), which moves no money. See [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing).
+Consumers stay free, which solves cold start; brands pay, because post-purchase wear is what they cannot get elsewhere; and the Basic plan prices the wait before a product reaches `k ≥ 25`. The two brand plans ($20 and $40 a month) were set after talking with the pilot brands, in line with the apps small brands already pay for on platforms like Shopify. No tier weakens consent or the threshold. Nobody is billed: fictional demo products can be tried with a [Stripe test card](#stripe-test-mode-no-real-money), which moves no money. See [/pricing](https://main.d2iv0khybuuaeh.amplifyapp.com/pricing).
 
 <!-- pricing:start (generated from lib/pricing.ts; tests/pricing.test.ts) -->
 | Tier | Price | Includes |
@@ -303,6 +351,26 @@ Consumers stay free, which solves cold start; brands pay, because post-purchase 
 | Brand Basic (below k≥25) | $20/mo | Product enrollment and verification, public Community activity for your products, Brand Looks, and threshold status (released or not yet). No private wear data until a product reaches k ≥ 25. |
 | Brand Pro (post-threshold) | $40/mo | Basic + the full aggregate dashboard for products past k ≥ 25, CSV export, multi-product comparison and Hanger strategy artifacts |
 <!-- pricing:end -->
+
+### Stripe test mode: no real money
+
+Racked takes no real payments. The one payment step is optional, sits outside the five-minute demo, and runs on Stripe's **test mode** with fictional products.
+
+**Try it:**
+
+1. Open a [fictional product](https://main.d2iv0khybuuaeh.amplifyapp.com/demo-store/racked-test-atelier/RTA-001) and press **Pay with a test card**. A priced fictional piece in a [Community](https://main.d2iv0khybuuaeh.amplifyapp.com/community) look offers the same step as **Buy with a test card**.
+2. On Stripe's hosted page, enter card `4242 4242 4242 4242`, **any future expiry date** and **any CVC**, plus any name or postcode if Stripe asks. This is Stripe's public test number. Do not enter a real card.
+3. Stripe returns you to Racked's **Test payment complete** page: no money moved, no order exists, and nothing ships.
+
+**Why it cannot charge anyone** ([`lib/test-checkout.ts`](lib/test-checkout.ts), each check fails closed):
+
+- **Test keys only.** Only a Stripe `sk_test_` or `rk_test_` key is accepted. A live key leaves the feature switched off.
+- **Test answers only.** A reply from Stripe that does not confirm test mode, or that points anywhere but Stripe's checkout, is refused.
+- **Fictional products only.** A real or pilot brand's product is refused before Stripe is called, so its name never leaves Racked.
+- **The server sets the price.** The request takes no body, so the browser cannot name an amount.
+- **Card details never reach Racked.** They are typed on Stripe's page. The email is a fixed placeholder, Racked stores nothing from the checkout, and there is no order or subscription.
+
+The owner ran a full test payment on the live site on 2026-11-07, and Stripe's test payments list showed it as succeeded.
 
 ---
 

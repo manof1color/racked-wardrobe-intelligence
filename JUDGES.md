@@ -51,8 +51,10 @@ work, the [judge accounts guide](docs/judge-accounts.md) explains how they are s
 | How do the parts fit together? | [Architecture diagram](README.md#architecture-overview) |
 | Which steps call an AI model, and which are plain code? | [What calls a model](README.md#what-calls-a-model-and-what-does-not) |
 | How is privacy enforced? | [Privacy and security](README.md#privacy-and-security) · [SECURITY.md](SECURITY.md) |
+| How was it attacked and hardened? | [Security testing and hardening](README.md#security-testing-and-hardening) |
 | How accurate is the AI? | **92.8% garment category** on 300 locked, independent photos, up from 89.7% after one measured fix — [results](docs/evaluation-results-r2.md) |
 | What is measured, and what is not claimed? | [Evidence](README.md#evidence-and-what-is-not-claimed) |
+| Is any real money involved? | No. Stripe **test mode** on fictional products, card `4242 4242 4242 4242`, any future date, any CVC: [how to try it](README.md#stripe-test-mode-no-real-money) |
 | Do the tests pass? | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](README.md#testing-and-ci) |
 | How was it built, and with which AI tools? | [PROGRESS.md](PROGRESS.md) · [AI use log](docs/ai-use-log.md) |
 
