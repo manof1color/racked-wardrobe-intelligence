@@ -163,7 +163,7 @@ test("the conversation is owned by the account: stored, cleared, and deleted wit
   // Account deletion walks every record in the partition, so the conversation goes with it.
   assert.match(store, /KeyConditionExpression:"PK = :pk",ExpressionAttributeValues:\{":pk":`USER#\$\{ownerId\}`\}/);
 
-  const route = read("app/api/agents/consumer/route.ts");
+  const route = read("app/api/agents/consumer/route.ts") + read("lib/hanger-consumer-turn.ts");
   assert.match(route, /loadHangerConversation\((?:subject|session!\.subject)\)/);
   assert.match(route, /saveHangerConversation\(subject/);
   assert.match(route, /export async function DELETE/, "a person can clear what Hanger remembers");

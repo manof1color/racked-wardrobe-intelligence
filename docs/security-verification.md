@@ -126,6 +126,15 @@ HARNESS_SESSION_SECRET=... node scripts/security-harness/integration.mjs
 node scripts/security-harness/leak-check.mjs <run id printed by step 3>
 ```
 
+The same local stack also replays Hanger requests through the real consumer route, with the model
+scripted instead of unreachable: `scripts/security-harness/bedrock-mock.mjs` is a local HTTP/2
+stand-in for Bedrock's Converse API (start the build with
+`AWS_ENDPOINT_URL_BEDROCK_RUNTIME=http://127.0.0.1:4571` and a larger `AI_DAILY_CEILING`), and
+`node --experimental-strip-types scripts/security-harness/hanger-replay.mjs` signs up one synthetic
+consumer per synthetic closet and checks the outfit card, the Save action and the stored
+conversation for each replayed request. It is described in
+[hanger-evaluation-diagnosis.md](hanger-evaluation-diagnosis.md) and costs nothing.
+
 dynalite does not implement `TransactWriteItems`, so the harness proxy emulates it all-or-nothing:
 it snapshots each target item, applies each conditional write in order, and restores every snapshot
 on the first failed condition, answering with DynamoDB's `TransactionCanceledException`. Production

@@ -68,7 +68,7 @@ test("REGRESSION: a grounded reply varies with the request and the selection", a
 });
 
 test("a reply the model did not write says so, in the response and on screen", () => {
-  assert.match(read("app/api/agents/consumer/route.ts"), /The stylist model did not answer this turn, so this reply is composed from your wardrobe alone/);
+  assert.match(read("lib/hanger-consumer-turn.ts"), /The stylist model did not answer this turn, so this reply is composed from your wardrobe alone/);
   assert.match(read("components/agent-panels.tsx"), /reply\.provider === "grounded-wardrobe"\s+\? <p className="hanger-degraded" role="status">Written from your wardrobe without the stylist model — \{reply\.degradedReason \?\? "it did not answer this turn"\}/);
   assert.match(read("app/globals.css"), /\.hanger-degraded\{/);
 });

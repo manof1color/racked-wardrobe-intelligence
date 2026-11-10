@@ -111,13 +111,21 @@ test("every model-backed route spends its allowance first, and meters each model
   assert.match(describe, /\{ detect: metered\(siteModelCallFor\(session\), detectGarmentsInLook\) \}/);
   assert.match(describe, /if \(recognition\.aiPaused\) return/, "a paused budget is not described as an unreadable photo");
   const consumer = read("app/api/agents/consumer/route.ts");
-  assert.ok(consumer.indexOf('spendAiAllowance("hanger", subject)') < consumer.indexOf("await runHangerAgent("));
+  // The turn itself is lib/hanger-consumer-turn.ts, shared with the blind evaluation. The route
+  // spends the allowance and meters both model callers before handing them over, and the turn
+  // imports no model runner of its own, so it cannot reach a model except through a meter.
+  const turn = read("lib/hanger-consumer-turn.ts");
+  assert.ok(consumer.indexOf('spendAiAllowance("hanger", subject)') < consumer.indexOf("await runConsumerHangerTurn("));
   assert.match(consumer, /const spendModelCall = siteModelCallFor\(session!\);/);
-  assert.match(consumer, /\}, metered\(spendModelCall, bedrockAgentConverse\)\)\.catch\(\(\) => null\);/, "every agent round is metered");
-  assert.match(consumer, /\}, meteredOrNull\(spendModelCall, bedrockHangerConverse\)\);/, "and the plain reply");
-  assert.match(consumer, /const agentAttempted = isAgentEnabled\(\) && !aiPaused;/, "an unreadable allowance runs no agent");
-  assert.match(consumer, /allowModel: !aiPaused && /, "and no plain model call either");
-  assert.match(consumer, /aiPaused \? \{ degradedReason: AI_PAUSED_REASON \}/, "and the reply says why");
+  assert.match(consumer, /agentCall: metered\(spendModelCall, bedrockAgentConverse\),/, "every agent round is metered");
+  assert.match(consumer, /plainCall: meteredOrNull\(spendModelCall, bedrockHangerConverse\),/, "and the plain reply");
+  assert.match(consumer, /agentEnabled: isAgentEnabled\(\), aiPaused,/);
+  assert.doesNotMatch(turn, /bedrockAgentConverse|bedrockHangerConverse|BedrockRuntimeClient/, "the shared turn is handed its model callers; it never imports one");
+  assert.match(turn, /\}, input\.agentCall\)\.catch\(\(\) => null\);/);
+  assert.match(turn, /\}, input\.plainCall\);/);
+  assert.match(turn, /const agentAttempted = input\.agentEnabled && !aiPaused;/, "an unreadable allowance runs no agent");
+  assert.match(turn, /allowModel: !aiPaused && /, "and no plain model call either");
+  assert.match(turn, /aiPaused \? \{ degradedReason: AI_PAUSED_REASON \}/, "and the reply says why");
   const brand = read("app/api/agents/brand/route.ts");
   assert.match(brand, /metrics\.suppressed \? \{ allowed: true as const \} : await spendAiAllowance\("brand-hanger", spender\)/, "below the privacy threshold no model is called, so nothing is spent");
   assert.match(brand, /allowance\.allowed \? meteredOrNull\(siteModelCallFor\(session\), bedrockHangerConverse\) : async \(\) => null\)/, "a refused budget answers from released aggregates alone");

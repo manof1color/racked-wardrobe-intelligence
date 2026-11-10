@@ -11,7 +11,22 @@
  */
 import type { AgentChatTurn } from "./platform-types.ts";
 import type { WardrobeItem } from "./types.ts";
+import { aestheticByKey, briefByKey } from "./occasion-knowledge.ts";
 import { OUTFIT_OCCASIONS, OUTFIT_WEATHERS, STYLE_VOCABULARY, type OutfitIntent } from "./outfit-ranking.ts";
+
+/**
+ * The finer reading of an occasion and a named look survive a follow-up as keys into the curated
+ * knowledge, never as words the person wrote. An unknown key is dropped on the way in and out.
+ */
+function controlledReading(record: { brief?: unknown; briefShift?: unknown; aesthetic?: unknown } | null | undefined) {
+  const brief = briefByKey(record?.brief);
+  const aesthetic = aestheticByKey(record?.aesthetic);
+  const shift = Number(record?.briefShift);
+  return {
+    ...(brief ? { brief: brief.key, ...(shift === 0.5 || shift === -0.5 ? { briefShift: shift } : {}) } : {}),
+    ...(aesthetic ? { aesthetic: aesthetic.key } : {}),
+  };
+}
 
 /** Turns kept on the record. Older ones fall away; what was learned from them does not. */
 export const MAX_STORED_TURNS = 40;
@@ -129,6 +144,7 @@ export function readHangerConversation(value: unknown): HangerConversationState 
       styleHints: activeStyles,
       styleSource: activeStyleSource,
       alternativeRequested: false,
+      ...controlledReading(activeIntentRecord),
     },
   } : null;
   const pendingRecord = record.pendingRequest && typeof record.pendingRequest === "object" ? record.pendingRequest as Record<string, unknown> : null;
@@ -176,6 +192,7 @@ export function rememberActiveOutfit(state: HangerConversationState, itemIds: It
         styleHints: STYLE_VOCABULARY.filter((style) => intent.styleHints.includes(style)).slice(0, 8),
         styleSource: intent.styleHints.length && (intent.styleSource === "request" || intent.styleSource === "inspiration") ? intent.styleSource : "none",
         alternativeRequested: false,
+        ...controlledReading(intent),
       },
     } : null,
   };

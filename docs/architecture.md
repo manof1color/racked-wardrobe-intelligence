@@ -125,7 +125,9 @@ app/api/products/similar/      Rate-limited registry-only product suggestions
 app/api/version/               The commit Amplify built, for deploy verification
 lib/server/production-store.ts Every DynamoDB/S3 operation, ownership checks, enumeration budget
 lib/hanger-agent.ts            Hanger's tool-using agent: wardrobe search, outfit builder, weather, trends
-lib/garment-knowledge.ts       Stylist knowledge: formality ladder per garment type, occasion bands
+lib/garment-knowledge.ts       Stylist knowledge: formality ladder per garment type, occasion bands, weather by garment type
+lib/occasion-knowledge.ts      Stylist knowledge: dress codes, activities and named looks a request can ask for
+lib/hanger-consumer-turn.ts    One Consumer Hanger turn (agent, grounded fallback, card, stored conversation); shared by the route and the blind evaluation
 lib/outfit-ranking.ts          Deterministic, constrained outfit scoring with evidence
 lib/hanger-turn.ts             Fallback turn modes and active-outfit follow-up planning
 lib/hanger-conversation.ts     Hanger prompts, model selection, history bounds, brand output privacy review

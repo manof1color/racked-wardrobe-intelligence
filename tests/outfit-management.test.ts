@@ -8,7 +8,7 @@ const store=read("lib/server/production-store.ts");
 const dashboard=read("components/consumer-dashboard.tsx");
 const dock=read("components/hanger-dock.tsx");
 const agent=read("components/agent-panels.tsx");
-const consumerAgentRoute=read("app/api/agents/consumer/route.ts");
+const consumerAgentRoute=read("app/api/agents/consumer/route.ts")+read("lib/hanger-consumer-turn.ts");
 
 test("saved outfit deletion is scoped to the authenticated consumer",()=>{assert.match(route,/session\.role\s*!==\s*"consumer"/);assert.match(route,/deleteOutfit\(session\.subject,outfitId\)/);assert.doesNotMatch(route,/body\?\.(ownerId|accountId|subject)/);});
 

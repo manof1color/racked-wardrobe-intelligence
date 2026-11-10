@@ -1,0 +1,360 @@
+{
+  "id": "closet-e",
+  "name": "Student wardrobe, thrifted and casual",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation, holdout set 1. No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "e-01",
+      "name": "Faded band tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "black",
+      "pattern": "graphic print",
+      "material": "cotton",
+      "style": [
+        "vintage",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 22,
+      "lastWornDays": 3
+    },
+    {
+      "id": "e-02",
+      "name": "White ribbed tank",
+      "category": "top",
+      "subtype": "tank-top",
+      "color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "summer",
+      "wearCount": 12,
+      "lastWornDays": 20
+    },
+    {
+      "id": "e-03",
+      "name": "Striped long-sleeve tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "navy",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "classic"
+      ],
+      "season": "spring",
+      "wearCount": 15,
+      "lastWornDays": 6
+    },
+    {
+      "id": "e-04",
+      "name": "Oversized grey hoodie",
+      "category": "top",
+      "subtype": "hoodie",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "fleece",
+      "style": [
+        "comfortable",
+        "casual"
+      ],
+      "season": "fall",
+      "wearCount": 30,
+      "lastWornDays": 1
+    },
+    {
+      "id": "e-05",
+      "name": "Thrifted corduroy shirt",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "brown",
+      "pattern": "solid",
+      "material": "corduroy",
+      "style": [
+        "vintage",
+        "relaxed"
+      ],
+      "season": "fall",
+      "wearCount": 7,
+      "lastWornDays": 18
+    },
+    {
+      "id": "e-06",
+      "name": "Black turtleneck",
+      "category": "top",
+      "subtype": "sweater",
+      "color": "black",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "sleek",
+        "minimal"
+      ],
+      "season": "winter",
+      "wearCount": 9,
+      "lastWornDays": 25
+    },
+    {
+      "id": "e-07",
+      "name": "Pale pink blouse",
+      "category": "top",
+      "subtype": "blouse",
+      "color": "pink",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": [
+        "elegant",
+        "classic"
+      ],
+      "season": "spring",
+      "wearCount": 3,
+      "lastWornDays": 80
+    },
+    {
+      "id": "e-08",
+      "name": "Baggy blue jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "relaxed"
+      ],
+      "season": "all-season",
+      "wearCount": 28,
+      "lastWornDays": 2
+    },
+    {
+      "id": "e-09",
+      "name": "Black skinny jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "black",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 19,
+      "lastWornDays": 5
+    },
+    {
+      "id": "e-10",
+      "name": "Plaid mini skirt",
+      "category": "bottom",
+      "subtype": "skirt",
+      "color": "red",
+      "pattern": "plaid",
+      "material": "wool blend",
+      "style": [
+        "vintage",
+        "statement"
+      ],
+      "season": "fall",
+      "wearCount": 6,
+      "lastWornDays": 30
+    },
+    {
+      "id": "e-11",
+      "name": "Grey sweat shorts",
+      "category": "bottom",
+      "subtype": "shorts",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "comfortable",
+        "sporty"
+      ],
+      "season": "summer",
+      "wearCount": 14,
+      "lastWornDays": 40
+    },
+    {
+      "id": "e-12",
+      "name": "Black tailored trousers",
+      "category": "bottom",
+      "subtype": "dress-pants",
+      "color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 4,
+      "lastWornDays": 60
+    },
+    {
+      "id": "e-13",
+      "name": "Black slip dress",
+      "category": "dress",
+      "subtype": "midi-dress",
+      "color": "black",
+      "pattern": "solid",
+      "material": "satin",
+      "style": [
+        "sleek",
+        "elegant"
+      ],
+      "season": "all-season",
+      "wearCount": 5,
+      "lastWornDays": 45
+    },
+    {
+      "id": "e-14",
+      "name": "Thrifted leather jacket",
+      "category": "outerwear",
+      "subtype": "leather-jacket",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "vintage",
+        "statement"
+      ],
+      "season": "fall",
+      "wearCount": 16,
+      "lastWornDays": 7
+    },
+    {
+      "id": "e-15",
+      "name": "Green parka",
+      "category": "outerwear",
+      "subtype": "puffer-jacket",
+      "color": "green",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "utility",
+        "casual"
+      ],
+      "season": "winter",
+      "wearCount": 20,
+      "lastWornDays": 4
+    },
+    {
+      "id": "e-16",
+      "name": "Pale wash denim jacket",
+      "category": "outerwear",
+      "subtype": "denim-jacket",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "vintage"
+      ],
+      "season": "spring",
+      "wearCount": 11,
+      "lastWornDays": 22
+    },
+    {
+      "id": "e-17",
+      "name": "Beat-up canvas sneakers",
+      "category": "shoe",
+      "subtype": "low-top-sneakers",
+      "color": "white",
+      "pattern": "solid",
+      "material": "canvas",
+      "style": [
+        "casual",
+        "vintage"
+      ],
+      "season": "all-season",
+      "wearCount": 35,
+      "lastWornDays": 1
+    },
+    {
+      "id": "e-18",
+      "name": "Black combat boots",
+      "category": "shoe",
+      "subtype": "boots",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "statement",
+        "utility"
+      ],
+      "season": "fall",
+      "wearCount": 18,
+      "lastWornDays": 5
+    },
+    {
+      "id": "e-19",
+      "name": "Black ballet flats",
+      "category": "shoe",
+      "subtype": "flats",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "classic",
+        "minimal"
+      ],
+      "season": "spring",
+      "wearCount": 4,
+      "lastWornDays": 70
+    },
+    {
+      "id": "e-20",
+      "name": "Blue rubber sandals",
+      "category": "shoe",
+      "subtype": "sandals",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "rubber",
+      "style": [
+        "casual",
+        "comfortable"
+      ],
+      "season": "summer",
+      "wearCount": 9,
+      "lastWornDays": 50
+    },
+    {
+      "id": "e-21",
+      "name": "Canvas tote bag",
+      "category": "bag",
+      "subtype": "tote",
+      "color": "natural",
+      "pattern": "solid",
+      "material": "canvas",
+      "style": [
+        "casual",
+        "utility"
+      ],
+      "season": "all-season",
+      "wearCount": 26,
+      "lastWornDays": 1
+    },
+    {
+      "id": "e-22",
+      "name": "Black knit beanie",
+      "category": "accessory",
+      "subtype": "beanie",
+      "color": "black",
+      "pattern": "solid",
+      "material": "acrylic knit",
+      "style": [
+        "casual",
+        "comfortable"
+      ],
+      "season": "winter",
+      "wearCount": 17,
+      "lastWornDays": 6
+    }
+  ]
+}
