@@ -6,6 +6,7 @@
  * only against the latest owned outfit saved in the account's Hanger state.
  */
 import { garmentFormality, weatherFit } from "./garment-knowledge.ts";
+import { briefByKey } from "./occasion-knowledge.ts";
 import type { HangerActiveOutfit, HangerPendingRequest } from "./hanger-memory.ts";
 import {
   MAX_OUTFIT_PIECES,
@@ -111,10 +112,10 @@ export function replyAsksBack(reply: string) {
 }
 
 export const CATEGORY_WORDS: Record<string, string[]> = {
-  top: ["top", "tops", "shirt", "shirts", "tee", "tees", "hoodie", "hoodies", "sweater", "sweaters", "blouse", "blouses"],
-  bottom: ["bottom", "bottoms", "pants", "trousers", "jeans", "shorts", "skirt", "skirts", "leggings"],
-  shoe: ["shoe", "shoes", "sneaker", "sneakers", "boot", "boots", "loafer", "loafers", "heels", "footwear"],
-  outerwear: ["outerwear", "jacket", "jackets", "coat", "coats", "blazer", "blazers", "layer", "layers"],
+  top: ["top", "tops", "shirt", "shirts", "tee", "tees", "t-shirt", "hoodie", "hoodies", "sweater", "sweaters", "blouse", "blouses", "pullover", "jumper", "sweatshirt", "cardigan", "polo", "turtleneck", "tank"],
+  bottom: ["bottom", "bottoms", "pants", "trousers", "jeans", "shorts", "skirt", "skirts", "leggings", "chinos", "joggers", "sweatpants", "slacks"],
+  shoe: ["shoe", "shoes", "sneaker", "sneakers", "boot", "boots", "loafer", "loafers", "heels", "footwear", "trainers", "sandals", "flats", "oxfords", "pumps"],
+  outerwear: ["outerwear", "jacket", "jackets", "coat", "coats", "blazer", "blazers", "layer", "layers", "parka", "puffer", "trench", "raincoat", "windbreaker"],
   dress: ["dress", "dresses", "gown", "gowns", "jumpsuit", "jumpsuits", "romper", "rompers"],
   bag: ["bag", "bags", "purse", "purses", "tote", "totes", "backpack", "backpacks"],
   jewelry: ["jewelry", "jewellery", "necklace", "necklaces", "ring", "rings", "bracelet", "bracelets", "earrings", "watch", "watches"],
@@ -192,7 +193,10 @@ function ownedActiveItems(wardrobe: WardrobeItem[], active: HangerActiveOutfit |
   return items.every((item): item is WardrobeItem => Boolean(item)) ? items : [];
 }
 
-function categoryInstructions(message: string) {
+/** Words too general to point at one piece: colours, and what every piece is. */
+const NOT_A_PIECE_WORD = new Set(["black", "white", "blue", "brown", "grey", "gray", "green", "navy", "beige", "cream", "light", "dark", "with", "that", "this", "more", "less", "something", "piece", "outfit", "look", "long", "short", "sleeve", "leather", "cotton", "wool", "linen"]);
+
+function categoryInstructions(message: string, activeItems: WardrobeItem[] = []) {
   // Keep punctuation until each garment cue has been resolved. Normalizing commas away
   // would let "keep" in one clause override "change" in the next.
   const request = message.toLocaleLowerCase();
@@ -209,6 +213,21 @@ function categoryInstructions(message: string) {
       if (CHANGE_CUE.test(clause)) changed.add(category);
       if (OMIT_CUE.test(clause) && (word === category || word === `${category}s` || word === "footwear" || word === "outerwear")) omitted.add(category);
       break;
+    }
+  }
+  // People name what they are wearing by its own name: "change the pullover" for a Grey fleece
+  // pullover, "swap the parka". A word from a piece on screen points at that piece's slot.
+  for (const item of activeItems) {
+    const category = clean(item.category);
+    for (const word of clean(item.name).split(" ").filter((part) => part.length >= 4 && !NOT_A_PIECE_WORD.has(part))) {
+      const match = new RegExp(`\\b${word}\\b`).exec(request);
+      if (!match) continue;
+      const before = request.slice(Math.max(0, match.index - 55), match.index);
+      const clause = before.split(/\bbut\b|\bwhile\b|\band\b|,|;/).at(-1) ?? before;
+      // Only "the pullover", never "my Grey fleece pullover" as the thing to swap *to*.
+      if (/\b(?:for|to|with|into)\s+(?:the\s+|my\s+|a\s+)?$/.test(clause)) continue;
+      if (KEEP_CUE.test(clause)) kept.add(category);
+      else if (CHANGE_CUE.test(clause)) changed.add(category);
     }
   }
   return { kept, changed, omitted };
@@ -235,6 +254,13 @@ function mergeIntent(previous: OutfitIntent | null, current: OutfitIntent, inher
   };
 }
 
+function namesAnOccasion(message: string, intent: OutfitIntent) {
+  const brief = briefByKey(intent.brief);
+  if (!brief || brief.tier > 2) return false;
+  if (/\?/.test(message) || /^\s*(?:which|what|how|why|should|can|could|do|does|is|are|will|would|i (?:like|love|hate|think|prefer))\b/i.test(message)) return false;
+  return message.trim().split(/\s+/).length <= 18;
+}
+
 export function planHangerTurn(input: {
   wardrobe: WardrobeItem[];
   message: string;
@@ -248,7 +274,7 @@ export function planHangerTurn(input: {
   const hasActive = activeItemIds.length > 0;
   const requested = explicitlyRequestedWardrobeItems(input.wardrobe, input.message);
   const explicitlyExcluded = explicitlyExcludedWardrobeItems(input.wardrobe, input.message);
-  const { kept, changed, omitted } = categoryInstructions(input.message);
+  const { kept, changed, omitted } = categoryInstructions(input.message, activeItems);
   const changeEverything = CHANGE_EVERYTHING.test(input.message);
   const creationVerbAt = input.message.search(/\b(?:build|create|make|style|suggest|give|show)\b/i);
   const refersToActive = CURRENT_LOOK_REFERENCE.test(creationRequested && creationVerbAt >= 0 ? input.message.slice(creationVerbAt) : input.message);
@@ -270,6 +296,11 @@ export function planHangerTurn(input: {
   else if (creationRequested && !KEEP_CUE.test(input.message) && !refersToActive) mode = "create";
   else if (hasActive && (ADD_TO_LOOK.test(input.message) || (refersToActive && (creationRequested || REVISION_CUE.test(input.message))) || REVISION_CUE.test(input.message) || requested.length > 0 || explicitlyExcluded.length > 0)) mode = "revise";
   else if (creationRequested || currentIntent.mode === "rotation" || requested.length > 0) mode = "create";
+  // "Beach cookout this afternoon." asks for an outfit without the words "what should I wear": said
+  // to a stylist, naming where you are going is the request. Only a specific event, activity or
+  // dress code counts, and never a question, which is asking for an opinion.
+  // An answer to a question Hanger asked ("for a wedding") finishes that request instead, below.
+  else if (!(input.pendingRequest && suppliesPendingContext(input.message)) && namesAnOccasion(input.message, currentIntent)) mode = "create";
   else mode = "advice";
 
   // "Build me five outfits" → "what is the weather?" → "cold" has to answer the first message.

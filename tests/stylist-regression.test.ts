@@ -137,7 +137,7 @@ test("REGRESSION: a failed agent turn says which error it was", async () => {
 
 test("the reply and the chat panel carry the reason", () => {
   const route = read("app/api/agents/consumer/route.ts") + read("lib/hanger-consumer-turn.ts");
-  assert.match(route, /onFallback: \(failure\) => \{ agentOutcome\.failure = failure; \}/);
+  assert.match(route, /onFallback: \(failure\) => \{ agentOutcome\.failure = failure; input\.onAgentFallback\?\.\(failure\); \}/);
   assert.match(route, /degradedReason: describeAgentFailure\(agentOutcome\.failure\)/);
   assert.match(read("components/agent-panels.tsx"), /Written without Hanger&rsquo;s wardrobe tools this turn — \{reply\.degradedReason\}/);
 });

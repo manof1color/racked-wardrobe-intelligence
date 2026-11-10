@@ -217,7 +217,7 @@ const NEGATED = /\b(?:not|no|no longer|less|without|avoid|never|isn['’]?t|not 
  * around the match.
  */
 const NOT_AN_OCCASION: Record<string, RegExp> = {
-  run: /\brun\s+(?:errands?|late|out|into|through|over|a\s|the\s|some|low)/,
+  run: /\brun\s+(?:errands?|late|out|into|through|over|a\s|the\s|some|low)|\bruns\s+(?:small|large|big|tight|long|short|true|a\s)/,
   running: /\brunning\s+(?:errands?|late|out|into|through|over|a\s|the\s|some|low|shoes|shorts|tights)/,
   work: /\b(?:would|will|could|might|does|doesn't|can|make\s+it|makes\s+it)\s+work\b|\bwork(?:s|ed)?\s+(?:with|well|together|better|best|for\s+(?:me|this|that|it|them))\b/,
   meeting: /\bmeeting\s+(?:up|friends?|a\s+friend|my\s+(?:friends?|mates?|family|parents|date|partner|girlfriend|boyfriend)|him|her|them|the\s+parents)\b/,
@@ -229,9 +229,13 @@ const NOT_AN_OCCASION: Record<string, RegExp> = {
   show: /\bshow\s+me\b/,
 };
 
-/** Where a phrase first appears as an occasion — not negated, not an everyday turn of phrase — or -1. */
-function positiveIndex(request: string, phrase: string) {
-  for (const match of request.matchAll(new RegExp(`\\b${escape(phrase)}\\b`, "g"))) {
+/**
+ * Where a phrase first appears as an occasion — not negated, not an everyday turn of phrase — or -1.
+ * With `inflected`, a plural or an -ing form counts too: "pitching to investors" is a pitch to an
+ * investor. Only specific events and activities are read that loosely; "works" is not "work".
+ */
+function positiveIndex(request: string, phrase: string, inflected = false) {
+  for (const match of request.matchAll(new RegExp(`\\b${escape(phrase)}${inflected ? "(?:s|es|ing)?" : ""}\\b`, "g"))) {
     const at = match.index ?? 0;
     if (NEGATED.test(request.slice(Math.max(0, at - 30), at))) continue;
     const everyday = NOT_AN_OCCASION[phrase];
@@ -255,18 +259,31 @@ export interface BriefReading {
  * first, then coffee" is dressed for the gym. Words that sit inside a longer match are part of it:
  * "black tie optional" is not read as "black tie", nor "family dinner" as "dinner".
  */
-export function readBrief(message: string): BriefReading | null {
-  const request = ` ${String(message ?? "").toLocaleLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ")} `;
+function briefMatches(request: string) {
   const matches: Array<{ brief: OutfitBrief; index: number; phrase: string }> = [];
   for (const brief of OUTFIT_BRIEFS) {
     for (const phrase of brief.phrases) {
-      const index = positiveIndex(request, phrase);
+      const index = positiveIndex(request, phrase, brief.tier === 2);
       if (index >= 0) matches.push({ brief, index, phrase });
     }
   }
-  const standalone = matches.filter((match) => !matches.some((other) => other !== match && other.phrase.length > match.phrase.length
+  return matches.filter((match) => !matches.some((other) => other !== match && other.phrase.length > match.phrase.length
     && match.index >= other.index && match.index + match.phrase.length <= other.index + other.phrase.length));
-  const [best] = standalone.sort((a, b) => a.brief.tier - b.brief.tier || a.index - b.index || b.phrase.length - a.phrase.length);
+}
+
+const normalizeRequest = (message: string) => ` ${String(message ?? "").toLocaleLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ")} `;
+
+/**
+ * Every brief a request names, in the order mentioned. "A morning run, then a quick breakfast"
+ * names two; the outfit leads with the first, and a second outfit may be built for the other.
+ */
+export function briefsNamed(message: string): string[] {
+  return [...new Set(briefMatches(normalizeRequest(message)).sort((a, b) => a.index - b.index).map((match) => match.brief.key))];
+}
+
+export function readBrief(message: string): BriefReading | null {
+  const request = normalizeRequest(message);
+  const [best] = briefMatches(request).sort((a, b) => a.brief.tier - b.brief.tier || a.index - b.index || b.phrase.length - a.phrase.length);
   if (!best) return null;
   const named = (words: string[]) => words.some((word) => !best.phrase.includes(word) && positiveIndex(request, word) >= 0);
   // A dress code already says how dressed up to be; only events and settings are nudged.
@@ -293,11 +310,13 @@ export function isSportyPiece(item: Piece) {
 }
 
 /**
- * Bags that belong to one kind of day. A briefcase is for work and a gym duffel for the gym; either
- * one topping off dinner with someone's parents is a piece added because there was room for it.
+ * Pieces that belong to one kind of day. A briefcase is for work and a gym duffel for the gym;
+ * either one topping off dinner with someone's parents is a piece added because there was room for
+ * it. An evening gown is as formal as a suit and still not what a client presentation calls for.
  */
-const BAG_FAMILIES: Record<string, BriefFamily[]> = {
+const KIND_FAMILIES: Record<string, BriefFamily[]> = {
   briefcase: ["work", "formal"], duffel: ["active", "travel"], backpack: ["casual", "travel", "active"], clutch: ["formal", "evening"],
+  "formal-dress": ["formal", "evening"],
 };
 
 function slotOf(item: Piece): BriefSlot | null {
@@ -332,8 +351,8 @@ export function briefFit(item: Piece, brief: OutfitBrief): BriefFit {
   const needs = brief.needs?.[slotOf(item) ?? "top"];
   const subtype = lower(item.subtype);
   const preferred = Boolean(needs?.prefer?.includes(subtype)) && slotOf(item) !== null;
-  const wrongBag = lower(item.category) === "bag" && !preferred && Boolean(BAG_FAMILIES[subtype]) && !BAG_FAMILIES[subtype].includes(brief.family);
-  const avoided = (Boolean(needs?.avoid?.includes(subtype)) && slotOf(item) !== null) || wrongBag;
+  const wrongKind = !preferred && Boolean(KIND_FAMILIES[subtype]) && !KIND_FAMILIES[subtype].includes(brief.family);
+  const avoided = (Boolean(needs?.avoid?.includes(subtype)) && slotOf(item) !== null) || wrongKind;
   if (avoided) return { score: 10, evidence: `${formality.basis} is the wrong kind of piece for ${brief.label}.`, preferred: false, avoided: true };
   // Exercise is dressed by what a piece is for, not by where it sits on a ladder of formality.
   if (brief.sporty && sporty) return { score: preferred || !needs?.prefer ? 100 : 90, evidence: `Made for exercise, which suits ${brief.label}.`, preferred, avoided: false };
@@ -366,7 +385,10 @@ export function briefGap(item: Piece, brief: OutfitBrief) {
   if (fit.avoided) return 2;
   if ((fit.preferred && brief.functional) || (brief.sporty && isSportyPiece(item))) return 0;
   const { level } = garmentFormality(item);
-  return level < brief.min ? brief.min - level : level > brief.max ? level - brief.max : 0;
+  const outside = level < brief.min ? brief.min - level : level > brief.max ? level - brief.max : 0;
+  // For exercise, a piece made for it comes before one that merely sits low on the ladder: a
+  // training tee before a never-worn hoodie, while either is owned.
+  return brief.sporty ? Math.max(outside, 0.5) : outside;
 }
 
 // ── Aesthetics ───────────────────────────────────────────────────────────────────────────────

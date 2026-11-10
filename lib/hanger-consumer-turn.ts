@@ -63,6 +63,8 @@ export interface ConsumerHangerTurnInput {
   agentCall: AgentConverse;
   /** The plain model reply of the grounded pipeline, already metered; null means "no model answer". */
   plainCall: (system: string, history: AgentChatTurn[], prompt: string) => Promise<string | null>;
+  /** Told why the agent did not answer, when it did not. The evaluation records it; the route has no use for it. */
+  onAgentFallback?: (failure: AgentFailure) => void;
 }
 
 export interface ConsumerHangerTurn {
@@ -99,7 +101,7 @@ export async function runConsumerHangerTurn(input: ConsumerHangerTurnInput): Pro
         inspirationStyleHints: inspiration.styleHints,
       },
       loadTrends: input.loadTrends,
-      onFallback: (failure) => { agentOutcome.failure = failure; },
+      onFallback: (failure) => { agentOutcome.failure = failure; input.onAgentFallback?.(failure); },
     }, input.agentCall).catch(() => null);
     if (agent) {
       const agentActions = allowedOutfitActions("create", message);

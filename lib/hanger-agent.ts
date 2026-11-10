@@ -32,7 +32,7 @@ import { AI_PAUSED_REASON } from "./abuse-limits.ts";
 import { garmentFormality, weatherFit } from "./garment-knowledge.ts";
 import { formatHangerText, hangerModelCandidates, mayTryAnotherHangerModel, normalizeProviderHistory, replyDescribesUnshownOutfit, replyInventsOutfits } from "./hanger-conversation.ts";
 import { categoryForWord, planHangerTurn } from "./hanger-turn.ts";
-import { AESTHETIC_KEYS, BRIEF_KEYS, aestheticByKey, briefByKey, isSportyPiece } from "./occasion-knowledge.ts";
+import { AESTHETIC_KEYS, BRIEF_KEYS, aestheticByKey, briefByKey, briefsNamed, isSportyPiece } from "./occasion-knowledge.ts";
 import { MAX_OUTFIT_SET, intentBrief, rankOutfit, rankOutfitSet, readOutfitIntent, type GroundedOutfit, type OutfitIntent } from "./outfit-ranking.ts";
 import type { Forecast } from "./weather.ts";
 import type { AgentChatTurn, OutfitPost } from "./platform-types.ts";
@@ -321,12 +321,16 @@ const outfitKey = (outfit: WardrobeItem[]) => outfit.map((item) => item.id).sort
  * message is read first; the model's `occasion` and `look` — chosen from the curated lists — and
  * then the words of its `request` fill what is left, and the forecast fills the weather last.
  */
-export function completeIntent(person: OutfitIntent, model: { occasion?: unknown; look?: unknown; request: string }, forecastWeather: OutfitIntent["weather"]): OutfitIntent {
+export function completeIntent(person: OutfitIntent, model: { occasion?: unknown; look?: unknown; request: string }, forecastWeather: OutfitIntent["weather"], message = ""): OutfitIntent {
   const said = readOutfitIntent(model.request);
   const chosenBrief = briefByKey(model.occasion);
   const chosenLook = aestheticByKey(model.look);
   const intent: OutfitIntent = { ...person };
-  if (!person.occasion && !person.brief) {
+  // When their message names more than one thing — a run, then breakfast — the model may build for
+  // each in turn. Its choice is honoured only among the occasions their own words named.
+  const alsoNamed = briefByKey([chosenBrief?.key, said.brief].find((key) => key && key !== person.brief && briefsNamed(message).includes(key)));
+  if (alsoNamed) { intent.occasion = alsoNamed.family; intent.brief = alsoNamed.key; delete intent.briefShift; }
+  else if (!person.occasion && !person.brief) {
     if (chosenBrief) { intent.occasion = chosenBrief.family; intent.brief = chosenBrief.key; delete intent.briefShift; }
     else if (said.occasion || said.brief) { intent.occasion = said.occasion; intent.brief = said.brief ?? null; if (said.briefShift) intent.briefShift = said.briefShift; }
   }
@@ -402,7 +406,7 @@ export async function runHangerAgent(input: AgentInput, call: AgentConverse = be
       for (const entry of include) if (!entry.item) notFound.add(entry.name);
       // The person's own words decide the occasion, the look and the weather; the model's reading
       // and then the forecast fill in only what they did not say.
-      const intent = completeIntent(revising ? plan.intent : readOutfitIntent(input.message), { occasion: args.occasion, look: args.look, request }, input.forecast?.outfitWeather ?? null);
+      const intent = completeIntent(revising ? plan.intent : readOutfitIntent(input.message), { occasion: args.occasion, look: args.look, request }, input.forecast?.outfitWeather ?? null, input.message);
       const kept = new Set(revising ? plan.requiredItemIds : []);
       const ruledOut = new Set([...(input.rankingBase?.excludedItemIds ?? []), ...(revising ? plan.excludedItemIds : [])]);
       // The model may leave a piece out, but not one the person asked to keep; and it may propose

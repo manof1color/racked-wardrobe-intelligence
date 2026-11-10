@@ -293,7 +293,8 @@ export function readOutfitIntent(message: string): OutfitIntent {
     const matches = request.matchAll(new RegExp(`\\b${escaped}\\b`, "g"));
     for (const match of matches) {
       const before = request.slice(Math.max(0, (match.index ?? 0) - 30), match.index);
-      if (!/\b(?:not|no|no longer|less|without|avoid|never|do not want|don['’]?t want)\s+(?:for\s+)?(?:a\s+)?$/.test(before)) return true;
+      // "Nothing fancy" and "not too formal" ask for the opposite of the word they contain.
+      if (!/\b(?:not|no|no longer|less|without|avoid|never|nothing|do not want|don['’]?t want)\s+(?:for\s+)?(?:a\s+|too\s+|so\s+|very\s+)?$/.test(before)) return true;
     }
     return false;
   };
@@ -326,11 +327,17 @@ export function intentBrief(intent: Pick<OutfitIntent, "brief" | "briefShift">):
 }
 
 /** How far outside the occasion a piece sits: by its brief when one is known, else by its family. */
-function intentGap(item: WardrobeItem, intent: OutfitIntent) {
+function intentGap(item: WardrobeItem, intent: OutfitIntent, anchor: OutfitAnchor | null = null) {
   if (wornForTheWeather(item, intent)) return 0;
   const brief = intentBrief(intent);
   if (brief) return briefGap(item, brief);
-  return intent.occasion ? formalityGap(item, intent.occasion) : 0;
+  if (intent.occasion) return formalityGap(item, intent.occasion);
+  // No occasion named and nothing to match: an ordinary day. Occasionwear and gym kit wait for a
+  // request that calls for them, however long it is since they were worn — "what should I wear
+  // today?" is not answered with an evening gown because the gown has never been out.
+  if (anchor || intent.mode !== "outfit" || clean(item.category) === "jewelry") return 0;
+  if (["briefcase", "clutch"].includes(clean(item.subtype))) return 1;
+  return garmentFormality(item).level >= 4.75 ? 1 : isSportyPiece(item) ? 0.5 : 0;
 }
 
 /**
@@ -474,6 +481,8 @@ interface SlotFill {
   preferDress?: boolean;
   freshIds?: Set<string> | null;
   intent: OutfitIntent;
+  /** Set when the pieces the person asked for decide how dressed the rest should be. */
+  anchor?: OutfitAnchor | null;
 }
 
 function fillCategorySlots(ranked: RankedGarment[], fill: SlotFill) {
@@ -485,7 +494,7 @@ function fillCategorySlots(ranked: RankedGarment[], fill: SlotFill) {
   // the pieces closest to the occasion's band of formality, and only then does rotation choose
   // among them. A piece the occasion does not call for is never added as an optional extra — a
   // skully does not top off a formal outfit. Required pieces were asked for and are never gated.
-  const gap = (entry: RankedGarment) => intentGap(entry.item, intent);
+  const gap = (entry: RankedGarment) => intentGap(entry.item, intent, fill.anchor ?? null);
   const suitable = (candidates: RankedGarment[]) => {
     if (!candidates.length) return candidates;
     const closest = Math.min(...candidates.map(gap));
@@ -890,7 +899,7 @@ export function rankOutfit(
   const filled = intent.mode === "rotation"
     ? { chosen: [...seedRequired(ranked, requiredPieceIds, maxPieces), ...ranked.filter((entry) => !requiredIdSet.has(entry.item.id))].slice(0, maxPieces), leftOut: [] as RankedGarment[] }
     : fillCategorySlots(alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : ranked, {
-        maxPieces, requiredIds: requiredPieceIds, suggestedIds, preferDress, intent,
+        maxPieces, requiredIds: requiredPieceIds, suggestedIds, preferDress, intent, anchor,
         freshIds: alreadySuggested.size && fresh.length ? new Set(fresh.map((item) => item.id)) : null,
       });
   const pieces = filled.chosen;
