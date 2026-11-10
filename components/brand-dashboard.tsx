@@ -35,6 +35,8 @@ function budgetNote(budget?:{remaining:number;limit:number;resetsInSeconds:numbe
   return `You have opened ${budget.limit} products in the last 24 hours, the most Racked releases in a day. Revisit one of those now, or open a new one in about ${budgetWait(budget.resetsInSeconds)}. This limit protects owners from being identified by comparison across products.`;
 }
 
+function isDemo(product:BrandProductRegistration){return product.dataClassification==="DEMO"&&product.testCohort===true;}
+
 /** The state of one product at a glance, before any private data is involved. */
 function productChips(product:BrandProductRegistration){
   return [
@@ -42,6 +44,10 @@ function productChips(product:BrandProductRegistration){
     ...(product.price===undefined?[{label:"No price",tone:"todo"}]:[]),
     ...(product.productUrl?[]:[{label:"No link",tone:"todo"}]),
     ...(product.dataClassification==="DEMO"||product.testCohort?[{label:"Demo data",tone:"demo"}]:[]),
+    // Demo pieces only: their synthetic cohort size is fixed by the seed, so labelling it reveals no
+    // real owner. A real product's release status is never shown catalog-wide (see below).
+    ...(isDemo(product)&&product.demoWearCohort==="open"?[{label:"Wear data open",tone:"live"}]:[]),
+    ...(isDemo(product)&&product.demoWearCohort==="too-few"?[{label:"Too few owners",tone:"todo"}]:[]),
     ...(product.dataClassification==="PILOT"?[{label:"Pilot",tone:"demo"}]:[]),
   ];
 }

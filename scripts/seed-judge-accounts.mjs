@@ -138,7 +138,7 @@ const OUTFITS = [
   { key: "weekend", name: "Judge Weekend Look", pieces: ["tee", "jean", "sneaker", "verified"], wears: 5 },
 ];
 
-// Three products demonstrate analytics and lifecycle. The Founder Jacket is for Community only. One clears the k>=25 release threshold so a judge sees released
+// Three products demonstrate analytics and lifecycle (four Look pieces below also clear the threshold). The Founder Jacket is for Community only. One clears the k>=25 release threshold so a judge sees released
 // metrics immediately; one stays deliberately below it so they can see suppression working; one is
 // retired, so they can see that a retired product keeps its owners and leaves the public page.
 const FOUNDER = { key: "founder", id: "judge-product-founder", sku: "JDA-004", name: "Judge Founder Jacket", category: "outerwear", subtype: "jacket", color: "brown", pattern: "solid", material: "suede", style: ["casual", "utility"], price: 295 };
@@ -149,6 +149,22 @@ const PRODUCTS = [
   FOUNDER,
   ...JUDGE_LOOK_PRODUCTS,
 ];
+
+/**
+ * Look pieces that also carry a full opted-in cohort, so a judge has more than one product whose
+ * wear intelligence opens. Each gets the same cohort and wear pattern as the released product.
+ */
+export const EXTRA_RELEASED_SKUS = ["JDA-005", "JDA-009", "JDA-010", "JDA-024"];
+const EXTRA_RELEASED = EXTRA_RELEASED_SKUS.map((sku) => PRODUCTS.find((product) => product.sku === sku));
+
+/**
+ * Whether a seeded demo product has enough synthetic owners for wear data. Fixed by construction,
+ * so the catalog can label demo pieces without reading any cohort. Retired and Community-only
+ * pieces have no wear cohort to open.
+ */
+export function demoWearCohort(product) {
+  return product.sku === "JDA-001" || EXTRA_RELEASED_SKUS.includes(product.sku) ? "open" : "too-few";
+}
 
 async function accountItem({ id, email, role, displayName, brandName = null, brandSlug = null, brandDataSharing = false }) {
   const salt = randomBytes(18).toString("base64url");
@@ -216,6 +232,7 @@ async function seedBrand() {
       price: product.price, currency: "USD",
       productUrl: `${publicOrigin}/demo-store/${BRAND_SLUG}/${product.sku}`,
       ...(product.archived ? { archived: true } : {}),
+      demoWearCohort: demoWearCohort(product),
       testCohort: true, dataClassification: "DEMO",
       PK: `USER#${BRAND_ID}`, SK: `PRODUCT#${product.id}`, GSI1PK: "BRAND_PRODUCTS", GSI1SK: `${BRAND_SLUG}#${product.sku}`,
     });
@@ -416,6 +433,14 @@ async function seedCohortLinks(products, ownerIds) {
     await linkVerified({ ownerId, product: PRODUCTS[0], garmentId: `judge-linked-${PRODUCTS[0].sku}-${index + 1}`, wearCount, lastWornDays: (index % 7) + 1, imageKey: `wardrobe/${ownerId}/judge-linked-${PRODUCTS[0].sku}.png` });
     wearEvents += wearCount;
   }
+  for (const product of EXTRA_RELEASED) {
+    for (const [index, ownerId] of ownerIds.entries()) {
+      // Offset so each product's owners differ in how much they wear it.
+      const wearCount = RELEASED_WEAR_PATTERN[(index + product.sku.length + Number(product.sku.slice(-1))) % RELEASED_WEAR_PATTERN.length];
+      await linkVerified({ ownerId, product, garmentId: `judge-linked-${product.sku}-${index + 1}`, wearCount, lastWornDays: ((index + 3) % 7) + 1, imageKey: `wardrobe/${ownerId}/judge-linked-${product.sku}.png` });
+      wearEvents += wearCount;
+    }
+  }
   const suppressedOwners = ownerIds.slice(0, 4);
   for (const [index, ownerId] of suppressedOwners.entries()) {
     await linkVerified({ ownerId, product: PRODUCTS[1], garmentId: `judge-linked-${PRODUCTS[1].sku}-${index + 1}`, wearCount: index + 1, lastWornDays: index + 3, imageKey: `wardrobe/${ownerId}/judge-linked-${PRODUCTS[1].sku}.png` });
@@ -537,7 +562,7 @@ export async function buildJudgeSeed({ now = seedClock(), existing } = {}) {
   freshBrand: { email: FRESH_BRAND_EMAIL, brand: FRESH_BRAND_NAME, products: 0, purpose: "live enrollment from one photo" },
     // Per-product wear counts, because a single cohort total — which spans both products and omits
     // the judge's own wears — was once quoted as the released product's figure. It was not.
-    cohort: { optedInOwnersForReleased, suppressedProductOwners: cohort.suppressedOwners, createdMissingOwners: owners.created.length, cohortWearEvents: cohort.wearEvents, releasedWearEvents: wearEventsFor(PRODUCTS[0].id), suppressedWearEvents: wearEventsFor(PRODUCTS[1].id), thresholdIs: 25 },
+    cohort: { optedInOwnersForReleased, suppressedProductOwners: cohort.suppressedOwners, createdMissingOwners: owners.created.length, cohortWearEvents: cohort.wearEvents, releasedWearEvents: wearEventsFor(PRODUCTS[0].id), extraReleasedProducts: Object.fromEntries(EXTRA_RELEASED.map((product) => [product.sku, { owners: owners.ids.length, wearEvents: wearEventsFor(product.id) }])), suppressedWearEvents: wearEventsFor(PRODUCTS[1].id), thresholdIs: 25 },
     totals: { items: written.items.length, objects: written.objects.length },
     passwordSource: "RACKED_TEST_PASSWORD (runtime only, never committed)",
     clearlyLabeledSyntheticData: true,
