@@ -81,10 +81,13 @@ const toF = (celsius: number) => Math.round(celsius * 9 / 5 + 32);
  * summer, cold and wet toward fall and winter. Warm is decided first, so a warm rainy day is still
  * dressed as warm — rain alone must not push someone into winter clothes in July. The line sits at
  * 70°F: checked against a live forecast, a rainy 70°F day at 75 had read as "wet" and leaned toward
- * winter pieces, too heavy for the temperature.
+ * winter pieces, too heavy for the temperature. Freezing is decided before wet for the same reason
+ * in the other direction: in the blind evaluation a day of snow and wind at −8 °C read as "wet".
  */
 export function forecastToOutfitWeather(day: Pick<DayForecast, "highF" | "precipitationChance">): OutfitWeather | null {
   if (day.highF >= 70) return "warm";
+  // At or near freezing, what falls is snow: a day to dress warm, not a day for a rain shell.
+  if (day.highF <= 36) return "cold";
   if (day.precipitationChance >= 50) return "wet";
   if (day.highF <= 55) return "cold";
   return null;

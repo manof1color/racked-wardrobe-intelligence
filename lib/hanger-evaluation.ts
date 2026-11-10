@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { isAbsolute, relative, resolve } from "node:path";
 import { GARMENT_TAXONOMY } from "./garment-taxonomy.ts";
 import type { OutfitWeather } from "./outfit-ranking.ts";
-import type { Forecast } from "./weather.ts";
+import { forecastToOutfitWeather, type Forecast } from "./weather.ts";
 import type { WardrobeItem } from "./types.ts";
 
 /**
@@ -97,12 +97,14 @@ export const toWardrobeItem = (piece: EvalPiece): WardrobeItem => ({ ...piece, s
 const round1 = (value: number) => Math.round(value * 10) / 10;
 const toF = (celsius: number) => Math.round((celsius * 9) / 5 + 32);
 
-/** The ranker's weather word for a day, by the same plain thresholds a person would use. */
+/**
+ * The ranker's weather word for a day, from the same function the chat route uses for a real
+ * forecast. The first evaluation used thresholds of its own here (rain decided before heat), so a
+ * tropical downpour at 29 °C was dressed as "wet" in the benchmark and would have been "warm" for a
+ * person using the app.
+ */
 export function weatherWord(spec: ForecastSpec): OutfitWeather | null {
-  if (spec.precipitationChance >= 60) return "wet";
-  if (spec.highC <= 10) return "cold";
-  if (spec.highC >= 27) return "warm";
-  return null;
+  return forecastToOutfitWeather({ highF: toF(spec.highC), precipitationChance: spec.precipitationChance });
 }
 
 /** A forecast shaped like the one the weather service returns, for a synthetic place. */

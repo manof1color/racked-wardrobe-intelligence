@@ -1,4 +1,5 @@
-import { formalityGap, occasionFit } from "./garment-knowledge.ts";
+import { formalityGap, garmentFormality, occasionFit, weatherFit } from "./garment-knowledge.ts";
+import { aestheticByKey, aestheticFit, briefByKey, briefFit, briefGap, isSportyPiece, readAesthetic, readBrief, shiftedBrief, type OutfitBrief } from "./occasion-knowledge.ts";
 import type { AgentChatTurn } from "./platform-types.ts";
 import type { WardrobeItem } from "./types.ts";
 
@@ -23,6 +24,15 @@ export interface OutfitIntent {
   styleHints: string[];
   styleSource: "request" | "inspiration" | "none";
   alternativeRequested: boolean;
+  /**
+   * The finer reading of the occasion, as a key into occasion-knowledge.ts: the dress code or
+   * activity the request names ("black-tie-optional", "run"). `occasion` stays as its family.
+   */
+  brief?: string | null;
+  /** Half-steps a word like "casual" or "fancy" moved the brief's target. */
+  briefShift?: number;
+  /** A named look ("streetwear", "quiet-luxury"), as a key into occasion-knowledge.ts. */
+  aesthetic?: string | null;
 }
 
 export interface OutfitScoreComponent {
@@ -48,6 +58,32 @@ export interface GroundedOutfit {
   /** Items held back because Hanger already suggested them earlier in this conversation. */
   setAside: number;
   methodology: string;
+  /** What a complete outfit would still need, and why it is not here. Empty for a complete outfit. */
+  missing: MissingSlot[];
+  /** Pieces that were suggested for this outfit but left out so it could be complete. */
+  leftOut: string[];
+}
+
+export interface MissingSlot {
+  slot: "top" | "bottom" | "shoe";
+  /** `asked`: the person's own request left no room or ruled it out. `none-owned`: the closet has none. */
+  reason: "none-owned" | "asked" | "none-eligible";
+  /** A sentence for the reply. */
+  note: string;
+}
+
+const SLOT_WORDS: Record<MissingSlot["slot"], string> = { top: "a top", bottom: "bottoms", shoe: "shoes" };
+
+/** The slots a wearable outfit still lacks: a dress, or a top and a bottom — and shoes. */
+export function missingFoundation(pieces: Array<Pick<WardrobeItem, "category">>): MissingSlot["slot"][] {
+  const categories = new Set(pieces.map((piece) => clean(piece.category)));
+  const missing: MissingSlot["slot"][] = [];
+  if (!categories.has("dress")) {
+    if (!categories.has("top")) missing.push("top");
+    if (!categories.has("bottom")) missing.push("bottom");
+  }
+  if (!categories.has("shoe")) missing.push("shoe");
+  return missing;
 }
 
 export const MAX_OUTFIT_PIECES = 4;
@@ -68,12 +104,6 @@ const WEATHER_KEYWORDS: Array<[OutfitWeather, string[]]> = [
   ["cold", ["cold", "winter", "snow", "freezing", "chilly", "cool"]],
   ["warm", ["warm", "hot", "summer", "heat", "sunny", "humid"]],
 ];
-
-const WEATHER_SEASONS: Record<OutfitWeather, string[]> = {
-  cold: ["fall", "winter"],
-  warm: ["spring", "summer"],
-  wet: ["fall", "winter"],
-};
 
 const ROTATION_KEYWORDS = /not worn|least worn|rotation|forgotten|underused|neglected|barely worn/;
 // Natural follow-ups people use after seeing an outfit. These words must be
@@ -97,6 +127,15 @@ const ITEM_ALIAS_STOPWORDS = new Set([
 ]);
 
 const OPTIONAL_CATEGORY_SLOTS = ["outerwear", "bag", "accessory", "jewelry"];
+/**
+ * Pieces worn because of the weather. They are added to an outfit when the weather calls for them
+ * and not simply because there was room: an overcoat or a wool scarf is not a finishing touch for a
+ * dinner nobody said was cold.
+ */
+const WEATHER_GEAR = new Set(["overcoat", "puffer-jacket", "rain-jacket", "scarf", "beanie", "gloves"]);
+/** Tops worn next to the skin, and tops worn over them. One of each is a layered outfit; two of either is not. */
+const TOP_BASES = new Set(["t-shirt", "tank-top", "polo", "dress-shirt", "casual-shirt", "blouse"]);
+const TOP_LAYERS = new Set(["hoodie", "sweatshirt", "sweater", "cardigan"]);
 const FOUNDATION_CATEGORIES = new Set(["top", "bottom", "dress", "shoe"]);
 
 const OUTFIT_WEIGHTS = { occasion: 0.3, weather: 0.2, style: 0.15, underuse: 0.2, recency: 0.15 } as const;
@@ -106,6 +145,15 @@ const OUTFIT_WEIGHTS = { occasion: 0.3, weather: 0.2, style: 0.15, underuse: 0.2
  */
 const OCCASION_LED_WEIGHTS = { occasion: 0.45, weather: 0.2, style: 0.1, underuse: 0.15, recency: 0.1 } as const;
 const ROTATION_WEIGHTS = { occasion: 0.1, weather: 0.1, style: 0.1, underuse: 0.45, recency: 0.25 } as const;
+/**
+ * When the request names a dress code or an activity, a full step on the formality ladder outweighs
+ * anything rotation can say. With the occasion-led weights a never-worn piece half a step off still
+ * beat a well-worn piece that was exactly right, which is how four different occasions came to lead
+ * with the same least-worn blouse, skirt and boots.
+ */
+const BRIEF_LED_WEIGHTS = { occasion: 0.5, weather: 0.2, style: 0.1, underuse: 0.12, recency: 0.08 } as const;
+/** A named look is the request: style leads, and the occasion still counts when one was given too. */
+const LOOK_LED_WEIGHTS = { occasion: 0.3, weather: 0.15, style: 0.35, underuse: 0.12, recency: 0.08 } as const;
 
 function clean(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
@@ -251,34 +299,85 @@ export function readOutfitIntent(message: string): OutfitIntent {
   };
   const statedLessFormal = /\b(?:less|not|no)\s+formal\b|\binformal\b/.test(request);
   const statedLessCasual = /\b(?:less|not|no)\s+casual\b/.test(request);
-  const occasion = statedLessFormal ? "casual" : statedLessCasual ? "formal"
+  const keyword = statedLessFormal ? "casual" : statedLessCasual ? "formal"
     : OCCASION_KEYWORDS.find(([, words]) => words.some(positiveMention))?.[0] ?? null;
+  // The finer reading. "Less formal" and "less casual" are directions, not occasions, so they name
+  // the general brief of the family they point at.
+  const reading = statedLessFormal || statedLessCasual ? null : readBrief(message);
+  const brief = statedLessFormal ? "casual" : statedLessCasual ? "formal" : reading?.brief.key ?? null;
+  // An activity the six-word list never knew — a beach, a long walk — still has a family.
+  const occasion = keyword ?? reading?.brief.family ?? null;
   const weather = WEATHER_KEYWORDS.find(([, words]) => words.some(positiveMention))?.[0] ?? null;
-  const styleHints = STYLE_VOCABULARY.filter(positiveMention);
-  return { mode: ROTATION_KEYWORDS.test(request) ? "rotation" : "outfit", occasion, weather, styleHints, styleSource:styleHints.length?"request":"none", alternativeRequested: ALTERNATIVE_KEYWORDS.test(request) };
+  const aesthetic = readAesthetic(message);
+  const stated = STYLE_VOCABULARY.filter(positiveMention);
+  // A named look is carried by the style tags it is made of, so it survives in the stored intent.
+  const styleHints = stated.length ? stated : aesthetic ? STYLE_VOCABULARY.filter((style) => aesthetic.tags.includes(style)) : [];
+  return {
+    mode: ROTATION_KEYWORDS.test(request) ? "rotation" : "outfit", occasion, weather, styleHints, styleSource: styleHints.length ? "request" : "none", alternativeRequested: ALTERNATIVE_KEYWORDS.test(request),
+    ...(brief ? { brief, ...(reading?.shift ? { briefShift: reading.shift } : {}) } : {}),
+    ...(aesthetic ? { aesthetic: aesthetic.key } : {}),
+  };
 }
 
-function occasionScore(item: WardrobeItem, intent: OutfitIntent) {
-  if (!intent.occasion) return { score: 50, evidence: "No occasion given, so occasion fit is neutral." };
+/** The brief an intent carries, with any "casual" or "fancy" already applied to its target. */
+export function intentBrief(intent: Pick<OutfitIntent, "brief" | "briefShift">): OutfitBrief | null {
+  const brief = briefByKey(intent.brief);
+  return brief ? shiftedBrief(brief, intent.briefShift ?? 0) : null;
+}
+
+/** How far outside the occasion a piece sits: by its brief when one is known, else by its family. */
+function intentGap(item: WardrobeItem, intent: OutfitIntent) {
+  if (wornForTheWeather(item, intent)) return 0;
+  const brief = intentBrief(intent);
+  if (brief) return briefGap(item, brief);
+  return intent.occasion ? formalityGap(item, intent.occasion) : 0;
+}
+
+/**
+ * What the rest of the outfit already says, when the request named no occasion: the pieces the
+ * person asked to keep or build around. A piece chosen to go with them should sit near their level
+ * of dress — a warmer top for leggings and running shoes is a quarter-zip, not a merino sweater.
+ */
+interface OutfitAnchor { level: number; sporty: boolean }
+
+/**
+ * A coat, a rain jacket or a scarf in the weather it is for. It goes over whatever the occasion
+ * calls for, so the occasion does not get to rule it out: when it rains, the rain jacket goes to
+ * the office too.
+ */
+function wornForTheWeather(item: WardrobeItem, intent: OutfitIntent) {
+  return (intent.weather === "cold" || intent.weather === "wet") && WEATHER_GEAR.has(clean(item.subtype)) && weatherFit(item, intent.weather).score >= 90;
+}
+
+function occasionScore(item: WardrobeItem, intent: OutfitIntent, anchor: OutfitAnchor | null) {
+  if (wornForTheWeather(item, intent)) return { score: 75, evidence: "Worn for the weather, over whatever the occasion calls for." };
+  const brief = intentBrief(intent);
+  if (brief) return briefFit(item, brief);
   // What kind of garment it is decides, from the stylist knowledge in garment-knowledge.ts — not
   // only whichever style tags image recognition happened to attach.
-  return occasionFit(item, intent.occasion);
+  if (intent.occasion) return occasionFit(item, intent.occasion);
+  if (anchor && clean(item.category) !== "jewelry") {
+    if (anchor.sporty && isSportyPiece(item)) return { score: 100, evidence: "Made for exercise, like the rest of this outfit." };
+    const apart = Math.abs(garmentFormality(item).level - anchor.level);
+    return { score: Math.max(0, Math.round(100 - 30 * apart)), evidence: apart <= 0.75 ? "As dressed up as the rest of this outfit." : "Dressed differently from the rest of this outfit." };
+  }
+  return { score: 50, evidence: "No occasion given, so occasion fit is neutral." };
 }
 
 function weatherScore(item: WardrobeItem, intent: OutfitIntent) {
   if (!intent.weather) return { score: 50, evidence: "No weather given, so season fit is neutral." };
-  const season = clean(item.season);
-  if (season === "all-season" || !season) return { score: 70, evidence: "All-season piece works in most conditions." };
-  const wanted = WEATHER_SEASONS[intent.weather];
-  if (wanted.includes(season)) return { score: 100, evidence: `${season} suits ${intent.weather} conditions.` };
-  return { score: 10, evidence: `${season} is a poor fit for ${intent.weather} conditions.` };
+  return weatherFit(item, intent.weather);
 }
 
 function styleScore(item: WardrobeItem, intent: OutfitIntent) {
-  if (intent.styleHints.length === 0) return { score: 50, evidence: "No style request or saved inspiration signal, so style match is neutral." };
+  const aesthetic = aestheticByKey(intent.aesthetic);
+  if (intent.styleHints.length === 0 && !aesthetic) return { score: 50, evidence: "No style request or saved inspiration signal, so style match is neutral." };
   const tags = (item.style ?? []).map(clean);
   const overlap = intent.styleHints.filter((hint) => tags.some((tag) => tag.includes(hint) || hint.includes(tag)));
   const source=intent.styleSource==="inspiration"?"saved inspiration":"request";
+  // A named look is judged on what the piece is — its type, colour and material — and not only on
+  // the tags recognition attached, which a hand-entered piece may not have at all.
+  if (aesthetic) return aestheticFit(item, aesthetic);
   if (overlap.length === 0) return { score: 15, evidence: `Does not carry the ${intent.styleHints.join(", ")} signal from the ${source}.` };
   return { score: Math.min(100, 60 + overlap.length * 25), evidence: `Matches ${overlap.join(", ")} from the ${source}.` };
 }
@@ -296,9 +395,12 @@ function recencyScore(item: WardrobeItem) {
   return { score, evidence: `Last worn ${days} day${days === 1 ? "" : "s"} ago.` };
 }
 
-function componentsFor(item: WardrobeItem, intent: OutfitIntent): OutfitScoreComponent[] {
-  const weights = intent.mode === "rotation" ? ROTATION_WEIGHTS : intent.occasion ? OCCASION_LED_WEIGHTS : OUTFIT_WEIGHTS;
-  const occasion = occasionScore(item, intent);
+function componentsFor(item: WardrobeItem, intent: OutfitIntent, anchor: OutfitAnchor | null = null): OutfitScoreComponent[] {
+  const weights = intent.mode === "rotation" ? ROTATION_WEIGHTS
+    : aestheticByKey(intent.aesthetic) ? LOOK_LED_WEIGHTS
+    : intentBrief(intent) ? BRIEF_LED_WEIGHTS
+    : intent.occasion || anchor ? OCCASION_LED_WEIGHTS : OUTFIT_WEIGHTS;
+  const occasion = occasionScore(item, intent, anchor);
   const weather = weatherScore(item, intent);
   const style = styleScore(item, intent);
   const underuse = underuseScore(item);
@@ -330,10 +432,10 @@ export function previouslySuggestedItemIds(wardrobe: WardrobeItem[], history: Ag
   }).map((item) => item.id));
 }
 
-function rankGarments(wardrobe: WardrobeItem[], intent: OutfitIntent): RankedGarment[] {
+function rankGarments(wardrobe: WardrobeItem[], intent: OutfitIntent, anchor: OutfitAnchor | null = null): RankedGarment[] {
   return wardrobe
     .map((item) => {
-      const components = componentsFor(item, intent);
+      const components = componentsFor(item, intent, anchor);
       const score = weightedScore(components);
       const reasons = [...components]
         .sort((a, b) => b.score * b.weight - a.score * a.weight)
@@ -360,36 +462,89 @@ function seedRequired(ranked: RankedGarment[], requiredIds: string[], maxPieces:
   return requiredIds.map((id) => byId.get(id)).filter((entry): entry is RankedGarment => Boolean(entry)).slice(0, maxPieces);
 }
 
-function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredIds: string[] = [], preferDress = false, freshIds: Set<string> | null = null, occasion: OutfitOccasion | null = null) {
-  const chosen: RankedGarment[] = seedRequired(ranked, requiredIds, maxPieces);
+interface SlotFill {
+  maxPieces: number;
+  /** Pieces the person asked for. Always in, up to the size of the outfit. */
+  requiredIds?: string[];
+  /**
+   * Pieces suggested for the outfit by something other than the person — the stylist model's
+   * `include`. They are used where they fit, but never at the cost of a top, a bottom or shoes.
+   */
+  suggestedIds?: string[];
+  preferDress?: boolean;
+  freshIds?: Set<string> | null;
+  intent: OutfitIntent;
+}
+
+function fillCategorySlots(ranked: RankedGarment[], fill: SlotFill) {
+  const { maxPieces, intent } = fill;
+  const freshIds = fill.freshIds ?? null;
+  const chosen: RankedGarment[] = seedRequired(ranked, fill.requiredIds ?? [], maxPieces);
+  const leftOut: RankedGarment[] = [];
   // With an occasion named, suitability is a gate and not just a weight: each slot is filled from
   // the pieces closest to the occasion's band of formality, and only then does rotation choose
   // among them. A piece the occasion does not call for is never added as an optional extra — a
   // skully does not top off a formal outfit. Required pieces were asked for and are never gated.
-  const gap = (entry: RankedGarment) => (occasion ? formalityGap(entry.item, occasion) : 0);
+  const gap = (entry: RankedGarment) => intentGap(entry.item, intent);
   const suitable = (candidates: RankedGarment[]) => {
-    if (!occasion || !candidates.length) return candidates;
+    if (!candidates.length) return candidates;
     const closest = Math.min(...candidates.map(gap));
     return candidates.filter((entry) => gap(entry) <= closest);
   };
   const usedItems = new Set(chosen.map((entry) => entry.item.id));
   const usedCategories = new Set(chosen.map((entry) => clean(entry.item.category)));
   const add = (entry: RankedGarment | undefined) => {
-    if (!entry || chosen.length >= maxPieces || usedItems.has(entry.item.id)) return;
+    if (!entry || chosen.length >= maxPieces || usedItems.has(entry.item.id)) return false;
     chosen.push(entry);
     usedItems.add(entry.item.id);
     usedCategories.add(clean(entry.item.category));
+    return true;
   };
+  const clashesWithFoundation = (category: string) => (category === "dress"
+    ? usedCategories.has("top") || usedCategories.has("bottom")
+    : (category === "top" || category === "bottom") && usedCategories.has("dress"));
+
+  // A suggested piece takes the slot it belongs to: a suggested top is the top. A second piece for a
+  // slot that is taken, or anything that is not part of the foundation, waits until the outfit has
+  // its top, bottom and shoes — which is the order a person gets dressed in.
+  const byId = new Map(ranked.map((entry) => [entry.item.id, entry]));
+  const suggested = (fill.suggestedIds ?? []).map((id) => byId.get(id)).filter((entry): entry is RankedGarment => Boolean(entry) && !usedItems.has(entry!.item.id));
+  const waiting: RankedGarment[] = [];
+  for (const entry of suggested) {
+    const category = clean(entry.item.category);
+    if (clashesWithFoundation(category)) leftOut.push(entry);
+    else if (FOUNDATION_CATEGORIES.has(category) && !usedCategories.has(category)) { if (!add(entry)) leftOut.push(entry); }
+    else waiting.push(entry);
+  }
+
   // A piece whose season contradicts one already chosen is passed over while a coherent piece of
   // the same category exists. Each piece used to be scored alone, so with no weather given the
   // judge closet's Looks screen opened on a winter knit over summer linen shorts.
   const coherent = (entry: RankedGarment) => !chosen.some((picked) => seasonsClash(picked.item.season, entry.item.season));
+  const weatherOf = (entry: RankedGarment) => entry.components.find((component) => component.key === "weather")?.score ?? 50;
+  const wrongForWeather = (entry: RankedGarment) => Boolean(intent.weather) && weatherOf(entry) < 40;
+  const brief = intentBrief(intent);
+  /**
+   * Whether a piece nobody asked for earns its place as an extra. It must suit the occasion; in
+   * known weather it must suit that too; and a coat or a scarf waits for weather that calls for it,
+   * unless the activity itself does (a shell for a hike).
+   */
+  const earnsItsPlace = (entry: RankedGarment) => {
+    if (gap(entry) !== 0) return false;
+    if (intent.weather) return weatherOf(entry) >= 50;
+    const subtype = clean(entry.item.subtype);
+    return !WEATHER_GEAR.has(subtype) || Boolean(brief?.needs?.[clean(entry.item.category) as "outerwear" | "accessory"]?.prefer?.includes(subtype));
+  };
   const best = (category: string, freshOnly = false, optional = false) => {
     const all = ranked.filter((entry) => !usedItems.has(entry.item.id) && clean(entry.item.category) === category);
     // The gate is measured over the whole category, so "fresh only" cannot fall back to a fresh
     // piece the occasion rules out while a suitable earlier suggestion exists.
-    const fitting = new Set(suitable(all).filter((entry) => !optional || gap(entry) === 0).map((entry) => entry.item.id));
-    const candidates = all.filter((entry) => fitting.has(entry.item.id) && (!freshOnly || freshIds?.has(entry.item.id)));
+    const fitting = new Set(suitable(all).filter((entry) => !optional || earnsItsPlace(entry)).map((entry) => entry.item.id));
+    const eligible = all.filter((entry) => fitting.has(entry.item.id) && (!freshOnly || freshIds?.has(entry.item.id)));
+    // Known weather rules a piece out; it does not merely count against it. A winter wool skirt is
+    // not the answer at 31 °C because it has not been worn lately — unless nothing else is owned.
+    const wearable = eligible.filter((entry) => !wrongForWeather(entry));
+    const candidates = wearable.length ? wearable : eligible;
     return candidates.find(coherent) ?? candidates[0];
   };
 
@@ -401,7 +556,16 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
     const top = best("top");
     const bottom = best("bottom");
     const separateScore = top && bottom ? Math.round((top.score + bottom.score) / 2) : -1;
-    if (dress && (preferDress || !top || !bottom || dress.score > separateScore)) add(dress);
+    // The occasion decides before the score does: a dress it rules out does not win on rotation
+    // over a top and bottom that suit it, nor the other way round.
+    const dressGap = dress ? gap(dress) : Infinity;
+    const separatesGap = top && bottom ? Math.max(gap(top), gap(bottom)) : Infinity;
+    const dressWrong = Boolean(dress) && wrongForWeather(dress!);
+    const separatesWrong = Boolean(top && bottom) && (wrongForWeather(top!) || wrongForWeather(bottom!));
+    const dressWins = dressGap !== separatesGap ? dressGap < separatesGap
+      : dressWrong !== separatesWrong ? separatesWrong
+      : Boolean(dress) && dress!.score > separateScore;
+    if (dress && (fill.preferDress || !top || !bottom || dressWins)) add(dress);
     // The bottom is chosen after the top is in, so it can be checked against the top's season.
     else { add(top); add(best("bottom")); }
   } else if (!hasDress) {
@@ -409,9 +573,19 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
     if (!usedCategories.has("bottom")) add(best("bottom"));
   }
 
-  // Footwear is part of the foundation. Optional slots prefer unseen pieces before returning
-  // to an earlier suggestion of another category (for example a prior blazer over a fresh bag).
+  // Footwear is part of the foundation.
   if (!usedCategories.has("shoe")) add(best("shoe"));
+
+  // Now the suggested pieces that were waiting: one more layer over the top, a jacket, a bag. A
+  // second jacket, bag or pair of shoes is not an outfit, so only the first of each is taken.
+  for (const entry of waiting) {
+    const category = clean(entry.item.category);
+    const repeats = usedCategories.has(category) && category !== "top";
+    if (repeats || clashesWithFoundation(category) || !add(entry)) leftOut.push(entry);
+  }
+
+  // Optional slots prefer unseen pieces before returning to an earlier suggestion of another
+  // category (for example a prior blazer over a fresh bag).
   for (const slot of OPTIONAL_CATEGORY_SLOTS) {
     if (chosen.length >= maxPieces) break;
     if (!usedCategories.has(slot)) add(best(slot, Boolean(freshIds), true));
@@ -426,21 +600,21 @@ function fillCategorySlots(ranked: RankedGarment[], maxPieces: number, requiredI
   for (const entry of ranked) {
     if (chosen.length >= maxPieces) break;
     const category = clean(entry.item.category);
-    const conflictsWithFoundation = category === "dress"
-      ? usedCategories.has("top") || usedCategories.has("bottom")
-      : (category === "top" || category === "bottom") && usedCategories.has("dress");
     // An extra piece is never needed, so one that clashes on season is simply left out.
-    if (!usedItems.has(entry.item.id) && !usedCategories.has(category) && !conflictsWithFoundation && coherent(entry) && gap(entry) === 0) add(entry);
+    if (!usedItems.has(entry.item.id) && !usedCategories.has(category) && !clashesWithFoundation(category) && coherent(entry) && earnsItsPlace(entry)) add(entry);
   }
   for (const entry of ranked) {
     if (chosen.length >= maxPieces) break;
     const category = clean(entry.item.category);
-    const conflictsWithFoundation = category === "dress"
-      ? usedCategories.has("top") || usedCategories.has("bottom")
-      : (category === "top" || category === "bottom") && usedCategories.has("dress");
-    if (!usedItems.has(entry.item.id) && !conflictsWithFoundation && coherent(entry) && gap(entry) === 0) add(entry);
+    // A second top finishes an outfit only as a layer: a knit or hoodie over a tee or shirt, and not
+    // in the heat. A second pair of trousers, shoes, jacket or bag is there only because there was room.
+    const tops = chosen.filter((picked) => clean(picked.item.category) === "top").map((picked) => clean(picked.item.subtype));
+    const layers = category === "top" && tops.length === 1 && intent.weather !== "warm"
+      && (TOP_LAYERS.has(clean(entry.item.subtype)) ? TOP_BASES.has(tops[0]) : TOP_BASES.has(clean(entry.item.subtype)) && TOP_LAYERS.has(tops[0]));
+    const doubles = usedCategories.has(category) && ["top", "bottom", "shoe", "dress", "outerwear", "bag"].includes(category) && !layers;
+    if (!usedItems.has(entry.item.id) && !doubles && !clashesWithFoundation(category) && coherent(entry) && earnsItsPlace(entry)) add(entry);
   }
-  return chosen;
+  return { chosen, leftOut };
 }
 
 /** Score the already-selected owned pieces for explanation without choosing or replacing any ID. */
@@ -624,8 +798,8 @@ export function rankOutfitSet(
     if (!outfit || !pieces.length) break;
     // Nor is a "formal" outfit of a henley, jeans, and sneakers. Once the closet's pieces for the
     // occasion are spent, the set ends — the first outfit is always given, as the closest there is.
-    const occasion = outfit.intent.occasion;
-    if (entries.length && occasion && pieces.some((piece) => FOUNDATION_CATEGORIES.has(clean(piece.item.category)) && formalityGap(piece.item, occasion) > 1)) break;
+    const setIntent = outfit.intent;
+    if (entries.length && (setIntent.occasion || setIntent.brief) && pieces.some((piece) => FOUNDATION_CATEGORIES.has(clean(piece.item.category)) && intentGap(piece.item, setIntent) > 1)) break;
     signatures.add(outfitSignature(pieces));
     for (const piece of pieces) {
       used.add(piece.item.id);
@@ -657,6 +831,13 @@ export function rankOutfit(
     rotatePriorSuggestions?: boolean;
     inspirationStyleHints?: Iterable<string>;
     intentOverride?: OutfitIntent;
+    /**
+     * Pieces proposed for the outfit by the stylist model rather than named by the person. Used
+     * where they fit; never allowed to push out a top, a bottom or shoes.
+     */
+    suggestedItemIds?: Iterable<string>;
+    /** Lead with a dress when one suits, as a request for "a dress" does. */
+    preferDress?: boolean;
   } = {},
 ): GroundedOutfit {
   const requestedIntent = options.intentOverride ?? readOutfitIntent(message);
@@ -693,15 +874,34 @@ export function rankOutfit(
   // Fresh pieces always rank before repeats. When the wardrobe cannot supply a
   // completely new outfit, Hanger fills only the missing slots from earlier pieces
   // instead of abandoning the alternative and returning the identical outfit.
-  const freshRanked = rankGarments(fresh, intent);
-  const repeatedRanked = rankGarments(repeated, intent);
-  const ranked = alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : rankGarments(eligibleWardrobe, intent);
-  const preferDress = /\b(?:dress|gown|jumpsuit|romper)\b/i.test(message);
-  const pieces = intent.mode === "rotation"
-    ? [...seedRequired(ranked, requiredPieceIds, maxPieces), ...ranked.filter((entry) => !requiredIdSet.has(entry.item.id))].slice(0, maxPieces)
-    : alreadySuggested.size && fresh.length
-      ? fillCategorySlots([...freshRanked, ...repeatedRanked], maxPieces, requiredPieceIds, preferDress, new Set(fresh.map((item) => item.id)), intent.occasion)
-      : fillCategorySlots(ranked, maxPieces, requiredPieceIds, preferDress, null, intent.occasion);
+  // With no occasion named, the pieces the person asked for set the tone for the rest.
+  const anchoring = intent.mode === "outfit" && !intent.occasion && !intentBrief(intent)
+    ? eligibleWardrobe.filter((item) => requiredIdSet.has(item.id) && clean(item.category) !== "jewelry")
+    : [];
+  const anchor: OutfitAnchor | null = anchoring.length ? {
+    level: anchoring.reduce((sum, item) => sum + garmentFormality(item).level, 0) / anchoring.length,
+    sporty: anchoring.filter(isSportyPiece).length * 2 > anchoring.length,
+  } : null;
+  const freshRanked = rankGarments(fresh, intent, anchor);
+  const repeatedRanked = rankGarments(repeated, intent, anchor);
+  const ranked = alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : rankGarments(eligibleWardrobe, intent, anchor);
+  const preferDress = options.preferDress ?? /\b(?:dress|gown|jumpsuit|romper)\b/i.test(message);
+  const suggestedIds = [...new Set([...(options.suggestedItemIds ?? [])])].filter((id) => owned.has(id) && !requiredIdSet.has(id) && !excludedIdSet.has(id));
+  const filled = intent.mode === "rotation"
+    ? { chosen: [...seedRequired(ranked, requiredPieceIds, maxPieces), ...ranked.filter((entry) => !requiredIdSet.has(entry.item.id))].slice(0, maxPieces), leftOut: [] as RankedGarment[] }
+    : fillCategorySlots(alreadySuggested.size && fresh.length ? [...freshRanked, ...repeatedRanked] : ranked, {
+        maxPieces, requiredIds: requiredPieceIds, suggestedIds, preferDress, intent,
+        freshIds: alreadySuggested.size && fresh.length ? new Set(fresh.map((item) => item.id)) : null,
+      });
+  const pieces = filled.chosen;
+  // What a complete outfit would still need, and the honest reason it is not here.
+  const missing: MissingSlot[] = intent.mode === "rotation" || !pieces.length ? [] : missingFoundation(pieces.map((piece) => piece.item)).map((slot) => {
+    const ownedInSlot = wardrobe.filter((item) => clean(item.category) === slot);
+    const eligibleInSlot = eligibleWardrobe.filter((item) => clean(item.category) === slot);
+    if (!ownedInSlot.length) return { slot, reason: "none-owned" as const, note: `There ${slot === "top" ? "is no top" : `are no ${SLOT_WORDS[slot]}`} in this closet, so the outfit has none.` };
+    if (!eligibleInSlot.length) return { slot, reason: "none-eligible" as const, note: `Every ${slot === "shoe" ? "pair of shoes" : slot} in this closet was ruled out for this request, so the outfit has none.` };
+    return { slot, reason: "asked" as const, note: `No ${SLOT_WORDS[slot].replace(/^a /, "")}: the pieces asked for fill this ${maxPieces}-piece outfit.` };
+  });
   const groundedPieces = pieces.map((piece) => requiredIdSet.has(piece.item.id)
     ? { ...piece, reasons: ["Directly requested by the customer.", ...piece.reasons] }
     : piece);
@@ -711,6 +911,8 @@ export function rankOutfit(
     pieces: groundedPieces,
     requiredPieceIds,
     setAside: Math.max(0, alreadySuggested.size - reused),
+    missing,
+    leftOut: filled.leftOut.map((entry) => entry.item.id),
     methodology: requiredPieceIds.length
       ? "Locked the explicitly requested owned pieces first, then scored compatible owned pieces to complete the outfit."
       : intent.styleSource==="inspiration"

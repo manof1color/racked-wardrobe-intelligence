@@ -67,6 +67,8 @@ export const NAME_CUES: Array<{ pattern: RegExp; rule: "set" | "raise" | "cap"; 
   { pattern: /\b(?:turtleneck|mock[- ]neck)\b/, rule: "set", level: 3.5, note: "a turtleneck" },
   { pattern: /\b(?:oxford shirt|button[- ]?(?:up|down)|dress shirt)\b/, rule: "set", level: 3.5, note: "a buttoned shirt" },
   { pattern: /\bhenley\b/, rule: "set", level: 2.5, note: "a henley" },
+  // A trench is a rain jacket by function and a smart coat by look; the taxonomy only knows the first.
+  { pattern: /\btrench\b/, rule: "set", level: 3.5, note: "a trench coat" },
   { pattern: /\b(?:skully|beanie|snapback|trucker|bucket hat|baseball cap|ball cap)\b/, rule: "set", level: 1.5, note: "a casual hat" },
   { pattern: /\b(?:jordans?|air jordan|dunks?|yeezys?|air max|air force|af1s?)\b/, rule: "set", level: 2, note: "sneakers" },
   { pattern: /\b(?:timbs|timberlands?)\b/, rule: "set", level: 2.5, note: "boots, a step above sneakers" },
@@ -160,6 +162,59 @@ export function formalityGap(item: Pick<WardrobeItem, "name" | "category" | "sub
   const { level } = garmentFormality(item);
   const band = OCCASION_FORMALITY[occasion];
   return level < band.min ? band.min - level : level > band.max ? level - band.max : 0;
+}
+
+/**
+ * What a piece is like to wear in the weather, 0–100. The season tag is where it starts — it is
+ * what the person or recognition recorded — and the kind of garment then corrects it, because a
+ * season tag cannot say that a rain jacket is the point of a wet day or that sandals are not. Before
+ * this the builder read the tag alone: in cold rain an all-season rain shell lost to a winter
+ * puffer, and at 35 °C a blazer was added because it was tagged "summer".
+ */
+export type GarmentWeather = "cold" | "warm" | "wet";
+const WEATHER_SEASONS: Record<GarmentWeather, string[]> = { cold: ["fall", "winter"], warm: ["spring", "summer"], wet: ["fall", "winter"] };
+const WARM_LAYERS = ["puffer-jacket", "overcoat", "sweater", "hoodie", "sweatshirt", "cardigan", "scarf", "beanie", "gloves", "leather-jacket", "bomber-jacket", "vest"];
+const BARE = ["shorts", "tank-top", "sandals", "slides", "romper"];
+const WET_FEET = ["sandals", "slides", "heels", "mules", "flats", "clogs"];
+const DRY_FEET = ["boots", "work-boots", "hiking-boots", "chelsea-boots", "ankle-boots"];
+const WARM_MATERIAL = /\b(?:wool|merino|cashmere|fleece|sherpa|flannel|tweed|corduroy|chunky|thermal|quilted|shearling)\b/;
+const COOL_MATERIAL = /\b(?:linen|seersucker|chambray|mesh|gauze|eyelet)\b/;
+const SOAKS = /\b(?:suede|canvas|straw|satin|silk|velvet)\b/;
+
+export function weatherFit(item: Pick<WardrobeItem, "name" | "category" | "subtype" | "season" | "material">, weather: GarmentWeather) {
+  const season = lower(item.season);
+  const subtype = lower(item.subtype);
+  const category = lower(item.category);
+  const words = ` ${lower(`${item.name} ${item.material ?? ""}`).replace(/[^a-z0-9 -]+/g, " ")} `;
+  const tagged = !season || season === "all-season"
+    ? { score: 70, evidence: "All-season piece works in most conditions." }
+    : WEATHER_SEASONS[weather].includes(season)
+      ? { score: 100, evidence: `${season} suits ${weather} conditions.` }
+      : { score: 10, evidence: `${season} is a poor fit for ${weather} conditions.` };
+  const at = (score: number, evidence: string) => ({ score, evidence });
+  if (weather === "wet") {
+    if (subtype === "rain-jacket") return at(100, "A rain jacket is what a wet day calls for.");
+    if (category === "shoe" && (WET_FEET.includes(subtype) || SOAKS.test(words))) return at(Math.min(tagged.score, 15), "These would be soaked in the rain.");
+    if (DRY_FEET.includes(subtype)) return at(Math.max(tagged.score, 90), "Boots keep feet dry in the rain.");
+    if (BARE.includes(subtype)) return at(Math.min(tagged.score, 30), "Too bare for a wet day.");
+    if (category !== "shoe" && category !== "outerwear" && SOAKS.test(words)) return at(Math.min(tagged.score, 40), "This fabric does not take rain well.");
+    // Any other jacket gets wet: it is a layer, not rain protection.
+    if (category === "outerwear") return at(Math.min(tagged.score, 45), "Not made for rain.");
+    return tagged;
+  }
+  if (weather === "cold") {
+    if (BARE.includes(subtype) || COOL_MATERIAL.test(words)) return at(Math.min(tagged.score, 12), "Too light for the cold.");
+    if (season !== "summer" && (WARM_LAYERS.includes(subtype) || WARM_MATERIAL.test(words))) return at(Math.max(tagged.score, 90), "A warm piece for the cold.");
+    if (season !== "summer" && DRY_FEET.includes(subtype)) return at(Math.max(tagged.score, 85), "Boots are warm underfoot.");
+    return tagged;
+  }
+  if (category === "outerwear") return at(Math.min(tagged.score, COOL_MATERIAL.test(words) ? 45 : 25), "An extra layer is not needed in the heat.");
+  if (WARM_LAYERS.includes(subtype)) return at(Math.min(tagged.score, 15), "Too warm for the heat.");
+  // A wool piece its owner wears all year is lighter than the word suggests; one kept for winter is not.
+  if (WARM_MATERIAL.test(words)) return at(Math.min(tagged.score, season === "all-season" || !season ? 45 : 15), "A warm fabric for the heat.");
+  if (season !== "winter" && (BARE.includes(subtype) || COOL_MATERIAL.test(words))) return at(Math.max(tagged.score, 92), "Light enough for the heat.");
+  if (["work-boots", "hiking-boots", "boots"].includes(subtype)) return at(Math.min(tagged.score, 35), "Heavy boots are hot in this weather.");
+  return tagged;
 }
 
 /** Every subtype in the taxonomy, so a test can prove none was left without knowledge. */
