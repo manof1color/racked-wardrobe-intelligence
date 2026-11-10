@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { INVENTED_OUTFIT_CORRECTION, runHangerAgent, type AgentConverse, type AgentModelResponse } from "../lib/hanger-agent.ts";
 import {
-  assignFirstSide, buildForecast, buildRaterSheet, cohenKappa, combineVerdicts, outfitProblems, parseCsv, parseRaterSheet, randomValidOutfit, renderResultsMarkdown,
+  ORIGINAL_SET, assignFirstSide, buildForecast, buildRaterSheet, closetIdsOf, cohenKappa, combineVerdicts, evaluationSetFolder, evaluationSetName, outfitProblems, parseCsv, parseRaterSheet, randomValidOutfit, renderResultsMarkdown,
   scoreEvaluation, seededRandom, seededShuffle, toCsv, toWardrobeItem, unblind, validateFixtures, weatherWord, wilson,
   type EvalCloset, type EvalKey, type EvalRequest, type RunFile, type RunRecord,
 } from "../lib/hanger-evaluation.ts";
@@ -429,7 +429,10 @@ test("the scorer unblinds with the key, keeps impossible asks out of the headlin
   assert.match(markdown, /1 of 2 decided \(50\.0%, 95% CI 9\.5%–90\.5%\); 1 tied/);
   assert.match(markdown, /kappa\)[^\n]*0\.20/);
   assert.match(markdown, /### r3 — Tiny closet \(weather\)/);
-  assert.match(markdown, /Rater 2 chose the baseline: reason 3/);
+  // A rater's own words stay private unless the owner asks for them; the pick is always shown.
+  assert.match(markdown, /- Rater 2 chose the baseline\n/);
+  assert.doesNotMatch(markdown, /reason 3/);
+  assert.match(renderResultsMarkdown(report, losing, { includeReasons: true }), /Rater 2 chose the baseline: reason 3/);
   assert.match(markdown, /random valid outfit/);
   assert.doesNotMatch(JSON.stringify(report), /Tee|Jeans|Boots|tuxedo|reason 3/, "the published aggregates carry no outfits, replies or reasons");
 });
@@ -445,4 +448,28 @@ test("the scorer reports no Hanger loss when there is none, and leaves kappa und
   assert.equal(losing.length, 0);
   assert.match(renderResultsMarkdown(report, losing), /No request went to the baseline\./);
   assert.match(renderResultsMarkdown(report, losing), /undefined \(both raters gave one answer throughout\)/);
+});
+
+// ── The holdout set ────────────────────────────────────────────────────────────
+
+test("holdout set 1 is four more synthetic closets and forty new requests under the same rules", () => {
+  const holdoutRequests = (JSON.parse(read("data/hanger-eval/holdout-1/requests.json")) as { requests: EvalRequest[] }).requests;
+  const holdoutClosets = closetIdsOf(holdoutRequests).map((id) => JSON.parse(read(`data/hanger-eval/holdout-1/${id}.json`)) as EvalCloset);
+  assert.deepEqual(validateFixtures(holdoutClosets, holdoutRequests), []);
+  assert.ok(holdoutClosets.every((closet) => closet.synthetic === true && closet.note.toLowerCase().includes("synthetic")));
+  // New closets, new pieces, new wording: nothing the fixes were written against.
+  const seen = new Set(requests.map((request) => request.text.toLowerCase()));
+  assert.deepEqual(holdoutRequests.filter((request) => seen.has(request.text.toLowerCase())), []);
+  assert.deepEqual(holdoutClosets.map((closet) => closet.id).filter((id) => closets.some((closet) => closet.id === id)), []);
+  const originalNames = new Set(closets.flatMap((closet) => closet.pieces.map((piece) => piece.name)));
+  assert.deepEqual(holdoutClosets.flatMap((closet) => closet.pieces).filter((piece) => originalNames.has(piece.name)).map((piece) => piece.name), [], "no piece carried over by name");
+  // The same baseline, built the same way, valid for every request.
+  for (const request of holdoutRequests) {
+    const closet = holdoutClosets.find((entry) => entry.id === request.closet)!;
+    assert.deepEqual(outfitProblems(randomValidOutfit(closet.pieces, request, seededRandom("any-seed", `baseline:${request.id}`))), [], request.id);
+  }
+  assert.equal(evaluationSetName(undefined), ORIGINAL_SET);
+  assert.equal(evaluationSetName(" holdout-1 "), "holdout-1");
+  assert.throws(() => evaluationSetName("../secrets"), /not a fixture set name/);
+  assert.deepEqual([evaluationSetFolder(ORIGINAL_SET), evaluationSetFolder("holdout-1")], [[], ["holdout-1"]]);
 });

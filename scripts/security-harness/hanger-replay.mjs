@@ -1,8 +1,10 @@
 // Replays the requests Hanger lost in the blind evaluation, two ways, with a scripted model:
 //
-//   direct  runHangerAgent called the way the benchmark called it (rankingBase: {}, no fallback)
-//   route   POST /api/agents/consumer on a local production build, signed in as a synthetic
-//           consumer whose closet is the synthetic fixture — the route, store and agent a person uses
+//   benchmark  what the evaluation runner records. On the commit that was evaluated that is
+//              runHangerAgent called directly (rankingBase: {}, "no outfit" on a fallback); where
+//              lib/hanger-consumer-turn.ts exists it is that shared turn, as the runner now uses
+//   route      POST /api/agents/consumer on a local production build, signed in as a synthetic
+//              consumer whose closet is the synthetic fixture — the route, store and agent a person uses
 //
 // and checks what comes back: is the outfit card complete, did a swap change only the slot asked
 // for, do the card, the Save action and the stored active outfit agree, and do different occasions
@@ -12,8 +14,8 @@
 //   HARNESS_SESSION_SECRET=<the local server's SESSION_SECRET> \
 //   node --experimental-strip-types scripts/security-harness/hanger-replay.mjs [--direct-only] [--out file.json]
 //
-// It imports only what the evaluated commit already exported, so the same file runs against the
-// commit that was evaluated and against a fix.
+// It imports statically only what the evaluated commit already exported, so the same file runs
+// against the commit that was evaluated and against a fix.
 import { createHmac, randomBytes, randomInt } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -85,13 +87,49 @@ function scriptedModel(entry, toolResults) {
   };
 }
 
-async function direct(entry) {
+// Present from the fix onwards. A commit without it is the one that called the agent directly.
+const shared = await import("../../lib/hanger-consumer-turn.ts").catch(() => null);
+const memory = shared ? await import("../../lib/hanger-memory.ts") : null;
+
+/** The turn the route runs, on a synthetic closet: the agent, and the grounded reply if it falls back. */
+async function sharedTurn(entry, request, closet, wardrobe) {
+  const toolResults = [];
+  let state = memory.emptyHangerConversation();
+  if (request.activeOutfit) {
+    const names = request.activeOutfit.map((id) => closet.pieces.find((piece) => piece.id === id).name);
+    state = memory.appendTurns(state, [{ role: "user", content: "What should I wear today?" }, { role: "assistant", content: `Try the ${names.join(", ")}.` }]);
+    state = memory.rememberSuggestedItemIds(state, request.activeOutfit);
+    state = memory.rememberActiveOutfit(state, request.activeOutfit, { mode: "outfit", occasion: null, weather: null, styleHints: [], styleSource: "none", alternativeRequested: false });
+  }
+  const turn = await shared.runConsumerHangerTurn({
+    message: request.text, wardrobe, outfits: [], stored: state,
+    inspiration: { lookCount: 0, styleHints: [], colors: [], categories: [], subtypes: [], recentLookTitles: [] },
+    forecast: request.forecast ? buildForecast(request.forecast, request.today) : null,
+    agentEnabled: true, aiPaused: false, today: new Date(`${request.today}T12:00:00Z`),
+    loadTrends: async () => null, agentCall: scriptedModel(entry, toolResults), plainCall: async () => null,
+  });
+  const reply = turn.reply;
+  const cardIds = (reply.selection ?? []).map((piece) => piece.id);
+  const shown = reply.outfits?.length ? reply.outfits.map((card) => card.pieces.map((piece) => piece.name)) : cardIds.length ? [reply.selection.map((piece) => piece.name)] : [];
+  const byAgent = reply.provider === "amazon-bedrock";
+  const verdict = judge(entry, request, closet, cardIds, shown, byAgent ? builtOutfits(toolResults) : []);
+  const saveIds = String(reply.actions?.find((action) => action.type === "save-outfit")?.payload?.itemIds ?? "").split(",").filter(Boolean);
+  const activeIds = turn.nextState.activeOutfit?.itemIds ?? [];
+  const same = (left, right) => left.length === right.length && left.every((id, index) => id === right[index]);
+  if (!(cardIds.length ? same(cardIds, saveIds) && same(cardIds, activeIds) : same(activeIds, request.activeOutfit ?? []))) verdict.problems.push("the card, the Save action and the stored active outfit disagree");
+  return { ...verdict, answeredBy: byAgent ? "agent" : "grounded reply after the agent fell back", message: reply.message };
+}
+
+async function benchmark(entry) {
   const request = requests.get(entry.id), closet = closets.get(request.closet);
   const wardrobe = closet.pieces.map(toWardrobeItem);
   const byId = new Map(wardrobe.map((item) => [item.id, item]));
   const toolResults = [];
   const warn = console.warn;
   console.warn = () => {};
+  if (shared) {
+    try { return await sharedTurn(entry, request, closet, wardrobe); } finally { console.warn = warn; }
+  }
   const result = await runHangerAgent({
     message: request.text, history: [], wardrobe,
     forecast: request.forecast ? buildForecast(request.forecast, request.today) : null,
@@ -189,7 +227,7 @@ const setup = directOnly ? null : await routeSetup();
 const rows = [];
 for (const entry of cases) {
   const request = requests.get(entry.id);
-  rows.push({ id: entry.id, variant: entry.variant ?? null, group: entry.group, kind: request.kind, request: request.text, direct: await direct(entry), route: setup ? await viaRoute(entry, setup) : null });
+  rows.push({ id: entry.id, variant: entry.variant ?? null, group: entry.group, kind: request.kind, request: request.text, benchmark: await benchmark(entry), route: setup ? await viaRoute(entry, setup) : null });
 }
 
 /** The same lead outfit for different occasions is a failure of the set, not of any one request. */
@@ -201,20 +239,20 @@ function repeatedLeads(side) {
   }
   return [...leads.values()].filter((ids) => ids.length > 1);
 }
-for (const side of ["direct", "route"]) {
+for (const side of ["benchmark", "route"]) {
   for (const ids of repeatedLeads(side)) for (const row of rows.filter((entry) => ids.includes(entry.id))) row[side].problems.push(`same lead outfit as ${ids.filter((id) => id !== row.id).join(", ")}`);
 }
 
 const verdict = (result) => (result === null ? "not run" : result.problems.length ? `FAIL — ${result.problems.join("; ")}` : "ok");
 for (const row of rows) {
   console.log(`\n${row.id}${row.variant ? ` (${row.variant})` : ""} — ${row.kind}: "${row.request}"`);
-  for (const side of ["direct", "route"]) {
+  for (const side of ["benchmark", "route"]) {
     const result = row[side];
     if (!result) continue;
-    console.log(`  ${side.padEnd(6)} ${verdict(result)}`);
-    console.log(`         card: ${result.card.length ? result.card.join(", ") : "(no outfit offered)"}  [${result.answeredBy}]`);
+    console.log(`  ${side.padEnd(9)} ${verdict(result)}`);
+    console.log(`            card: ${result.card.length ? result.card.join(", ") : "(no outfit offered)"}  [${result.answeredBy}]`);
   }
 }
 const failing = (side) => rows.filter((row) => row[side]?.problems.length).length;
-console.log(`\nDirect agent: ${failing("direct")} of ${rows.length} replayed cases fail a check.${setup ? ` Normal route: ${failing("route")} of ${rows.length}.` : " The route was not run (--direct-only)."}`);
+console.log(`\nBenchmark path (${shared ? "the shared turn" : "the agent called directly"}): ${failing("benchmark")} of ${rows.length} replayed cases fail a check.${setup ? ` Normal route: ${failing("route")} of ${rows.length}.` : " The route was not run (--direct-only)."}`);
 if (outFile) writeFileSync(outFile, `${JSON.stringify({ rows }, null, 2)}\n`);

@@ -1,0 +1,376 @@
+{
+  "id": "closet-g",
+  "name": "Outdoors and gym, mountain town",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation, holdout set 1. No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "g-01",
+      "name": "Blue trail running tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": [
+        "athletic",
+        "sporty"
+      ],
+      "season": "summer",
+      "wearCount": 25,
+      "lastWornDays": 2
+    },
+    {
+      "id": "g-02",
+      "name": "Black thermal base layer",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "black",
+      "pattern": "solid",
+      "material": "merino",
+      "style": [
+        "athletic",
+        "utility"
+      ],
+      "season": "winter",
+      "wearCount": 14,
+      "lastWornDays": 9
+    },
+    {
+      "id": "g-03",
+      "name": "Red flannel overshirt",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "red",
+      "pattern": "plaid",
+      "material": "flannel",
+      "style": [
+        "utility",
+        "casual"
+      ],
+      "season": "fall",
+      "wearCount": 12,
+      "lastWornDays": 11
+    },
+    {
+      "id": "g-04",
+      "name": "Grey fleece pullover",
+      "category": "top",
+      "subtype": "sweatshirt",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "fleece",
+      "style": [
+        "comfortable",
+        "utility"
+      ],
+      "season": "winter",
+      "wearCount": 22,
+      "lastWornDays": 3
+    },
+    {
+      "id": "g-05",
+      "name": "White logo tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "white",
+      "pattern": "graphic print",
+      "material": "cotton",
+      "style": [
+        "casual",
+        "relaxed"
+      ],
+      "season": "all-season",
+      "wearCount": 18,
+      "lastWornDays": 5
+    },
+    {
+      "id": "g-06",
+      "name": "Oatmeal fisherman sweater",
+      "category": "top",
+      "subtype": "sweater",
+      "color": "cream",
+      "pattern": "cable knit",
+      "material": "wool",
+      "style": [
+        "classic",
+        "comfortable"
+      ],
+      "season": "winter",
+      "wearCount": 6,
+      "lastWornDays": 40
+    },
+    {
+      "id": "g-07",
+      "name": "Sage yoga tank",
+      "category": "top",
+      "subtype": "tank-top",
+      "color": "green",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "athletic",
+        "sleek"
+      ],
+      "season": "summer",
+      "wearCount": 10,
+      "lastWornDays": 16
+    },
+    {
+      "id": "g-08",
+      "name": "Black running tights",
+      "category": "bottom",
+      "subtype": "leggings",
+      "color": "black",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "athletic",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 24,
+      "lastWornDays": 2
+    },
+    {
+      "id": "g-09",
+      "name": "Khaki trail shorts",
+      "category": "bottom",
+      "subtype": "shorts",
+      "color": "khaki",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "utility",
+        "sporty"
+      ],
+      "season": "summer",
+      "wearCount": 15,
+      "lastWornDays": 30
+    },
+    {
+      "id": "g-10",
+      "name": "Grey softshell hiking pants",
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "softshell",
+      "style": [
+        "utility",
+        "sporty"
+      ],
+      "season": "fall",
+      "wearCount": 13,
+      "lastWornDays": 12
+    },
+    {
+      "id": "g-11",
+      "name": "Worn-in blue jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "casual",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 20,
+      "lastWornDays": 4
+    },
+    {
+      "id": "g-12",
+      "name": "Black fleece joggers",
+      "category": "bottom",
+      "subtype": "sweatpants",
+      "color": "black",
+      "pattern": "solid",
+      "material": "fleece",
+      "style": [
+        "comfortable",
+        "sporty"
+      ],
+      "season": "winter",
+      "wearCount": 17,
+      "lastWornDays": 6
+    },
+    {
+      "id": "g-13",
+      "name": "Tan corduroy pants",
+      "category": "bottom",
+      "subtype": "casual-pants",
+      "color": "tan",
+      "pattern": "solid",
+      "material": "corduroy",
+      "style": [
+        "classic",
+        "casual"
+      ],
+      "season": "fall",
+      "wearCount": 5,
+      "lastWornDays": 50
+    },
+    {
+      "id": "g-14",
+      "name": "Yellow rain shell",
+      "category": "outerwear",
+      "subtype": "rain-jacket",
+      "color": "yellow",
+      "pattern": "solid",
+      "material": "gore-tex",
+      "style": [
+        "utility",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 16,
+      "lastWornDays": 8
+    },
+    {
+      "id": "g-15",
+      "name": "Navy down jacket",
+      "category": "outerwear",
+      "subtype": "puffer-jacket",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "down",
+      "style": [
+        "utility",
+        "casual"
+      ],
+      "season": "winter",
+      "wearCount": 21,
+      "lastWornDays": 3
+    },
+    {
+      "id": "g-16",
+      "name": "Olive waxed field jacket",
+      "category": "outerwear",
+      "subtype": "other-outerwear",
+      "color": "olive",
+      "pattern": "solid",
+      "material": "waxed cotton",
+      "style": [
+        "utility",
+        "classic"
+      ],
+      "season": "fall",
+      "wearCount": 7,
+      "lastWornDays": 35
+    },
+    {
+      "id": "g-17",
+      "name": "Orange trail running shoes",
+      "category": "shoe",
+      "subtype": "running-shoes",
+      "color": "orange",
+      "pattern": "solid",
+      "material": "mesh",
+      "style": [
+        "athletic",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 26,
+      "lastWornDays": 2
+    },
+    {
+      "id": "g-18",
+      "name": "Brown leather hiking boots",
+      "category": "shoe",
+      "subtype": "hiking-boots",
+      "color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "utility",
+        "classic"
+      ],
+      "season": "fall",
+      "wearCount": 14,
+      "lastWornDays": 13
+    },
+    {
+      "id": "g-19",
+      "name": "Grey slip-on sneakers",
+      "category": "shoe",
+      "subtype": "slip-on-sneakers",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "canvas",
+      "style": [
+        "casual",
+        "comfortable"
+      ],
+      "season": "spring",
+      "wearCount": 11,
+      "lastWornDays": 9
+    },
+    {
+      "id": "g-20",
+      "name": "Black leather chelsea boots",
+      "category": "shoe",
+      "subtype": "chelsea-boots",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "classic",
+        "sleek"
+      ],
+      "season": "fall",
+      "wearCount": 5,
+      "lastWornDays": 44
+    },
+    {
+      "id": "g-21",
+      "name": "Black sport sandals",
+      "category": "shoe",
+      "subtype": "sandals",
+      "color": "black",
+      "pattern": "solid",
+      "material": "webbing",
+      "style": [
+        "utility",
+        "sporty"
+      ],
+      "season": "summer",
+      "wearCount": 9,
+      "lastWornDays": 60
+    },
+    {
+      "id": "g-22",
+      "name": "Blue hiking daypack",
+      "category": "bag",
+      "subtype": "backpack",
+      "color": "blue",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "utility",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 19,
+      "lastWornDays": 8
+    },
+    {
+      "id": "g-23",
+      "name": "Grey wool beanie",
+      "category": "accessory",
+      "subtype": "beanie",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "casual",
+        "comfortable"
+      ],
+      "season": "winter",
+      "wearCount": 15,
+      "lastWornDays": 5
+    }
+  ]
+}

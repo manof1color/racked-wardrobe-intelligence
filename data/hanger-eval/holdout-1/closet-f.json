@@ -1,0 +1,376 @@
+{
+  "id": "closet-f",
+  "name": "Tailored and occasion wear",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation, holdout set 1. No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "f-01",
+      "name": "White dress shirt",
+      "category": "top",
+      "subtype": "dress-shirt",
+      "color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 18,
+      "lastWornDays": 4
+    },
+    {
+      "id": "f-02",
+      "name": "Pale pink dress shirt",
+      "category": "top",
+      "subtype": "dress-shirt",
+      "color": "pink",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "refined",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 9,
+      "lastWornDays": 15
+    },
+    {
+      "id": "f-03",
+      "name": "Black silk shell top",
+      "category": "top",
+      "subtype": "blouse",
+      "color": "black",
+      "pattern": "solid",
+      "material": "silk",
+      "style": [
+        "elegant",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 7,
+      "lastWornDays": 20
+    },
+    {
+      "id": "f-04",
+      "name": "Camel cashmere sweater",
+      "category": "top",
+      "subtype": "sweater",
+      "color": "camel",
+      "pattern": "solid",
+      "material": "cashmere",
+      "style": [
+        "refined",
+        "classic"
+      ],
+      "season": "winter",
+      "wearCount": 10,
+      "lastWornDays": 12
+    },
+    {
+      "id": "f-05",
+      "name": "Navy polo shirt",
+      "category": "top",
+      "subtype": "polo",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "cotton pique",
+      "style": [
+        "classic",
+        "casual"
+      ],
+      "season": "summer",
+      "wearCount": 13,
+      "lastWornDays": 9
+    },
+    {
+      "id": "f-06",
+      "name": "White cotton t-shirt",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 21,
+      "lastWornDays": 2
+    },
+    {
+      "id": "f-07",
+      "name": "Navy suit trousers",
+      "category": "bottom",
+      "subtype": "dress-pants",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 16,
+      "lastWornDays": 6
+    },
+    {
+      "id": "f-08",
+      "name": "Grey flannel trousers",
+      "category": "bottom",
+      "subtype": "dress-pants",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "wool flannel",
+      "style": [
+        "tailored",
+        "refined"
+      ],
+      "season": "winter",
+      "wearCount": 8,
+      "lastWornDays": 28
+    },
+    {
+      "id": "f-09",
+      "name": "Beige chinos",
+      "category": "bottom",
+      "subtype": "chinos",
+      "color": "beige",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "classic",
+        "casual"
+      ],
+      "season": "spring",
+      "wearCount": 14,
+      "lastWornDays": 7
+    },
+    {
+      "id": "f-10",
+      "name": "Black pencil skirt",
+      "category": "bottom",
+      "subtype": "skirt",
+      "color": "black",
+      "pattern": "solid",
+      "material": "wool blend",
+      "style": [
+        "tailored",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 6,
+      "lastWornDays": 33
+    },
+    {
+      "id": "f-11",
+      "name": "Dark denim jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "indigo",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "classic",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 19,
+      "lastWornDays": 3
+    },
+    {
+      "id": "f-12",
+      "name": "Emerald cocktail dress",
+      "category": "dress",
+      "subtype": "midi-dress",
+      "color": "green",
+      "pattern": "solid",
+      "material": "crepe",
+      "style": [
+        "elegant",
+        "statement"
+      ],
+      "season": "all-season",
+      "wearCount": 3,
+      "lastWornDays": 100
+    },
+    {
+      "id": "f-13",
+      "name": "Black evening gown",
+      "category": "dress",
+      "subtype": "formal-dress",
+      "color": "black",
+      "pattern": "solid",
+      "material": "satin",
+      "style": [
+        "elegant",
+        "refined"
+      ],
+      "season": "all-season",
+      "wearCount": 2,
+      "lastWornDays": 200
+    },
+    {
+      "id": "f-14",
+      "name": "Navy suit jacket",
+      "category": "outerwear",
+      "subtype": "suit-jacket",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 15,
+      "lastWornDays": 6
+    },
+    {
+      "id": "f-15",
+      "name": "Grey wool overcoat",
+      "category": "outerwear",
+      "subtype": "overcoat",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "winter",
+      "wearCount": 12,
+      "lastWornDays": 14
+    },
+    {
+      "id": "f-16",
+      "name": "Beige trench coat",
+      "category": "outerwear",
+      "subtype": "rain-jacket",
+      "color": "beige",
+      "pattern": "solid",
+      "material": "cotton gabardine",
+      "style": [
+        "classic",
+        "refined"
+      ],
+      "season": "fall",
+      "wearCount": 8,
+      "lastWornDays": 21
+    },
+    {
+      "id": "f-17",
+      "name": "Black cap-toe oxfords",
+      "category": "shoe",
+      "subtype": "oxfords",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 17,
+      "lastWornDays": 5
+    },
+    {
+      "id": "f-18",
+      "name": "Brown suede loafers",
+      "category": "shoe",
+      "subtype": "loafers",
+      "color": "brown",
+      "pattern": "solid",
+      "material": "suede",
+      "style": [
+        "refined",
+        "classic"
+      ],
+      "season": "spring",
+      "wearCount": 11,
+      "lastWornDays": 10
+    },
+    {
+      "id": "f-19",
+      "name": "Black patent heels",
+      "category": "shoe",
+      "subtype": "heels",
+      "color": "black",
+      "pattern": "solid",
+      "material": "patent leather",
+      "style": [
+        "elegant",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 4,
+      "lastWornDays": 90
+    },
+    {
+      "id": "f-20",
+      "name": "White minimalist sneakers",
+      "category": "shoe",
+      "subtype": "sneakers",
+      "color": "white",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 20,
+      "lastWornDays": 2
+    },
+    {
+      "id": "f-21",
+      "name": "Black leather clutch",
+      "category": "bag",
+      "subtype": "clutch",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "elegant",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 3,
+      "lastWornDays": 95
+    },
+    {
+      "id": "f-22",
+      "name": "Navy silk tie",
+      "category": "accessory",
+      "subtype": "tie",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "silk",
+      "style": [
+        "classic",
+        "tailored"
+      ],
+      "season": "all-season",
+      "wearCount": 9,
+      "lastWornDays": 12
+    },
+    {
+      "id": "f-23",
+      "name": "Pearl stud earrings",
+      "category": "jewelry",
+      "subtype": "earrings",
+      "color": "white",
+      "pattern": "solid",
+      "material": "pearl",
+      "style": [
+        "elegant",
+        "classic"
+      ],
+      "season": "all-season",
+      "wearCount": 14,
+      "lastWornDays": 8
+    }
+  ]
+}

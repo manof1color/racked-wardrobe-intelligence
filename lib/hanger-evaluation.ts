@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { isAbsolute, relative, resolve } from "node:path";
 import { GARMENT_TAXONOMY } from "./garment-taxonomy.ts";
+import { appendTurns, emptyHangerConversation, rememberActiveOutfit, rememberSuggestedItemIds, type HangerConversationState } from "./hanger-memory.ts";
 import type { OutfitWeather } from "./outfit-ranking.ts";
 import { forecastToOutfitWeather, type Forecast } from "./weather.ts";
 import type { WardrobeItem } from "./types.ts";
@@ -93,6 +94,37 @@ export function validateFixtures(closets: EvalCloset[], requests: EvalRequest[])
 
 /** The shape the agent and ranker already use for a piece the person owns. */
 export const toWardrobeItem = (piece: EvalPiece): WardrobeItem => ({ ...piece, source: "manual", art: "ivory", brand: null } as unknown as WardrobeItem);
+
+/**
+ * Fixture sets. "original" is the forty requests of the first evaluation, in data/hanger-eval/.
+ * Any other set is a folder beside them (data/hanger-eval/<set>/) with its own requests.json and
+ * the closets those requests name: fresh requests the fixes were not written against.
+ */
+export const ORIGINAL_SET = "original";
+export function evaluationSetName(value: string | undefined | null) {
+  const name = (value ?? "").trim() || ORIGINAL_SET;
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(name)) throw new Error(`"${name}" is not a fixture set name. Use lowercase letters, digits and hyphens, like holdout-1.`);
+  return name;
+}
+/** Path parts, under data/hanger-eval, where a set's fixtures live. */
+export const evaluationSetFolder = (set: string) => (set === ORIGINAL_SET ? [] : [set]);
+/** The closets a set's requests use, in the order first named. */
+export const closetIdsOf = (requests: Array<Pick<EvalRequest, "closet">>) => [...new Set(requests.map((request) => request.closet))];
+
+/**
+ * The conversation an account would have if Hanger had just offered `pieces`: what "swap the shoes"
+ * refers to. The first evaluation handed the agent the outfit with no conversation behind it, which
+ * is not a state the app can be in.
+ */
+export function conversationShowing(pieces: EvalPiece[], now: Date): HangerConversationState {
+  if (!pieces.length) return emptyHangerConversation();
+  let state = appendTurns(emptyHangerConversation(), [
+    { role: "user", content: "What should I wear today?" },
+    { role: "assistant", content: `Try the ${pieces.map((piece) => piece.name).join(", ")}.` },
+  ], now);
+  state = rememberSuggestedItemIds(state, pieces.map((piece) => piece.id));
+  return rememberActiveOutfit(state, pieces.map((piece) => piece.id), { mode: "outfit", occasion: null, weather: null, styleHints: [], styleSource: "none", alternativeRequested: false });
+}
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 const toF = (celsius: number) => Math.round((celsius * 9) / 5 + 32);
@@ -192,6 +224,22 @@ export function outfitProblems(pieces: EvalPiece[]) {
   return problems;
 }
 
+/** Why a swap is not the swap that was asked for; empty means exactly one slot changed and nothing else. */
+export function swapProblems(before: EvalPiece[], after: EvalPiece[], category: string) {
+  if (!after.length) return ["offered no outfit"];
+  const problems: string[] = [];
+  const afterIds = new Set(after.map((piece) => piece.id));
+  const kept = before.filter((piece) => piece.category !== category);
+  // Said by slot, not by name: these lines go into the published aggregates, which carry no outfits.
+  for (const piece of kept) if (!afterIds.has(piece.id)) problems.push(`dropped the ${piece.category}`);
+  const replaced = after.filter((piece) => piece.category === category);
+  if (replaced.length !== 1) problems.push(`has ${replaced.length} pieces in the ${category} slot`);
+  else if (before.some((piece) => piece.id === replaced[0].id)) problems.push(`did not change the ${category}`);
+  const allowed = new Set([...kept.map((piece) => piece.id), ...replaced.map((piece) => piece.id)]);
+  for (const piece of after) if (!allowed.has(piece.id)) problems.push(`added a second ${piece.category === category ? category : `piece (${piece.category})`}`);
+  return problems;
+}
+
 export interface KeyItem { id: string; closet: string; kind: RequestKind; a: Side; b: Side; digest: string }
 export interface EvalKey { version: 1; seed: string; items: KeyItem[] }
 
@@ -266,6 +314,13 @@ export interface RunRecord {
   modelCalls: number;
   toolUses: number;
   corrections: number;
+  /**
+   * From the second evaluation on. Who wrote the answer: the agent, or the grounded reply after the
+   * agent fell back — which is what a person sees, where the first evaluation recorded no outfit.
+   */
+  answeredBy?: "agent" | "grounded";
+  /** Every tool call the model made, with its arguments, so a loss can be traced without guessing. Private. */
+  toolCalls?: Array<{ name: string; args: unknown }>;
 }
 
 /** The blank rater sheet, the private key, and the closets listing, from what the run produced. */
@@ -394,7 +449,32 @@ const tally = (results: ItemResult[]) => {
 const withRate = (counts: ReturnType<typeof tally>) => ({ ...counts, winRate: wilson(counts.hangerWins, counts.hangerWins + counts.baselineWins) });
 
 /** The private record of a run: what was spent, and what each request produced. A rerun resumes from it. */
-export interface RunFile { version: 1; seed: string; spend: { spentUsd: number; largestInput: number; callsSent: number }; records: Record<string, RunRecord> }
+export interface RunFile {
+  version: 1; seed: string; spend: { spentUsd: number; largestInput: number; callsSent: number }; records: Record<string, RunRecord>;
+  /** The fixture set and the commit of this repository that produced the records. */
+  set?: string;
+  commit?: string;
+}
+
+/**
+ * What can be checked without a rater, reported beside the preference result and never mixed into
+ * it: whether each outfit Hanger offered is a wearable outfit by the builder's own rules, and
+ * whether each swap changed the one slot it was asked to change and nothing else.
+ */
+export function mechanicalChecks(records: Record<string, Pick<RunRecord, "hangerOutfit">>, closets: EvalCloset[], requests: EvalRequest[]) {
+  const closetById = new Map(closets.map((closet) => [closet.id, closet]));
+  const piecesOf = (request: EvalRequest, ids: string[] | null | undefined) => (ids ?? []).map((id) => closetById.get(request.closet)!.pieces.find((piece) => piece.id === id)).filter((piece): piece is EvalPiece => Boolean(piece));
+  const answered = requests.filter((request) => records[request.id]);
+  const answerable = answered.filter((request) => request.kind !== "impossible");
+  const offered = answerable.filter((request) => records[request.id].hangerOutfit?.length);
+  const invalid = offered.map((request) => ({ id: request.id, problems: outfitProblems(piecesOf(request, records[request.id].hangerOutfit)) })).filter((entry) => entry.problems.length);
+  const swaps = answered.filter((request) => request.kind === "swap" && request.swapCategory);
+  const inexact = swaps.map((request) => ({ id: request.id, problems: swapProblems(piecesOf(request, request.activeOutfit), piecesOf(request, records[request.id].hangerOutfit), request.swapCategory!) })).filter((entry) => entry.problems.length);
+  return {
+    outfits: { answerable: answerable.length, offered: offered.length, noneOffered: answerable.length - offered.length, valid: offered.length - invalid.length, invalid },
+    swaps: { requests: swaps.length, exact: swaps.length - inexact.length, inexact },
+  };
+}
 
 export function summarizeRun(run: RunFile, requestIds: string[]) {
   const records = requestIds.map((id) => run.records[id]).filter(Boolean);
@@ -407,6 +487,8 @@ export function summarizeRun(run: RunFile, requestIds: string[]) {
     turnsWithNoToolCall: records.filter((record) => record.toolUses === 0).length,
     toolsUsed: count(records.flatMap((record) => record.toolsUsed)),
     fallbacks: { count: fallbacks.length, rate: records.length ? Number((fallbacks.length / records.length).toFixed(4)) : null, byKind: count(fallbacks.map((record) => record.fallback!.kind)) },
+    // Only runs that went through the shared turn know this; older runs recorded no outfit instead.
+    ...(records.some((record) => record.answeredBy) ? { answeredByGroundedReply: records.filter((record) => record.answeredBy === "grounded").length } : {}),
     inventedOutfitCorrections: { count: records.reduce((sum, record) => sum + record.corrections, 0), turnsCorrected: records.filter((record) => record.corrections > 0).length },
     countedSpendUsd: Number(run.spend.spentUsd.toFixed(2)),
   };
@@ -424,6 +506,11 @@ export interface EvaluationReport {
   agreement: ReturnType<typeof cohenKappa>;
   impossibleAsks: { requests: number; hangerOfferedAnOutfit: number; hangerOfferedNone: number; outcomes: ReturnType<typeof tally> };
   toolUse: ReturnType<typeof summarizeRun>;
+  /** Outfit validity and swap accuracy: counted from the run, no rater involved. */
+  mechanical: ReturnType<typeof mechanicalChecks>;
+  /** The fixture set and the commit that was tested, when the run recorded them. */
+  set?: string;
+  commit?: string;
 }
 
 export interface LosingCase { id: string; closet: string; kind: RequestKind; request: string; hangerOutfit: string; baselineOutfit: string; hangerReply: string; fallback: string | null; raters: Array<{ picked: Verdict; reason: string }> }
@@ -458,6 +545,9 @@ export function scoreEvaluation(input: { key: EvalKey; run: RunFile; raters: [Re
       outcomes: tally(impossible),
     },
     toolUse: summarizeRun(run, ids),
+    mechanical: mechanicalChecks(run.records, closets, requests.filter((request) => ids.includes(request.id))),
+    ...(run.set ? { set: run.set } : {}),
+    ...(run.commit ? { commit: run.commit } : {}),
   };
   const closetById = new Map(closets.map((closet) => [closet.id, closet]));
   const requestById = new Map(requests.map((request) => [request.id, request]));
@@ -483,14 +573,17 @@ const interval = (score: { hangerWins: number; baselineWins: number; winRate: Re
 const indent = (text: string) => text.split("\n").map((line) => `  ${line}`).join("\n");
 
 /** docs/hanger-evaluation-results.md, written from the report and the losing cases and nothing else. */
-export function renderResultsMarkdown(report: EvaluationReport, losing: LosingCase[]) {
-  const { headline: h, allRequests: all, agreement, toolUse: tool, impossibleAsks: imp } = report;
+export function renderResultsMarkdown(report: EvaluationReport, losing: LosingCase[], options: { includeReasons?: boolean } = {}) {
+  const { headline: h, allRequests: all, agreement, toolUse: tool, impossibleAsks: imp, mechanical: checks } = report;
   const kappa = agreement.kappa === null ? "undefined (both raters gave one answer throughout)" : agreement.kappa.toFixed(2);
+  const named = report.set && report.set !== ORIGINAL_SET;
+  const failures = (entries: Array<{ id: string; problems: string[] }>) => (entries.length ? ` Not: ${entries.map((entry) => `${entry.id} (${entry.problems.join("; ")})`).join(", ")}.` : "");
   const lines = [
-    "# Hanger evaluation results",
+    `# Hanger evaluation results${named ? ` — ${report.set}` : ""}`,
     "",
-    `Generated from \`data/hanger-evaluation-${report.date}.json\` by \`scripts/score-hanger-evaluation.mjs\`. Method, limits, and how to run it: [hanger-evaluation.md](hanger-evaluation.md).`,
+    `Generated from \`data/hanger-evaluation-${named ? `${report.set}-` : ""}${report.date}.json\` by \`scripts/score-hanger-evaluation.mjs\`. Method, limits, and how to run it: [hanger-evaluation.md](hanger-evaluation.md).`,
     "",
+    ...(report.commit ? [`Tested commit: \`${report.commit}\`${named ? `, fixture set \`${report.set}\`` : ""}.`, ""] : []),
     `Hanger's outfit was compared with a **random valid outfit from the same closet** on ${all.requests} synthetic requests across ${Object.keys(report.byCloset).length} synthetic closets, by two raters who did not know which outfit was which. This shows whether Hanger beats picking at random, not whether it matches a human stylist.`,
     "",
     "## Result",
@@ -509,6 +602,13 @@ export function renderResultsMarkdown(report: EvaluationReport, losing: LosingCa
     "| Closet | Requests | Hanger | Baseline | Tied |", "| --- | ---: | ---: | ---: | ---: |",
     ...Object.entries(report.byCloset).map(([closet, score]) => `| ${closet} | ${score.requests} | ${score.hangerWins} | ${score.baselineWins} | ${score.ties} |`),
     "",
+    "## Checks that need no rater",
+    "",
+    "Counted from the run itself, and reported apart from the preference result above: neither is evidence about the other.",
+    "",
+    `- **Outfit validity.** Hanger offered an outfit on ${checks.outfits.offered} of ${checks.outfits.answerable} answerable requests${checks.outfits.noneOffered ? ` and none on ${checks.outfits.noneOffered}` : ""}. ${checks.outfits.valid} of ${checks.outfits.offered} are a wearable outfit by the builder's rules (a dress, or a top and a bottom; shoes; no more than four pieces).${failures(checks.outfits.invalid)}`,
+    `- **Swap accuracy.** ${checks.swaps.exact} of ${checks.swaps.requests} swap requests changed the one slot asked for and kept every other piece.${failures(checks.swaps.inexact)}`,
+    "",
     "## Impossible asks",
     "",
     `Each closet had one request for something it does not contain. Hanger offered an outfit anyway on ${imp.hangerOfferedAnOutfit} of ${imp.requests} and offered none on ${imp.hangerOfferedNone}. Raters judged ${imp.outcomes.hangerWins} for Hanger, ${imp.outcomes.baselineWins} for the baseline and ${imp.outcomes.ties} tied. These are kept out of the headline because an honest "I don't have that" cannot beat an outfit on outfit quality; read the replies for these requests in the private run file to judge the honesty.`,
@@ -518,7 +618,9 @@ export function renderResultsMarkdown(report: EvaluationReport, losing: LosingCa
     `Across ${tool.turns} turns: ${tool.toolCallsPerTurn.mean} tool calls per turn on average (median ${tool.toolCallsPerTurn.median}, most ${tool.toolCallsPerTurn.max}) and ${tool.modelCallsPerTurn.mean} model calls (median ${tool.modelCallsPerTurn.median}, most ${tool.modelCallsPerTurn.max}). ${tool.turnsWithNoToolCall} turns used no tool.`,
     "",
     `- Tools used: ${Object.entries(tool.toolsUsed).map(([name, uses]) => `${name} (${uses} turns)`).join(", ") || "none"}.`,
-    `- Fell back to the grounded reply: ${tool.fallbacks.count} of ${tool.turns} (${pct(tool.fallbacks.rate)})${Object.keys(tool.fallbacks.byKind).length ? `: ${Object.entries(tool.fallbacks.byKind).map(([kind, n]) => `${kind} ${n}`).join(", ")}` : ""}. A fallback shows as "(no outfit offered)" and is rated like any other.`,
+    `- Fell back to the grounded reply: ${tool.fallbacks.count} of ${tool.turns} (${pct(tool.fallbacks.rate)})${Object.keys(tool.fallbacks.byKind).length ? `: ${Object.entries(tool.fallbacks.byKind).map(([kind, n]) => `${kind} ${n}`).join(", ")}` : ""}. ${tool.answeredByGroundedReply === undefined
+      ? 'A fallback shows as "(no outfit offered)" and is rated like any other.'
+      : "A fallback is answered from the wardrobe by the grounded reply, as it is in the app, and that outfit is what was rated."}`,
     `- Outfit lists the agent wrote itself and had to be corrected: ${tool.inventedOutfitCorrections.count} corrections across ${tool.inventedOutfitCorrections.turnsCorrected} turns.`,
     `- Bedrock spend counted for the run, with a 1.5× margin: $${tool.countedSpendUsd.toFixed(2)} (hard cap $1.50).`,
     "",
@@ -534,7 +636,8 @@ export function renderResultsMarkdown(report: EvaluationReport, losing: LosingCa
       `Baseline offered:`, "", indent(entry.baselineOutfit), "",
       ...(entry.fallback ? [`Hanger fell back (${entry.fallback}).`, ""] : []),
       `Hanger said: ${entry.hangerReply || "(nothing)"}`, "",
-      ...entry.raters.map((rater, index) => `- Rater ${index + 1} chose ${rater.picked === "hanger" ? "Hanger" : rater.picked === "baseline" ? "the baseline" : "a tie"}${rater.reason ? `: ${rater.reason}` : " (no reason given)"}`), "",
+      // A rater's own words are published only when the owner asks for that; the pick always is.
+      ...entry.raters.map((rater, index) => `- Rater ${index + 1} chose ${rater.picked === "hanger" ? "Hanger" : rater.picked === "baseline" ? "the baseline" : "a tie"}${!options.includeReasons ? "" : rater.reason ? `: ${rater.reason}` : " (no reason given)"}`), "",
     );
   }
   lines.push(`The closets, requests and baseline are synthetic and the raters are two people: this is a measured preference over ${all.requests} requests, not a guarantee for every closet.`);

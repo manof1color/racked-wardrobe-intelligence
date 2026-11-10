@@ -1,0 +1,422 @@
+{
+  "synthetic": true,
+  "note": "Forty requests invented for the Hanger blind evaluation, holdout set 1: ten per closet, in the same mix as the first set (four occasion, three weather with the forecast supplied as data, two swap-one-piece, one impossible ask). They were written after the fixes for the first evaluation and are not used to tune them.",
+  "requests": [
+    {
+      "id": "e-01",
+      "closet": "closet-e",
+      "kind": "occasion",
+      "text": "Group project presentation in front of the whole class tomorrow.",
+      "today": "2027-03-02"
+    },
+    {
+      "id": "e-02",
+      "closet": "closet-e",
+      "kind": "occasion",
+      "text": "Going to a house show tonight, a friend's band is playing.",
+      "today": "2027-04-17"
+    },
+    {
+      "id": "e-03",
+      "closet": "closet-e",
+      "kind": "occasion",
+      "text": "My cousin's graduation dinner at a nice restaurant.",
+      "today": "2027-05-22"
+    },
+    {
+      "id": "e-04",
+      "closet": "closet-e",
+      "kind": "occasion",
+      "text": "Studying at the library all day, then a movie night at my place.",
+      "today": "2027-02-11"
+    },
+    {
+      "id": "e-05",
+      "closet": "closet-e",
+      "kind": "weather",
+      "text": "What should I wear to class today?",
+      "today": "2027-11-09",
+      "forecast": {
+        "description": "cold drizzle",
+        "highC": 6,
+        "lowC": 2,
+        "precipitationChance": 65,
+        "windMph": 9
+      }
+    },
+    {
+      "id": "e-06",
+      "closet": "closet-e",
+      "kind": "weather",
+      "text": "Heading to the park to hang out this afternoon.",
+      "today": "2027-07-24",
+      "forecast": {
+        "description": "hot and sunny",
+        "highC": 32,
+        "lowC": 22,
+        "precipitationChance": 5,
+        "windMph": 6
+      }
+    },
+    {
+      "id": "e-07",
+      "closet": "closet-e",
+      "kind": "weather",
+      "text": "Walking across campus for an early exam.",
+      "today": "2027-01-19",
+      "forecast": {
+        "description": "frost and clear skies",
+        "highC": 3,
+        "lowC": -2,
+        "precipitationChance": 5,
+        "windMph": 7
+      }
+    },
+    {
+      "id": "e-08",
+      "closet": "closet-e",
+      "kind": "swap",
+      "text": "Swap the boots for something lighter.",
+      "today": "2027-05-04",
+      "activeOutfit": [
+        "e-01",
+        "e-09",
+        "e-18",
+        "e-14"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "e-09",
+      "closet": "closet-e",
+      "kind": "swap",
+      "text": "Can you change the jeans to a skirt?",
+      "today": "2027-10-12",
+      "activeOutfit": [
+        "e-06",
+        "e-08",
+        "e-18"
+      ],
+      "swapCategory": "bottom"
+    },
+    {
+      "id": "e-10",
+      "closet": "closet-e",
+      "kind": "impossible",
+      "text": "I need my rain boots and yellow raincoat for the storm.",
+      "today": "2027-04-02"
+    },
+    {
+      "id": "f-01",
+      "closet": "closet-f",
+      "kind": "occasion",
+      "text": "Final-round interview at a law firm on Thursday.",
+      "today": "2027-02-23"
+    },
+    {
+      "id": "f-02",
+      "closet": "closet-f",
+      "kind": "occasion",
+      "text": "Cocktail reception after a conference, starts at six.",
+      "today": "2027-06-10"
+    },
+    {
+      "id": "f-03",
+      "closet": "closet-f",
+      "kind": "occasion",
+      "text": "Weekend barbecue at my boss's house.",
+      "today": "2027-08-14"
+    },
+    {
+      "id": "f-04",
+      "closet": "closet-f",
+      "kind": "occasion",
+      "text": "Taking my mother to the theatre and dinner afterwards.",
+      "today": "2027-11-20"
+    },
+    {
+      "id": "f-05",
+      "closet": "closet-f",
+      "kind": "weather",
+      "text": "Back at my desk today after a week away. What do I put on?",
+      "today": "2027-10-21",
+      "forecast": {
+        "description": "heavy rain",
+        "highC": 13,
+        "lowC": 9,
+        "precipitationChance": 90,
+        "windMph": 15
+      }
+    },
+    {
+      "id": "f-06",
+      "closet": "closet-f",
+      "kind": "weather",
+      "text": "Outdoor wedding this afternoon, I'm a guest.",
+      "today": "2027-07-03",
+      "forecast": {
+        "description": "sunny and hot",
+        "highC": 30,
+        "lowC": 21,
+        "precipitationChance": 5,
+        "windMph": 5
+      }
+    },
+    {
+      "id": "f-07",
+      "closet": "closet-f",
+      "kind": "weather",
+      "text": "Client dinner downtown tonight.",
+      "today": "2027-01-27",
+      "forecast": {
+        "description": "freezing fog",
+        "highC": 3,
+        "lowC": -1,
+        "precipitationChance": 10,
+        "windMph": 4
+      }
+    },
+    {
+      "id": "f-08",
+      "closet": "closet-f",
+      "kind": "swap",
+      "text": "Swap the shoes for something more relaxed.",
+      "today": "2027-05-13",
+      "activeOutfit": [
+        "f-01",
+        "f-07",
+        "f-17",
+        "f-14"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "f-09",
+      "closet": "closet-f",
+      "kind": "swap",
+      "text": "Change the top to something warmer.",
+      "today": "2027-12-01",
+      "activeOutfit": [
+        "f-06",
+        "f-11",
+        "f-20"
+      ],
+      "swapCategory": "top"
+    },
+    {
+      "id": "f-10",
+      "closet": "closet-f",
+      "kind": "impossible",
+      "text": "Get my tweed three-piece suit ready for the races.",
+      "today": "2027-06-19"
+    },
+    {
+      "id": "g-01",
+      "closet": "closet-g",
+      "kind": "occasion",
+      "text": "Trail run before work, about an hour.",
+      "today": "2027-06-08"
+    },
+    {
+      "id": "g-02",
+      "closet": "closet-g",
+      "kind": "occasion",
+      "text": "Meeting my partner's coworkers at a brewery tonight.",
+      "today": "2027-09-24"
+    },
+    {
+      "id": "g-03",
+      "closet": "closet-g",
+      "kind": "occasion",
+      "text": "Parent-teacher conference this afternoon.",
+      "today": "2027-10-05"
+    },
+    {
+      "id": "g-04",
+      "closet": "closet-g",
+      "kind": "occasion",
+      "text": "Climbing gym session, then tacos with the crew.",
+      "today": "2027-03-18"
+    },
+    {
+      "id": "g-05",
+      "closet": "closet-g",
+      "kind": "weather",
+      "text": "Day hike up to the lake.",
+      "today": "2027-09-30",
+      "forecast": {
+        "description": "showers",
+        "highC": 9,
+        "lowC": 4,
+        "precipitationChance": 70,
+        "windMph": 12
+      }
+    },
+    {
+      "id": "g-06",
+      "closet": "closet-g",
+      "kind": "weather",
+      "text": "Farmers market, then coffee in town.",
+      "today": "2027-07-17",
+      "forecast": {
+        "description": "warm and sunny",
+        "highC": 26,
+        "lowC": 15,
+        "precipitationChance": 5,
+        "windMph": 6
+      }
+    },
+    {
+      "id": "g-07",
+      "closet": "closet-g",
+      "kind": "weather",
+      "text": "What should I wear to walk the dog this morning?",
+      "today": "2027-01-14",
+      "forecast": {
+        "description": "light snow",
+        "highC": -1,
+        "lowC": -6,
+        "precipitationChance": 60,
+        "windMph": 10
+      }
+    },
+    {
+      "id": "g-08",
+      "closet": "closet-g",
+      "kind": "swap",
+      "text": "Swap the boots for sneakers.",
+      "today": "2027-10-22",
+      "activeOutfit": [
+        "g-03",
+        "g-11",
+        "g-18",
+        "g-16"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "g-09",
+      "closet": "closet-g",
+      "kind": "swap",
+      "text": "Too warm in here, change the pullover for something lighter.",
+      "today": "2027-02-06",
+      "activeOutfit": [
+        "g-04",
+        "g-12",
+        "g-19"
+      ],
+      "swapCategory": "top"
+    },
+    {
+      "id": "g-10",
+      "closet": "closet-g",
+      "kind": "impossible",
+      "text": "Lay out my wetsuit and surfboard bag for dawn patrol.",
+      "today": "2027-08-01"
+    },
+    {
+      "id": "h-01",
+      "closet": "closet-h",
+      "kind": "occasion",
+      "text": "Gallery opening tonight, I want to look sharp but effortless.",
+      "today": "2027-04-09"
+    },
+    {
+      "id": "h-02",
+      "closet": "closet-h",
+      "kind": "occasion",
+      "text": "Pilates class at 7am, then straight to a coffee meeting.",
+      "today": "2027-05-18"
+    },
+    {
+      "id": "h-03",
+      "closet": "closet-h",
+      "kind": "occasion",
+      "text": "Quarterly review with leadership, and I'm presenting.",
+      "today": "2027-01-12"
+    },
+    {
+      "id": "h-04",
+      "closet": "closet-h",
+      "kind": "occasion",
+      "text": "A long-haul flight tomorrow, eleven hours.",
+      "today": "2027-03-27"
+    },
+    {
+      "id": "h-05",
+      "closet": "closet-h",
+      "kind": "weather",
+      "text": "Dinner on a terrace tonight.",
+      "today": "2027-08-06",
+      "forecast": {
+        "description": "warm and humid",
+        "highC": 28,
+        "lowC": 22,
+        "precipitationChance": 15,
+        "windMph": 5
+      }
+    },
+    {
+      "id": "h-06",
+      "closet": "closet-h",
+      "kind": "weather",
+      "text": "What should I wear for errands around the city?",
+      "today": "2027-12-08",
+      "forecast": {
+        "description": "cold and windy",
+        "highC": 4,
+        "lowC": 0,
+        "precipitationChance": 10,
+        "windMph": 20
+      }
+    },
+    {
+      "id": "h-07",
+      "closet": "closet-h",
+      "kind": "weather",
+      "text": "Meeting friends for brunch.",
+      "today": "2027-04-25",
+      "forecast": {
+        "description": "light rain",
+        "highC": 16,
+        "lowC": 11,
+        "precipitationChance": 65,
+        "windMph": 8
+      }
+    },
+    {
+      "id": "h-08",
+      "closet": "closet-h",
+      "kind": "swap",
+      "text": "Change the sneakers to something dressier.",
+      "today": "2027-09-14",
+      "activeOutfit": [
+        "h-02",
+        "h-07",
+        "h-17",
+        "h-14"
+      ],
+      "swapCategory": "shoe"
+    },
+    {
+      "id": "h-09",
+      "closet": "closet-h",
+      "kind": "swap",
+      "text": "Swap the trousers for jeans.",
+      "today": "2027-02-20",
+      "activeOutfit": [
+        "h-03",
+        "h-09",
+        "h-20"
+      ],
+      "swapCategory": "bottom"
+    },
+    {
+      "id": "h-10",
+      "closet": "closet-h",
+      "kind": "impossible",
+      "text": "Style my red sequin jumpsuit for New Year's Eve.",
+      "today": "2027-12-30"
+    }
+  ]
+}

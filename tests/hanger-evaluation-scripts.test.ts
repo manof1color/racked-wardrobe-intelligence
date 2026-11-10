@@ -81,7 +81,12 @@ test("the runner reaches Bedrock only after the confirmation check, and sends no
   const confirm = source.indexOf('process.env.RACKED_EVAL_CONFIRM !== "yes"');
   assert.ok(confirm > 0);
   assert.ok(source.indexOf("new BedrockRuntimeClient(") > confirm, "no client is built before the check");
-  assert.ok(source.indexOf("runHangerAgent(") > confirm, "no agent turn runs before the check");
+  // Before the check the turn runs only with the model switched off (the dry-run check); the one
+  // place a model caller is built is after it.
+  assert.equal(source.slice(0, confirm).includes("agentEnabled: true"), false, "no agent turn runs before the check");
+  assert.match(source, /answer\(request, \{ agentEnabled: false, agentCall: async \(\) => null \}\)/, "the dry-run check hands the turn a model caller that calls nothing");
+  assert.ok(source.indexOf("meteredAgentCall(bedrockAgentConverse") > confirm, "the model caller is built only after the check");
+  assert.equal((source.match(/bedrockAgentConverse/g) ?? []).length, 2, "imported once and used once, inside the meter");
   assert.ok(source.indexOf('process.env.AI_PROVIDER = "bedrock"') > confirm, "the agent is not even enabled before the check");
   assert.doesNotMatch(source, /ConverseCommand|\.send\(/, "every model call goes through the metered agent call");
   assert.match(source, /meteredAgentCall\(bedrockAgentConverse, guard, tally\)/);
@@ -188,4 +193,62 @@ test("AGENTS.md names both evaluation scripts in the temporary lane exception, a
   assert.match(guide, /cannot prove/i);
   assert.match(guide, /RACKED_EVAL_CONFIRM=yes/);
   assert.match(guide, /\$1\.50/);
+});
+
+// ── The retest: fixture sets, the dry-run check, and results that are not written over ──────────
+
+test("the dry run also checks, with no model, that every outfit is valid and every swap exact", () => {
+  const dir = join(scratch, "never-created");
+  const original = runScript("run-hanger-evaluation.mjs", [], { RACKED_HANGER_EVAL_DIR: dir });
+  assert.equal(original.status, 0, original.err);
+  assert.match(original.out, /Fixture set: original\. Commit under test: (?:[0-9a-f]{40}|unknown)/);
+  assert.match(original.out, /Dry-run check \(no model, nothing spent\): 36 of 36 outfits offered are valid \(36 of 36 answerable requests got one\)\. 8 of 8 swaps changed only the slot asked for\./);
+
+  const holdout = runScript("run-hanger-evaluation.mjs", [], { RACKED_HANGER_EVAL_SET: "holdout-1" });
+  assert.equal(holdout.status, 0, holdout.err);
+  assert.match(holdout.out, /4 closets \(22, 23, 23, 23 pieces\), 40 requests \(16 occasion, 12 weather, 8 swap, 4 impossible\)\. 40 baseline outfits built and valid\./);
+  assert.match(holdout.out, /Fixture set: holdout-1\./);
+  assert.match(holdout.out, /racked-hanger-eval-holdout-1 \(outside the repository\)/, "a set gets a folder of its own, so two runs cannot share a key");
+  // Every outfit the wardrobe logic offers is valid and every swap exact. How many requests the
+  // no-model fallback reads as asking for an outfit is reported, not asserted: it was not tuned to these.
+  assert.match(holdout.out, /Dry-run check \(no model, nothing spent\): (\d+) of \1 outfits offered are valid \(\1 of 36 answerable requests got one\)\. 8 of 8 swaps changed only the slot asked for\./);
+  assert.match(holdout.out, /Nothing was called or written\./);
+  assert.equal(existsSync(dir), false);
+});
+
+test("an unknown or unsafe fixture set is refused before anything is read", () => {
+  for (const set of ["../outside", "Holdout 1", "holdout-9"]) {
+    const run = runScript("run-hanger-evaluation.mjs", [], { RACKED_HANGER_EVAL_SET: set, RACKED_HANGER_EVAL_DIR: join(scratch, "never-created") });
+    assert.notEqual(run.status, 0, set);
+    assert.match(run.err, /is not a fixture set name|No fixture set/, set);
+  }
+});
+
+test("the scorer never writes over an earlier result, names a set's files after the set, and keeps rater reasons out unless asked", () => {
+  const { dir, fill } = finishedRun("protected");
+  const one = fill("rater1.csv", (index) => (index % 3 === 0 ? "B" : "A"));
+  const two = fill("rater2.csv", (index) => (index % 2 === 0 ? "B" : "A"));
+  const outJson = join(dir, "out.json"), outMd = join(dir, "out.md");
+  const args = ["--dir", dir, "--rater-1", one, "--rater-2", two, "--date", "2026-11-12", "--out-json", outJson, "--out-md", outMd];
+  assert.equal(runScript("score-hanger-evaluation.mjs", args).status, 0);
+  const first = readFileSync(outMd, "utf8");
+  assert.doesNotMatch(first, /reason, with/, "a rater's own words are not published by default");
+  assert.match(first, /- Rater 1 chose (?:Hanger|the baseline|a tie)\n/);
+  assert.match(first, /## Checks that need no rater/);
+  assert.match(first, /\*\*Outfit validity\.\*\* Hanger offered an outfit on \d+ of 36 answerable requests/);
+  assert.match(first, /\*\*Swap accuracy\.\*\* 8 of 8 swap requests changed the one slot asked for/);
+
+  const again = runScript("score-hanger-evaluation.mjs", args);
+  assert.notEqual(again.status, 0);
+  assert.match(again.err, /already exist\. Choose another --out-json \/ --out-md, or pass --overwrite/);
+  assert.equal(readFileSync(outMd, "utf8"), first, "the earlier result is untouched");
+
+  const asked = runScript("score-hanger-evaluation.mjs", [...args, "--overwrite", "--publish-reasons"]);
+  assert.equal(asked.status, 0, asked.err);
+  assert.match(readFileSync(outMd, "utf8"), /Rater 1 chose [^\n]*: reason, with "quotes" and a line break/);
+
+  // A run made on one set cannot be scored as another.
+  const wrongSet = runScript("score-hanger-evaluation.mjs", [...args, "--overwrite", "--set", "holdout-1"]);
+  assert.notEqual(wrongSet.status, 0);
+  assert.match(wrongSet.err, /run\.json was made with fixture set "original", not "holdout-1"/);
 });

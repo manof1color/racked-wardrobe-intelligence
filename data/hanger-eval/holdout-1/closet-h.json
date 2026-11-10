@@ -1,0 +1,376 @@
+{
+  "id": "closet-h",
+  "name": "Minimal city wardrobe, neutrals",
+  "synthetic": true,
+  "note": "Synthetic closet invented for the Hanger blind evaluation, holdout set 1. No photos, no real person, no real purchase history.",
+  "pieces": [
+    {
+      "id": "h-01",
+      "name": "Black crewneck tee",
+      "category": "top",
+      "subtype": "t-shirt",
+      "color": "black",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 27,
+      "lastWornDays": 1
+    },
+    {
+      "id": "h-02",
+      "name": "White poplin button-up",
+      "category": "top",
+      "subtype": "dress-shirt",
+      "color": "white",
+      "pattern": "solid",
+      "material": "cotton poplin",
+      "style": [
+        "minimal",
+        "tailored"
+      ],
+      "season": "all-season",
+      "wearCount": 15,
+      "lastWornDays": 5
+    },
+    {
+      "id": "h-03",
+      "name": "Grey merino crewneck",
+      "category": "top",
+      "subtype": "sweater",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "merino wool",
+      "style": [
+        "minimal",
+        "refined"
+      ],
+      "season": "winter",
+      "wearCount": 13,
+      "lastWornDays": 8
+    },
+    {
+      "id": "h-04",
+      "name": "Ivory silk camisole",
+      "category": "top",
+      "subtype": "tank-top",
+      "color": "ivory",
+      "pattern": "solid",
+      "material": "silk",
+      "style": [
+        "elegant",
+        "minimal"
+      ],
+      "season": "summer",
+      "wearCount": 5,
+      "lastWornDays": 45
+    },
+    {
+      "id": "h-05",
+      "name": "Navy linen shirt",
+      "category": "top",
+      "subtype": "casual-shirt",
+      "color": "navy",
+      "pattern": "solid",
+      "material": "linen",
+      "style": [
+        "relaxed",
+        "classic"
+      ],
+      "season": "summer",
+      "wearCount": 8,
+      "lastWornDays": 26
+    },
+    {
+      "id": "h-06",
+      "name": "Black cotton cardigan",
+      "category": "top",
+      "subtype": "cardigan",
+      "color": "black",
+      "pattern": "solid",
+      "material": "cotton knit",
+      "style": [
+        "classic",
+        "layered"
+      ],
+      "season": "spring",
+      "wearCount": 10,
+      "lastWornDays": 14
+    },
+    {
+      "id": "h-07",
+      "name": "Black wide-leg trousers",
+      "category": "bottom",
+      "subtype": "dress-pants",
+      "color": "black",
+      "pattern": "solid",
+      "material": "crepe",
+      "style": [
+        "tailored",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 17,
+      "lastWornDays": 4
+    },
+    {
+      "id": "h-08",
+      "name": "Ecru straight jeans",
+      "category": "bottom",
+      "subtype": "jeans",
+      "color": "cream",
+      "pattern": "solid",
+      "material": "denim",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "spring",
+      "wearCount": 12,
+      "lastWornDays": 9
+    },
+    {
+      "id": "h-09",
+      "name": "Charcoal wool trousers",
+      "category": "bottom",
+      "subtype": "dress-pants",
+      "color": "charcoal",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "tailored",
+        "classic"
+      ],
+      "season": "winter",
+      "wearCount": 9,
+      "lastWornDays": 19
+    },
+    {
+      "id": "h-10",
+      "name": "Black linen shorts",
+      "category": "bottom",
+      "subtype": "shorts",
+      "color": "black",
+      "pattern": "solid",
+      "material": "linen",
+      "style": [
+        "relaxed",
+        "minimal"
+      ],
+      "season": "summer",
+      "wearCount": 6,
+      "lastWornDays": 55
+    },
+    {
+      "id": "h-11",
+      "name": "Black jersey leggings",
+      "category": "bottom",
+      "subtype": "leggings",
+      "color": "black",
+      "pattern": "solid",
+      "material": "jersey",
+      "style": [
+        "comfortable",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 20,
+      "lastWornDays": 3
+    },
+    {
+      "id": "h-12",
+      "name": "Black column dress",
+      "category": "dress",
+      "subtype": "maxi-dress",
+      "color": "black",
+      "pattern": "solid",
+      "material": "jersey",
+      "style": [
+        "sleek",
+        "minimal"
+      ],
+      "season": "all-season",
+      "wearCount": 7,
+      "lastWornDays": 30
+    },
+    {
+      "id": "h-13",
+      "name": "Beige shirt dress",
+      "category": "dress",
+      "subtype": "shirt-dress",
+      "color": "beige",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": [
+        "classic",
+        "relaxed"
+      ],
+      "season": "summer",
+      "wearCount": 4,
+      "lastWornDays": 65
+    },
+    {
+      "id": "h-14",
+      "name": "Black oversized blazer",
+      "category": "outerwear",
+      "subtype": "blazer",
+      "color": "black",
+      "pattern": "solid",
+      "material": "wool blend",
+      "style": [
+        "tailored",
+        "structured"
+      ],
+      "season": "all-season",
+      "wearCount": 14,
+      "lastWornDays": 6
+    },
+    {
+      "id": "h-15",
+      "name": "Camel wrap coat",
+      "category": "outerwear",
+      "subtype": "overcoat",
+      "color": "camel",
+      "pattern": "solid",
+      "material": "wool",
+      "style": [
+        "elegant",
+        "classic"
+      ],
+      "season": "winter",
+      "wearCount": 11,
+      "lastWornDays": 10
+    },
+    {
+      "id": "h-16",
+      "name": "Black bomber jacket",
+      "category": "outerwear",
+      "subtype": "bomber-jacket",
+      "color": "black",
+      "pattern": "solid",
+      "material": "nylon",
+      "style": [
+        "sleek",
+        "casual"
+      ],
+      "season": "fall",
+      "wearCount": 9,
+      "lastWornDays": 17
+    },
+    {
+      "id": "h-17",
+      "name": "White court sneakers",
+      "category": "shoe",
+      "subtype": "low-top-sneakers",
+      "color": "white",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "minimal",
+        "casual"
+      ],
+      "season": "all-season",
+      "wearCount": 24,
+      "lastWornDays": 1
+    },
+    {
+      "id": "h-18",
+      "name": "Black leather loafers",
+      "category": "shoe",
+      "subtype": "loafers",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "classic",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 16,
+      "lastWornDays": 5
+    },
+    {
+      "id": "h-19",
+      "name": "Black block-heel sandals",
+      "category": "shoe",
+      "subtype": "heels",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "elegant",
+        "sleek"
+      ],
+      "season": "summer",
+      "wearCount": 5,
+      "lastWornDays": 50
+    },
+    {
+      "id": "h-20",
+      "name": "Black zip ankle boots",
+      "category": "shoe",
+      "subtype": "ankle-boots",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "sleek",
+        "classic"
+      ],
+      "season": "fall",
+      "wearCount": 12,
+      "lastWornDays": 12
+    },
+    {
+      "id": "h-21",
+      "name": "Grey running shoes",
+      "category": "shoe",
+      "subtype": "running-shoes",
+      "color": "grey",
+      "pattern": "solid",
+      "material": "mesh",
+      "style": [
+        "athletic",
+        "sporty"
+      ],
+      "season": "all-season",
+      "wearCount": 15,
+      "lastWornDays": 4
+    },
+    {
+      "id": "h-22",
+      "name": "Black leather crossbody",
+      "category": "bag",
+      "subtype": "crossbody",
+      "color": "black",
+      "pattern": "solid",
+      "material": "leather",
+      "style": [
+        "minimal",
+        "sleek"
+      ],
+      "season": "all-season",
+      "wearCount": 22,
+      "lastWornDays": 1
+    },
+    {
+      "id": "h-23",
+      "name": "Gold chain necklace",
+      "category": "jewelry",
+      "subtype": "necklace",
+      "color": "gold",
+      "pattern": "solid",
+      "material": "gold plate",
+      "style": [
+        "minimal",
+        "elegant"
+      ],
+      "season": "all-season",
+      "wearCount": 18,
+      "lastWornDays": 3
+    }
+  ]
+}
