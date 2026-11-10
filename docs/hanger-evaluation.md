@@ -18,7 +18,7 @@ The fixtures are in [`data/hanger-eval/`](../data/hanger-eval). There are two se
 | Set | Where | Use |
 | --- | --- | --- |
 | `original` | `closet-a.json` to `closet-d.json` and `requests.json` | The first evaluation. The fixes were written against its failures, so a rerun on it cannot show they generalise. |
-| `holdout-1` | [`holdout-1/`](../data/hanger-eval/holdout-1): `closet-e.json` to `closet-h.json` and `requests.json` | The next evaluation. New closets, new pieces, new wording, written after the fixes. |
+| `holdout-1` | [`holdout-1/`](../data/hanger-eval/holdout-1): `closet-e.json` to `closet-h.json` and `requests.json` | The next evaluation. New closets, new pieces, new wording, written after the fixes. **24 requests**, six a closet (two occasion, two weather, one swap, one impossible ask), so a rater can finish in one sitting. |
 
 `replay-cases.json` in the same folder is not part of either set: it is the scripted replay of the first evaluation's losses used by the diagnosis.
 
@@ -57,7 +57,7 @@ git rev-parse HEAD
 RACKED_HANGER_EVAL_SET=holdout-1 node --experimental-strip-types scripts/run-hanger-evaluation.mjs
 ```
 
-On the commit that added the holdout set it ends with `31 of 31 outfits offered are valid (31 of 36 answerable requests got one). 8 of 8 swaps changed only the slot asked for.` The five requests without an outfit are ones the no-model fallback does not read as asking for one; the agent normally handles those. An invalid outfit or an inexact swap here is a bug to fix before spending anything.
+On the commit that added the holdout set it ends with `16 of 16 outfits offered are valid (16 of 20 answerable requests got one). 4 of 4 swaps changed only the slot asked for.` The four requests without an outfit are ones the no-model fallback does not read as asking for one; the agent normally handles those. An invalid outfit or an inexact swap here is a bug to fix before spending anything.
 
 **2. Real run.** Only `RACKED_EVAL_CONFIRM=yes` starts it; any other value is a dry run.
 
@@ -87,7 +87,7 @@ It refuses to score if any choice is blank or unreadable, if a sheet does not ma
 
 ## What to tell the raters
 
-> You will see 40 requests. Each has two outfits, A and B, from the same closet, which you can look up in `closets.txt`. For each request, choose which outfit you would rather wear for that request, or **tie** if you cannot separate them, and write a few words saying why. Some requests include a forecast; some show what the person is wearing now and ask for one change. A few ask for something the closet does not have; judge the two outfits as shown, and write what you notice. Nothing tells you which outfit came from where and you should not try to work it out. Do not discuss your answers with anyone until you are both done.
+> You will see a list of requests (24 in the short set, 40 in the first). Each has two outfits, A and B, from the same closet, which you can look up in `closets.txt`. For each request, choose which outfit you would rather wear for that request, or **tie** if you cannot separate them, and write a few words saying why. Some requests include a forecast; some show what the person is wearing now and ask for one change. A few ask for something the closet does not have; judge the two outfits as shown, and write what you notice. Nothing tells you which outfit came from where and you should not try to work it out. Do not discuss your answers with anyone until you are both done.
 >
 > Put **A**, **B** or **tie** in the "choice" column and a short reason in the "reason" column. Save the file as CSV (UTF-8), keeping the other columns as they are. An outfit marked "(no outfit offered)" is a real answer: treat it as the outfit being missing.
 
@@ -109,6 +109,7 @@ It cannot prove:
 
 - **That Hanger is as good as a human stylist, or better than a simple rule.** A random valid outfit is a low bar. Beating it says outfits are not arbitrary; it does not say they are good.
 - **That the language model is what helped.** Hanger's outfits come from the same deterministic ranker the grounded fallback uses; the agent chooses when to call it and with what. This measures the whole system, not the model alone. Showing the model's contribution would need a ranker-only baseline too.
+- **Much, from a short set.** The holdout set has 20 answerable requests. If all 20 are decided, Hanger needs 15 or more for the interval to clear 50%; every tie makes that harder. A result near half says nothing either way, and is a reason to rate more requests, not a verdict.
 - **That a second evaluation is comparable to the first.** The holdout set has different closets and requests, and the first set's failures were what the fixes were written against. A higher win rate on the holdout is evidence the fixes generalise; it is not a before-and-after measurement on the same items.
 - **How it behaves for real people.** Four invented closets and forty requests are small, the interval will be wide (about ±16 percentage points if 36 requests are decided, and wider for every tie), and no real customer, photo, body, budget or taste is involved.
 - **Anything about the quality of Hanger's wording**, which raters never see, or its honesty on impossible asks, which needs a human to read the replies.

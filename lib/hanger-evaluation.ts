@@ -37,6 +37,7 @@ export interface EvalRequest {
 
 export const CLOSET_COUNT = 4;
 export const REQUESTS_PER_CLOSET = 10;
+export const MIN_REQUESTS_PER_CLOSET = 5;
 const SEASONS = ["all-season", "spring", "summer", "fall", "winter"];
 /** Reading order for an outfit, so neither side of a pair gives itself away by how it is listed. */
 const CATEGORY_ORDER = ["dress", "top", "bottom", "outerwear", "shoe", "bag", "jewelry", "accessory"];
@@ -66,7 +67,11 @@ export function validateFixtures(closets: EvalCloset[], requests: EvalRequest[])
       if (extra.length) problems.push(`${piece.id}: unexpected fields ${extra.join(", ")} (fixtures carry no photos or links)`);
     }
   }
-  if (requests.length !== CLOSET_COUNT * REQUESTS_PER_CLOSET) problems.push(`expected ${CLOSET_COUNT * REQUESTS_PER_CLOSET} requests, found ${requests.length}`);
+  // The first set has ten requests a closet. A later set may be shorter, so two raters can finish it
+  // in one sitting, but every closet gets the same number and never fewer than five.
+  const perCloset = requests.length / CLOSET_COUNT;
+  const sized = Number.isInteger(perCloset) && perCloset >= MIN_REQUESTS_PER_CLOSET && perCloset <= REQUESTS_PER_CLOSET;
+  if (!sized) problems.push(`expected ${CLOSET_COUNT * MIN_REQUESTS_PER_CLOSET} to ${CLOSET_COUNT * REQUESTS_PER_CLOSET} requests, the same number for each closet, found ${requests.length}`);
   const requestIds = new Set<string>();
   for (const request of requests) {
     if (requestIds.has(request.id)) problems.push(`${request.id}: duplicate request id`);
@@ -85,7 +90,7 @@ export function validateFixtures(closets: EvalCloset[], requests: EvalRequest[])
   }
   for (const closet of closets) {
     const own = requests.filter((request) => request.closet === closet.id);
-    if (own.length !== REQUESTS_PER_CLOSET) problems.push(`${closet.id}: ${own.length} requests, expected ${REQUESTS_PER_CLOSET}`);
+    if (sized && own.length !== perCloset) problems.push(`${closet.id}: ${own.length} requests, expected ${perCloset}`);
     if (own.filter((request) => request.kind === "impossible").length !== 1) problems.push(`${closet.id}: expected exactly one impossible ask`);
     for (const kind of ["occasion", "weather", "swap"] as const) if (!own.some((request) => request.kind === kind)) problems.push(`${closet.id}: no ${kind} request`);
   }

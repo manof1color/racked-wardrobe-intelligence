@@ -1,6 +1,6 @@
 {
   "synthetic": true,
-  "note": "Forty requests invented for the Hanger blind evaluation, holdout set 1: ten per closet, in the same mix as the first set (four occasion, three weather with the forecast supplied as data, two swap-one-piece, one impossible ask). They were written after the fixes for the first evaluation and are not used to tune them.",
+  "note": "Twenty-four requests invented for the Hanger blind evaluation, holdout set 1: six per closet (two occasion, two weather with the forecast supplied as data, one swap-one-piece, one impossible ask). Shorter than the first set so a rater can finish it in one sitting. They were written after the fixes for the first evaluation and are not used to tune them.",
   "requests": [
     {
       "id": "e-01",
@@ -10,25 +10,11 @@
       "today": "2027-03-02"
     },
     {
-      "id": "e-02",
-      "closet": "closet-e",
-      "kind": "occasion",
-      "text": "Going to a house show tonight, a friend's band is playing.",
-      "today": "2027-04-17"
-    },
-    {
       "id": "e-03",
       "closet": "closet-e",
       "kind": "occasion",
       "text": "My cousin's graduation dinner at a nice restaurant.",
       "today": "2027-05-22"
-    },
-    {
-      "id": "e-04",
-      "closet": "closet-e",
-      "kind": "occasion",
-      "text": "Studying at the library all day, then a movie night at my place.",
-      "today": "2027-02-11"
     },
     {
       "id": "e-05",
@@ -59,20 +45,6 @@
       }
     },
     {
-      "id": "e-07",
-      "closet": "closet-e",
-      "kind": "weather",
-      "text": "Walking across campus for an early exam.",
-      "today": "2027-01-19",
-      "forecast": {
-        "description": "frost and clear skies",
-        "highC": 3,
-        "lowC": -2,
-        "precipitationChance": 5,
-        "windMph": 7
-      }
-    },
-    {
       "id": "e-08",
       "closet": "closet-e",
       "kind": "swap",
@@ -85,19 +57,6 @@
         "e-14"
       ],
       "swapCategory": "shoe"
-    },
-    {
-      "id": "e-09",
-      "closet": "closet-e",
-      "kind": "swap",
-      "text": "Can you change the jeans to a skirt?",
-      "today": "2027-10-12",
-      "activeOutfit": [
-        "e-06",
-        "e-08",
-        "e-18"
-      ],
-      "swapCategory": "bottom"
     },
     {
       "id": "e-10",
@@ -114,25 +73,11 @@
       "today": "2027-02-23"
     },
     {
-      "id": "f-02",
-      "closet": "closet-f",
-      "kind": "occasion",
-      "text": "Cocktail reception after a conference, starts at six.",
-      "today": "2027-06-10"
-    },
-    {
       "id": "f-03",
       "closet": "closet-f",
       "kind": "occasion",
       "text": "Weekend barbecue at my boss's house.",
       "today": "2027-08-14"
-    },
-    {
-      "id": "f-04",
-      "closet": "closet-f",
-      "kind": "occasion",
-      "text": "Taking my mother to the theatre and dinner afterwards.",
-      "today": "2027-11-20"
     },
     {
       "id": "f-05",
@@ -161,34 +106,6 @@
         "precipitationChance": 5,
         "windMph": 5
       }
-    },
-    {
-      "id": "f-07",
-      "closet": "closet-f",
-      "kind": "weather",
-      "text": "Client dinner downtown tonight.",
-      "today": "2027-01-27",
-      "forecast": {
-        "description": "freezing fog",
-        "highC": 3,
-        "lowC": -1,
-        "precipitationChance": 10,
-        "windMph": 4
-      }
-    },
-    {
-      "id": "f-08",
-      "closet": "closet-f",
-      "kind": "swap",
-      "text": "Swap the shoes for something more relaxed.",
-      "today": "2027-05-13",
-      "activeOutfit": [
-        "f-01",
-        "f-07",
-        "f-17",
-        "f-14"
-      ],
-      "swapCategory": "shoe"
     },
     {
       "id": "f-09",
@@ -225,20 +142,6 @@
       "today": "2027-09-24"
     },
     {
-      "id": "g-03",
-      "closet": "closet-g",
-      "kind": "occasion",
-      "text": "Parent-teacher conference this afternoon.",
-      "today": "2027-10-05"
-    },
-    {
-      "id": "g-04",
-      "closet": "closet-g",
-      "kind": "occasion",
-      "text": "Climbing gym session, then tacos with the crew.",
-      "today": "2027-03-18"
-    },
-    {
       "id": "g-05",
       "closet": "closet-g",
       "kind": "weather",
@@ -250,20 +153,6 @@
         "lowC": 4,
         "precipitationChance": 70,
         "windMph": 12
-      }
-    },
-    {
-      "id": "g-06",
-      "closet": "closet-g",
-      "kind": "weather",
-      "text": "Farmers market, then coffee in town.",
-      "today": "2027-07-17",
-      "forecast": {
-        "description": "warm and sunny",
-        "highC": 26,
-        "lowC": 15,
-        "precipitationChance": 5,
-        "windMph": 6
       }
     },
     {
@@ -279,20 +168,6 @@
         "precipitationChance": 60,
         "windMph": 10
       }
-    },
-    {
-      "id": "g-08",
-      "closet": "closet-g",
-      "kind": "swap",
-      "text": "Swap the boots for sneakers.",
-      "today": "2027-10-22",
-      "activeOutfit": [
-        "g-03",
-        "g-11",
-        "g-18",
-        "g-16"
-      ],
-      "swapCategory": "shoe"
     },
     {
       "id": "g-09",
@@ -315,13 +190,6 @@
       "today": "2027-08-01"
     },
     {
-      "id": "h-01",
-      "closet": "closet-h",
-      "kind": "occasion",
-      "text": "Gallery opening tonight, I want to look sharp but effortless.",
-      "today": "2027-04-09"
-    },
-    {
       "id": "h-02",
       "closet": "closet-h",
       "kind": "occasion",
@@ -334,13 +202,6 @@
       "kind": "occasion",
       "text": "Quarterly review with leadership, and I'm presenting.",
       "today": "2027-01-12"
-    },
-    {
-      "id": "h-04",
-      "closet": "closet-h",
-      "kind": "occasion",
-      "text": "A long-haul flight tomorrow, eleven hours.",
-      "today": "2027-03-27"
     },
     {
       "id": "h-05",
@@ -371,20 +232,6 @@
       }
     },
     {
-      "id": "h-07",
-      "closet": "closet-h",
-      "kind": "weather",
-      "text": "Meeting friends for brunch.",
-      "today": "2027-04-25",
-      "forecast": {
-        "description": "light rain",
-        "highC": 16,
-        "lowC": 11,
-        "precipitationChance": 65,
-        "windMph": 8
-      }
-    },
-    {
       "id": "h-08",
       "closet": "closet-h",
       "kind": "swap",
@@ -397,19 +244,6 @@
         "h-14"
       ],
       "swapCategory": "shoe"
-    },
-    {
-      "id": "h-09",
-      "closet": "closet-h",
-      "kind": "swap",
-      "text": "Swap the trousers for jeans.",
-      "today": "2027-02-20",
-      "activeOutfit": [
-        "h-03",
-        "h-09",
-        "h-20"
-      ],
-      "swapCategory": "bottom"
     },
     {
       "id": "h-10",

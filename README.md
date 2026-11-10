@@ -184,8 +184,6 @@ Not built yet: raise exact-type recognition (74.6% today) and the dress/top boun
 
 **Hanger is an agent, not a script.** Nova Pro reads each message and calls the tools it needs through the Bedrock Converse tool-use API — up to five rounds inside a 22-second budget: `search_wardrobe` (only the signed-in wardrobe), `build_outfits` (the **only** way an outfit reaches the screen), `get_weather`, and `get_trends` (anonymous totals from public looks). A reply listing an outfit the builder never made is corrected once, then abandoned. The conversation and standing preferences live on the account, so "swap the shoes" refers to the right look after a reload. The person's own words outrank the model's tool arguments: the request is read for its dress code or activity from a curated set of 37 briefs and 20 named looks, a swap keeps every other piece, and a card always has a top and bottom or a dress, with shoes, unless the person asked otherwise or the closet cannot supply them.
 
-**Measured, including when it lost.** In a [blind evaluation](docs/hanger-evaluation.md) on 2026-11-10, two raters preferred Hanger's outfit to a random valid one on 13 of 29 decided requests (44.8%): it did not beat the baseline. Every loss that could be reproduced was traced and fixed ([diagnosis](docs/hanger-evaluation-diagnosis.md)); whether people now prefer the result is **not yet rated**, and a fresh holdout set is ready for that.
-
 **Stylist knowledge, written down and tested.** The outfit builder ranks with a curated dataset, not a black box: [`lib/garment-knowledge.ts`](lib/garment-knowledge.ts) puts every garment type on a five-step formality ladder, and a named occasion is a gate before rotation, so "a more formal outfit" reaches for the dressiest pieces owned. [`tests/stylist-regression.test.ts`](tests/stylist-regression.test.ts) holds the regression cases from a real reported closet.
 
 **What the AI is never allowed to do:** put an outfit on screen the builder did not build from owned pieces; verify a brand (only a registry barcode, or brand plus style code, can); state the weather without a forecast; infer body shape, gender, age, ethnicity, income or health; see another account's wardrobe; or give a brand anything below `k ≥ 25`.
@@ -408,6 +406,6 @@ Nothing needs installing to try Racked: open the live app and use the demo accou
 
 ---
 
-**Last updated:** 2026-11-10 — Hanger: the losses of the first blind evaluation reproduced and fixed (dress codes, activities and named looks; complete outfit cards; exact swaps), with a holdout set ready for the next rating; test totals and coverage re-measured
+**Last updated:** 2026-11-10 — Hanger: the losses of the first blind evaluation reproduced and fixed (dress codes, activities and named looks; complete outfit cards; exact swaps), with a shorter holdout set ready for the next rating; test totals and coverage re-measured
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026

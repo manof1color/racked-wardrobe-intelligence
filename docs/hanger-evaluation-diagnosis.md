@@ -91,7 +91,7 @@ Verified, with no model call and no spending:
 
 - The 13 replayed cases: 13 failed on both paths before, 0 fail on either after. Run on a local production build with the scripted model.
 - [`tests/hanger-blind-eval-regressions.test.ts`](../tests/hanger-blind-eval-regressions.test.ts): each reproduced defect, and beside it a case the fix could have broken (a partial outfit the person asked for; two tops the person named; a swap question that is not a swap; "remove the shoes"; a closet with one pair of shoes).
-- The dry-run check, which runs every request through the turn with the model switched off. Original set: 36 of 36 answerable requests got a valid outfit and 8 of 8 swaps changed only the slot asked for. Holdout set: 31 of 31 outfits offered are valid, 8 of 8 swaps exact; 5 requests were not read as asking for an outfit by the no-model fallback, which the agent would normally handle.
+- The dry-run check, which runs every request through the turn with the model switched off. Original set: 36 of 36 answerable requests got a valid outfit and 8 of 8 swaps changed only the slot asked for. Holdout set (24 requests): 16 of 16 outfits offered are valid, 4 of 4 swaps exact; 4 requests were not read as asking for an outfit by the no-model fallback, which the agent would normally handle.
 
 Not verified:
 
@@ -105,4 +105,4 @@ Not verified:
 - Without a location Hanger does not know the season. A request with no forecast and no weather words can still be answered with winter pieces in June.
 - The briefs and looks are 57 entries. A request in words none of them contains falls back to the general reading, unless the model maps it to the closest entry.
 - Outfits are scored piece by piece. Colour and silhouette across an outfit are not judged.
-- One holdout swap was wrong on first contact with the dry-run check ("change the pullover" was not recognised as the top). The fix is general: a word from a piece on screen points at that piece's slot. It is disclosed here because it was found on the holdout set. No other code was changed in response to holdout requests, and the five holdout requests the no-model fallback does not read were left as they are.
+- One holdout swap was wrong on first contact with the dry-run check ("change the pullover" was not recognised as the top). The fix is general: a word from a piece on screen points at that piece's slot. It is disclosed here because it was found on the holdout set. No other code was changed in response to holdout requests, and the holdout requests the no-model fallback does not read were left as they are. The holdout set was then cut from 40 requests to 24 at the owner's request, to make it easier for raters to finish; which requests stayed was decided by kind (two occasion, two weather, one swap, one impossible ask per closet), not by how Hanger answers them.

@@ -206,12 +206,12 @@ test("the dry run also checks, with no model, that every outfit is valid and eve
 
   const holdout = runScript("run-hanger-evaluation.mjs", [], { RACKED_HANGER_EVAL_SET: "holdout-1" });
   assert.equal(holdout.status, 0, holdout.err);
-  assert.match(holdout.out, /4 closets \(22, 23, 23, 23 pieces\), 40 requests \(16 occasion, 12 weather, 8 swap, 4 impossible\)\. 40 baseline outfits built and valid\./);
+  assert.match(holdout.out, /4 closets \(22, 23, 23, 23 pieces\), 24 requests \(8 occasion, 8 weather, 4 swap, 4 impossible\)\. 24 baseline outfits built and valid\./);
   assert.match(holdout.out, /Fixture set: holdout-1\./);
   assert.match(holdout.out, /racked-hanger-eval-holdout-1 \(outside the repository\)/, "a set gets a folder of its own, so two runs cannot share a key");
   // Every outfit the wardrobe logic offers is valid and every swap exact. How many requests the
   // no-model fallback reads as asking for an outfit is reported, not asserted: it was not tuned to these.
-  assert.match(holdout.out, /Dry-run check \(no model, nothing spent\): (\d+) of \1 outfits offered are valid \(\1 of 36 answerable requests got one\)\. 8 of 8 swaps changed only the slot asked for\./);
+  assert.match(holdout.out, /Dry-run check \(no model, nothing spent\): (\d+) of \1 outfits offered are valid \(\1 of 20 answerable requests got one\)\. 4 of 4 swaps changed only the slot asked for\./);
   assert.match(holdout.out, /Nothing was called or written\./);
   assert.equal(existsSync(dir), false);
 });

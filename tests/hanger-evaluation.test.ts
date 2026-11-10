@@ -452,10 +452,14 @@ test("the scorer reports no Hanger loss when there is none, and leaves kappa und
 
 // ── The holdout set ────────────────────────────────────────────────────────────
 
-test("holdout set 1 is four more synthetic closets and forty new requests under the same rules", () => {
+test("holdout set 1 is four more synthetic closets and twenty-four new requests under the same rules", () => {
   const holdoutRequests = (JSON.parse(read("data/hanger-eval/holdout-1/requests.json")) as { requests: EvalRequest[] }).requests;
   const holdoutClosets = closetIdsOf(holdoutRequests).map((id) => JSON.parse(read(`data/hanger-eval/holdout-1/${id}.json`)) as EvalCloset);
   assert.deepEqual(validateFixtures(holdoutClosets, holdoutRequests), []);
+  // Shorter than the first set, so a rater can finish it in one sitting: six a closet, none fewer than five.
+  assert.equal(holdoutRequests.length, 24);
+  assert.match(validateFixtures(holdoutClosets, holdoutRequests.slice(0, 16)).join("\n"), /expected 20 to 40 requests, the same number for each closet, found 16/);
+  assert.match(validateFixtures(holdoutClosets, [...holdoutRequests.slice(1), { ...holdoutRequests[23], id: "h-99" }]).join("\n"), /closet-e: 5 requests, expected 6/);
   assert.ok(holdoutClosets.every((closet) => closet.synthetic === true && closet.note.toLowerCase().includes("synthetic")));
   // New closets, new pieces, new wording: nothing the fixes were written against.
   const seen = new Set(requests.map((request) => request.text.toLowerCase()));
