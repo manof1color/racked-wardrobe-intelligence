@@ -150,6 +150,33 @@ export function replyInventsOutfits(reply: string, wardrobe: WardrobeItem[]) {
 }
 
 /** Reject model prose that names a different owned garment than the ranked selection. */
+/**
+ * True when a reply describes an outfit the person cannot see: three or more owned pieces named
+ * together, enough of them to be worn as an outfit, that no card on screen contains. In the blind
+ * evaluation a reply described a run outfit in words while the only card shown was for breakfast,
+ * so what Save would have stored was not what the reply recommended.
+ */
+export function replyDescribesUnshownOutfit(reply: string, wardrobe: WardrobeItem[], shown: WardrobeItem[][]) {
+  const named = wardrobe.filter((item) => item.name.trim().length >= 4).sort((a, b) => b.name.length - a.name.length);
+  const cards = shown.map((outfit) => new Set(outfit.map((item) => item.id)));
+  return reply.split(/\n+|(?<=[.!?;])\s+/).some((segment) => {
+    let rest = segment.toLocaleLowerCase();
+    const pieces: WardrobeItem[] = [];
+    // Longest names first, each taken out once found, so "White linen shirt dress" is not also read
+    // as "White linen shirt".
+    for (const item of named) {
+      const name = item.name.trim().toLocaleLowerCase();
+      if (!rest.includes(name)) continue;
+      pieces.push(item);
+      rest = rest.split(name).join(" ");
+    }
+    if (pieces.length < 3) return false;
+    const worn = new Set(pieces.map((item) => String(item.category).toLocaleLowerCase()).filter((category) => ["top", "bottom", "dress", "shoe"].includes(category)));
+    if (worn.size < 2) return false;
+    return !cards.some((card) => pieces.every((item) => card.has(item.id)));
+  });
+}
+
 export function consumerReplyPassesSelectionReview(text: string, wardrobe: WardrobeItem[], suggested: WardrobeItem[]) {
   const selectedIds = new Set(suggested.map((item) => item.id));
   const normalized = text.toLocaleLowerCase();

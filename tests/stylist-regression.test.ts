@@ -81,7 +81,7 @@ test("a set for an occasion stops when the closet runs out of pieces that suit i
   const set = rankOutfitSet(closet, "3 formal outfits", { count: 3 });
   assert.equal(set.length, 1, "one honest outfit, not two more built from graphic tees and jorts");
   assert.deepEqual(names(set[0].outfit.pieces.map((piece) => piece.item)).slice(0, 3), ["Green Henley", "Blue Jeans", "LV Timbs"]);
-  assert.match(read("app/api/agents/consumer/route.ts"), /ran out of unused pieces\$\{turnIntent\.occasion \? ` that suit \$\{turnIntent\.occasion\}` : ""\}/);
+  assert.match(read("lib/hanger-consumer-turn.ts"), /ran out of unused pieces\$\{turnIntent\.occasion \? ` that suit \$\{turnIntent\.occasion\}` : ""\}/);
 });
 
 test("without an occasion the builder is unchanged: rotation leads", () => {
@@ -136,7 +136,7 @@ test("REGRESSION: a failed agent turn says which error it was", async () => {
 });
 
 test("the reply and the chat panel carry the reason", () => {
-  const route = read("app/api/agents/consumer/route.ts");
+  const route = read("app/api/agents/consumer/route.ts") + read("lib/hanger-consumer-turn.ts");
   assert.match(route, /onFallback: \(failure\) => \{ agentOutcome\.failure = failure; \}/);
   assert.match(route, /degradedReason: describeAgentFailure\(agentOutcome\.failure\)/);
   assert.match(read("components/agent-panels.tsx"), /Written without Hanger&rsquo;s wardrobe tools this turn — \{reply\.degradedReason\}/);

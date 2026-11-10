@@ -5,7 +5,8 @@ import { MAX_OUTFIT_SET, rankOutfitSet, requestedOutfitCount } from "../lib/outf
 import type { WardrobeItem } from "../lib/types.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const route = read("app/api/agents/consumer/route.ts");
+// The turn itself moved out of the route into lib/hanger-consumer-turn.ts; both are read as one.
+const route = read("app/api/agents/consumer/route.ts") + read("lib/hanger-consumer-turn.ts");
 
 function piece(id: string, category: string, subtype: string): WardrobeItem {
   return {

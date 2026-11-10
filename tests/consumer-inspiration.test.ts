@@ -58,7 +58,7 @@ test("the model prompt receives bounded inspiration context without post ids or 
 
 test("production wiring scopes inspiration to the session and passes only profile hints to Hanger",()=>{
   const communityRoute=fs.readFileSync(new URL("../app/api/community/route.ts",import.meta.url),"utf8");
-  const hangerRoute=fs.readFileSync(new URL("../app/api/agents/consumer/route.ts",import.meta.url),"utf8");
+  const hangerRoute=fs.readFileSync(new URL("../app/api/agents/consumer/route.ts",import.meta.url),"utf8")+fs.readFileSync(new URL("../lib/hanger-consumer-turn.ts",import.meta.url),"utf8");
   const store=fs.readFileSync(new URL("../lib/server/production-store.ts",import.meta.url),"utf8");
   assert.match(communityRoute,/setCommunityLookSaved\(session\.subject,postId,body\?\.saved!==false\)/,"the saver is the session; a body without saved still saves");
   assert.match(store,/SK:`INSPIRATION#\$\{postId\}`/);

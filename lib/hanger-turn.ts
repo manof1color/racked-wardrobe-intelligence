@@ -5,6 +5,7 @@
  * "those" or a revision such as "keep the shoes" refers to. This planner resolves those phrases
  * only against the latest owned outfit saved in the account's Hanger state.
  */
+import { garmentFormality, weatherFit } from "./garment-knowledge.ts";
 import type { HangerActiveOutfit, HangerPendingRequest } from "./hanger-memory.ts";
 import {
   MAX_OUTFIT_PIECES,
@@ -39,6 +40,12 @@ export interface HangerTurnPlan {
   rotatePriorSuggestions: boolean;
   contextUsed: boolean;
   clarification?: string;
+  /** Slots of the outfit on screen the person asked to change, e.g. ["shoe"]. Empty unless this is a targeted swap. */
+  changedCategories: string[];
+  /** Something the reply should say about a swap: the closet had nothing in the direction asked for. */
+  swapNote?: string;
+  /** Why a swap cannot be made at all — nothing else owned for that slot, or none of the kind asked for. */
+  swapBlocked?: string;
 }
 
 /** The customer may request a new look while explicitly declining Save or Record. */
@@ -55,9 +62,9 @@ export function allowedOutfitActions(mode: HangerTurnMode, message: string): "bo
 const SAVE_ACTIVE = /\bsave\s+(?:(?:it|that|this)(?:\s+(?:outfit|look))?|(?:the|my|current|suggested)\s+(?:outfit|look)|(?:outfit|look))\b|\badd\s+(?:it|that|this|the\s+(?:outfit|look))\s+to\s+(?:my\s+)?(?:outfits|looks)\b|^\s*save\s*[.!?]?\s*$/i;
 const WEAR_ACTIVE = /\b(?:record|log|mark)\b[^.!?]{0,35}\b(?:wear|worn|outfit|look|it|that|those)\b/i;
 const EXPLAIN_ACTIVE = /\b(?:why|explain|how did you choose|what made you choose|tell me about)\b/i;
-const REVISION_CUE = /\b(?:keep|swap|change|replace|remove|drop|leave out|without|instead|different|another|adjust|redo|remake|revise|try again|make it|make this|make that|more formal|more casual|less formal|less casual|use that|use those|use them)\b/i;
+const REVISION_CUE = /\b(?:keep|swap|switch|trade|change|replace|remove|drop|leave out|without|instead|different|another|adjust|redo|remake|revise|try again|make it|make this|make that|more formal|more casual|less formal|less casual|use that|use those|use them)\b/i;
 const KEEP_CUE = /\b(?:keep|reuse|still use|use again|use that|use those|use them)\b/i;
-const CHANGE_CUE = /\b(?:swap|change|replace|remove|drop|leave out|without|different|another)\b/i;
+const CHANGE_CUE = /\b(?:swap|switch|trade|change|replace|remove|drop|leave out|without|different|another)\b/i;
 const CHANGE_EVERYTHING = /\b(?:change|replace|swap|redo)\s+(?:the\s+)?(?:whole|entire|everything)|\bchange everything else\b/i;
 const WARDROBE_REVIEW = /\b(?:what have i not worn|what haven t i worn|which (?:pieces|items|garments) (?:have i not worn|are underused)|wardrobe gap|closet gap|what am i missing|how many times|how often)\b/i;
 const NEGATED_ACTION = /\b(?:do not|don['’]?t|never|not|no)\s+(?:save|record|log|mark)\b/i;
@@ -103,7 +110,7 @@ export function replyAsksBack(reply: string) {
   return reply.includes("?");
 }
 
-const CATEGORY_WORDS: Record<string, string[]> = {
+export const CATEGORY_WORDS: Record<string, string[]> = {
   top: ["top", "tops", "shirt", "shirts", "tee", "tees", "hoodie", "hoodies", "sweater", "sweaters", "blouse", "blouses"],
   bottom: ["bottom", "bottoms", "pants", "trousers", "jeans", "shorts", "skirt", "skirts", "leggings"],
   shoe: ["shoe", "shoes", "sneaker", "sneakers", "boot", "boots", "loafer", "loafers", "heels", "footwear"],
@@ -115,6 +122,68 @@ const CATEGORY_WORDS: Record<string, string[]> = {
 };
 
 const clean = (value: unknown) => String(value ?? "").toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+
+/** The category a word names — "shoes", "tops", "pants" — or null. */
+export function categoryForWord(word: unknown): string | null {
+  const wanted = clean(word);
+  if (!wanted) return null;
+  return Object.entries(CATEGORY_WORDS).find(([category, words]) => category === wanted || words.includes(wanted))?.[0] ?? null;
+}
+
+/**
+ * Kinds of garment a swap can ask for by name: "swap the skirt for pants" wants trousers of some
+ * kind, not shorts and not another skirt. Longest words first, so "dress shoes" is not read as "dress".
+ */
+const SWAP_TARGETS: Array<{ words: string[]; category: string; subtypes: string[] }> = [
+  { words: ["dress shoes", "smart shoes"], category: "shoe", subtypes: ["dress-shoes", "oxfords", "derbies", "loafers"] },
+  { words: ["running shoes", "runners"], category: "shoe", subtypes: ["running-shoes"] },
+  { words: ["sneakers", "trainers", "kicks", "tennis shoes"], category: "shoe", subtypes: ["sneakers", "low-top-sneakers", "high-top-sneakers", "slip-on-sneakers", "running-shoes", "basketball-shoes", "skate-shoes"] },
+  { words: ["boots"], category: "shoe", subtypes: ["boots", "ankle-boots", "chelsea-boots", "work-boots", "hiking-boots"] },
+  { words: ["heels", "pumps"], category: "shoe", subtypes: ["heels"] },
+  { words: ["loafers"], category: "shoe", subtypes: ["loafers"] },
+  { words: ["sandals"], category: "shoe", subtypes: ["sandals", "slides"] },
+  { words: ["flats"], category: "shoe", subtypes: ["flats"] },
+  { words: ["dress pants", "trousers", "slacks"], category: "bottom", subtypes: ["dress-pants", "chinos", "casual-pants"] },
+  { words: ["sweatpants", "sweats", "joggers"], category: "bottom", subtypes: ["sweatpants"] },
+  { words: ["pants"], category: "bottom", subtypes: ["jeans", "chinos", "dress-pants", "casual-pants", "sweatpants", "leggings"] },
+  { words: ["jeans", "denim"], category: "bottom", subtypes: ["jeans"] },
+  { words: ["shorts"], category: "bottom", subtypes: ["shorts"] },
+  { words: ["skirt"], category: "bottom", subtypes: ["skirt"] },
+  { words: ["chinos", "khakis"], category: "bottom", subtypes: ["chinos"] },
+  { words: ["leggings", "tights"], category: "bottom", subtypes: ["leggings"] },
+  { words: ["t-shirt", "t shirt", "tee"], category: "top", subtypes: ["t-shirt"] },
+  { words: ["button-up", "button up", "button-down", "button down", "collared shirt", "dress shirt"], category: "top", subtypes: ["dress-shirt", "casual-shirt"] },
+  { words: ["sweater", "jumper", "knit"], category: "top", subtypes: ["sweater", "cardigan"] },
+  { words: ["hoodie"], category: "top", subtypes: ["hoodie"] },
+  { words: ["sweatshirt", "crewneck"], category: "top", subtypes: ["sweatshirt"] },
+  { words: ["blouse"], category: "top", subtypes: ["blouse"] },
+  { words: ["polo"], category: "top", subtypes: ["polo"] },
+  { words: ["cardigan"], category: "top", subtypes: ["cardigan"] },
+  { words: ["tank top", "tank"], category: "top", subtypes: ["tank-top"] },
+  { words: ["blazer", "sport coat"], category: "outerwear", subtypes: ["blazer", "suit-jacket"] },
+  { words: ["rain jacket", "raincoat"], category: "outerwear", subtypes: ["rain-jacket"] },
+  { words: ["coat"], category: "outerwear", subtypes: ["overcoat", "puffer-jacket"] },
+];
+
+/** The kind of garment a swap asks for after "for", "to" or "with" — or null when it names none. */
+function readSwapTarget(message: string) {
+  const tail = /\b(?:swap|switch|trade|change|replace)\b[^.!?;]*?\b(?:for|to|with|into)\s+([^.!?;]+)/i.exec(message)?.[1]?.toLocaleLowerCase();
+  if (!tail) return null;
+  const ordered = SWAP_TARGETS.flatMap((target) => target.words.map((word) => ({ word, target }))).sort((a, b) => b.word.length - a.word.length);
+  return ordered.find(({ word }) => new RegExp(`\\b${word.replace(/[-]/g, "[- ]")}\\b`).test(tail)) ?? null;
+}
+
+/** Which way a swap should move the piece: dressier or more casual, warmer or cooler. */
+function readSwapDirection(message: string) {
+  const asked = message.toLocaleLowerCase();
+  const formality = /\b(?:more casual|less formal|less dressy|dress(?:ed)? (?:it )?down|more relaxed|more laid[- ]back)\b/.test(asked) ? "down" as const
+    : /\b(?:dressier|more formal|less casual|fancier|smarter|dress(?:ed)? (?:it )?up|more polished|more elegant|classier)\b/.test(asked) ? "up" as const : null;
+  const warmth = /\b(?:warmer|cozier|cosier|heavier|thicker)\b/.test(asked) ? "up" as const
+    : /\b(?:cooler|lighter|more breathable|less warm|not (?:so|as) (?:warm|hot|heavy))\b/.test(asked) ? "down" as const : null;
+  return { formality, warmth };
+}
+
+const SLOT_NAMES: Record<string, string> = { top: "top", bottom: "bottoms", shoe: "shoes", outerwear: "jacket", dress: "dress", bag: "bag", jewelry: "jewelry", accessory: "accessory" };
 
 function ownedActiveItems(wardrobe: WardrobeItem[], active: HangerActiveOutfit | null | undefined) {
   const byId = new Map(wardrobe.map((item) => [item.id, item]));
@@ -158,6 +227,11 @@ function mergeIntent(previous: OutfitIntent | null, current: OutfitIntent, inher
     styleHints,
     styleSource: currentHasStyle ? "request" : styleHints.length ? previous.styleSource : "none",
     alternativeRequested: current.alternativeRequested,
+    // The finer reading travels with the occasion it belongs to: a new occasion brings its own.
+    ...(current.occasion
+      ? (current.brief ? { brief: current.brief, ...(current.briefShift ? { briefShift: current.briefShift } : {}) } : {})
+      : previous.brief && previous.occasion && !negates(previous.occasion) ? { brief: previous.brief, ...(previous.briefShift ? { briefShift: previous.briefShift } : {}) } : {}),
+    ...(current.aesthetic ?? previous.aesthetic ? { aesthetic: current.aesthetic ?? previous.aesthetic } : {}),
   };
 }
 
@@ -217,7 +291,7 @@ export function planHangerTurn(input: {
     }
 
     const requestedCategories = new Set(requested.map((item) => clean(item.category)));
-    const replacement = /\b(?:instead of|replace|swap|change)\b/i.test(input.message);
+    const replacement = /\b(?:instead of|replace|swap|switch|trade|change)\b/i.test(input.message);
     if (requestedCategories.size && !ADD_TO_LOOK.test(input.message)) {
       for (const item of activeItems) {
         if (requestedCategories.has(clean(item.category)) && !required.has(item.id)) excluded.add(item.id);
@@ -235,10 +309,48 @@ export function planHangerTurn(input: {
     }
   }
 
+  // A swap of one slot is answered from the pieces that could actually take its place: of the kind
+  // asked for ("for pants"), and in the direction asked for ("more casual", "warmer"). Everything
+  // else in that slot is set aside for this turn, so the builder cannot answer with the wrong kind.
+  const direction = readSwapDirection(input.message);
+  // "Remove the shoes" takes the slot away; it is not a request for a different pair.
+  const changedCategories = mode === "revise" && !changeEverything ? [...changed].filter((category) => !omitted.has(category) && activeItems.some((item) => clean(item.category) === category)) : [];
+  let swapNote: string | undefined;
+  let swapRefusal: string | undefined;
+  for (const category of changedCategories) {
+    // A piece named outright ("swap the shoes for my Black Boots") needs no narrowing.
+    if (requested.some((item) => clean(item.category) === category)) continue;
+    const current = activeItems.find((item) => clean(item.category) === category)!;
+    const slot = SLOT_NAMES[category] ?? category;
+    let candidates = input.wardrobe.filter((item) => clean(item.category) === category && !activeItemIds.includes(item.id) && !excluded.has(item.id));
+    if (!candidates.length) { swapRefusal = `The ${current.name} is the only ${slot === "shoes" ? "pair of shoes" : slot} I can use from your closet, so there is nothing to swap it for. I have not changed your outfit.`; continue; }
+    const target = readSwapTarget(input.message);
+    if (target && target.target.category === category) {
+      const ofKind = candidates.filter((item) => target.target.subtypes.includes(String(item.subtype ?? "")));
+      if (!ofKind.length) { swapRefusal = `I looked through your ${slot} and there are no ${target.word} to swap in. I have not changed your outfit.`; continue; }
+      candidates = ofKind;
+    }
+    const level = (item: WardrobeItem) => garmentFormality(item).level;
+    const warmth = (item: WardrobeItem) => weatherFit(item, "cold").score - weatherFit(item, "warm").score;
+    const moved = candidates.filter((item) =>
+      (direction.formality === "down" ? level(item) < level(current) : direction.formality === "up" ? level(item) > level(current) : true)
+      && (direction.warmth === "up" ? warmth(item) > warmth(current) : direction.warmth === "down" ? warmth(item) < warmth(current) : true));
+    if (moved.length) candidates = moved;
+    else if (direction.formality || direction.warmth) {
+      const asked = direction.formality === "down" ? "more casual" : direction.formality === "up" ? "dressier" : direction.warmth === "up" ? "warmer" : "lighter";
+      swapNote = `Nothing in your closet is ${asked} than the ${current.name}, so this is the closest other option.`;
+    }
+    const allowed = new Set(candidates.map((item) => item.id));
+    for (const item of input.wardrobe) if (clean(item.category) === category && !allowed.has(item.id)) excluded.add(item.id);
+  }
+  if (swapRefusal) mode = "clarify";
+
   // A direct current inclusion wins over an older exclusion, but only for this turn.
   for (const id of required) excluded.delete(id);
   const inheritIntent = mode === "revise" || mode === "explain" || mode === "save-confirm" || mode === "wear-confirm";
-  const intent = mergeIntent(input.activeOutfit?.intent ?? null, currentIntent, inheritIntent, input.message);
+  const merged = mergeIntent(input.activeOutfit?.intent ?? null, currentIntent, inheritIntent, input.message);
+  // "Warmer" says the person is cold; "lighter" that they are warm. The swap is dressed for that.
+  const intent = mode === "revise" && direction.warmth && !currentIntent.weather ? { ...merged, weather: direction.warmth === "up" ? "cold" as const : "warm" as const } : merged;
   const requestedCount = requestedOutfitPieceCount(input.message);
   const removedActiveCount = activeItems.filter((item) => omitted.has(clean(item.category))).length;
   const addition = mode === "revise" && ADD_TO_LOOK.test(input.message) && requested.some((item) => !activeItemIds.includes(item.id)) ? 1 : 0;
@@ -262,7 +374,10 @@ export function planHangerTurn(input: {
     maxPieces,
     rotatePriorSuggestions: mode === "create" ? hasActive : mode === "revise" && (currentIntent.alternativeRequested || changed.size > 0 || changeEverything),
     contextUsed: inheritIntent && hasActive,
-    ...(addingToFullOutfit ? { clarification: `This outfit already has four pieces. To add ${requested.map((item) => item.name).join(" and ")}, tell me which existing piece to replace. I have not changed or saved your current outfit.` }
+    changedCategories,
+    ...(swapNote ? { swapNote } : {}),
+    ...(swapRefusal ? { swapBlocked: swapRefusal } : {}),
+    ...(swapRefusal ? { clarification: swapRefusal } : addingToFullOutfit ? { clarification: `This outfit already has four pieces. To add ${requested.map((item) => item.name).join(" and ")}, tell me which existing piece to replace. I have not changed or saved your current outfit.` }
       : specificOwnedPieceUnresolved ? { clarification: "I couldn't find one clearly matching that requested piece in your saved wardrobe. Tell me its exact saved name, or add it to your Closet first. I have not made or saved an unrelated outfit." } : {}),
   };
 }

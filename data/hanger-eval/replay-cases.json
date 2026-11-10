@@ -238,7 +238,7 @@
           }
         }
       ],
-      "reply": "For the run, the Grey training tank with the Black training leggings and Black running shoes. For breakfast, something easy over the top.",
+      "reply": "One outfit for the run and one for breakfast after.",
       "expect": {
         "present": [
           "d-17"

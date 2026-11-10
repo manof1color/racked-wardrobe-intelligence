@@ -40,7 +40,7 @@ test("REGRESSION: a reply about a set may discuss every outfit in it", () => {
 
   const source = read("lib/hanger-conversation.ts");
   assert.match(source, /const shown = \[\.\.\.input\.suggested, \.\.\.\(input\.alsoShown \?\? \[\]\)\];/);
-  assert.match(read("app/api/agents/consumer/route.ts"), /alsoShown: set\.slice\(1\)\.flatMap/);
+  assert.match(read("lib/hanger-consumer-turn.ts"), /alsoShown: set\.slice\(1\)\.flatMap/);
 });
 
 // REGRESSION: asked which colours go together, Hanger answered with three outfits it assembled

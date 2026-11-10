@@ -98,7 +98,7 @@ test("a city search returns places to choose from, and asks nothing for a stray 
 });
 
 test("the forecast shapes the outfit only when the person did not say the weather", () => {
-  const route = read("app/api/agents/consumer/route.ts");
+  const route = read("app/api/agents/consumer/route.ts") + read("lib/hanger-consumer-turn.ts");
   assert.match(route, /const turnIntent = !plan\.intent\.weather && forecast\?\.outfitWeather \? \{ \.\.\.plan\.intent, weather: forecast\.outfitWeather \} : plan\.intent;/);
   assert.match(route, /intentOverride: turnIntent,/);
   assert.match(route, /Forecast for \$\{forecast\.place\} from Open-Meteo/, "the reply says where the weather came from");

@@ -201,7 +201,7 @@ test("without a configured provider the agent never runs", async () => {
 
 // The plain model reply is tried only after a fast rejection, never after a slow or throttled call.
 test("the route asks the agent first and falls back without a second model wait", () => {
-  const route = read("app/api/agents/consumer/route.ts");
+  const route = read("app/api/agents/consumer/route.ts") + read("lib/hanger-consumer-turn.ts");
   assert.ok(route.indexOf("await runHangerAgent(") < route.indexOf("const plan = planHangerTurn("), "the agent runs before the keyword rules");
   assert.match(route, /allowModel: !aiPaused && \(!agentAttempted \|\| plainReplyWorthTrying\(agentOutcome\.failure\)\),/, "a slow agent failure — or the site's daily AI ceiling — is answered from the wardrobe at once");
   assert.match(route, /outfitCards\(agent\.outfits, agentActions\)/);

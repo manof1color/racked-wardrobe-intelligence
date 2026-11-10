@@ -8,7 +8,8 @@ import { rankOutfitSet, repeatedPiecesInSet } from "../lib/outfit-ranking.ts";
 import type { WardrobeItem } from "../lib/types.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const route = read("app/api/agents/consumer/route.ts");
+// The turn itself moved out of the route into lib/hanger-consumer-turn.ts; both are read as one.
+const route = read("app/api/agents/consumer/route.ts") + read("lib/hanger-consumer-turn.ts");
 
 const make = (id: string, name: string, category: string, subtype: string): WardrobeItem => ({
   id, name, category, subtype, color: "black", pattern: "solid", material: "cotton",
