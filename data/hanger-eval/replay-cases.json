@@ -1,0 +1,250 @@
+{
+  "synthetic": true,
+  "note": "Diagnostic replay of the requests Hanger lost in the 2026-11-10 blind evaluation. The run file never recorded tool arguments, so the tool calls below are RECONSTRUCTED: each was chosen because, replayed against the commit that was evaluated, it produces the outfit card the public results page shows. They are a repeatable stand-in for the model, not a transcript of it. The closets and requests are the synthetic fixtures in this folder. No rater sheet, key or comment is here.",
+  "cases": [
+    {
+      "id": "a-01",
+      "group": "occasion",
+      "steps": [
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "formal outfit for a client presentation",
+            "count": 3
+          }
+        }
+      ],
+      "reply": "Here are three polished options for your client presentation."
+    },
+    {
+      "id": "a-02",
+      "group": "occasion",
+      "steps": [
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "dinner with partner's parents, smart but not stiff",
+            "count": 3
+          }
+        }
+      ],
+      "reply": "Here are three smart but relaxed options for dinner."
+    },
+    {
+      "id": "a-03",
+      "group": "occasion",
+      "steps": [
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "afternoon wedding guest, black tie optional",
+            "count": 3
+          }
+        }
+      ],
+      "reply": "Here are three options for the wedding.",
+      "expect": {
+        "absent": [
+          "a-04",
+          "a-08",
+          "a-15"
+        ],
+        "why": "a t-shirt, jeans or sneakers at a black-tie-optional wedding"
+      }
+    },
+    {
+      "id": "a-04",
+      "group": "occasion",
+      "steps": [
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "casual Friday at the office, comfortable",
+            "count": 3
+          }
+        }
+      ],
+      "reply": "Here are three comfortable options for casual Friday."
+    },
+    {
+      "id": "a-08",
+      "group": "swap",
+      "steps": [
+        {
+          "tool": "search_wardrobe",
+          "args": {
+            "category": "shoe",
+            "text": "casual"
+          }
+        }
+      ],
+      "reply": "You don't own any casual shoes, so consider shopping for a pair of canvas sneakers."
+    },
+    {
+      "id": "a-09",
+      "group": "swap",
+      "steps": [
+        {
+          "tool": "search_wardrobe",
+          "args": {
+            "category": "tops",
+            "text": "navy chinos brown loafers"
+          }
+        }
+      ],
+      "reply": "I can't find a top in your wardrobe that would work with the Navy chinos and Brown loafers."
+    },
+    {
+      "id": "b-06",
+      "group": "complete",
+      "steps": [
+        {
+          "tool": "get_weather",
+          "args": {}
+        },
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "warm and waterproof for a long walk in cold rain",
+            "count": 3,
+            "include": [
+              "Black puffer jacket",
+              "Orange rain shell",
+              "Olive bomber jacket"
+            ]
+          }
+        }
+      ],
+      "reply": "Here are three warm, waterproof options for your walk."
+    },
+    {
+      "id": "b-06",
+      "variant": "piece count in the model's own request text",
+      "group": "complete",
+      "steps": [
+        {
+          "tool": "get_weather",
+          "args": {}
+        },
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "long walk in cold rain: warm, waterproof, two pieces",
+            "count": 3,
+            "include": [
+              "Black puffer jacket"
+            ]
+          }
+        }
+      ],
+      "reply": "Here are three warm, waterproof options for your walk."
+    },
+    {
+      "id": "c-07",
+      "group": "complete",
+      "steps": [
+        {
+          "tool": "get_weather",
+          "args": {}
+        },
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "cool evening out",
+            "include": [
+              "White linen shirt dress",
+              "Pale blue blouse"
+            ]
+          }
+        }
+      ],
+      "reply": "Here's an outfit for a cool evening out."
+    },
+    {
+      "id": "c-08",
+      "group": "swap",
+      "steps": [
+        {
+          "tool": "search_wardrobe",
+          "args": {
+            "category": "shoe",
+            "text": "dressy"
+          }
+        }
+      ],
+      "reply": "You don't have any dressier shoes in your wardrobe."
+    },
+    {
+      "id": "c-09",
+      "group": "swap",
+      "steps": [
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "swap the skirt for pants",
+            "include": [
+              "White linen shirt",
+              "White canvas sneakers"
+            ],
+            "exclude": [
+              "Tan midi skirt"
+            ]
+          }
+        }
+      ],
+      "reply": "Here's your outfit with pants instead of the skirt."
+    },
+    {
+      "id": "c-05",
+      "group": "occasion",
+      "steps": [
+        {
+          "tool": "get_weather",
+          "args": {}
+        },
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "day of sightseeing in hot and sunny weather",
+            "count": 3
+          }
+        }
+      ],
+      "reply": "Here are three options for sightseeing.",
+      "expect": {
+        "absent": [
+          "c-05",
+          "c-19"
+        ],
+        "why": "a satin formal dress or block heels for a day of sightseeing at 35 °C"
+      }
+    },
+    {
+      "id": "d-01",
+      "group": "occasion",
+      "steps": [
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "morning run",
+            "count": 2
+          }
+        },
+        {
+          "tool": "build_outfits",
+          "args": {
+            "request": "quick breakfast",
+            "count": 1
+          }
+        }
+      ],
+      "reply": "For the run, the Grey training tank with the Black training leggings and Black running shoes. For breakfast, something easy over the top.",
+      "expect": {
+        "present": [
+          "d-17"
+        ],
+        "why": "the request starts with a run, and the closet has running shoes"
+      }
+    }
+  ]
+}
