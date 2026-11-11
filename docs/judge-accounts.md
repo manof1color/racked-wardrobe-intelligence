@@ -12,7 +12,7 @@ reads one from `RACKED_TEST_PASSWORD` at runtime.
 | --- | --- |
 | `judge.consumer@racked.local` | A lived-in wardrobe: 13 pieces, 2 saved outfits, real wear history, two pieces **verified** against a brand product, one linked by the owner's **own pick**, a published Community look, and a saved inspiration |
 | `judge.newconsumer@racked.local` | Empty. Scan a real photo, watch pieces arrive, and see the honest first-run states |
-| `judge.brand@racked.local` | **Judge Demo Atelier**: one product with **50 opted-in owners**, so the dashboard shows what a live product looks like; one with **4**, deliberately below the `k ≥ 25` threshold, so suppression is visible beside it; one retired; and a published Brand Look |
+| `judge.brand@racked.local` | **Judge Demo Atelier**: a 30-product catalog in which **15 products have enough opted-in owners for wear data** (the Signature Tee has **50**, so the dashboard shows what a live product looks like) and **15 are below the `k ≥ 25` threshold** (the Limited Overshirt has **4**), so suppression is visible beside it; one product retired; and a published Brand Look |
 | `judge.newbrand@racked.local` | **Judge New Label**, no products. Enroll one live from a single photo |
 
 ## One click: Try the demo
@@ -74,7 +74,7 @@ the next one sees; a full session to a seeded judge account is refused outright 
 3. **Open Community.** Compare the DEMO brand and member photos wearing the Judge Founder Jacket (JDA-004). Both jacket cards lead to the same $295 product. The member's closet jeans and sneakers have no price. The jacket has no seeded wear events. Scroll for fifteen more fictional looks across streetwear, minimal, casual, workwear, athletic, outdoor, evening, and formal styles. Some looks show several priced catalog pieces alongside unpriced member pieces. Then select **Recreate with my wardrobe** on the judge's own look. It splits the
    look into what this account owns and what is missing, with the reason for each match.
 4. **Sign in as `judge.brand`.** `Judge Signature Tee` (JDA-001) releases metrics: 50 opted-in
-   owners, a wear chart, repeat-wear rate. `Judge Limited Overshirt` (JDA-002) has four owners, so
+   owners, a wear chart, repeat-wear rate. Fourteen other synthetic products carry their own cohorts, and catalog cards say **Wear data open** or **Too few owners** with a filter (demo products only). `Judge Limited Overshirt` (JDA-002) has four owners, so
    everything is suppressed and the page says why — including that the count itself is withheld.
    `Judge Archive Cap` (JDA-003) is retired: it keeps its owners, and it is gone from
    `/brands/judge-demo-atelier`.
