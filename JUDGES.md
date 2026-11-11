@@ -39,7 +39,7 @@ work, the [judge accounts guide](docs/judge-accounts.md) explains how they are s
 
 1. Open **Judge Limited Overshirt**: 4 opted-in owners, below 25, so the brand sees nothing — not
    even the count.
-2. Open **Judge Signature Tee**: 50 opted-in owners, so wear, repeat use and pairings are released.
+2. Open **Judge Signature Tee**: 50 opted-in owners, so wear, repeat use and pairings are released. The catalog filter **Wear data open** lists the 15 demo products where that is true.
 3. Ask **Brand Hanger** *"Write me a campaign brief for this product."* It uses only the released
    totals.
 
