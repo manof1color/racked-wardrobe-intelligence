@@ -43,7 +43,7 @@ Each scoring category, what to look for, and where to check it.
 | **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **1106 tests** in 134 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **224 merged PRs** counted on 2026-11-08 before this documentation merge; build log through Phase 115 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **Code, docs & GitHub** | 15% | **1107 tests** in 134 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **231 merged PRs** counted on 2026-11-11 before this documentation merge; build log through Phase 115 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Three real apparel brands have joined the pilot and uploaded products, and one chose the $40 Pro plan in writing. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals 20 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
 | **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [Security testing](#security-testing-and-hardening) · [SECURITY.md](SECURITY.md) |
@@ -77,7 +77,7 @@ Open the [sign-in page](https://main.d2iv0khybuuaeh.amplifyapp.com/login) and pr
 | Account | Address | What it shows |
 | --- | --- | --- |
 | Judge Consumer | `judge.consumer@racked.local` | A lived-in wardrobe: 13 pieces, saved outfits, a realistic wear spread, two **verified** brand pieces |
-| Judge Brand | `judge.brand@racked.local` | One product with **50 opted-in owners** (released) beside one with 4 (suppressed), in a fictional catalog of 30 products |
+| Judge Brand | `judge.brand@racked.local` | **Judge Signature Tee** with **50 opted-in owners** (released) beside **Judge Limited Overshirt** with 4 (suppressed), in a fictional catalog of 30 products. The seed gives 15 of the 30 enough owners for wear data and leaves 15 below the threshold, labelled **Wear data open** or **Too few owners** with a filter (demo products only) |
 | New Consumer | `judge.newconsumer@racked.local` | Empty on purpose: scan a real photo and see the first-run states |
 | New Brand | `judge.newbrand@racked.local` | No products: enrol one from a single photo with **Fill in from photo** (a private brand per judge, up to 5 products) |
 
@@ -239,7 +239,7 @@ Both rounds together cost **$3.51 of Bedrock time** as counted (with a 1.5× saf
 | Repeat use | **19 of 25 repeat wearers (76%)** | Is it earning repeated use? | Withheld |
 | Zero-wear opportunity | **3 of 25 owners** | Where could styling help? | Withheld |
 
-**Why a 25-owner cohort still releases none of these.** Passing `k ≥ 25` protects the cohort, not a small group inside it. The release rules (`releaseWearAnalytics` in [`lib/metrics.ts`](lib/metrics.ts)) withhold any owner count under 5, and any count whose remainder is under 5: "22 of 25 active" also says that 3 have never worn it. Here the "0 wears" and "1 wear" groups hold 3 owners each, so the wear breakdown is withheld, and with it every figure derived from it: total wears, active owners, engagement, repeat wear, zero-wear owners, the average and median, the high-frequency count and the weekly trend. The dashboard shows "withheld", never zero, and releases only the day of the latest wear. The **Judge Signature Tee** in the demo, with 50 owners, is the product where figures are released.
+**Why a 25-owner cohort still releases none of these.** Passing `k ≥ 25` protects the cohort, not a small group inside it. The release rules (`releaseWearAnalytics` in [`lib/metrics.ts`](lib/metrics.ts)) withhold any owner count under 5, and any count whose remainder is under 5: "22 of 25 active" also says that 3 have never worn it. Here the "0 wears" and "1 wear" groups hold 3 owners each, so the wear breakdown is withheld, and with it every figure derived from it: total wears, active owners, engagement, repeat wear, zero-wear owners, the average and median, the high-frequency count and the weekly trend. The dashboard shows "withheld", never zero, and releases only the day of the latest wear. In the demo, the **Judge Signature Tee** (50 owners) and 14 other synthetic products with their own cohorts are where figures are released.
 
 Before the benchmark, a label-coverage audit of 1,000 dataset records found **93.9%** map to Racked's categories, **62.6%** are specific enough for exact-type scoring, and **94.0%** carry usable brand annotations. These measure benchmark compatibility, not model accuracy ([report](data/evaluation-label-coverage.json)).
 
@@ -320,9 +320,9 @@ Racked holds photos of what people own, and real brands use it, so protecting th
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite, a production build and [accessibility checks](docs/accessibility.md) (axe on the public pages and, through a fixture-only harness, the signed-in screens, plus keyboard-only passes of both demo flows) on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. `main` is protected: every change arrives by pull request, and `verify`, `accessibility` and CodeQL (`Analyze JavaScript and TypeScript`) must pass; force pushes and deletion are blocked (read back from GitHub's public API on 2026-11-01).
 
-**1106 passing tests** in 134 files (verified 2026-11-10). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**1107 passing tests** in 134 files (verified 2026-11-11). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
-Coverage over the whole suite (2026-11-10): **96.79% of lines, 88.92% of branches, 95.02% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
+Coverage over the whole suite (2026-11-11): **96.80% of lines, 89.00% of branches, 95.03% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
 
 | What is protected | Tests |
 | --- | --- |
@@ -338,7 +338,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: wardrobe, photo intake, Looks, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry
 lib/server/     All DynamoDB and S3 access, with every ownership check
-tests/          134 test files, 1106 tests (node --test)
+tests/          134 test files, 1107 tests (node --test)
 scripts/        Judge and demo seeds, verification, evaluation, owner-run tools (dry run by default)
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol
@@ -414,6 +414,6 @@ Nothing needs installing to try Racked: open the live app and use the demo accou
 
 ---
 
-**Last updated:** 2026-11-10 — Hanger: the losses of the first blind evaluation reproduced and fixed (dress codes, activities and named looks; complete outfit cards; exact swaps), with a shorter holdout set ready for the next rating; test totals and coverage re-measured
+**Last updated:** 2026-11-11 — the judge demo seed now gives 15 of the 30 demo products wear data, and the security section lists the AI tools and skills used; test totals, coverage and the merged-PR count re-measured
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026
