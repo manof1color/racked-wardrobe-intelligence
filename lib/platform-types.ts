@@ -41,6 +41,8 @@ export interface BrandProductRegistration {
   currency?: string;
   availability?: "available"|"unavailable"|"discontinued"|"unknown";
   archived?: boolean;
+  /** Seeded demo products only: whether the synthetic cohort clears the wear-data threshold. Never set on a real product. */
+  demoWearCohort?: "open" | "too-few";
   affiliateProvider?: string;
   affiliateTrackingId?: string;
 }

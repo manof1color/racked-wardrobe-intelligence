@@ -78,6 +78,23 @@ test("the released product clears the k >= 25 threshold and the other two do not
   assert.ok(wears.every((wear) => String(wear.ownerPK).startsWith("USER#") && wear.eventType === "confirmed-wear"));
 });
 
+// More than one product opens, and every demo product says which side of the threshold it is on, so a
+// brand can go straight to the pieces with wear data.
+test("half the demo products clear the threshold and every one is labelled to match", () => {
+  const optedIn = new Set(profiles.filter((profile) => profile.brandDataSharing === true).map((profile) => profile.PK));
+  const ownersOf = (productId: string) => new Set(items.filter((item) => item.GSI1PK === `PRODUCT#${productId}` && optedIn.has(item.PK)).map((item) => item.PK)).size;
+  const products = items.filter((item) => item.PK === `USER#${JUDGE_SEED_IDS.brand.id}` && String(item.SK).startsWith("PRODUCT#"));
+  const open = products.filter((product) => product.demoWearCohort === "open").map((product) => product.sku).sort();
+  assert.equal(open.length, 15);
+  assert.equal(products.length - open.length, 15, "an even split between open and too few");
+  assert.ok(open.includes("JDA-001"));
+  for (const product of products) {
+    const owners = ownersOf(String(product.id));
+    if (product.demoWearCohort === "open") assert.ok(owners >= MINIMUM_COHORT_SIZE, `${product.sku} is labelled open with ${owners} owners`);
+    else { assert.equal(product.demoWearCohort, "too-few"); assert.ok(owners < MINIMUM_COHORT_SIZE, `${product.sku} is labelled too few with ${owners} owners`); }
+  }
+});
+
 test("the judge closet shows a verified link and an owner's pick side by side", () => {
   const verified = judgeGarments.filter((garment) => garment.identityStatus === "verified");
   const picked = judgeGarments.filter((garment) => garment.identityStatus === "owner-selected");

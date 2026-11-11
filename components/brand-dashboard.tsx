@@ -35,6 +35,8 @@ function budgetNote(budget?:{remaining:number;limit:number;resetsInSeconds:numbe
   return `You have opened ${budget.limit} products in the last 24 hours, the most Racked releases in a day. Revisit one of those now, or open a new one in about ${budgetWait(budget.resetsInSeconds)}. This limit protects owners from being identified by comparison across products.`;
 }
 
+function isDemo(product:BrandProductRegistration){return product.dataClassification==="DEMO"&&product.testCohort===true;}
+
 /** The state of one product at a glance, before any private data is involved. */
 function productChips(product:BrandProductRegistration){
   return [
@@ -42,6 +44,10 @@ function productChips(product:BrandProductRegistration){
     ...(product.price===undefined?[{label:"No price",tone:"todo"}]:[]),
     ...(product.productUrl?[]:[{label:"No link",tone:"todo"}]),
     ...(product.dataClassification==="DEMO"||product.testCohort?[{label:"Demo data",tone:"demo"}]:[]),
+    // Demo pieces only: their synthetic cohort size is fixed by the seed, so labelling it reveals no
+    // real owner. A real product's release status is never shown catalog-wide (see below).
+    ...(isDemo(product)&&product.demoWearCohort==="open"?[{label:"Wear data open",tone:"live"}]:[]),
+    ...(isDemo(product)&&product.demoWearCohort==="too-few"?[{label:"Too few owners",tone:"todo"}]:[]),
     ...(product.dataClassification==="PILOT"?[{label:"Pilot",tone:"demo"}]:[]),
   ];
 }
@@ -70,6 +76,8 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   const [error,setError]=useState("");
   const [query,setQuery]=useState("");
   const [showRetired,setShowRetired]=useState(false);
+  // Demo catalogs only: their cohort labels are fixed by the seed, so filtering on them reveals no real owner.
+  const [wearFilter,setWearFilter]=useState<"all"|"open"|"too-few">("all");
   const [editing,setEditing]=useState(false);
   const [copied,setCopied]=useState(false);
   const [publishedLookCount,setPublishedLookCount]=useState(0);
@@ -83,7 +91,8 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
 
   const live=products.filter(item=>!item.archived);
   const retiredCount=products.length-live.length;
-  const visible=products.filter(item=>(showRetired||!item.archived)&&matchesQuery(item,query));
+  const hasDemoCohorts=products.some(item=>isDemo(item)&&item.demoWearCohort);
+  const visible=products.filter(item=>(showRetired||!item.archived)&&matchesQuery(item,query)&&(wearFilter==="all"||!hasDemoCohorts||(isDemo(item)&&item.demoWearCohort===wearFilter)));
   const product=products.find(item=>item.id===productId)??null;
   const brandSlug=products[0]?.brandSlug??"";
   const attention=catalogAttention(products);
@@ -264,9 +273,10 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
           <label className="sr-only" htmlFor="brand-catalog-search">Search your catalog</label>
           <input id="brand-catalog-search" type="search" value={query} placeholder="Search by name, style code, or category" onChange={event=>setQuery(event.target.value)}/>
           {retiredCount>0&&<label className="catalog-retired-toggle"><input type="checkbox" checked={showRetired} onChange={event=>setShowRetired(event.target.checked)}/><span>Show {retiredCount} retired</span></label>}
+          {hasDemoCohorts&&<><label className="sr-only" htmlFor="brand-catalog-wear">Filter by wear data</label><select id="brand-catalog-wear" value={wearFilter} onChange={event=>setWearFilter(event.target.value as "all"|"open"|"too-few")}><option value="all">All pieces</option><option value="open">Wear data open</option><option value="too-few">Too few owners</option></select></>}
         </div>
         {catalogLoaded&&products.length===0&&<p className="catalog-note">Nothing enrolled yet. Add your first product above — one photo and a style code is enough.</p>}
-        {products.length>0&&visible.length===0&&<p className="catalog-note">No product matches “{query.trim()}”.</p>}
+        {products.length>0&&visible.length===0&&<p className="catalog-note">{wearFilter!=="all"&&!query.trim()?(wearFilter==="open"?"No piece has wear data open yet.":"Every piece has wear data open."):`No product matches “${query.trim()}”.`}</p>}
         <div className="product-grid">{visible.map(productCard)}</div>
       </section>
     </>}
