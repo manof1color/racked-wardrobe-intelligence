@@ -236,7 +236,7 @@ Both rounds together cost **$3.51 of Bedrock time** as counted (with a 1.5× saf
 | Valid outfits for answerable requests | **20 of 20** |
 | Swaps that changed only the requested item | **4 of 4** |
 
-Two blind raters independently reviewed 24 requests across four fresh synthetic closets. The preference result covers the 20 answerable requests. Four requests for unavailable items were evaluated separately. [Tested commit](https://github.com/manof1color/racked-wardrobe-intelligence/commit/5a9eeae8dafcef51966d000833e682d91728dc9a) · [Evaluation method and limitations](docs/hanger-evaluation.md#how-it-is-scored)
+Two blind raters independently reviewed 24 requests across four fresh synthetic closets. The preference result covers the 20 answerable requests. Four requests for unavailable items were evaluated separately. [Tested commit](https://github.com/manof1color/racked-wardrobe-intelligence/commit/5a9eeae8dafcef51966d000833e682d91728dc9a) · [Evaluation method and limitations](docs/hanger-evaluation.md#what-it-can-and-cannot-prove)
 
 <!-- real-use:start (generated from data/pilot-usage.json; tests/real-use.test.ts) -->
 **Real use: not measured yet.** Racked has counted, since 2026-10-28, how often people keep the AI's proposal for a scanned piece unchanged, as anonymous daily totals for real (non-demo) accounts. The first snapshot will be published here, with any count under 5 shown as "fewer than 5".
