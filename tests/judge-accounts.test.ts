@@ -80,12 +80,14 @@ test("the released product clears the k >= 25 threshold and the other two do not
 
 // More than one product opens, and every demo product says which side of the threshold it is on, so a
 // brand can go straight to the pieces with wear data.
-test("four Look pieces also clear the threshold and every demo product is labelled to match", () => {
+test("half the demo products clear the threshold and every one is labelled to match", () => {
   const optedIn = new Set(profiles.filter((profile) => profile.brandDataSharing === true).map((profile) => profile.PK));
   const ownersOf = (productId: string) => new Set(items.filter((item) => item.GSI1PK === `PRODUCT#${productId}` && optedIn.has(item.PK)).map((item) => item.PK)).size;
   const products = items.filter((item) => item.PK === `USER#${JUDGE_SEED_IDS.brand.id}` && String(item.SK).startsWith("PRODUCT#"));
   const open = products.filter((product) => product.demoWearCohort === "open").map((product) => product.sku).sort();
-  assert.deepEqual(open, ["JDA-001", "JDA-005", "JDA-009", "JDA-010", "JDA-024"]);
+  assert.equal(open.length, 15);
+  assert.equal(products.length - open.length, 15, "an even split between open and too few");
+  assert.ok(open.includes("JDA-001"));
   for (const product of products) {
     const owners = ownersOf(String(product.id));
     if (product.demoWearCohort === "open") assert.ok(owners >= MINIMUM_COHORT_SIZE, `${product.sku} is labelled open with ${owners} owners`);

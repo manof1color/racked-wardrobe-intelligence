@@ -77,7 +77,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   const [query,setQuery]=useState("");
   const [showRetired,setShowRetired]=useState(false);
   // Demo catalogs only: their cohort labels are fixed by the seed, so filtering on them reveals no real owner.
-  const [wearDataOnly,setWearDataOnly]=useState(false);
+  const [wearFilter,setWearFilter]=useState<"all"|"open"|"too-few">("all");
   const [editing,setEditing]=useState(false);
   const [copied,setCopied]=useState(false);
   const [publishedLookCount,setPublishedLookCount]=useState(0);
@@ -92,7 +92,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   const live=products.filter(item=>!item.archived);
   const retiredCount=products.length-live.length;
   const hasDemoCohorts=products.some(item=>isDemo(item)&&item.demoWearCohort);
-  const visible=products.filter(item=>(showRetired||!item.archived)&&matchesQuery(item,query)&&(!wearDataOnly||!hasDemoCohorts||(isDemo(item)&&item.demoWearCohort==="open")));
+  const visible=products.filter(item=>(showRetired||!item.archived)&&matchesQuery(item,query)&&(wearFilter==="all"||!hasDemoCohorts||(isDemo(item)&&item.demoWearCohort===wearFilter)));
   const product=products.find(item=>item.id===productId)??null;
   const brandSlug=products[0]?.brandSlug??"";
   const attention=catalogAttention(products);
@@ -273,10 +273,10 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
           <label className="sr-only" htmlFor="brand-catalog-search">Search your catalog</label>
           <input id="brand-catalog-search" type="search" value={query} placeholder="Search by name, style code, or category" onChange={event=>setQuery(event.target.value)}/>
           {retiredCount>0&&<label className="catalog-retired-toggle"><input type="checkbox" checked={showRetired} onChange={event=>setShowRetired(event.target.checked)}/><span>Show {retiredCount} retired</span></label>}
-          {hasDemoCohorts&&<label className="catalog-retired-toggle"><input type="checkbox" checked={wearDataOnly} onChange={event=>setWearDataOnly(event.target.checked)}/><span>Only pieces with wear data</span></label>}
+          {hasDemoCohorts&&<><label className="sr-only" htmlFor="brand-catalog-wear">Filter by wear data</label><select id="brand-catalog-wear" value={wearFilter} onChange={event=>setWearFilter(event.target.value as "all"|"open"|"too-few")}><option value="all">All pieces</option><option value="open">Wear data open</option><option value="too-few">Too few owners</option></select></>}
         </div>
         {catalogLoaded&&products.length===0&&<p className="catalog-note">Nothing enrolled yet. Add your first product above — one photo and a style code is enough.</p>}
-        {products.length>0&&visible.length===0&&<p className="catalog-note">{wearDataOnly&&!query.trim()?"No piece has wear data open yet.":`No product matches “${query.trim()}”.`}</p>}
+        {products.length>0&&visible.length===0&&<p className="catalog-note">{wearFilter!=="all"&&!query.trim()?(wearFilter==="open"?"No piece has wear data open yet.":"Every piece has wear data open."):`No product matches “${query.trim()}”.`}</p>}
         <div className="product-grid">{visible.map(productCard)}</div>
       </section>
     </>}

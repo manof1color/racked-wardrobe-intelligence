@@ -138,7 +138,7 @@ const OUTFITS = [
   { key: "weekend", name: "Judge Weekend Look", pieces: ["tee", "jean", "sneaker", "verified"], wears: 5 },
 ];
 
-// Three products demonstrate analytics and lifecycle (four Look pieces below also clear the threshold). The Founder Jacket is for Community only. One clears the k>=25 release threshold so a judge sees released
+// Three products demonstrate analytics and lifecycle (fourteen Look pieces below also clear the threshold, an even split). The Founder Jacket is for Community only. One clears the k>=25 release threshold so a judge sees released
 // metrics immediately; one stays deliberately below it so they can see suppression working; one is
 // retired, so they can see that a retired product keeps its owners and leaves the public page.
 const FOUNDER = { key: "founder", id: "judge-product-founder", sku: "JDA-004", name: "Judge Founder Jacket", category: "outerwear", subtype: "jacket", color: "brown", pattern: "solid", material: "suede", style: ["casual", "utility"], price: 295 };
@@ -154,7 +154,8 @@ const PRODUCTS = [
  * Look pieces that also carry a full opted-in cohort, so a judge has more than one product whose
  * wear intelligence opens. Each gets the same cohort and wear pattern as the released product.
  */
-export const EXTRA_RELEASED_SKUS = ["JDA-005", "JDA-009", "JDA-010", "JDA-024"];
+// With the Signature Tee these make 15 of the 30 demo products open, an even split with the 15 below it.
+export const EXTRA_RELEASED_SKUS = ["JDA-005", "JDA-006", "JDA-007", "JDA-009", "JDA-010", "JDA-012", "JDA-013", "JDA-014", "JDA-015", "JDA-017", "JDA-020", "JDA-023", "JDA-024", "JDA-026"];
 const EXTRA_RELEASED = EXTRA_RELEASED_SKUS.map((sku) => PRODUCTS.find((product) => product.sku === sku));
 
 /**
