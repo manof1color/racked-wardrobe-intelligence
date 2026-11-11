@@ -1,0 +1,207 @@
+{
+  "date": "2026-11-10",
+  "raters": 2,
+  "seed": "racked-hanger-eval-holdout-1",
+  "headline": {
+    "requests": 20,
+    "hangerWins": 11,
+    "baselineWins": 1,
+    "ties": 8,
+    "winRate": {
+      "rate": 0.916667,
+      "low": 0.64612,
+      "high": 0.985135
+    },
+    "basis": "occasion, weather and swap requests; the impossible asks are reported separately"
+  },
+  "allRequests": {
+    "requests": 24,
+    "hangerWins": 13,
+    "baselineWins": 2,
+    "ties": 9,
+    "winRate": {
+      "rate": 0.866667,
+      "low": 0.62118,
+      "high": 0.962639
+    }
+  },
+  "byKind": {
+    "impossible": {
+      "requests": 4,
+      "hangerWins": 2,
+      "baselineWins": 1,
+      "ties": 1,
+      "winRate": {
+        "rate": 0.666667,
+        "low": 0.20766,
+        "high": 0.938508
+      }
+    },
+    "occasion": {
+      "requests": 8,
+      "hangerWins": 6,
+      "baselineWins": 0,
+      "ties": 2,
+      "winRate": {
+        "rate": 1,
+        "low": 0.609666,
+        "high": 1
+      }
+    },
+    "swap": {
+      "requests": 4,
+      "hangerWins": 2,
+      "baselineWins": 1,
+      "ties": 1,
+      "winRate": {
+        "rate": 0.666667,
+        "low": 0.20766,
+        "high": 0.938508
+      }
+    },
+    "weather": {
+      "requests": 8,
+      "hangerWins": 3,
+      "baselineWins": 0,
+      "ties": 5,
+      "winRate": {
+        "rate": 1,
+        "low": 0.438503,
+        "high": 1
+      }
+    }
+  },
+  "byCloset": {
+    "closet-e": {
+      "requests": 6,
+      "hangerWins": 4,
+      "baselineWins": 1,
+      "ties": 1,
+      "winRate": {
+        "rate": 0.8,
+        "low": 0.375535,
+        "high": 0.963776
+      }
+    },
+    "closet-f": {
+      "requests": 6,
+      "hangerWins": 3,
+      "baselineWins": 1,
+      "ties": 2,
+      "winRate": {
+        "rate": 0.75,
+        "low": 0.300642,
+        "high": 0.954413
+      }
+    },
+    "closet-g": {
+      "requests": 6,
+      "hangerWins": 3,
+      "baselineWins": 0,
+      "ties": 3,
+      "winRate": {
+        "rate": 1,
+        "low": 0.438503,
+        "high": 1
+      }
+    },
+    "closet-h": {
+      "requests": 6,
+      "hangerWins": 3,
+      "baselineWins": 0,
+      "ties": 3,
+      "winRate": {
+        "rate": 1,
+        "low": 0.438503,
+        "high": 1
+      }
+    }
+  },
+  "perRater": [
+    {
+      "hangerPicks": 15,
+      "baselinePicks": 6,
+      "ties": 3,
+      "hangerShareOfDecided": {
+        "rate": 0.714286,
+        "low": 0.500436,
+        "high": 0.861861
+      }
+    },
+    {
+      "hangerPicks": 16,
+      "baselinePicks": 5,
+      "ties": 3,
+      "hangerShareOfDecided": {
+        "rate": 0.761905,
+        "low": 0.549088,
+        "high": 0.89372
+      }
+    }
+  ],
+  "agreement": {
+    "n": 24,
+    "observed": 0.625,
+    "expected": 0.4844,
+    "kappa": 0.2727
+  },
+  "impossibleAsks": {
+    "requests": 4,
+    "hangerOfferedAnOutfit": 2,
+    "hangerOfferedNone": 2,
+    "outcomes": {
+      "requests": 4,
+      "hangerWins": 2,
+      "baselineWins": 1,
+      "ties": 1
+    }
+  },
+  "toolUse": {
+    "turns": 24,
+    "modelCallsPerTurn": {
+      "mean": 2.58,
+      "median": 2,
+      "max": 5
+    },
+    "toolCallsPerTurn": {
+      "mean": 2.04,
+      "median": 2,
+      "max": 8
+    },
+    "turnsWithNoToolCall": 0,
+    "toolsUsed": {
+      "outfit builder": 21,
+      "wardrobe search": 6,
+      "weather": 8
+    },
+    "fallbacks": {
+      "count": 1,
+      "rate": 0.0417,
+      "byKind": {
+        "reply-off-card": 1
+      }
+    },
+    "answeredByGroundedReply": 1,
+    "inventedOutfitCorrections": {
+      "count": 0,
+      "turnsCorrected": 0
+    },
+    "countedSpendUsd": 0.22
+  },
+  "mechanical": {
+    "outfits": {
+      "answerable": 20,
+      "offered": 20,
+      "noneOffered": 0,
+      "valid": 20,
+      "invalid": []
+    },
+    "swaps": {
+      "requests": 4,
+      "exact": 4,
+      "inexact": []
+    }
+  },
+  "set": "holdout-1",
+  "commit": "5a9eeae8dafcef51966d000833e682d91728dc9a"
+}

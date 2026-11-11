@@ -42,7 +42,7 @@ Each scoring category, what to look for, and where to check it.
 | --- | ---: | --- | --- |
 | **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
-| **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent**; a written, tested stylist knowledge base; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
+| **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent** with a tested stylist knowledge base. It won **11 of 12 decided blind holdout comparisons** against a random valid outfit, with 8 ties; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [Hanger holdout results](#hanger-outfit-recommendations--blind-holdout-evaluation) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
 | **Code, docs & GitHub** | 15% | **1107 tests** in 134 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **231 merged PRs** counted on 2026-11-11 before this documentation merge; build log through Phase 115 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Three real apparel brands have joined the pilot and uploaded products, and one chose the $40 Pro plan in writing. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals 20 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
@@ -226,6 +226,17 @@ It ran twice. **Round 1** measured the scan as it was and found its most common 
 | Service timeouts, where the person is offered manual entry | 8 of 300 — 2.7% | 7 of 300 — 2.3% |
 
 Both rounds together cost **$3.51 of Bedrock time** as counted (with a 1.5× safety margin; each round under a hard cap). The most common miss now is a dress proposed as a top (11 photos); every proposal is shown to the person to confirm or change before anything is saved. [Round 2 results](docs/evaluation-results-r2.md) · [Round 1 results](docs/evaluation-results.md) · [method](docs/evaluation.md#live-path-benchmark-the-scan-the-app-actually-runs) · aggregates [round 1](data/evaluation-live-2026-10-29.json), [round 2](data/evaluation-live-2026-10-29-r2.json) · locks [round 1](data/evaluation-lock.json), [round 2](data/evaluation-lock-r2.json)
+
+### Hanger outfit recommendations — blind holdout evaluation
+
+**Hanger won 11 head-to-head comparisons, lost 1, and tied 8** across 20 answerable requests. It won **91.7% of decided comparisons** against randomly assembled valid outfits from the same closets (11 of 12 decided cases, 95% confidence interval: 64.6%–98.5%).
+
+| Check | Result |
+| --- | --- |
+| Valid outfits for answerable requests | **20 of 20** |
+| Swaps that changed only the requested item | **4 of 4** |
+
+Two blind raters independently reviewed 24 requests across four fresh synthetic closets. The preference result covers the 20 answerable requests. Four requests for unavailable items were evaluated separately. [Tested commit](https://github.com/manof1color/racked-wardrobe-intelligence/commit/5a9eeae8dafcef51966d000833e682d91728dc9a) · [Scored holdout report](docs/hanger-evaluation-results-holdout-1.md) · [Evaluation method and limitations](docs/hanger-evaluation.md#what-it-can-and-cannot-prove)
 
 <!-- real-use:start (generated from data/pilot-usage.json; tests/real-use.test.ts) -->
 **Real use: not measured yet.** Racked has counted, since 2026-10-28, how often people keep the AI's proposal for a scanned piece unchanged, as anonymous daily totals for real (non-demo) accounts. The first snapshot will be published here, with any count under 5 shown as "fewer than 5".
@@ -414,6 +425,6 @@ Nothing needs installing to try Racked: open the live app and use the demo accou
 
 ---
 
-**Last updated:** 2026-11-11 — the judge demo seed now gives 15 of the 30 demo products wear data, and the security section lists the AI tools and skills used; test totals, coverage and the merged-PR count re-measured
+**Last updated:** 2026-11-11 — the judge demo seed now gives 15 of the 30 demo products wear data, the security section lists the AI tools and skills used, and a 24-request blind Hanger holdout evaluation is recorded; test totals, coverage and the merged-PR count re-measured
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026
