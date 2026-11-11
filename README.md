@@ -290,6 +290,14 @@ Racked holds photos of what people own, and real brands use it, so protecting th
 | **Secret scan** (October 2026) | Every line added in every commit on every branch, plus the built browser code | No credential was found, and no `.env` file was ever committed |
 | **Three hardening passes** (2026-10-21 to 2026-10-26) | Looked for real gaps instead of new features | Among what they closed: no browser security headers, rate limits that did not hold across servers, and request bodies that were never checked |
 
+**AI tools and skills used for security work.** Judges can check each of these against the repository; none is described here beyond what the repository records.
+
+| Tool or skill | Used for | Where it is on record |
+| --- | --- | --- |
+| **Cloudflare [security-audit skill](https://github.com/cloudflare/security-audit-skill)** (open source, run through an AI coding agent) | The whole-codebase security review of 2026-11-02 | [SECURITY.md](SECURITY.md), and the fixes in [#211](https://github.com/manof1color/racked-wardrobe-intelligence/pull/211), [#214](https://github.com/manof1color/racked-wardrobe-intelligence/pull/214), [#215](https://github.com/manof1color/racked-wardrobe-intelligence/pull/215), [#216](https://github.com/manof1color/racked-wardrobe-intelligence/pull/216). The report itself stays private |
+| **Codex Security scan** | An automated scan of the code. It read an out-of-date copy of the repository, so each finding was re-checked against `main`: some were already fixed, and the ones still true were fixed with tests | [PROGRESS.md](PROGRESS.md) |
+| **Claude Code and Codex** (two AI coding agents) | Wrote and reviewed the fixes, the attack harness and the regression tests, working in separate lanes under [AGENTS.md](AGENTS.md). The owner merged every pull request | [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), the pull request history |
+
 **What an attacker runs into**
 
 | Attack | What stops it |
