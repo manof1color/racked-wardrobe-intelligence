@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandAgentPanel, ConsumerAgentPanel } from "./agent-panels";
 import { useDialogFocus } from "./use-dialog-focus";
 import type { SavedOutfit } from "@/lib/types";
+import { JUDGE_TOUR_REQUEST_EVENT, readJudgeTourRequest } from "@/lib/judge-tour";
 
 const ROLE_COPY = {
   consumer: { launcher: "Outfits from your wardrobe", subtitle: "Wardrobe stylist", badge: "PRIVATE CONTEXT" },
@@ -21,6 +22,12 @@ export function HangerDock({ role, productId, brandHasProducts = false, onOpenCa
   // A dialog that cannot be dismissed with Escape, does not take focus, keeps it inside, and lets
   // the page behind it scroll is a dialog in markup only. Focus returns to the launcher.
   useDialogFocus(drawer, open, close, launcher);
+  // The judge guide (demo sessions only) can open Hanger for its step.
+  useEffect(() => {
+    const onRequest = (event: Event) => { if (readJudgeTourRequest((event as CustomEvent).detail)?.action === "open-hanger") setOpen(true); };
+    window.addEventListener(JUDGE_TOUR_REQUEST_EVENT, onRequest);
+    return () => window.removeEventListener(JUDGE_TOUR_REQUEST_EVENT, onRequest);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;

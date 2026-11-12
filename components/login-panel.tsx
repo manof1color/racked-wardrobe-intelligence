@@ -92,9 +92,9 @@ export function LoginPanel({formToken}:{formToken:string|null}) {
       <div className="eyebrow">PRIVATE WARDROBE INTELLIGENCE</div>
       <h1 id="auth-title">{mode==="signin"?"Welcome back.":"Create your Racked account."}</h1>
       <p>{mode==="signin"?"Sign in to your wardrobe or brand workspace.":"Choose the workspace that matches how you will use Racked."}</p>
-      {mode==="signin"&&<section className="demo-entry" aria-labelledby="demo-entry-title">
+      {mode==="signin"&&<section className="demo-entry" id="try-the-demo" aria-labelledby="demo-entry-title">
         <h2 id="demo-entry-title">Try the demo</h2>
-        <p>Open any judge account with one click. No sign-up and no password: it’s made-up data, and anything you add is gone after a day.</p>
+        <p>Open any judge account with one click. No sign-up and no password: it’s made-up data, and anything you add is gone after a day. A short guide inside walks you through each side.</p>
         <div className="demo-choices">{DEMO_CHOICES.map(entry=><button key={entry.choice} type="button" className="demo-choice" disabled={busy||demoBusy!==null} onClick={()=>tryDemo(entry.choice)} aria-describedby={`demo-${entry.choice}`}>
           <strong>{demoBusy===entry.choice?"Opening…":<>{entry.label} →</>}</strong>
           <span id={`demo-${entry.choice}`}>{entry.description}</span>

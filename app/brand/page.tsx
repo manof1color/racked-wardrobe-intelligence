@@ -5,6 +5,7 @@ import { getAccount } from "@/lib/server/production-store";
 import { BrandDashboard } from "@/components/brand-dashboard";
 import { BrandApprovalNotice } from "@/components/brand-approval-notice";
 import { DemoNotice } from "@/components/demo-notice";
+import { JudgeTour } from "@/components/judge-tour";
 import { isDemoAccountId } from "@/lib/demo-session";
 import type { BrandTabView } from "@/components/workspace-mobile-nav";
 
@@ -16,5 +17,7 @@ export default async function BrandPage({searchParams}:{searchParams:Promise<{vi
   const account=await getAccount(session.subject);
   const status=brandStatusOf(account);
   if(status==="pending"||status==="revoked")return <BrandApprovalNotice status={status} brandName={account?.brandName??null}/>;
-  const query=await searchParams;const initialView=views.has(query.view as BrandTabView)?query.view as BrandTabView:"overview";return <>{session.demo&&<DemoNotice kind="brand" own={isDemoAccountId(session.subject)}/>}<BrandDashboard initialView={initialView}/></>;
+  // The judge guide follows the shared Judge Brand's seeded products, so a New Brand demo, which has
+  // none of them, does not get it.
+  const query=await searchParams;const initialView=views.has(query.view as BrandTabView)?query.view as BrandTabView:"overview";return <>{session.demo&&<DemoNotice kind="brand" own={isDemoAccountId(session.subject)}/>}{session.demo&&!isDemoAccountId(session.subject)&&<JudgeTour kind="brand" sessionExpiresAt={session.expiresAt}/>}<BrandDashboard initialView={initialView}/></>;
 }

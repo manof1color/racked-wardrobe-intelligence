@@ -11,6 +11,7 @@ import { WorkspaceMobileNav, type BrandWorkspaceView } from "./workspace-mobile-
 import { communityIsEmpty, communityReadouts, pairingSummary, wearHeadline, wearReadouts } from "@/lib/brand-insights";
 import { catalogAttention } from "@/lib/brand-catalog-health";
 import { budgetWait } from "@/lib/privacy";
+import { JUDGE_TOUR_REQUEST_EVENT, readJudgeTourRequest, requestJudgeTour, signalJudgeTourProgress, stepForOpenedProduct } from "@/lib/judge-tour";
 import { brandOnboardingComplete, brandOnboardingProgress, brandOnboardingSteps } from "@/lib/brand-onboarding";
 import type { BrandCommunityMetrics, BrandProductRegistration } from "@/lib/platform-types";
 import type { BrandMetrics } from "@/lib/metrics";
@@ -153,6 +154,13 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   useEffect(()=>{if(view==="product")productHeading.current?.focus();},[view,productId]);
 
   function openProduct(id:string){setProductId(id);setMetrics(null);setCommunityMetrics(null);setError("");setEditing(false);setView("product");}
+  // The judge guide (demo sessions only) asks for one of the two seeded products by id. Its Brand
+  // Hanger step opens Hanger too; both changes land in the same render, so Hanger opens on that product.
+  useEffect(()=>{
+    const onRequest=(event:Event)=>{const request=readJudgeTourRequest((event as CustomEvent).detail);if(request?.action!=="open-product")return;openProduct(request.productId);if(request.thenHanger)requestJudgeTour({action:"open-hanger"});};
+    window.addEventListener(JUDGE_TOUR_REQUEST_EVENT,onRequest);
+    return()=>window.removeEventListener(JUDGE_TOUR_REQUEST_EVENT,onRequest);
+  },[]);
   function productSaved(saved:BrandProductRegistration){setProducts(current=>current.map(item=>item.id===saved.id?{...item,...saved}:item));}
   async function copyBrandLink(url:string){try{await navigator.clipboard.writeText(url);setCopied(true);setSharedLink(true);remember("racked.brand.sharedLink");window.setTimeout(()=>setCopied(false),2_500);}catch{setCopied(false);}}
 
@@ -166,7 +174,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
     Promise.all([
       fetch("/api/brand/metrics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({productId})}),
       fetch("/api/brand/community-metrics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({productId})}),
-    ]).then(async ([wearResponse,communityResponse])=>{const wear=await wearResponse.json();const community=await communityResponse.json();if(!wearResponse.ok)throw new Error(wear.error??"Wear metrics could not be loaded.");if(!communityResponse.ok)throw new Error(community.error??"Community metrics could not be loaded.");if(current){setMetrics(wear.metrics);setCommunityMetrics(community.metrics);}})
+    ]).then(async ([wearResponse,communityResponse])=>{const wear=await wearResponse.json();const community=await communityResponse.json();if(!wearResponse.ok)throw new Error(wear.error??"Wear metrics could not be loaded.");if(!communityResponse.ok)throw new Error(community.error??"Community metrics could not be loaded.");if(current){setMetrics(wear.metrics);setCommunityMetrics(community.metrics);const step=stepForOpenedProduct(productId);if(step)signalJudgeTourProgress(step);}})
       .catch(reason=>{if(current)setError(reason instanceof Error?reason.message:"Wear metrics could not be loaded.");});
     return()=>{current=false;};
   },[view,productId,justEnrolled]);

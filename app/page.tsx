@@ -22,6 +22,7 @@ export default async function Home() {
             <Link className="lp-link" href="#how-it-works">How it works</Link>
             <Link className="lp-link" href="/community">Community</Link>
             <Link className="lp-link" href="/pricing">Pricing</Link>
+            <Link className="lp-link" href="/login#try-the-demo">Try the demo</Link>
             <Link className="button button-dark button-small" href="/login">Sign in</Link>
           </nav>
         </div>
@@ -34,6 +35,8 @@ export default async function Home() {
           <p className="lp-lead lp-rise">Racked helps you get more from the clothes you already own — and gives brands the one thing a sale can&rsquo;t: how their pieces are actually worn, shared only as anonymous totals from people who opted in.</p>
           <div className="lp-actions lp-rise">
             <Link className="button button-accent lp-cta" href="/login">Create your wardrobe <span aria-hidden="true">→</span></Link>
+            {/* Judges and visitors: one click on the sign-in screen opens a demo, no sign-up (lib/demo-session.ts). */}
+            <Link className="button button-dark" href="/login#try-the-demo">Try the demo: no sign-up <span aria-hidden="true">→</span></Link>
             <Link className="lp-link" href="#how-it-works">See how it works</Link>
           </div>
           <p className="lp-trust lp-rise">Private photos · you confirm every detail · brands never see your closet</p>
