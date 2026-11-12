@@ -69,3 +69,15 @@ test("corners and motion come from shared values, and reduced motion turns the m
   assert.match(css, /@keyframes view-in\{from\{opacity:\.4;/, "a view never starts invisible");
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.consumer-workspace>section,\.brand-workspace>section\{animation:none\}[^}]*\{scale:none\}\}/);
 });
+
+// REGRESSION: Log with a photo kept its Record bar stuck over the bottom of the scrolling list. Whatever
+// choice sat under the bar's edge was half covered, leaving less than 24px of a radio button to tap,
+// and which choice that was moved with the text size and the browser's fonts (it failed in CI after
+// passing locally). The bar now ends the list instead.
+test("REGRESSION: the photo log's Record bar never floats over the choices", () => {
+  const rule = css.match(/\.wear-photo-actions\{[^}]*\}/)?.[0] ?? "";
+  assert.ok(rule, "the Record bar has its rule");
+  assert.doesNotMatch(rule, /position:(sticky|fixed|absolute)/);
+  assert.doesNotMatch(css, /\.wear-photo-actions\{bottom:/);
+  assert.match(css, /\.wear-photo-option input\{width:24px;height:24px;/, "radio buttons meet the 24px minimum target");
+});
