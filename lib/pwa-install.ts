@@ -83,3 +83,42 @@ export function pwaInstallGuidance(platform:PwaInstallPlatform,browser:IosBrowse
     steps:["Look for the install icon in the address bar.","Or open the browser menu and choose Install Racked.","Confirm Install."],
   };
 }
+
+/**
+ * When the install tip may appear. It used to show half a second after any page opened, on a
+ * first visit too, where it covered the landing page's main button and, on a phone, sat between
+ * the Hanger launcher and the bottom tabs. It now waits until someone has come back (a second
+ * browser session) and is inside the app, and a dismissal is remembered for 30 days instead of
+ * until the next page load.
+ */
+export const INSTALL_TIP_STORAGE_KEY="racked:install-tip";
+export const INSTALL_TIP_SESSION_KEY="racked:install-tip-visit";
+export const INSTALL_TIP_SNOOZE_MS=30*24*60*60*1000;
+const INSTALL_TIP_PATHS=["/consumer","/brand","/settings","/community"];
+
+export interface InstallTipRecord {
+  visits:number;
+  dismissedAt:number|null;
+}
+
+/** Reads the stored record, treating anything missing or malformed as a first visit. */
+export function parseInstallTipRecord(raw:string|null):InstallTipRecord {
+  try{
+    const value=raw?JSON.parse(raw):null;
+    const visits=Number.isFinite(value?.visits)&&value.visits>0?Math.floor(value.visits):0;
+    const dismissedAt=Number.isFinite(value?.dismissedAt)?Number(value.dismissedAt):null;
+    return {visits,dismissedAt};
+  }catch{
+    return {visits:0,dismissedAt:null};
+  }
+}
+
+export function installTipPath(pathname:string):boolean {
+  return INSTALL_TIP_PATHS.some(path=>pathname===path||pathname.startsWith(`${path}/`));
+}
+
+/** True when the record allows the tip at all: a returning visitor who has not dismissed it lately. */
+export function installTipEarned(record:InstallTipRecord,now:number):boolean {
+  if(record.dismissedAt!==null&&now-record.dismissedAt<INSTALL_TIP_SNOOZE_MS)return false;
+  return record.visits>=2;
+}
