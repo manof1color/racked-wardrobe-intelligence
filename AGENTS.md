@@ -30,8 +30,6 @@ verification gate (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pn
 | **Claude Code** | `app/`, `components/`, `lib/`, `middleware.ts`, `next.config.ts`, `scripts/security-harness/`, and every other test file |
 | **Claude Code, temporary** | Owner decision 2026-10-28, competition-hardening work order: `scripts/verify-live.mjs` (W6), `scripts/run-hanger-evaluation.mjs` and `scripts/score-hanger-evaluation.mjs` (W7), and the `scripts/` files named in items W2, W3 and W4. Owner decision 2026-11-01, security and demo hardening work order: `scripts/seed-judge-accounts.mjs`, `scripts/verify-judge-accounts.mjs` and `scripts/lib/judge-wear-window.mjs` (D1). The same order also covers the `RACKED_CSP_MODE` line in `scripts/write-amplify-env.mjs` (S1). Owner decision 2026-11-02: the activity-log sentence in the AWS section of `docs/security-verification.md` (D3). Owner decision 2026-11-03: the judge seed's demo photos, `scripts/lib/judge-photos.mjs` and `scripts/assets/judge-photos/`. Each entry is removed when its item closes. |
 
-| **Codex, temporary** | Owner decision 2026-11-03, security fix B: sign-in, address limits, known-device code and their tests. |
-| **Codex, temporary** | Owner decision 2026-11-03, security fix C: brand registry, production store, Community image route, image optimizer configuration and their tests. |
 | **Codex, temporary** | Owner decision 2026-11-03, security fix D: Community likes, analytics and rendering, API cache headers and their tests. |
 | **Claude Code, temporary** | Owner decision 2026-11-04, brand approval tools: `scripts/brand-approval.mjs`, the `brands:*` package scripts and the alert settings in `scripts/write-amplify-env.mjs`. |
 

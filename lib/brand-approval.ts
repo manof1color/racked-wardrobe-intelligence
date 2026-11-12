@@ -37,3 +37,17 @@ export const BRAND_PRODUCT_LIMIT = 300;
 export function productLimitMessage(limit: number) {
   return `Your catalog has reached its limit of ${limit} products. Contact Racked to raise it.`;
 }
+
+/**
+ * How long a pending brand may hold its name. A pending account reserves its brand name, so
+ * without a limit a squatter could hold a name until the owner noticed. After this many days still
+ * pending, another registration may take the name and the stale account is revoked.
+ */
+export const BRAND_PENDING_CLAIM_DAYS = 14;
+
+/** True only for a brand still pending whose name claim is older than the limit. Approved and revoked brands never lose a name this way. */
+export function pendingClaimExpired(account: { role?: unknown; brandStatus?: unknown } | null | undefined, claimCreatedAt: unknown, now = Date.now()) {
+  if (brandStatusOf(account) !== "pending") return false;
+  const created = typeof claimCreatedAt === "string" ? Date.parse(claimCreatedAt) : NaN;
+  return Number.isFinite(created) && now - created > BRAND_PENDING_CLAIM_DAYS * 24 * 60 * 60 * 1000;
+}
