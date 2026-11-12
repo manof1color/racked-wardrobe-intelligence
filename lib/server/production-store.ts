@@ -14,6 +14,7 @@ import { buildOutfitPieceReferences, wardrobeItemToOutfitPiece } from "@/lib/out
 import { commerceDestination } from "@/lib/commerce";
 import { createBrandLook } from "@/lib/brand-looks";
 import { brandProductUpdate, isReservedBrandName, matchBrandProduct, registryIdentityConflict, slugifyBrand, type BrandProductEdit } from "@/lib/product-registry";
+import { pendingClaimExpired } from "@/lib/brand-approval";
 import { releaseWearAnalytics } from "@/lib/metrics";
 import { communityAuthorKey } from "@/lib/community-author";
 import { publishedImageKey, toPublicOutfitPost, type StoredCommunityPost, type StoredPublishedGarment } from "@/lib/community-post";
@@ -147,7 +148,28 @@ async function reserveBrandName(brandName:string,accountId:string) {
   try {
     await db.send(new PutCommand({TableName:requireTable(),Item:{PK:`BRANDNAME#${brandSlug}`,SK:"CLAIM",GSI1PK:"BRAND_NAMES",GSI1SK:brandSlug,accountId,brandName,createdAt:new Date().toISOString()},ConditionExpression:"attribute_not_exists(PK)"}));
   } catch(error) {
-    if(error instanceof Error&&error.name==="ConditionalCheckFailedException")throw new AccountConflictError("A brand account with that name already exists.");
+    if(!(error instanceof Error&&error.name==="ConditionalCheckFailedException"))throw error;
+    if(!await takeOverExpiredClaim(brandSlug,brandName,accountId))throw new AccountConflictError("A brand account with that name already exists.");
+  }
+}
+
+/**
+ * A claim held by a brand that stayed pending past BRAND_PENDING_CLAIM_DAYS may be taken. The stale
+ * account is revoked first (only while still pending), then the claim moves to the new account
+ * only if it still names the old one, so two registrations racing for the name cannot both win.
+ */
+async function takeOverExpiredClaim(brandSlug:string,brandName:string,accountId:string) {
+  const key={PK:`BRANDNAME#${brandSlug}`,SK:"CLAIM"};
+  const claim=(await db.send(new GetCommand({TableName:requireTable(),Key:key,ConsistentRead:true}))).Item;
+  if(!claim||typeof claim.accountId!=="string")return false;
+  const holder=(await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${claim.accountId}`,SK:"PROFILE"},ConsistentRead:true}))).Item;
+  if(!holder||!pendingClaimExpired(holder,claim.createdAt))return false;
+  try {
+    await db.send(new UpdateCommand({TableName:requireTable(),Key:{PK:`USER#${claim.accountId}`,SK:"PROFILE"},UpdateExpression:"SET brandStatus = :revoked, brandStatusChangedAt = :now",ConditionExpression:"brandStatus = :pending",ExpressionAttributeValues:{":revoked":"revoked",":pending":"pending",":now":new Date().toISOString()}}));
+    await db.send(new PutCommand({TableName:requireTable(),Item:{...key,GSI1PK:"BRAND_NAMES",GSI1SK:brandSlug,accountId,brandName,createdAt:new Date().toISOString()},ConditionExpression:"accountId = :old",ExpressionAttributeValues:{":old":claim.accountId}}));
+    return true;
+  } catch(error) {
+    if(error instanceof Error&&error.name==="ConditionalCheckFailedException")return false;
     throw error;
   }
 }

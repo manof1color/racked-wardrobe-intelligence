@@ -9,6 +9,8 @@ route answers 403 with its status, and its dashboard explains the wait (`lib/bra
 Brand accounts created before that have no status and count as **approved**: the live brands and the
 judge accounts work exactly as before, with no migration.
 
+A pending brand holds its name for 14 days. After that, a new registration may take the name and the stale account is set to revoked (`lib/brand-approval.ts`).
+
 Approval is a manual owner step for now. An automated waiting period and business verification are
 planned for after the competition.
 
@@ -87,8 +89,8 @@ To restore it, approve it again. Nothing is deleted either way.
 
 ## Known gaps
 
-- A pending account still reserves its brand name, so a squatter could hold a real brand's name until
-  the owner deals with it. Revoking the account stops it using the name. Freeing the name for the
+- A pending account reserves its brand name for 14 days, so a squatter can still hold a real brand's name
+  for that long unless the owner deals with it sooner. Revoking the account stops it using the name. Freeing the name for the
   real brand means deleting that account's `BRANDNAME#<slug>` claim item, which should be a reviewed
   step, not a one-off console edit.
 - The brand is not emailed when it is approved; it sees the change on its next visit.

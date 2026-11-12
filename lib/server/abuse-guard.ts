@@ -1,15 +1,18 @@
 import "server-only";
 import { DURABLE_LIMITS, durableDecision, reserveSignInAttempt, signInCounterKey, type AiAction, type AiAllowance } from "@/lib/abuse-limits";
 import { chargeAccountAllowance, chargeSiteModelCall } from "@/lib/ai-budget";
-import { type RateLimitDecision } from "@/lib/rate-limit";
+import { consumeRateLimit, type RateLimitDecision } from "@/lib/rate-limit";
 import { decrementSecurityCounter, incrementSecurityCounter } from "@/lib/server/production-store";
 
 /**
  * The shared limits, applied. The two kinds fail in opposite directions when the counter store
  * cannot be reached, each logged by name only:
  *
- * - **Sign-in, sign-up and reset checks fail open.** The per-instance limiter in rate-limit.ts still
+ * - **Sign-up and reset checks fail open.** The per-instance limiter in rate-limit.ts still
  *   applies, and a storage hiccup must never lock every person out of their account.
+ * - **The sign-in pause fails to a stricter per-instance limit**, not to nothing: while the shared
+ *   counter is unreachable, each instance still allows only the shared rule's eight attempts per
+ *   email per window. That keeps guessing bounded without locking anyone out for good.
  * - **AI budgets fail closed** (lib/ai-budget.ts). A storage hiccup must never mean unmetered paid
  *   model calls; the non-model fallback answers instead.
  */
@@ -28,7 +31,8 @@ export async function claimSignInAttempt(email: string, knownDevice: boolean, no
     return {...decision,reserved:decision.allowed};
   } catch (error) {
     failOpen("sign-in attempt", error);
-    return {...OPEN,reserved:false};
+    const rule = DURABLE_LIMITS.signInFailuresPerEmail;
+    return {...consumeRateLimit(`signin-fallback:${signInCounterKey(email, knownDevice)}`, rule, now),reserved:false};
   }
 }
 
