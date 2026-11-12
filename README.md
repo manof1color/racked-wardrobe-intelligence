@@ -265,7 +265,7 @@ Racked does **not** claim recognition accuracy beyond the measured benchmark abo
 | **Virtual try-on, body-fit prediction or demographic inference** | Each would need the AI to infer body shape or personal traits, which it is [never allowed to do](#how-ai-is-used). Looks are flat-lay compositions |
 | **A custom-trained model** | Racked uses Amazon Nova as supplied, writes its domain knowledge down and tests it, and measures accuracy on locked photos |
 
-Edge rate limiting, upload malware scanning and automated brand approval are open items, not decisions; [SECURITY.md](SECURITY.md) lists them.
+Edge rate limiting (AWS WAF) and upload malware scanning are deliberately not bought: each adds a recurring AWS charge, and this project is kept free of new recurring spend. Their risk is covered by the per-address and per-account limits in the app and by re-encoding every photo. Automated brand approval is an open item planned after the competition. [SECURITY.md](SECURITY.md) lists each gap and what limits it.
 
 ---
 
