@@ -170,7 +170,7 @@ Built, live and tested, but outside the five-minute demo:
 
 ### Next Steps
 
-Not built yet: raise exact-type recognition (74.6% today) and the dress/top boundary, now the most common miss in the [measured benchmark](docs/evaluation-results-r2.md); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md).
+Not built yet: raise exact-type recognition (74.6% today) and the dress/top boundary, now the most common miss in the [measured benchmark](docs/evaluation-results-r2.md); a learned segmenter that beats the [measured crop baseline](docs/segmentation-backends.md); Next.js 16 after judging; production password-reset email once Amazon SES grants it; [App Store and Google Play](docs/app-store-launch.md). **Security next step: edge rate limiting with AWS WAF** in front of the Amplify app, so per-address limits are applied before a request reaches the app and still hold when the shared counters are unreachable. It is planned, not built, and not in place today: it adds a recurring AWS charge, so it waits for the owner's decision on cost ([SECURITY.md](SECURITY.md#still-open)).
 
 ---
 
@@ -265,7 +265,7 @@ Racked does **not** claim recognition accuracy beyond the measured benchmark abo
 | **Virtual try-on, body-fit prediction or demographic inference** | Each would need the AI to infer body shape or personal traits, which it is [never allowed to do](#how-ai-is-used). Looks are flat-lay compositions |
 | **A custom-trained model** | Racked uses Amazon Nova as supplied, writes its domain knowledge down and tests it, and measures accuracy on locked photos |
 
-Edge rate limiting (AWS WAF) and upload malware scanning are deliberately not bought: each adds a recurring AWS charge, and this project is kept free of new recurring spend. Their risk is covered by the per-address and per-account limits in the app and by re-encoding every photo. Automated brand approval is an open item planned after the competition. [SECURITY.md](SECURITY.md) lists each gap and what limits it.
+Edge rate limiting (AWS WAF) is the planned next security step ([Next Steps](#next-steps)) and upload malware scanning is deliberately not bought; each adds a recurring AWS charge, and this project is kept free of new recurring spend until the owner decides otherwise. Their risk is covered by the per-address and per-account limits in the app and by re-encoding every photo. Automated brand approval is an open item planned after the competition. [SECURITY.md](SECURITY.md) lists each gap and what limits it.
 
 ---
 
