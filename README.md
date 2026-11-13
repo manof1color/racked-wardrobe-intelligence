@@ -36,7 +36,7 @@ Not claimed: payment. Nothing is billed.
 | **Problem & relevance** | 20% | A sale is where a brand stops seeing; Racked measures confirmed wear, released only at 25 or more owners | [What this is](#what-this-is) · [Impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two live flows: **scan → confirm → outfit**, and **anonymous cohort → wear evidence → campaign brief** | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
 | **AI integration & innovation** | 20% | **92.8%** category accuracy on 300 locked photos; Hanger, a tool-using agent, won **11 of 12 decided** blind comparisons with a random valid outfit (8 ties); Brand Hanger sees released totals only | [How AI is used](#how-ai-is-used) · [Recognition](docs/evaluation-results-r2.md) · [Hanger holdout](#hanger-outfit-recommendations--blind-holdout-evaluation) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **1129 tests** in 137 files; CI with accessibility checks and CodeQL; **231 merged PRs** counted on 2026-11-12 before this documentation merge; build log through Phase 118 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **Code, docs & GitHub** | 15% | **1133 tests** in 137 files; CI with accessibility checks and CodeQL; **231 merged PRs** counted on 2026-11-12 before this documentation merge; build log through Phase 120 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app; a step-by-step judge guide inside the demo; honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Three real brands joined the pilot and uploaded products; one chose the $40 Pro plan in writing. Illustrative break-even: 20 excess units at a $25 landed cost | [Impact and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
 | **Bonus** | — | Consent, `k ≥ 25`, a daily enumeration budget, encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [Security testing](#security-testing-and-hardening) · [SECURITY.md](SECURITY.md) |
@@ -334,7 +334,7 @@ Racked holds photos of what people own, and real brands use it, so protecting th
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a production dependency audit, lint, type check, the full test suite, a production build and [accessibility checks](docs/accessibility.md) (axe on the public pages and, through a fixture-only harness, the signed-in screens, plus keyboard-only passes of both demo flows) on every push and pull request; [`codeql.yml`](.github/workflows/codeql.yml) adds CodeQL. `main` is protected: every change arrives by pull request, and `verify`, `accessibility` and CodeQL (`Analyze JavaScript and TypeScript`) must pass; force pushes and deletion are blocked (read back from GitHub's public API on 2026-11-01).
 
-**1129 passing tests** in 137 files (verified 2026-11-13). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
+**1133 passing tests** in 137 files (verified 2026-11-13). Tests named `REGRESSION:` reproduce a bug found in real use. A local attack harness drives a production build against local DynamoDB to check sign-in, roles, consent and the 25-owner rule ([docs/security-verification.md](docs/security-verification.md)). Documentation checks recompute the numbers in this README from their sources ([`tests/readme-numbers.test.ts`](tests/readme-numbers.test.ts)).
 
 Coverage over the whole suite (2026-11-13): **96.81% of lines, 89.10% of branches, 94.98% of functions**; `privacy.ts` 100% and the session guard 97.96% of branches. Coverage shows what the tests run, not that the scoring is right.
 
@@ -352,7 +352,7 @@ app/            Pages and API routes — app/api/* is the entire backend
 components/     The interface: wardrobe, photo intake, Looks, Hanger, brand dashboard
 lib/            Domain logic: AI agents, outfit builder, stylist knowledge, privacy gate, registry
 lib/server/     All DynamoDB and S3 access, with every ownership check
-tests/          137 test files, 1129 tests (node --test)
+tests/          137 test files, 1133 tests (node --test)
 scripts/        Judge and demo seeds, verification, evaluation, owner-run tools (dry run by default)
 infra/          CloudFormation: DynamoDB, S3, least-privilege Amplify compute role
 docs/           Judge guides, architecture, privacy, AI use log, evaluation protocol

@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { CommunityPostCard } from "./community-post-card";
 import { CommunityPieceSheet } from "./community-piece-sheet";
 import { ShopTheLook } from "./shop-the-look";
+import { EmptyState, LoadingPlaceholder } from "./empty-state";
 import { authorName, postPhoto } from "@/lib/community-piece";
 import { savedLabel } from "@/lib/outfit-detail";
 import { createSaveToggle, saveLookRequest } from "@/lib/save-toggle";
@@ -52,9 +53,9 @@ export function SavedLooksSection({ looks, loadError, onOpen }: { looks: SavedLo
     {loadError
       ? <div className="form-error" role="alert">{loadError}</div>
       : looks === null
-        ? <p className="saved-looks-note" role="status">Loading saved looks…</p>
+        ? <LoadingPlaceholder label="Loading saved looks…" shape="cards" count={3}/>
         : looks.length === 0
-          ? <div className="empty-match"><h3>No saved looks yet.</h3><p>Tap the heart on a look in Community to keep it here.</p><Link className="button button-light" href="/community">Browse Community</Link></div>
+          ? <EmptyState icon="community" title="No saved looks yet." action={<Link className="button button-light" href="/community">Browse Community</Link>}>Tap the heart on a look in Community to keep it here.</EmptyState>
           : <SavedLookList looks={looks} onOpen={onOpen} />}
   </section>;
 }

@@ -41,6 +41,35 @@ test("REGRESSION: navigation and photo pickers use the shared line icons, never 
   assert.match(nav, /<Icon name=\{tab\.icon\}\/><small>\{tab\.label\}<\/small>/);
 });
 
+// REGRESSION: Today said "Log today's outfit to keep your streak going", but its main button was
+// "+ Add clothing", a second accent button ("Scan my first look") sat below it, and the real logging
+// button was a third, inside the "This week" card. Today now has one main button for each case.
+test("REGRESSION: Today has one main button, and with clothes saved it logs today's outfit", () => {
+  const dashboard = read("components/consumer-dashboard.tsx");
+  const card = read("components/wear-points-card.tsx");
+  assert.match(dashboard, /activeView==="home"&&items\.length>0\s*\? <button type="button" className="button button-accent" aria-expanded=\{logOpen\} aria-controls=\{LOG_TODAY_PANEL_ID\} onClick=\{\(\)=>setLogOpen\(true\)\}>\{"Log today's outfit"\}<\/button>\s*: <button className="button button-accent" onClick=\{openAdd\}>\+ Add clothing<\/button>/);
+  assert.doesNotMatch(dashboard, /Scan my first look/, "the empty Today has one main button, not two");
+  assert.match(dashboard, /logging=\{logOpen\} onLoggingChange=\{setLogOpen\}/);
+  assert.equal((card.match(/Log today's outfit/g) ?? []).length, 2, "the card names its panel and nothing else");
+  assert.doesNotMatch(card, /button-accent/, "the card no longer carries a second main button");
+  assert.match(card, /id=\{LOG_TODAY_PANEL_ID\}/);
+  assert.match(card, />Cancel<\/button>/, "the opened panel can be closed where it is");
+  assert.match(card, /scrollIntoView\(\{ block: "nearest" \}\)/, "opening from the heading brings the panel into view");
+  assert.match(css, /\.insight-grid>\.points-card\{order:-1\}/, "the logging card leads Today");
+  // REGRESSION: the LIVE DATA label inherited the dark card's light text and read as an empty pink box.
+  assert.match(css, /\.demo-pill,\.fallback-pill\{[^}]*color:var\(--ink\)/);
+});
+
+// Corners and timings come from one set of values, and motion stays decorative: only colour,
+// opacity, scale and position animate, nothing starts invisible, and reduced motion turns it off.
+test("corners and motion come from shared values, and reduced motion turns the motion off", () => {
+  assert.match(css, /:root\{--radius-sm:8px;--radius:10px;--radius-lg:12px;--radius-xl:18px;--radius-pill:999px;--motion-fast:120ms;--motion:200ms;--motion-slow:320ms;/);
+  assert.doesNotMatch(css, /button,a\{transition:\.2s ease\}/, "no blanket transition on every property");
+  assert.match(css, /\.workspace-heading\.view-heading,\.empty-wardrobe,[^{]*\.wear-photo-row,[^{]*\{border-radius:var\(--radius-lg\)\}/);
+  assert.match(css, /@keyframes view-in\{from\{opacity:\.4;/, "a view never starts invisible");
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.consumer-workspace>section,\.brand-workspace>section\{animation:none\}[^}]*\{scale:none\}\}/);
+});
+
 // REGRESSION: Log with a photo kept its Record bar stuck over the bottom of the scrolling list. Whatever
 // choice sat under the bar's edge was half covered, leaving less than 24px of a radio button to tap,
 // and which choice that was moved with the text size and the browser's fonts (it failed in CI after
@@ -51,4 +80,32 @@ test("REGRESSION: the photo log's Record bar never floats over the choices", () 
   assert.doesNotMatch(rule, /position:(sticky|fixed|absolute)/);
   assert.doesNotMatch(css, /\.wear-photo-actions\{bottom:/);
   assert.match(css, /\.wear-photo-option input\{width:24px;height:24px;/, "radio buttons meet the 24px minimum target");
+});
+
+// Empty views used to differ from screen to screen: a bare heading, a page-sized poster, or a second
+// accent button competing with the page's own main button. They now share one quiet pattern.
+test("empty views share one pattern and never add a second main button", () => {
+  const component = read("components/empty-state.tsx");
+  assert.doesNotMatch(component, /button-accent/);
+  for (const file of ["components/consumer-dashboard.tsx", "components/saved-looks.tsx", "components/brand-look-builder.tsx"]) {
+    const source = read(file);
+    for (const match of source.matchAll(/<EmptyState [^]*?<\/EmptyState>/g)) assert.doesNotMatch(match[0], /button-accent/, `${file}: ${match[0].slice(0, 60)}`);
+  }
+  const dashboard = read("components/consumer-dashboard.tsx");
+  assert.doesNotMatch(dashboard, /No garments in this category yet|Add clothing before building an outfit/);
+  // REGRESSION: an empty closet showed six category filters with nothing to filter.
+  assert.match(dashboard, /\{items\.length>0&&<div className="filter-row"/);
+  assert.match(dashboard, /onClick=\{\(\)=>setFilter\("all"\)\}>Show everything<\/button>/, "an empty category offers a way back");
+});
+
+// REGRESSION: while the wardrobe loaded, the page showed "…" and a line of text, then jumped to a grid.
+test("loading shows placeholders shaped like the content, announced once and still under reduced motion", () => {
+  const component = read("components/empty-state.tsx");
+  assert.match(component, /role="status">\s*<span className="sr-only">\{label\}<\/span>/);
+  assert.equal((component.match(/aria-hidden="true"/g) ?? []).length, 3, "the icon and both placeholder shapes are hidden from assistive technology");
+  assert.match(read("components/consumer-dashboard.tsx"), /<LoadingPlaceholder label="Loading your private wardrobe" shape=\{activeView==="closet"\?"garments":"cards"\}/);
+  assert.match(read("components/saved-looks.tsx"), /<LoadingPlaceholder label="Loading saved looks…"/);
+  // REGRESSION: while loading, the Closet heading said "0 pieces, 0 wears logged", as if the wardrobe were empty.
+  assert.match(read("components/consumer-dashboard.tsx"), /\{!loading&&heading\.stats\.length>0&&<dl className="view-stats">/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.skeleton-card i,\.skeleton-text i\{animation:none\}\}/);
 });
