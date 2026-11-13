@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import manifest from "../app/manifest.ts";
-import { INSTALL_PROMPT_CAPTURE, detectInAppBrowser, detectIosBrowser, detectPwaInstallPlatform, externalBrowserUrl, pwaInstallGuidance } from "../lib/pwa-install.ts";
+import { INSTALL_PROMPT_CAPTURE, INSTALL_TIP_SNOOZE_MS, installTipEarned, installTipPath, parseInstallTipRecord, detectInAppBrowser, detectIosBrowser, detectPwaInstallPlatform, externalBrowserUrl, pwaInstallGuidance } from "../lib/pwa-install.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -89,4 +89,29 @@ test("the service worker is registered only in production builds",()=>{
   const component=read("components/pwa-install.tsx");
   assert.match(component,/if \(process\.env\.NODE_ENV==="production"\)\{\s*navigator\.serviceWorker\.addEventListener\("controllerchange",refreshForUpdate\);\s*navigator\.serviceWorker\.register\("\/sw\.js"\)/);
   assert.match(component,/registration\.unregister\(\)/);
+});
+
+// REGRESSION: the tip appeared half a second after any page opened, first visit included. It
+// covered the landing page's main button and, on phones, stacked between the Hanger launcher and
+// the bottom tabs (the presentation script had to tell presenters to dismiss it). Dismissing it
+// lasted only until the next page load.
+test("REGRESSION: the install tip waits for a returning visitor inside the app, and a dismissal is remembered",()=>{
+  const now=Date.parse("2026-11-12T12:00:00Z");
+  assert.equal(installTipEarned({visits:1,dismissedAt:null},now),false,"never on a first visit");
+  assert.equal(installTipEarned({visits:2,dismissedAt:null},now),true);
+  assert.equal(installTipEarned({visits:5,dismissedAt:now-24*60*60*1000},now),false,"a dismissal holds");
+  assert.equal(installTipEarned({visits:5,dismissedAt:now-INSTALL_TIP_SNOOZE_MS-1},now),true,"and expires after 30 days");
+  for(const path of ["/","/login","/pricing","/privacy","/terms","/demo-store/x"])assert.equal(installTipPath(path),false,path);
+  for(const path of ["/consumer","/brand","/settings","/community","/community/people/a"])assert.equal(installTipPath(path),true,path);
+  assert.equal(installTipPath("/consumerish"),false);
+  const component=read("components/pwa-install.tsx");
+  assert.match(component,/const shown=!hidden&&earned===true&&installTipPath\(pathname\?\?""\)/);
+  assert.match(component,/onClick=\{dismiss\}/,"the dismiss button records the dismissal");
+});
+
+test("a missing, blocked or malformed install-tip record reads as a first visit",()=>{
+  assert.deepEqual(parseInstallTipRecord(null),{visits:0,dismissedAt:null});
+  assert.deepEqual(parseInstallTipRecord("not json"),{visits:0,dismissedAt:null});
+  assert.deepEqual(parseInstallTipRecord('{"visits":"9","dismissedAt":"x"}'),{visits:0,dismissedAt:null});
+  assert.deepEqual(parseInstallTipRecord('{"visits":3,"dismissedAt":12}'),{visits:3,dismissedAt:12});
 });
