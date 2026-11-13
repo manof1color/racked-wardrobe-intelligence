@@ -35,7 +35,7 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
     {tour}
     <div className="demo-store-banner" role="note"><strong>Demonstration only</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
     <header className="community-nav">
-      <Link className="wordmark" href={demoStoreBrandPath(brandSlug)}>{product.brand}</Link>
+      <Link className="demo-store-name" href={demoStoreBrandPath(brandSlug)}>{product.brand}</Link>
       <nav><Link href={demoStoreBrandPath(brandSlug)}>All products</Link><Link href="/community">Back to Racked Community</Link></nav>
     </header>
 
@@ -45,6 +45,8 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
         <div className="eyebrow">{product.brand}</div>
         <h1>{product.name}</h1>
         <p className="demo-product-price">{formatPrice(price,product.currency)}</p>
+        {/* The purchase sits right under the price, as on a real product page; details follow. */}
+        <DemoPurchasePanel productId={product.id} productName={product.name} unavailable={unavailable} testCheckout={testCheckout} price={price} currency={product.currency}/>
         <p className="demo-product-description">{storefrontDescription(product)}</p>
 
         <dl className="demo-product-facts">
@@ -53,8 +55,6 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
           <div><dt>GTIN</dt><dd>{product.gtin??"Not supplied"}</dd></div>
           <div><dt>Availability</dt><dd>{unavailable?"Not available":"Demonstration only"}</dd></div>
         </dl>
-
-        <DemoPurchasePanel productId={product.id} productName={product.name} unavailable={unavailable} testCheckout={testCheckout} price={price} currency={product.currency}/>
 
         <Link className="text-link" href={`/brands/${brandSlug}`}>See how this product is measured on Racked →</Link>
       </div>
