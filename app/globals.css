@@ -1216,7 +1216,7 @@ h1 em,h2 em,h3 em{font-style:normal}
 @keyframes view-in{from{opacity:.4;translate:0 6px}to{opacity:1;translate:0 0}}
 .consumer-workspace>section:not(.workspace-heading),.brand-workspace>section:not(.workspace-heading){animation:view-in var(--motion-slow) var(--ease-out)}
 @media(max-width:760px){.wear-photo-modal{border-radius:0}}
-@media(prefers-reduced-motion:reduce){.consumer-workspace>section,.brand-workspace>section{animation:none}:where(.button,.consumer-view-tabs button,.consumer-view-tabs a,.mobile-tab-bar button,.mobile-tab-bar a,.hanger-launcher,.hanger-action,.discovery-chips button,.pwa-install-action,.photo-source-action):active{scale:none}}
+@media(prefers-reduced-motion:reduce){.consumer-workspace>section:not(.workspace-heading),.brand-workspace>section:not(.workspace-heading){animation:none}:where(.button,.consumer-view-tabs button,.consumer-view-tabs a,.mobile-tab-bar button,.mobile-tab-bar a,.hanger-launcher,.hanger-action,.discovery-chips button,.pwa-install-action,.photo-source-action):active{scale:none}}
 .points-log-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
 /* Today opens on what it is for: the "This week" card, where today's outfit is logged, comes first. */
 .insight-grid>.points-card{order:-1}
@@ -1242,3 +1242,11 @@ h1 em,h2 em,h3 em{font-style:normal}
 @media(max-width:1050px){.skeleton-garments .skeleton-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:760px){.skeleton-grid{grid-template-columns:1fr}.skeleton-garments .skeleton-grid{grid-template-columns:repeat(2,1fr)}.empty-state{padding:22px}}
 @media(prefers-reduced-motion:reduce){.skeleton-card i,.skeleton-text i{animation:none}}
+
+/* Community keeps the workspace tab row (components/workspace-tabs.tsx), so the other views stay one
+   click away on a computer. Tabs that are links look and behave like the tab buttons. */
+.consumer-view-tabs a.active{background:var(--ink);color:white;border-color:var(--ink)}
+.workspace-tabs a{background:transparent;font-size:.75rem;font-weight:800;letter-spacing:.02em;color:var(--muted);padding:10px 12px;border-bottom:2px solid transparent;white-space:nowrap;text-decoration:none}
+.workspace-tabs a:hover{color:var(--ink)}
+.workspace-tabs a.active{color:var(--ink);border-bottom-color:var(--ink)}
+.community-page>.community-workspace-tabs{margin:28px 0 0}
