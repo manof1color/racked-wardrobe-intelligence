@@ -22,7 +22,7 @@ function slotOf(category: string) {
 // enforced again by the server). Saving a draft still goes to the server, which decides.
 interface PreviewPost { title: string; caption: string; pieces: BrandProductRegistration[] }
 
-export function BrandLookBuilder({products,preview=false}:{products:BrandProductRegistration[];preview?:boolean}){
+export function BrandLookBuilder({products,preview=false,compact=false}:{products:BrandProductRegistration[];preview?:boolean;compact?:boolean}){
   const [looks,setLooks]=useState<BrandLook[]>([]);
   const [selected,setSelected]=useState<string[]>([]);
   const [title,setTitle]=useState("");
@@ -75,7 +75,7 @@ export function BrandLookBuilder({products,preview=false}:{products:BrandProduct
   }
 
   return <section className="registry-panel brand-look-panel" id="brand-looks">
-    <div className="registry-heading">
+    <div className={`registry-heading${compact?" compact":""}`}>
       <div><div className="eyebrow">BRAND LOOKS</div><h2>Style your own catalog.</h2><p>Build a Look from products enrolled under this account. Published Looks are labeled as Brand content everywhere they appear, so they never read as an ordinary customer post.</p></div>
       <span className="fallback-pill">{loading?"…":`${looks.length} LOOKS`}</span>
     </div>

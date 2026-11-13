@@ -190,7 +190,7 @@ test("a demo brand's Post shows a labelled preview and sends nothing; the server
   assert.match(builder, /Demo preview · not published/);
   assert.match(builder, /Nothing was published or saved\./);
   assert.match(read("app/brand/page.tsx"), /<BrandDashboard initialView=\{initialView\} previewLooks=\{Boolean\(session\.demo\)\}\/>/);
-  assert.match(read("components/brand-dashboard.tsx"), /<BrandLookBuilder products=\{live\} preview=\{previewLooks\}\/>/);
+  assert.match(read("components/brand-dashboard.tsx"), /<BrandLookBuilder products=\{live\} preview=\{previewLooks\}(?: compact=\{compactHeadings\})?\/>/);
   assert.match(read("components/brand-dashboard.tsx"), /if\(request\?\.action==="open-looks"\)\{setView\("looks"\);setError\(""\);return;\}/);
   // The boundary stays on the server whatever the page does.
   assert.match(read("lib/server/production-store.ts"), /if\(demo&&input\.published\)throw new RequestRefused\(DEMO_LOOK_PUBLISH_MESSAGE,403\);/);

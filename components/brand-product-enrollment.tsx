@@ -35,7 +35,7 @@ interface Draft {
  * has to refuse them. A draft the registry does refuse stays on screen with the reason, so nothing
  * is lost to a typo in the tenth field of the third card.
  */
-export function BrandProductEnrollment({products,onProducts}:{products:BrandProductRegistration[];onProducts:(products:BrandProductRegistration[])=>void}) {
+export function BrandProductEnrollment({products,onProducts,compact=false}:{products:BrandProductRegistration[];onProducts:(products:BrandProductRegistration[])=>void;compact?:boolean}) {
   const [open,setOpen]=useState(false);
   const [drafts,setDrafts]=useState<Draft[]>([]);
   const [busy,setBusy]=useState(false);
@@ -170,7 +170,7 @@ export function BrandProductEnrollment({products,onProducts}:{products:BrandProd
   }
 
   return <section className="registry-panel" id="products">
-    <div className="registry-heading"><div><div className="eyebrow">YOUR PRODUCT REGISTRY</div><h2>Connect real products to actual wear.</h2><p>Add a photo of each product — up to {MAX_ENROLL_DRAFTS} at once. Racked reads every photo and fills in what it can; you add the style code, which is the part only you know. No catalog system or CSV is required.</p></div><button type="button" className="button button-accent" onClick={()=>setOpen(value=>!value)}>{open?"Close enrollment":"+ Enrol products"}</button></div>
+    <div className={`registry-heading${compact?" compact":""}`}><div><div className="eyebrow">YOUR PRODUCT REGISTRY</div><h2>Connect real products to actual wear.</h2><p>Add a photo of each product — up to {MAX_ENROLL_DRAFTS} at once. Racked reads every photo and fills in what it can; you add the style code, which is the part only you know. No catalog system or CSV is required.</p></div><button type="button" className="button button-accent" onClick={()=>setOpen(value=>!value)}>{open?"Close enrollment":"+ Enrol products"}</button></div>
 
     {open&&<div className="registry-form">
       <PhotoSourcePicker label={drafts.length?"Choose different photos":"Add product photos"} multiple onFiles={chooseFiles}/>

@@ -219,6 +219,10 @@ export function BrandDashboard({initialView="overview",previewLooks=false}:{init
   const maxDistribution=Math.max(1,...(metrics?.wearDistribution??[]).map(point=>point.owners??0));
   const tabs:Array<{id:BrandWorkspaceView;label:string}>=[{id:"overview",label:"Overview"},{id:"catalog",label:"Catalog"},{id:"looks",label:"Brand Looks"}];
   // The skeleton shows while an opened product has neither an answer nor an error yet.
+  // A brand with products enrolled gets compact headings, so its catalog and numbers start near the
+  // top; a brand with an empty catalog keeps the full explanations, which are its onboarding.
+  // Compact while loading too, because most visits are return visits (same rule as the wardrobe views).
+  const compactHeadings=!catalogLoaded||products.length>0;
   const calculating=view==="product"&&Boolean(productId)&&!justEnrolled.includes(productId)&&!metrics&&!error;
   const steps=brandOnboardingSteps({products,publishedLookCount,sharedLink});
   const progress=brandOnboardingProgress(steps);
@@ -240,7 +244,7 @@ export function BrandDashboard({initialView="overview",previewLooks=false}:{init
     </nav>
 
     {view==="overview"&&<>
-      <section className="workspace-heading"><div><div className="eyebrow">PRIVATE BRAND WORKSPACE</div><h1>Understand how products<br/>are <em>actually worn.</em></h1><p>Verified wear events become privacy-safe product intelligence: frequency, engagement, repeat use, and change over time. Open a product in your catalog to see its numbers.</p></div></section>
+      <section className={`workspace-heading${compactHeadings?" compact":""}`}><div><div className="eyebrow">PRIVATE BRAND WORKSPACE</div><h1>Understand how products{" "}<br/>are <em>actually worn.</em></h1><p>Verified wear events become privacy-safe product intelligence: frequency, engagement, repeat use, and change over time. Open a product in your catalog to see its numbers.</p></div></section>
 
       {catalogLoaded&&products.length===0
         ? <section className="empty-wardrobe"><div className="eyebrow">START WITH YOUR CATALOG</div><h2>Enroll your first real product.</h2><p>Add one product photo and its SKU. Racked fills in the rest from the photo, and customers can link the product by its label, by search, or when their scan recognises it.</p><button type="button" className="button button-accent" onClick={()=>setView("catalog")}>Go to your catalog</button></section>
@@ -276,7 +280,7 @@ export function BrandDashboard({initialView="overview",previewLooks=false}:{init
     </>}
 
     {view==="catalog"&&<>
-      <BrandProductEnrollment products={products} onProducts={acceptProducts}/>
+      <BrandProductEnrollment products={products} onProducts={acceptProducts} compact={compactHeadings}/>
       <section className="catalog-view">
         <div className="panel-heading"><div><div className="eyebrow">YOUR CATALOG</div><h2>Open a product</h2></div><span>{live.length} live SKU{live.length===1?"":"s"}</span></div>
         <div className="catalog-filter">
@@ -291,7 +295,7 @@ export function BrandDashboard({initialView="overview",previewLooks=false}:{init
       </section>
     </>}
 
-    {view==="looks"&&<BrandLookBuilder products={live} preview={previewLooks}/>}
+    {view==="looks"&&<BrandLookBuilder products={live} preview={previewLooks} compact={compactHeadings}/>}
 
     {view==="product"&&product&&<section className="product-view">
       <div className="product-view-head">
