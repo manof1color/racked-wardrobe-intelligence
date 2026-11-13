@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PRICING_BLOCK_END, PRICING_BLOCK_START, PRICING_TIERS, renderPricingBlock } from "../lib/pricing.ts";
+import { PRICING_BLOCK_END, PRICING_BLOCK_START, PRICING_TIERS, REFERRAL_COMMISSION_RATE, referralSplit, renderPricingBlock } from "../lib/pricing.ts";
 
 const root = join(import.meta.dirname, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8").replace(/\r\n/g, "\n");
@@ -59,4 +59,15 @@ test("Basic promises only what the product shows below the threshold", () => {
     const text = read(file).toLowerCase();
     for (const needle of needles) assert.ok(!text.includes(needle), `${file} still says "${needle}"`);
   }
+});
+
+test("the test receipt illustrates the same commission the pricing table states, to the cent", () => {
+  const row = PRICING_TIERS.find((entry) => entry.tier.startsWith("Referral commission"));
+  assert.equal(row?.price, `${REFERRAL_COMMISSION_RATE * 100}% of referred sales`);
+  assert.deepEqual(referralSplit(295), { commission: 23.6, brandReceives: 271.4 });
+  assert.deepEqual(referralSplit(48), { commission: 3.84, brandReceives: 44.16 });
+  assert.deepEqual(referralSplit(0.99), { commission: 0.08, brandReceives: 0.91 });
+  const receipt = read("app/test-checkout/complete/page.tsx");
+  assert.match(receipt, /referralSplit\(receipt\.amount\)\.commission/);
+  assert.match(receipt, /In test mode nothing is split or moved\./, "the split is labelled an illustration");
 });

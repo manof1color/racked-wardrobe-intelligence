@@ -15,6 +15,18 @@
  */
 export type PricingTier = { tier: string; price: string; includes: string };
 
+/** The proposed referral commission (owner decision 2026-11-13), as a fraction of the sale price. */
+export const REFERRAL_COMMISSION_RATE = 0.08;
+
+/**
+ * How a referred sale would split: Racked's commission and what the brand keeps, in dollars, rounded
+ * to the cent. Shown on the Stripe test receipt to illustrate the model; nothing is moved or billed.
+ */
+export function referralSplit(amount: number) {
+  const commission = Math.round(amount * REFERRAL_COMMISSION_RATE * 100) / 100;
+  return { commission, brandReceives: Math.round((amount - commission) * 100) / 100 };
+}
+
 export const PRICING_TIERS: readonly PricingTier[] = [
   { tier: "Consumer Free", price: "$0", includes: "Wardrobe logging, wear tracking, limited Hanger queries" },
   { tier: "Consumer Pro", price: "$6.99/mo or $59/yr", includes: "Unlimited Hanger, advanced analytics, outfit export" },

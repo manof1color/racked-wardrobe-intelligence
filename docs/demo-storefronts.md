@@ -2,7 +2,7 @@
 
 > Every page under `/demo-store` is a **fictional shop for a fictional brand**: a fictional product, no real money, and nothing ships. The in-page Demo Bag and $0.00 checkout are an interaction simulation only: no payment is processed, no order is created, and no personal detail is collected. Each page carries a persistent banner saying so.
 >
-> A fictional product page, and the Community item sheet for a priced fictional piece, can also offer a Stripe **test-mode** checkout (**Pay with a test card** on the product page, **Buy with a test card** in the Community sheet; card `4242 4242 4242 4242`, any future date, any CVC) (`lib/test-checkout.ts`). It appears only when a Stripe test key is configured, never for a pilot or real brand's product, moves no money, creates no order, and records nothing. Only the $0.00 Demo Bag adds to the brand dashboard's simulation count.
+> A fictional product page, and the Community item sheet for a priced fictional piece, can also offer a Stripe **test-mode** checkout (**Buy with a test card**, the only purchase button on either screen; card `4242 4242 4242 4242`, any future date, any CVC) (`lib/test-checkout.ts`). It appears only when a Stripe test key is configured, never for a pilot or real brand's product, moves no money, creates no order, and records nothing. Only the $0.00 Demo Bag adds to the brand dashboard's simulation count.
 
 ## Why these exist
 

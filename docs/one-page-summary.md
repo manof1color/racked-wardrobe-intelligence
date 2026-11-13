@@ -47,7 +47,7 @@ payment step is Stripe test mode on fictional products.
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **1135 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
+- **1137 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
   on every pull request, with a build log through Phase 122 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-11-13).
 
 ## Lessons learned

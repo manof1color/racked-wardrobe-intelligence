@@ -121,15 +121,17 @@ run end to end on the live site by anyone but you.
 **The Stripe test card** — Stripe *test mode*, a *fictional* product, no real money, nothing ships.
 
 1. Open `/demo-store/racked-test-atelier/RTA-001`. The banner says it is a fictional shop. The page leads
-   with **Pay with a test card**, with **Add to demo bag · $0.00 simulation** as a link beneath it. Checked
+   with **Buy with a test card**, its only purchase button (owner decision 2026-11-13: one purchase button on
+   every screen). Checked
    read-only on production on 2026-11-07, before the layout change in #233 deployed: the test-card button was
    on the page, which means a Stripe test key is configured.
-2. Tap **Pay with a test card**. Stripe's own hosted page opens with the product named "(fictional demo)" and a
+2. Tap **Buy with a test card**. Stripe's own hosted page opens with the product named "(fictional demo)" and a
    notice: *Stripe test mode. Use card 4242 4242 4242 4242, any future date and any CVC. Do not enter a real card.*
 3. Enter **4242 4242 4242 4242**, **any future expiry date** and **any CVC** (and any name or postcode if Stripe
    asks for them). Pay.
 4. Racked returns to a page that says **Test payment complete**, with the product and price, and a
-   **Return to Racked** button.
+   **Return to Racked** button. Below it, a line shows how the proposed 8% referral commission would split this
+   price between Racked and the brand; nothing is split or moved.
    The owner ran a full test payment on the live site from a Community look (a priced fictional piece, then
    **Buy with a test card**), after the fixes for Stripe's 400 errors (#232 is the latest), and Stripe's test
    payments list showed it as succeeded. This page uses the same button and route.
@@ -137,8 +139,8 @@ run end to end on the live site by anyone but you.
 5. Say: *"That is Stripe's test mode. No money moved, no order exists and nothing ships. Racked takes no real
    payments and nobody is billed during the pilot."*
 
-If Stripe is slow or the button is missing, skip it. The **Add to demo bag** link on the same page still works
-and needs no external service.
+If Stripe is slow or the button is missing, skip it. The $0.00 **Add to demo bag** appears only where no Stripe
+test key is configured, so it is not a fallback on the live site.
 
 ---
 
@@ -173,7 +175,7 @@ Judges score here. Answer in two sentences, then stop.
 | The Stripe test page is slow, or the test button is missing | Skip it. Use the $0.00 demo bag on the same fictional product page, and say the test payment is optional and in test mode only. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-11-13):** 1135 tests in 137 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-11-13):** 1137 tests in 137 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 
