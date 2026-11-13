@@ -708,7 +708,14 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - Fixed in passing: hiding the line break joined two words ("productsare"); the heading now has a real space before the break.
 - Tests: 1 more in `tests/visual-polish.test.ts`; prop checks in `tests/brand-workspace.test.ts` and `tests/judge-tour.test.ts` now allow the compact prop. Checked with axe on all three brand views, with products and with an empty catalog, at desktop and phone sizes.
 
-## Phase 130 — The phone tab bar stays on the bottom edge after a return (2026-11-13)
+## Phase 130 — The fictional demo storefront, tidied for phones (2026-11-13)
+
+- The owner reported it from a phone. The storefront header set the store's name in the Racked wordmark style (wide tracking and brackets), so on a phone "Judge Demo Atelier" wrapped onto two lines and its bracket ran into the links. The store name is now plain bold type on the product page and the store's product list, with the links in one row beneath it on a phone.
+- On a product page the purchase now sits right under the price (price, Add to demo bag, then the description and product facts), instead of after the description and four rows of facts. The facts are two columns on a phone.
+- Nothing about what the simulation does or records changed; the demonstration banner and every disclaimer are unchanged.
+- Tests: 1 more in `tests/visual-polish.test.ts`. Checked with screenshots of each step (product, bag, confirmation) at phone and desktop sizes.
+
+## Phase 131 — The phone tab bar stays on the bottom edge after a return (2026-11-13)
 
 - The owner's phone recording: after a demo purchase in another tab and a return to Community, the tab bar and the judge guide sat about a keyboard's height up the screen and moved with the page. iOS can keep a keyboard-shortened height for both the layout and the visual viewport after the keyboard closes or the app is resumed. The existing correction (`dockShift`) only handles the two viewports disagreeing, so it saw nothing to fix.
 - The dock now remembers the tallest height the screen has shown while nobody was typing, per width and for the browser session, and moves the bottom controls down by any keyboard-sized shortfall (150px or more) with no keyboard up (`staleViewportShift`, `lib/viewport-dock.ts`). It applies to touch screens only, never while pinch-zoomed or typing; toolbar-sized changes are left alone.
@@ -720,4 +727,4 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 
 ## Continuous verification
 
-The phase entries above record their historical verification. The current working branch carries **1152 passing tests** in 137 files (re-verified 2026-11-13), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
+The phase entries above record their historical verification. The current working branch carries **1153 passing tests** in 137 files (re-verified 2026-11-13), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.

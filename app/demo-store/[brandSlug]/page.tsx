@@ -22,7 +22,7 @@ export default async function DemoStorefront({params}:{params:Promise<{brandSlug
   return <main className="demo-store">
     <div className="demo-store-banner" role="note"><strong>Demonstration only</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
     <header className="community-nav">
-      <span className="wordmark">{brand}</span>
+      <span className="demo-store-name">{brand}</span>
       <nav><Link href="/community">Back to Racked Community</Link><Link href={`/brands/${brandSlug}`}>Racked brand page</Link></nav>
     </header>
 

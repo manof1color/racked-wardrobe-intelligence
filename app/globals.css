@@ -1280,6 +1280,22 @@ h1 em,h2 em,h3 em{font-style:normal}
 .registry-heading.compact h2{font-size:1.45rem;margin:4px 0 0}
 .registry-heading.compact>div:first-child>p{display:none}
 
+/* Fictional demo storefronts: a store header in the store's own plain type (the Racked wordmark's
+   brackets and wide tracking wrapped onto two lines on a phone and ran into the links), the purchase
+   right under the price, and compact product facts. */
+.demo-store-name{font:800 1.1rem/1.2 var(--sans);letter-spacing:.01em;color:var(--ink);text-decoration:none}
+.demo-store .community-nav{gap:10px 24px}
+.demo-store .demo-product-price{margin:4px 0 16px}
+.demo-store .demo-product-description{margin:18px 0 0}
+.demo-store .demo-product-facts{margin:18px 0}
+.demo-store .demo-product-copy .text-link{display:inline-block;margin-top:4px}
+@media(max-width:760px){
+  .demo-store .community-nav{height:auto;padding:14px 0;flex-direction:column;align-items:flex-start}
+  .demo-store .community-nav nav{flex-direction:row;flex-wrap:wrap;gap:6px 18px}
+  .demo-store .demo-product-facts{grid-template-columns:1fr 1fr}
+  .demo-store .demo-product-copy h1{margin:6px 0}
+}
+
 /* The judge guide sits just above the phone tab bar, so it moves with it: when the viewport is left
    stale (see components/use-viewport-dock.ts) both come down to the visible bottom edge together. */
 .judge-tour,.judge-tour-pill{translate:0 var(--dock-shift,0px)}

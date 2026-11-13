@@ -162,3 +162,18 @@ test("brands with products get compact headings; an empty catalog keeps its expl
   assert.match(css, /\.brand-workspace>\.workspace-heading\.compact h1 br,\.brand-workspace>\.workspace-heading\.compact p\{display:none\}/);
   assert.match(css, /\.registry-heading\.compact>div:first-child>p\{display:none\}/);
 });
+
+// REGRESSION: on a phone, the fictional storefront's header set the store name in the Racked wordmark
+// style (wide tracking and brackets), so it wrapped onto two lines and its bracket ran into the links,
+// and the purchase came only after the description and four rows of product facts.
+test("REGRESSION: the demo storefront has a plain store name and the purchase right under the price", () => {
+  const product = read("app/demo-store/[brandSlug]/[sku]/page.tsx");
+  const brand = read("app/demo-store/[brandSlug]/page.tsx");
+  for (const page of [product, brand]) assert.doesNotMatch(page, /className="wordmark"/);
+  assert.match(product, /className="demo-store-name"/);
+  assert.match(brand, /className="demo-store-name"/);
+  const order = ["demo-product-price", "<DemoPurchasePanel", "demo-product-description", "demo-product-facts"].map(marker => product.indexOf(marker));
+  assert.ok(order.every(index => index > 0), "every part is on the page");
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "price, then the purchase, then the description and facts");
+  assert.match(css, /\.demo-store \.demo-product-facts\{grid-template-columns:1fr 1fr\}/, "two columns of facts on a phone");
+});
