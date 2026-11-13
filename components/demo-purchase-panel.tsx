@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { formatPrice } from "@/lib/demo-storefront";
+import { REFERRAL_COMMISSION_RATE, referralSplit } from "@/lib/pricing";
 import { TestCheckoutButton } from "./test-checkout-button";
 
 type DemoPurchaseStep = "product" | "bag" | "complete";
@@ -12,7 +14,7 @@ type DemoPurchaseStep = "product" | "bag" | "complete";
 // the person. The "Buy with a test card" button (Stripe test mode, offered only when the
 // page says so, and then the only button) records nothing here: it never touches the demonstration count. If the recording call fails the simulation still completes — the point of
 // the step is the commerce handoff, not the counter.
-export function DemoPurchasePanel({ productId, productName, unavailable, sourcePostId, testCheckout = false }: { productId: string; productName: string; unavailable: boolean; sourcePostId?: string; testCheckout?: boolean }) {
+export function DemoPurchasePanel({ productId, productName, unavailable, sourcePostId, testCheckout = false, price, currency = "USD" }: { productId: string; productName: string; unavailable: boolean; sourcePostId?: string; testCheckout?: boolean; price?: number; currency?: string }) {
   const [step, setStep] = useState<DemoPurchaseStep>("product");
   const [busy, setBusy] = useState(false);
   const [recorded, setRecorded] = useState(false);
@@ -44,6 +46,8 @@ export function DemoPurchasePanel({ productId, productName, unavailable, sourceP
       <p className="demo-purchase-receipt">{recorded
         ? `Recorded as a demonstration event. ${productName} now shows one more purchase simulation on its brand dashboard — a simulation count, never a sale.`
         : "The demonstration event could not be recorded, so the brand dashboard count is unchanged. The simulated checkout itself still completed."}</p>
+      {/* The proposed referral commission (lib/pricing.ts), illustrated on this simulation, as the Stripe test page does. Nothing is split or moved. */}
+      {typeof price === "number" && price > 0 && <p className="demo-purchase-split">If a real shopper had bought this on the brand&rsquo;s own site after a Racked link, the brand would pay Racked&rsquo;s {REFERRAL_COMMISSION_RATE * 100}% referral commission of <strong>{formatPrice(referralSplit(price).commission, currency)}</strong> and keep <strong>{formatPrice(referralSplit(price).brandReceives, currency)}</strong>. In this simulation nothing is split or moved.</p>}
     </div>
     <Link className="button button-accent" href="/community">Return to Racked</Link>
   </section>;

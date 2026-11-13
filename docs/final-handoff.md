@@ -8,7 +8,7 @@ Originally verified on 2026-08-13 against production and the implementation merg
 - Saved outfits retain explicit wardrobe-piece references and distinct exact, estimated, similar, generic, and unavailable product states.
 - Community publishes only a selected saved outfit through a strict public allowlist and post-scoped image proxy.
 - Recreate This Look compares a public outfit only with the signed-in Consumer's wardrobe and returns reproducible exact/substitute/missing results.
-- Verified products support validated outbound commerce destinations. Racked takes no real payments; fictional demo products alone also offer a Stripe test-mode checkout, where no money moves.
+- Verified products support validated outbound commerce destinations. Racked takes no real payments; shoppers buy on the brand's own site. A Stripe test-mode checkout for fictional demo products exists but is switched off on the live site (no Stripe key is set).
 - Brand accounts can create Brand Looks only from their own enrolled products.
 - Brand dashboards and Brand Hanger separate private `k >= 25` wear analytics from intentionally public Community activity.
 - Production contains three fictional DEMO brands, 30 synthetic products, six Brand Looks, 25 synthetic Consumers, saved/public outfits, and 76 wear events per hero product.
@@ -74,6 +74,6 @@ Legacy category-only garments are normalized to valid subtypes. Saved outfits re
 - Community aggregation currently reads the latest 1,000 identity-free events; production scale needs counters or pagination.
 - Legal brand-authority verification and account-deletion automation remain future operations work.
 - Similar-product destination selection and production affiliate-provider integration remain future work.
-- Real checkout, real payments, subscriptions, billing, fulfillment, returns, payouts, DMs, follower graph, and virtual try-on remain intentionally out of scope. The only payment step is Stripe **test mode** on fictional `DEMO` products (`lib/test-checkout.ts`), which moves no money and stores nothing.
+- Real checkout, real payments, subscriptions, billing, fulfillment, returns, payouts, DMs, follower graph, and virtual try-on remain intentionally out of scope. The Stripe **test-mode** checkout for fictional `DEMO` products (`lib/test-checkout.ts`) is switched off on the live site; it moves no money and stores nothing if turned on.
 
 Frontend agents must preserve resolution labels, alternatives/manual correction, Consumer-vs-Brand Looks, DEMO/PILOT badges, Recreate evidence, controlled shopping routes, and the visible split between public Community activity and private thresholded wear analytics. Never infer exact identity from AI confidence or submit client-provided wardrobe data to Recreate.

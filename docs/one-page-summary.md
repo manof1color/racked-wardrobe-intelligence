@@ -32,8 +32,8 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 Three real brands agreed to the pilot, created accounts and uploaded products, and all accepted the
 proposed prices in writing: participation and price acceptance, not payment. Repeat-wear and pairing evidence can inform product, inventory and campaign decisions. At
 the proposed $40 monthly Pro price, avoiding 20 excess units at a $25 landed cost is an illustrative
-annual break-even, not measured pilot ROI. No real payments: the only
-payment step is Stripe test mode on fictional products.
+annual break-even, not measured pilot ROI. No real payments:
+shoppers buy on the brand's own site.
 
 ## Key technical choices
 
