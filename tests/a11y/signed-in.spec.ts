@@ -133,7 +133,7 @@ test("axe: the demo brand's Settings preview, with every control disabled", asyn
   await expect(page.getByRole("heading", { name: "Two-step sign-in." })).toBeVisible();
   for (const part of ["two-step", "approval", "budget", "activity"]) await expect(page.locator(`[data-demo-preview="${part}"]`)).toBeVisible();
   await expect(page.locator('[data-demo-preview="approval"] h2')).toHaveText("Approved.");
-  await expect(page.locator('[data-demo-preview="budget"] h2')).toHaveText("2 of 6 products opened.");
+  await expect(page.locator('[data-demo-preview="budget"] h2')).toHaveText("Not limited in the demo.");
   const controls = page.locator("[data-demo-preview] button, [data-demo-preview] input");
   expect(await controls.count()).toBeGreaterThanOrEqual(3);
   for (const control of await controls.all()) await expect(control).toBeDisabled();

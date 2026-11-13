@@ -45,8 +45,8 @@ the next one sees; a full session to a seeded judge account is refused outright 
   account, so one judge cannot use up the next judge's; each reading still counts against the
   site's daily AI ceiling.
 - **Settings in the demo brand is a preview.** It shows two-step sign-in in its "on" state, the
-  brand's approval status, today's product budget (products opened of 6, shared by every visitor)
-  and a security activity log, with every control disabled. No authenticator secret is stored on the
+  brand's approval status, a note on the product budget (real brands may open 6 products a day;
+  demo brands are exempt, so no judge is locked out) and a security activity log, with every control disabled. No authenticator secret is stored on the
   shared account, and the activity log is made up: the account's real log is every judge's sign-ins,
   so a demo session is never shown it, from Settings or from `/api/account/activity`.
 - **None reaches a real person or brand.** A demo wardrobe never joins a product's owner index, so

@@ -22,7 +22,7 @@ export default async function A11yHarnessPage({searchParams}:{searchParams:Promi
   if(!a11yHarnessEnabled(process.env))notFound();
   const query=await searchParams;
   const screen=harnessScreen(query.role,query.view);
-  if(screen.role==="brand"&&screen.view==="demo-settings")return <AccountSettingsPanel account={{displayName:"Fixture Brand",email:"brand@fixture.example",role:"brand",brandName:"Fixture Denim Co"}} demoBrand={{brandStatus:"approved",budget:{opened:2,limit:6},activity:demoActivityLog(FIXTURE_NOW),now:FIXTURE_NOW}}/>;
+  if(screen.role==="brand"&&screen.view==="demo-settings")return <AccountSettingsPanel account={{displayName:"Fixture Brand",email:"brand@fixture.example",role:"brand",brandName:"Fixture Denim Co"}} demoBrand={{brandStatus:"approved",activity:demoActivityLog(FIXTURE_NOW),now:FIXTURE_NOW}}/>;
   // tour=1 adds the judge guide a demo session shows above its workspace (components/judge-tour.tsx).
   const tour=query.tour==="1"?<JudgeTour kind={screen.role} sessionExpiresAt={FIXTURE_NOW+86_400_000}/>:null;
   if(screen.role==="brand")return <>{tour}<BrandDashboard initialView={screen.view as BrandTabView}/></>;

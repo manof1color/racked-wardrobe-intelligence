@@ -1,11 +1,11 @@
 import { DEMO_SETTINGS_MESSAGE } from "@/lib/demo-session";
+import { MAX_DISTINCT_PRODUCTS_PER_WINDOW } from "@/lib/privacy";
 import { ACTIVITY_LABELS, WARNING_ACTIVITY, type AccountActivity } from "@/lib/device-label";
 import type { BrandStatus } from "@/lib/brand-approval";
 
 export interface DemoBrandPreview {
   brandStatus: BrandStatus | null;
   /** Distinct products opened in the current window, or null when it could not be read. */
-  budget: { opened: number; limit: number } | null;
   activity: AccountActivity[];
   /** The server's clock, so the relative times below render the same on the server and in the browser. */
   now: number;
@@ -25,8 +25,8 @@ function ago(at: string, now: number) {
  * The demo brand's security settings, shown and not changeable. The demo brand is one shared account,
  * so nothing here may change what the next judge sees or the named account's own sign-in: the
  * two-step panel is a picture of its "on" state with no secret behind it, every control is disabled,
- * and the activity log is made up (lib/demo-session.ts). The approval status and today's product
- * budget are the account's real ones.
+ * and the activity log is made up (lib/demo-session.ts). The approval status is the account's real
+ * one; the product budget card explains a rule demo brands are exempt from.
  */
 export function DemoBrandSecurityPreview({ preview }: { preview: DemoBrandPreview }) {
   const note = <p className="account-activity-intro" id="demo-settings-note">{DEMO_SETTINGS_MESSAGE}</p>;
@@ -51,9 +51,9 @@ export function DemoBrandSecurityPreview({ preview }: { preview: DemoBrandPrevie
       <p className="account-activity-intro">A new brand waits for Racked to approve it before it can enroll products, publish Looks, or read wear data. A revoked brand is refused all of them.</p>
     </section>
     <section className="settings-card" aria-labelledby="demo-budget-title" data-demo-preview="budget">
-      <div className="eyebrow">TODAY&rsquo;S PRODUCT BUDGET</div>
-      <h2 id="demo-budget-title">{preview.budget ? `${preview.budget.opened} of ${preview.budget.limit} products opened.` : "Unavailable right now."}</h2>
-      <p className="account-activity-intro">A brand can open at most {preview.budget?.limit ?? 6} different products&rsquo; wear data in 24 hours, so released totals can&rsquo;t be lined up against each other to single anyone out. Opening the same product again costs nothing. This demo brand is shared, so the count includes other visitors.</p>
+      <div className="eyebrow">PRODUCT BUDGET</div>
+      <h2 id="demo-budget-title">Not limited in the demo.</h2>
+      <p className="account-activity-intro">A real brand account can open at most {MAX_DISTINCT_PRODUCTS_PER_WINDOW} different products&rsquo; wear data in 24 hours, so released totals can&rsquo;t be lined up against each other to single anyone out. Opening the same product again costs nothing. Demo brands are exempt: every figure here is made up, and one shared account must never lock the next visitor out.</p>
     </section>
     <section className="settings-card" aria-labelledby="demo-activity-title" data-demo-preview="activity">
       <div className="eyebrow">SECURITY · DEMO PREVIEW</div>

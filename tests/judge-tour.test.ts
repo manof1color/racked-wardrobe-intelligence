@@ -48,7 +48,7 @@ test("the two brand products exist in the judge seed, below and above the thresh
   assert.match(releasedStep.detail, /^50 opted-in owners/);
 });
 
-test("the brand steps open only those two products, so the guide spends at most two of the shared demo brand's opens", () => {
+test("the brand steps open only those two products: one below the threshold and one above it", () => {
   const opened = new Set(brand.steps.flatMap((step) => step.request.action === "open-product" ? [step.request.productId] : []));
   assert.deepEqual([...opened].sort(), [JUDGE_TOUR_PRODUCTS.released.id, JUDGE_TOUR_PRODUCTS.suppressed.id].sort());
   const last = brand.steps.at(-1)!.request;
