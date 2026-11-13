@@ -2,6 +2,7 @@
 "use client";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { BrandLook, BrandProductRegistration } from "@/lib/platform-types";
+import { EmptyState } from "./empty-state";
 
 const SLOT_ORDER = ["outerwear", "top", "dress", "bottom", "shoe", "bag", "jewelry", "accessory"];
 const MAX_PIECES = 10;
@@ -64,7 +65,7 @@ export function BrandLookBuilder({products}:{products:BrandProductRegistration[]
     </div>
 
     {products.length===0
-      ? <div className="empty-match"><h3>Enroll a product first.</h3><p>A Brand Look can only contain products you have enrolled and verified.</p></div>
+      ? <EmptyState icon="catalog" title="Enroll a product first.">A Brand Look can only contain products you have enrolled and verified. Add one from the Catalog tab.</EmptyState>
       : <form className="brand-look-builder" onSubmit={submit}>
         <div className="brand-look-slots">
           {groups.map(group=><div key={group.slot} className="brand-look-slot">

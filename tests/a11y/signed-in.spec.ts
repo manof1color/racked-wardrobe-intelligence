@@ -111,3 +111,34 @@ test("the harness falls back to the consumer landing view for a role or view it 
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("What are you wearing today?");
 });
+
+test("axe: the wardrobe while it loads, then an empty category with its way back", async ({ page }, testInfo) => {
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/consumer/wardrobe", async route => { await held; await route.fallback(); });
+  await page.goto("/a11y-harness?role=consumer&view=closet");
+  await expect(page.getByRole("status").filter({ hasText: "Loading your private wardrobe" })).toHaveCount(1);
+  await expect(page.locator(".view-stats"), "no zero counts while loading").toHaveCount(0);
+  await expectNoSeriousViolations(page, testInfo, "closet loading");
+  release();
+  await expect(page.getByText("Loading your private wardrobe")).toHaveCount(0);
+  await page.getByRole("button", { name: "accessory" }).click();
+  await expect(page.getByRole("heading", { name: "Nothing in accessory yet." })).toBeVisible();
+  await expectNoSeriousViolations(page, testInfo, "closet, empty category");
+  await page.getByRole("button", { name: "Show everything" }).click();
+  await expect(page.locator(".garment-card").first()).toBeVisible();
+});
+
+test("axe: an empty wardrobe's Closet, Looks and Outfits", async ({ page }, testInfo) => {
+  await page.route("**/api/consumer/wardrobe", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [], outfits: [] }) }));
+  await openConsumer(page, "closet");
+  await expect(page.getByRole("heading", { name: "Your closet is empty." })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Filter wardrobe" }), "no filters with nothing to filter").toHaveCount(0);
+  await expectNoSeriousViolations(page, testInfo, "closet, empty wardrobe");
+  await openConsumer(page, "looks");
+  await expect(page.getByRole("heading", { name: "Looks needs clothes to work with." })).toBeVisible();
+  await expectNoSeriousViolations(page, testInfo, "looks, empty wardrobe");
+  await openConsumer(page, "outfits");
+  await expect(page.getByRole("heading", { name: "No saved outfits yet." })).toBeVisible();
+  await expectNoSeriousViolations(page, testInfo, "outfits, empty wardrobe");
+});
