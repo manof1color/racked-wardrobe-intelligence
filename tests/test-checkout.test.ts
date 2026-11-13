@@ -157,7 +157,7 @@ test("judges can find the test card, and every document says no real money", () 
   assert.match(readme, /\| \*\*Payments\*\* \| None real\./);
   const section = readme.slice(readme.indexOf("### Stripe test mode: no real money"), readme.indexOf("## Run It Locally"));
   assert.match(section, /`4242 4242 4242 4242`, \*\*any future expiry date\*\* and \*\*any CVC\*\*/);
-  assert.match(section, /\/demo-store\/racked-test-atelier\/RTA-001\) and press \*\*Pay with a test card\*\*/);
+  assert.match(section, /\/demo-store\/racked-test-atelier\/RTA-001\) and press \*\*Buy with a test card\*\*/);
   for (const check of ["Test keys only", "Test answers only", "Fictional products only", "The server sets the price", "Card details never reach Racked"]) {
     assert.ok(section.includes(`**${check}.**`), `the README explains: ${check}`);
   }

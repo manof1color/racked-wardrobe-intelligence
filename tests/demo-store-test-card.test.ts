@@ -15,7 +15,8 @@ test("the product page offers the test card only with a Stripe test key and only
 test("the panel reuses the existing button, and the $0.00 demo bag is the only path that records", () => {
   const panel = read("components/demo-purchase-panel.tsx");
   assert.match(panel, /import \{ TestCheckoutButton \} from "\.\/test-checkout-button"/);
-  assert.match(panel, /testCheckout && <TestCheckoutButton productId=\{productId\} label="Pay with a test card" fullWidth \/>/);
+  assert.match(panel, /if \(testCheckout\) return <TestCheckoutButton productId=\{productId\} fullWidth \/>;/, "with a test key the test card is the only button");
+  assert.doesNotMatch(panel, /demo-bag-link|\$0\.00 simulation<\/button>/, "no second purchase action beside it");
   assert.equal(panel.split("/demo-purchase`").length - 1, 1, "one call records a demonstration event");
   assert.match(panel, /Complete demo purchase — \$0\.00/);
   assert.doesNotMatch(read("components/test-checkout-button.tsx"), /demo-purchase/, "a test card payment records nothing");
@@ -38,4 +39,10 @@ test("REGRESSION: a catalog photo stays inside its card on phones", () => {
   const box = /\.demo-store-image\{[^}]*height:250px[^}]*overflow:hidden[^}]*\}/.exec(css);
   assert.ok(box, "the frame has a fixed height and clips");
   assert.match(css, /\.demo-store-image img\{width:100%;height:250px;/, "a percentage height inside a grid item does not resolve, so the photo is as tall as the frame");
+});
+
+test("every purchase screen shows one purchase button, with one label", () => {
+  const sheet = read("components/community-piece-sheet.tsx");
+  assert.match(sheet, /\{offersTestCheckout\(testCheckout, post, card\)\s*\? <TestCheckoutButton productId=\{card\.registryProductId!\} \/>\s*: card\.outboundUrl && <a /, "the test card or the brand site, never both");
+  assert.doesNotMatch(read("components/demo-purchase-panel.tsx"), /label="Pay with a test card"/, "the same label as Community");
 });

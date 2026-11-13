@@ -44,8 +44,10 @@ export function CommunityPieceSheet({ garment, post, posts, testCheckout, onClos
           <span className={`shop-badge tone-${card.language.tone}`}>{card.language.label}</span>
           <p className="piece-sheet-detail">{card.language.detail}</p>
           {(garment.color || garment.material) && <p className="piece-sheet-attrs">{[garment.color, garment.material].filter(Boolean).join(" · ")}</p>}
-          {card.outboundUrl && <a className="button button-accent" href={card.outboundUrl} target="_blank" rel="nofollow sponsored noopener noreferrer">Shop on brand site ↗</a>}
-          {offersTestCheckout(testCheckout, post, card) && <TestCheckoutButton productId={card.registryProductId!} />}
+          {/* One purchase button per piece: the test card for a priced fictional piece, otherwise the brand's own site. */}
+          {offersTestCheckout(testCheckout, post, card)
+            ? <TestCheckoutButton productId={card.registryProductId!} />
+            : card.outboundUrl && <a className="button button-accent" href={card.outboundUrl} target="_blank" rel="nofollow sponsored noopener noreferrer">Shop on brand site ↗</a>}
         </div>
       </div>
 

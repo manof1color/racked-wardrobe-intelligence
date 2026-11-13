@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PRICING_BLOCK_END, PRICING_BLOCK_START, PRICING_TIERS, renderPricingBlock } from "../lib/pricing.ts";
+import { PRICING_BLOCK_END, PRICING_BLOCK_START, PRICING_TIERS, REFERRAL_COMMISSION_RATE, referralSplit, renderPricingBlock } from "../lib/pricing.ts";
 
 const root = join(import.meta.dirname, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8").replace(/\r\n/g, "\n");
@@ -19,7 +19,18 @@ test("prices are the ones the owner set", () => {
     // Owner decision 2026-11-04: two brand plans either side of the threshold, enrollment included.
     ["Brand Basic (below k≥25)", "$20/mo"],
     ["Brand Pro (post-threshold)", "$40/mo"],
+    // Owner decision 2026-11-13: an 8% referral commission on top of the plans.
+    ["Referral commission (brands)", "8% of referred sales"],
   ]);
+});
+
+test("the commission is charged only on a sale Racked referred, of an exact verified product", () => {
+  const commission = PRICING_TIERS.find((row) => row.tier.startsWith("Referral commission"));
+  assert.ok(commission);
+  assert.match(commission.includes, /only when someone buys an exact, verified product after following a Racked link/);
+  assert.match(commission.includes, /Nothing on other purchases, and the shopper pays no extra\./);
+  // Shop the Look already tells shoppers Racked may earn from eligible purchases.
+  assert.match(read("components/shop-the-look.tsx"), /Racked may earn a commission from eligible purchases\./);
 });
 
 test("the README table is generated from the tiers, between its markers", () => {
@@ -48,4 +59,15 @@ test("Basic promises only what the product shows below the threshold", () => {
     const text = read(file).toLowerCase();
     for (const needle of needles) assert.ok(!text.includes(needle), `${file} still says "${needle}"`);
   }
+});
+
+test("the test receipt illustrates the same commission the pricing table states, to the cent", () => {
+  const row = PRICING_TIERS.find((entry) => entry.tier.startsWith("Referral commission"));
+  assert.equal(row?.price, `${REFERRAL_COMMISSION_RATE * 100}% of referred sales`);
+  assert.deepEqual(referralSplit(295), { commission: 23.6, brandReceives: 271.4 });
+  assert.deepEqual(referralSplit(48), { commission: 3.84, brandReceives: 44.16 });
+  assert.deepEqual(referralSplit(0.99), { commission: 0.08, brandReceives: 0.91 });
+  const receipt = read("app/test-checkout/complete/page.tsx");
+  assert.match(receipt, /referralSplit\(receipt\.amount\)\.commission/);
+  assert.match(receipt, /In test mode nothing is split or moved\./, "the split is labelled an illustration");
 });

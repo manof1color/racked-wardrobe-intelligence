@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatPrice } from "@/lib/demo-storefront";
+import { REFERRAL_COMMISSION_RATE, referralSplit } from "@/lib/pricing";
 import { readTestCheckoutSession, stripeTestKey, type TestCheckoutReceipt } from "@/lib/test-checkout";
 
 export const metadata: Metadata = { title: "Test checkout", robots: { index: false, follow: false } };
@@ -22,6 +23,8 @@ export default async function TestCheckoutComplete({ searchParams }: { searchPar
         ? <>
           <h1>Test payment complete</h1>
           <p>Stripe accepted a test card for <strong>{receipt.productName}</strong>, {formatPrice(receipt.amount)}.</p>
+          {/* The proposed referral commission (lib/pricing.ts), illustrated on this test payment. Nothing is split or moved. */}
+          <p className="test-checkout-split">If a real shopper had bought this through a Racked link, the brand would pay Racked&rsquo;s {REFERRAL_COMMISSION_RATE * 100}% referral commission of <strong>{formatPrice(referralSplit(receipt.amount).commission)}</strong> and keep <strong>{formatPrice(referralSplit(receipt.amount).brandReceives)}</strong>. In test mode nothing is split or moved.</p>
         </>
         : <>
           <h1>{receipt ? "Test payment not finished" : "We could not confirm this test payment"}</h1>

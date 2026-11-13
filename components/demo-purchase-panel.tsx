@@ -9,8 +9,8 @@ type DemoPurchaseStep = "product" | "bag" | "complete";
 // Judge note: completing this simulation now writes one identity-free demonstration
 // event so the owning fictional brand can watch it arrive on its dashboard during a
 // live demo. It still takes no payment, creates no order, and collects nothing about
-// the person. The separate "Pay with a test card" button (Stripe test mode, offered only when the
-// page says so) records nothing here: it never touches the demonstration count. If the recording call fails the simulation still completes — the point of
+// the person. The "Buy with a test card" button (Stripe test mode, offered only when the
+// page says so, and then the only button) records nothing here: it never touches the demonstration count. If the recording call fails the simulation still completes — the point of
 // the step is the commerce handoff, not the counter.
 export function DemoPurchasePanel({ productId, productName, unavailable, sourcePostId, testCheckout = false }: { productId: string; productName: string; unavailable: boolean; sourcePostId?: string; testCheckout?: boolean }) {
   const [step, setStep] = useState<DemoPurchaseStep>("product");
@@ -54,13 +54,11 @@ export function DemoPurchasePanel({ productId, productName, unavailable, sourceP
     <button type="button" className="text-button" disabled={busy} onClick={() => setStep("product")}>Remove from demo bag</button>
   </section>;
 
-  // With a Stripe test key the test card is the main action and the $0.00 bag steps back to a quiet link,
-  // so the page shows one button and one short note. Without it the bag is the only action, as before.
+  // One purchase button on every screen (owner decision 2026-11-13): with a Stripe test key it is the
+  // test card, labelled as it is in Community; without one, the $0.00 demo bag is the only action.
+  if (testCheckout) return <TestCheckoutButton productId={productId} fullWidth />;
   return <>
-    {testCheckout && <TestCheckoutButton productId={productId} label="Pay with a test card" fullWidth />}
-    {testCheckout
-      ? <button type="button" className="text-button demo-bag-link" onClick={() => setStep("bag")}>Add to demo bag · $0.00 simulation</button>
-      : <button type="button" className="button button-dark button-full" onClick={() => setStep("bag")}>Add to demo bag</button>}
-    {!testCheckout && <p className="demo-product-nosale">A purchase simulation that asks for no card, contact, shipping or account details. Fictional product: no real money moves and nothing ships.</p>}
+    <button type="button" className="button button-dark button-full" onClick={() => setStep("bag")}>Add to demo bag</button>
+    <p className="demo-product-nosale">A purchase simulation that asks for no card, contact, shipping or account details. Fictional product: no real money moves and nothing ships.</p>
   </>;
 }

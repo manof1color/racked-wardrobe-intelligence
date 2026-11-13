@@ -115,6 +115,6 @@ test("the feed is one column of post cards, each with its pieces under the photo
   assert.match(sheet, /role="dialog" aria-modal="true"/);
   assert.match(sheet, /event\.key === "Escape"/);
   assert.match(sheet, /Not for sale/);
-  assert.match(sheet, /\{card\.outboundUrl && <a className="button button-accent" href=\{card\.outboundUrl\}/, "the way to buy exists only with a validated destination");
+  assert.match(sheet, /: card\.outboundUrl && <a className="button button-accent" href=\{card\.outboundUrl\}/, "the way to buy exists only with a validated destination");
   assert.match(read("app/globals.css"), /\.cpost-pieces ul\{[^}]*overflow-x:auto/, "the pieces scroll sideways on a narrow screen");
 });
