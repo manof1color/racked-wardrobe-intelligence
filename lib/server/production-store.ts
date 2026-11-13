@@ -38,7 +38,7 @@ import { ACTIVITY_RETENTION_DAYS, withinActivityRetention, type AccountActivity,
 import { acceptedStep, createAuthenticatorSecret, createRecoveryCodes, isRecoveryCodeShape, openSecret, recoveryCodeHash, sealSecret, TWO_STEP_SETUP_MS, twoStepEnabled } from "@/lib/two-step";
 import { BRAND_PRODUCT_LIMIT, brandApproved, productLimitMessage, type BrandStatus } from "@/lib/brand-approval";
 import { acceptanceIncrement, acceptanceOutcome, type AcceptanceOutcome } from "@/lib/ai-acceptance";
-import { demoBrandProfile, demoCopy, demoExpiry, demoProfile, DEMO_BRAND_PRODUCT_LIMIT, DEMO_BRAND_PRODUCT_LIMIT_MESSAGE, DEMO_LOOK_PUBLISH_MESSAGE, DEMO_SOURCE_ACCOUNTS, isDemoAccountId, isSharedDemoAccountId, newDemoAccountId, SHARED_DEMO_ACCOUNT_MESSAGE } from "@/lib/demo-session";
+import { demoBrandProfile, demoCopy, demoExpiry, enumerationBudgetExempt, demoProfile, DEMO_BRAND_PRODUCT_LIMIT, DEMO_BRAND_PRODUCT_LIMIT_MESSAGE, DEMO_LOOK_PUBLISH_MESSAGE, DEMO_SOURCE_ACCOUNTS, isDemoAccountId, isSharedDemoAccountId, newDemoAccountId, SHARED_DEMO_ACCOUNT_MESSAGE } from "@/lib/demo-session";
 import sharp from "sharp";
 
 const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-2";
@@ -1260,14 +1260,12 @@ async function enforceAggregateEnumerationBudget(ownerId:string,productId:string
   throw new EnumerationBudgetError(`Aggregate release is limited to ${MAX_DISTINCT_PRODUCTS_PER_WINDOW} distinct products in any ${ENUMERATION_WINDOW_MS/3_600_000} hours. Revisit a recently viewed product or try again tomorrow.`);
 }
 
-/** How many distinct products this brand has opened in the current window. Read-only: it claims no slot. */
-/** How much of the enumeration budget is spent now, for the demo brand's Settings. Reads the same SLOT# records; claims nothing. */
-export async function getAggregateBudgetUsage(ownerId:string){const cutoff=Date.now()-ENUMERATION_WINDOW_MS;const result=await db.send(new QueryCommand({TableName:requireTable(),KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`AGGQ#${ownerId}`,":sk":"SLOT#"}}));return {opened:new Set((result.Items??[]).filter(slot=>Number(slot.queriedAt)>=cutoff).map(slot=>String(slot.productId??""))).size,limit:MAX_DISTINCT_PRODUCTS_PER_WINDOW};}
 
 export async function getRealProductMetrics(ownerId:string,productId:string) {
   const owned=await db.send(new GetCommand({TableName:requireTable(),Key:{PK:`USER#${ownerId}`,SK:`PRODUCT#${productId}`}}));
   if(!owned.Item)throw new RequestRefused("Product not found for this brand account.", 404);
-  const budget=await enforceAggregateEnumerationBudget(ownerId,productId);
+  // Demo brands are exempt (lib/demo-session.ts): synthetic data, and one shared account for every judge.
+  const budget=enumerationBudgetExempt(ownerId)?undefined:await enforceAggregateEnumerationBudget(ownerId,productId);
   const [items,wearEvents]=await Promise.all([
     queryEveryPage({IndexName:"GSI1",KeyConditionExpression:"GSI1PK = :pk",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`}}),
     queryEveryPage({KeyConditionExpression:"PK = :pk AND begins_with(SK, :sk)",ExpressionAttributeValues:{":pk":`PRODUCT#${productId}`,":sk":"WEAR#"}}),

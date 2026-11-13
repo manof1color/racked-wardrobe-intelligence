@@ -120,6 +120,18 @@ export function demoActivityLog(now = Date.now()): AccountActivity[] {
   ];
 }
 
+/**
+ * The product enumeration budget (lib/privacy.ts) does not apply to demo brands: the shared Judge
+ * Brand and every private New Brand. Their figures are all synthetic, so there is nobody to protect,
+ * and the shared demo brand is one account for every visitor, so the budget let one judge's browsing
+ * lock every later judge out of products for a day. Real brand accounts keep it unchanged: a real
+ * account's id is a bare UUID, which neither check can match, and the shared demo account can only
+ * be opened as a demo (lib/session.ts).
+ */
+export function enumerationBudgetExempt(ownerId: unknown) {
+  return isSharedDemoAccountId(ownerId) || isDemoAccountId(ownerId);
+}
+
 export const DEMO_READ_ONLY_MESSAGE = "The demo brand is read-only, so every judge sees the same one. Create a brand account to add products.";
 export const DEMO_SETTINGS_MESSAGE = "Sign-in settings are switched off in the demo. Create an account to use them.";
 export const DEMO_PUBLISH_MESSAGE = "Demo wardrobes can't publish to Community. Create an account to share a look.";

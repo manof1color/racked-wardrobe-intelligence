@@ -114,3 +114,18 @@ test("aggregate release stays behind the cohort threshold and the enumeration bu
   assert.ok(store.includes("await enforceAggregateEnumerationBudget(ownerId,productId);"),
     "the enumeration budget must run before the aggregate is built");
 });
+
+test("demo brands are exempt from the enumeration budget, and no real account can be", async () => {
+  const { enumerationBudgetExempt, newDemoAccountId, SHARED_DEMO_ACCOUNTS } = await import("../lib/demo-session.ts");
+  // The shared Judge Brand (and every seeded judge account) and any private demo account are exempt.
+  for (const id of Object.keys(SHARED_DEMO_ACCOUNTS)) assert.equal(enumerationBudgetExempt(id), true, id);
+  assert.equal(enumerationBudgetExempt(newDemoAccountId("0b5f3a54-8d1e-4c62-9a7e-2f4d6b8c1e90")), true);
+  // A real account id is a bare UUID; seeded cohort consumers and malformed ids are not demos either.
+  for (const id of ["0b5f3a54-8d1e-4c62-9a7e-2f4d6b8c1e90", "demo-consumer-01", "demo-session-", "judge-brand", "", null, undefined, 42, "toString", "__proto__"]) {
+    assert.equal(enumerationBudgetExempt(id), false, String(id));
+  }
+  const store = read("lib/server/production-store.ts");
+  assert.ok(store.includes("const budget=enumerationBudgetExempt(ownerId)?undefined:await enforceAggregateEnumerationBudget(ownerId,productId);"),
+    "every other brand still claims a slot before its aggregate is built");
+  assert.doesNotMatch(read("app/settings/page.tsx"), /getAggregateBudgetUsage/, "the demo's Settings no longer counts against a budget it is exempt from");
+});

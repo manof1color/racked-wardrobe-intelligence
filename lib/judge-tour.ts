@@ -6,9 +6,9 @@
  * - **Wardrobe:** scan a photo and confirm the pieces, then ask Hanger for an outfit.
  * - **Brand:** a product below the 25-owner threshold, one above it, then Brand Hanger.
  *
- * The brand steps open exactly two products on purpose. The demo brand is one shared account whose
- * enumeration budget (lib/privacy.ts) is spent by every visitor's product opens, so a guide that
- * sent judges browsing the catalog would use up the next judge's opens.
+ * The brand steps open exactly two products on purpose: the one below the 25-owner threshold and the
+ * one above it, which together make the privacy argument. Demo brands are exempt from the product
+ * enumeration budget (enumerationBudgetExempt in lib/demo-session.ts), so judges may open any others.
  *
  * The guide never reads or writes account data. It talks to the dashboards through two window
  * events: a request ("open the scanner", "open this product", "open Hanger") going out, and a
