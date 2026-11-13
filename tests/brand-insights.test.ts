@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { communityIsEmpty, communityReadouts, pairingSummary, wearHeadline, wearReadouts } from "../lib/brand-insights.ts";
+import { communityIsEmpty, communityReadouts, costPerWearReadout, pairingSummary, wearHeadline, wearReadouts } from "../lib/brand-insights.ts";
 import type { BrandCommunityMetrics } from "../lib/platform-types.ts";
 import type { BrandMetrics } from "../lib/metrics.ts";
 
@@ -65,4 +65,34 @@ test("pairings are bounded and report whether anything exists", () => {
   assert.equal(summary.hasAny, true);
   assert.ok(summary.categories.length <= 6 && summary.products.length <= 6);
   assert.equal(pairingSummary({ ...community, pairedCategories: [], pairedVerifiedProducts: [] }).hasAny, false);
+});
+
+test("cost per wear divides the brand's listed price by the released median, and says it is the listed price", () => {
+  const readout = costPerWearReadout(released, { price: 60, currency: "USD" });
+  assert.ok(readout);
+  assert.equal(readout.value, "$20.00");
+  assert.match(readout.detail, /listed price/i);
+  assert.match(readout.detail, /never sees what anyone actually paid/i);
+  assert.ok(wearReadouts(released, { price: 60 }).some((entry) => entry.question === readout.question), "it is part of the wear readouts");
+});
+
+test("cost per wear never appears without a price or below the threshold, and never divides by a withheld or zero median", () => {
+  assert.equal(costPerWearReadout(released), null);
+  assert.equal(costPerWearReadout(released, { price: 0 }), null);
+  assert.equal(costPerWearReadout(suppressed, { price: 60 }), null, "a suppressed cohort releases nothing, derived figures included");
+  assert.equal(wearReadouts(suppressed, { price: 60 }).length, 0);
+  assert.equal(costPerWearReadout({ ...released, medianWearsPerOwner: null }, { price: 60 })?.value, "Withheld");
+  assert.equal(costPerWearReadout({ ...released, medianWearsPerOwner: 0 }, { price: 60 })?.value, "Not yet");
+  assert.ok(!wearReadouts(released).some((entry) => /cost a typical owner/.test(entry.question)), "no price, no cost-per-wear readout");
+});
+
+test("store visits say whether they went through the brand's affiliate link, and stay disclaimed as not a sale", () => {
+  const visits = (listing?: Parameters<typeof communityReadouts>[1]) => communityReadouts(community, listing).find((entry) => /sent to your store/.test(entry.question))!;
+  assert.equal(visits().value, "4");
+  assert.match(visits({ affiliateUrl: "https://shop.example/p?ref=racked", productUrl: "https://shop.example/p" }).detail, /through your affiliate link/i);
+  assert.match(visits({ productUrl: "https://shop.example/p" }).detail, /Add an affiliate link/i);
+  assert.match(visits({}).detail, /no store link yet/i);
+  for (const listing of [undefined, {}, { productUrl: "https://shop.example/p" }, { affiliateUrl: "https://shop.example/p?ref=racked" }]) {
+    assert.match(visits(listing).detail, /not a sale/);
+  }
 });
