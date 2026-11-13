@@ -133,3 +133,15 @@ test("REGRESSION: Community keeps the workspace tab row on a computer, for consu
   assert.match(read("components/brand-dashboard.tsx"), /<Link href="\/community">Community<\/Link>\s*<\/nav>/, "brands reach Community from their own tab row too");
   assert.match(css, /\.consumer-view-tabs a\.active\{/);
 });
+
+// The view heading was a full poster on every visit (about 300px on a phone before any clothes).
+// Returning wardrobes now get one compact row; a new, empty wardrobe keeps the poster as its welcome.
+// It is decided by the data, not a stored flag, so the page never switches layout after it loads.
+test("returning wardrobes get a compact view heading; an empty wardrobe keeps the full welcome", () => {
+  const dashboard = read("components/consumer-dashboard.tsx");
+  assert.match(dashboard, /const compact=loading\|\|items\.length>0;/);
+  assert.match(dashboard, /className=\{`workspace-heading view-heading view-\$\{activeView\}\$\{compact\?" compact":""\}`\}/);
+  assert.doesNotMatch(dashboard, /localStorage/, "no stored flag, so no layout switch after load");
+  assert.match(css, /\.view-heading\.compact h1 br,\.view-heading\.compact>div:first-child>p\{display:none\}/);
+  assert.match(css, /\.view-heading\.compact\{flex-direction:row;/);
+});

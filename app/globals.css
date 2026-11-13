@@ -1257,3 +1257,15 @@ h1 em,h2 em,h3 em{font-style:normal}
 .workspace-tabs a:hover{color:var(--ink)}
 .workspace-tabs a.active{color:var(--ink);border-bottom-color:var(--ink)}
 .community-page>.community-workspace-tabs{margin:28px 0 0}
+
+/* Compact view heading for returning wardrobes: eyebrow, one-line title, numbers and the main button
+   in one row (about 100px instead of 300). The lede and the large background mark are the welcome,
+   so they stay on the full heading that a new, empty wardrobe sees. */
+.view-heading.compact{flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px 28px;padding:16px 22px;margin-bottom:18px}
+.view-heading.compact>div:first-child{flex:1 1 280px;min-width:0}
+.view-heading.compact h1{font-size:clamp(1.7rem,2.6vw,2.3rem);line-height:1;margin:6px 0 0}
+.view-heading.compact h1 br,.view-heading.compact>div:first-child>p{display:none}
+.view-heading.compact::after{display:none}
+.view-heading.compact .view-stats{gap:22px}
+.view-heading.compact .view-stats dd{font-size:1.6rem}
+@media(max-width:760px){.view-heading.compact{padding:14px 16px;gap:10px 14px}.view-heading.compact h1{font-size:1.6rem}.view-heading.compact .view-stats{gap:14px}.view-heading.compact .view-stats dd{font-size:1.35rem}.view-heading.compact .view-stats dt{letter-spacing:.04em}.view-heading.compact .button{flex:0 0 auto;margin-left:auto;padding:10px 14px}}
