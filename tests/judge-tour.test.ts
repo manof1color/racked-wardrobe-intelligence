@@ -126,3 +126,19 @@ test("the home page offers the demo in one click, and the sign-in screen's demo 
   assert.ok(home.includes('href="/login#try-the-demo"'));
   assert.match(read("components/login-panel.tsx"), /<section className="demo-entry" id="try-the-demo"/);
 });
+
+test("every step names a spotlight target that the page carries", async () => {
+  const { judgeTourTargetSelector } = await import("../lib/judge-tour.ts");
+  const targets = [...JUDGE_TOURS.consumer.steps, ...JUDGE_TOURS.brand.steps].map((step) => step.target);
+  assert.deepEqual(targets, ["scan", "hanger", `product-${JUDGE_TOUR_PRODUCTS.suppressed.id}`, `product-${JUDGE_TOUR_PRODUCTS.released.id}`, "hanger"]);
+  assert.equal(judgeTourTargetSelector("scan"), '[data-tour="scan"]');
+  assert.match(read("components/consumer-dashboard.tsx"), /data-tour="scan" onClick=\{openAdd\}>\+ Add clothing/);
+  assert.match(read("components/workspace-mobile-nav.tsx"), /<button type="button" data-tour="scan" onClick=\{onAdd\}>/);
+  assert.match(read("components/hanger-dock.tsx"), /className="hanger-launcher" data-tour="hanger"/);
+  assert.match(read("components/brand-dashboard.tsx"), /data-tour=\{`product-\$\{item\.id\}`\}/);
+  // The ring is an attribute React never manages, and it is removed when the guide folds away or unmounts.
+  const component = read("components/judge-tour.tsx");
+  assert.match(component, /export const SPOTLIGHT_ATTRIBUTE = "data-tour-spotlight";/);
+  assert.match(component, /return \(\) => \{ window\.clearTimeout\(first\); window\.clearInterval\(timer\); lit\?\.removeAttribute\(SPOTLIGHT_ATTRIBUTE\); setSpotlit\(false\); \};/);
+  assert.match(component, /if \(!target \|\| state\.collapsed\) return;/);
+});
