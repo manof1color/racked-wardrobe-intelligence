@@ -19,7 +19,18 @@ test("prices are the ones the owner set", () => {
     // Owner decision 2026-11-04: two brand plans either side of the threshold, enrollment included.
     ["Brand Basic (below k≥25)", "$20/mo"],
     ["Brand Pro (post-threshold)", "$40/mo"],
+    // Owner decision 2026-11-13: an 8% referral commission on top of the plans.
+    ["Referral commission (brands)", "8% of referred sales"],
   ]);
+});
+
+test("the commission is charged only on a sale Racked referred, of an exact verified product", () => {
+  const commission = PRICING_TIERS.find((row) => row.tier.startsWith("Referral commission"));
+  assert.ok(commission);
+  assert.match(commission.includes, /only when someone buys an exact, verified product after following a Racked link/);
+  assert.match(commission.includes, /Nothing on other purchases, and the shopper pays no extra\./);
+  // Shop the Look already tells shoppers Racked may earn from eligible purchases.
+  assert.match(read("components/shop-the-look.tsx"), /Racked may earn a commission from eligible purchases\./);
 });
 
 test("the README table is generated from the tiers, between its markers", () => {
