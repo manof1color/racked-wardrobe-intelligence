@@ -46,3 +46,13 @@ test("every purchase screen shows one purchase button, with one label", () => {
   assert.match(sheet, /\{offersTestCheckout\(testCheckout, post, card\)\s*\? <TestCheckoutButton productId=\{card\.registryProductId!\} \/>\s*: card\.outboundUrl && <a /, "the test card or the brand site, never both");
   assert.doesNotMatch(read("components/demo-purchase-panel.tsx"), /label="Pay with a test card"/, "the same label as Community");
 });
+
+test("the demo bag's confirmation shows the referral commission split from the shared rate, and says nothing moves", () => {
+  const panel = read("components/demo-purchase-panel.tsx");
+  assert.match(panel, /import \{ REFERRAL_COMMISSION_RATE, referralSplit \} from "@\/lib\/pricing";/, "one source for the rate");
+  assert.match(panel, /referralSplit\(price\)\.commission/);
+  assert.match(panel, /referralSplit\(price\)\.brandReceives/);
+  assert.match(panel, /In this simulation nothing is split or moved\./);
+  assert.match(panel, /typeof price === "number" && price > 0 &&/, "no split is shown without a price");
+  assert.match(read("app/demo-store/[brandSlug]/[sku]/page.tsx"), /<DemoPurchasePanel[^>]*price=\{price\} currency=\{product\.currency\}/, "the product page passes the storefront price");
+});

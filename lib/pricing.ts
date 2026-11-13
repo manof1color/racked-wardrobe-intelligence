@@ -20,7 +20,8 @@ export const REFERRAL_COMMISSION_RATE = 0.08;
 
 /**
  * How a referred sale would split: Racked's commission and what the brand keeps, in dollars, rounded
- * to the cent. Shown on the Stripe test receipt to illustrate the model; nothing is moved or billed.
+ * to the cent. Shown on /pricing, the demo bag's confirmation and the Stripe test receipt to illustrate
+ * the model; nothing is moved or billed.
  */
 export function referralSplit(amount: number) {
   const commission = Math.round(amount * REFERRAL_COMMISSION_RATE * 100) / 100;

@@ -54,7 +54,7 @@ work, the [judge accounts guide](docs/judge-accounts.md) explains how they are s
 | How was it attacked and hardened? | [Security testing and hardening](README.md#security-testing-and-hardening) |
 | How accurate is the AI? | **92.8% garment category** on 300 locked, independent photos, up from 89.7% after one measured fix — [results](docs/evaluation-results-r2.md) |
 | What is measured, and what is not claimed? | [Evidence](README.md#evidence-and-what-is-not-claimed) |
-| Is any real money involved? | No. Stripe **test mode** on fictional products, card `4242 4242 4242 4242`, any future date, any CVC: [how to try it](README.md#stripe-test-mode-no-real-money) |
+| Is any real money involved? | No. Shoppers buy on the brand's own site, and fictional products end in a $0.00 demo purchase that shows the 8% commission split. Racked's Stripe test checkout is switched off: [how purchases work](README.md#purchases-the-brands-own-site) |
 | Do the tests pass? | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](README.md#testing-and-ci) |
 | How was it built, and with which AI tools? | [PROGRESS.md](PROGRESS.md) · [AI use log](docs/ai-use-log.md) |
 

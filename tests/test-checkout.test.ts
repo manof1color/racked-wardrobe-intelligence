@@ -150,18 +150,20 @@ test("the words shown never call this a sale, and say plainly that no real money
   assert.doesNotMatch(button + page, /\border confirmed\b|\bpurchased\b|\bsale\b/i);
 });
 
-test("judges can find the test card, and every document says no real money", () => {
-  assert.match(read("lib/test-checkout.ts"), /TEST_CARD = "4242 4242 4242 4242"/, "the documents quote the card the code prints");
+test("every document says the Stripe test checkout is switched off and no real money is taken", () => {
+  assert.match(read("lib/test-checkout.ts"), /TEST_CARD = "4242 4242 4242 4242"/, "the code still prints the public test card if the feature is turned back on");
   const readme = read("README.md");
-  assert.match(readme, /\| \*\*Stack\*\* \|.*Stripe Checkout \(test mode only\) \|/);
+  assert.match(readme, /\| \*\*Stack\*\* \|.*Stripe Checkout \(test mode only, switched off on the live site\) \|/);
   assert.match(readme, /\| \*\*Payments\*\* \| None real\./);
-  const section = readme.slice(readme.indexOf("### Stripe test mode: no real money"), readme.indexOf("## Run It Locally"));
-  assert.match(section, /`4242 4242 4242 4242`, \*\*any future expiry date\*\* and \*\*any CVC\*\*/);
-  assert.match(section, /\/demo-store\/racked-test-atelier\/RTA-001\) and press \*\*Buy with a test card\*\*/);
+  assert.doesNotMatch(readme, /#stripe-test-mode-no-real-money/, "no link points at the removed section");
+  const section = readme.slice(readme.indexOf("### Purchases: the brand's own site"), readme.indexOf("## Run It Locally"));
+  assert.ok(section.length > 0, "the purchases section exists");
+  assert.match(section, /\/demo-store\/racked-test-atelier\/RTA-001\), press \*\*Add to demo bag\*\*/);
+  assert.match(section, /\*\*Why Stripe is switched off\.\*\*/);
   for (const check of ["Test keys only", "Test answers only", "Fictional products only", "The server sets the price", "Card details never reach Racked"]) {
-    assert.ok(section.includes(`**${check}.**`), `the README explains: ${check}`);
+    assert.ok(section.includes(`**${check}.**`), `the README still explains, for when it is turned back on: ${check}`);
   }
-  assert.ok(section.includes("Do not enter a real card"));
-  assert.match(read("JUDGES.md"), /Stripe \*\*test mode\*\* on fictional products, card `4242 4242 4242 4242`/);
-  assert.match(read("SECURITY.md"), /Racked takes no real payments\. The only payment step is Stripe test mode on fictional products/);
+  assert.match(read("JUDGES.md"), /Racked's Stripe test checkout is switched off: \[how purchases work\]\(README\.md#purchases-the-brands-own-site\)/);
+  assert.match(read("SECURITY.md"), /Racked takes no real payments\. Shoppers buy on the brand's own site/);
+  assert.match(read("SECURITY.md"), /switched off on the live site \(no Stripe key is set\)/);
 });

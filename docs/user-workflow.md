@@ -169,7 +169,8 @@ For fictional demo brands, Shop the Look opens a clearly labelled **$0.00 checko
 simulation** (the demo bag). No payment is taken. Completing the demo bag records an
 identity-free demonstration event the fictional brand sees arrive live.
 
-Separately, when a Stripe **test** key is configured, a fictional product page and a priced fictional
+Racked's live site sets no Stripe key, so the demo bag is what judges see; its confirmation shows how the 8% referral
+commission would split the price. Only when a Stripe **test** key is configured, a fictional product page and a priced fictional
 piece's sheet in Community each offer **Buy with a test card**, as their only purchase button.
 Either opens Stripe's hosted test page. Enter the test card `4242 4242 4242 4242`, any future
 expiry date and any CVC; never a real card. This is the only payment step in Racked, and it is

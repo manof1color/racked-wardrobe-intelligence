@@ -32,8 +32,8 @@ free; brands pay, because post-purchase wear is what they cannot buy anywhere el
 Three real brands agreed to the pilot, created accounts and uploaded products, and all accepted the
 proposed prices in writing: participation and price acceptance, not payment. Repeat-wear and pairing evidence can inform product, inventory and campaign decisions. At
 the proposed $40 monthly Pro price, avoiding 20 excess units at a $25 landed cost is an illustrative
-annual break-even, not measured pilot ROI. No real payments: the only
-payment step is Stripe test mode on fictional products.
+annual break-even, not measured pilot ROI. No real payments:
+shoppers buy on the brand's own site.
 
 ## Key technical choices
 
@@ -47,7 +47,7 @@ payment step is Stripe test mode on fictional products.
 - **Privacy enforced in code, not policy:** consent gates account creation, `k ≥ 25` suppression runs
   before aggregates are computed, and a DynamoDB-backed enumeration budget caps how many distinct
   products one brand can query so aggregates cannot be differenced apart.
-- **1142 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
+- **1144 tests and a CI gate** — lint, type check, tests, production build, dependency audit, accessibility checks, CodeQL —
   on every pull request, with a build log through Phase 123 (the Phase 85 photo audit is owner-run and not executed against AWS; tests verified 2026-11-13).
 
 ## Lessons learned
