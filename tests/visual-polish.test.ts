@@ -145,3 +145,20 @@ test("returning wardrobes get a compact view heading; an empty wardrobe keeps th
   assert.match(css, /\.view-heading\.compact h1 br,\.view-heading\.compact>div:first-child>p\{display:none\}/);
   assert.match(css, /\.view-heading\.compact\{flex-direction:row;/);
 });
+
+// The brand side of compact headings: a brand with products enrolled gets one-line headings on
+// Overview, Catalog and Brand Looks; a brand with an empty catalog keeps the full explanations.
+test("brands with products get compact headings; an empty catalog keeps its explanations", () => {
+  const dashboard = read("components/brand-dashboard.tsx");
+  assert.match(dashboard, /const compactHeadings=!catalogLoaded\|\|products\.length>0;/);
+  assert.match(dashboard, /<section className=\{`workspace-heading\$\{compactHeadings\?" compact":""\}`\}>/);
+  assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\} compact=\{compactHeadings\}\/>/);
+  assert.match(dashboard, /<BrandLookBuilder products=\{live\} compact=\{compactHeadings\}\/>/);
+  for (const file of ["components/brand-product-enrollment.tsx", "components/brand-look-builder.tsx"]) {
+    assert.match(read(file), /className=\{`registry-heading\$\{compact\?" compact":""\}`\}/, file);
+  }
+  // REGRESSION: hiding the line break joined the words: "Understand how productsare actually worn."
+  assert.match(dashboard, /Understand how products\{" "\}<br\/>are/);
+  assert.match(css, /\.brand-workspace>\.workspace-heading\.compact h1 br,\.brand-workspace>\.workspace-heading\.compact p\{display:none\}/);
+  assert.match(css, /\.registry-heading\.compact>div:first-child>p\{display:none\}/);
+});

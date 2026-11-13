@@ -1262,3 +1262,13 @@ h1 em,h2 em,h3 em{font-style:normal}
 .view-heading.compact .view-stats{gap:22px}
 .view-heading.compact .view-stats dd{font-size:1.6rem}
 @media(max-width:760px){.view-heading.compact{padding:14px 16px;gap:10px 14px}.view-heading.compact h1{font-size:1.6rem}.view-heading.compact .view-stats{gap:14px}.view-heading.compact .view-stats dd{font-size:1.35rem}.view-heading.compact .view-stats dt{letter-spacing:.04em}.view-heading.compact .button{flex:0 0 auto;margin-left:auto;padding:10px 14px}}
+
+/* Compact brand headings (brands with products enrolled), the brand side of the compact wardrobe
+   headings: one line of title, the explanation kept for a brand whose catalog is still empty. */
+.brand-workspace>.workspace-heading.compact{margin-bottom:18px}
+.brand-workspace>.workspace-heading.compact h1{font-size:clamp(1.7rem,2.6vw,2.3rem);line-height:1;margin:6px 0 0}
+.brand-workspace>.workspace-heading.compact h1 br,.brand-workspace>.workspace-heading.compact p{display:none}
+.registry-heading.compact{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px 24px}
+.registry-heading.compact>div:first-child{flex:1 1 260px;min-width:0}
+.registry-heading.compact h2{font-size:1.45rem;margin:4px 0 0}
+.registry-heading.compact>div:first-child>p{display:none}

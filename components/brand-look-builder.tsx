@@ -15,7 +15,7 @@ function slotOf(category: string) {
 // Judge note: a Brand Look can only ever contain products this brand enrolled. The
 // picker is built from the server-provided owned catalog, and the server independently
 // re-checks ownership on save — the UI is a convenience, not the boundary.
-export function BrandLookBuilder({products}:{products:BrandProductRegistration[]}){
+export function BrandLookBuilder({products,compact=false}:{products:BrandProductRegistration[];compact?:boolean}){
   const [looks,setLooks]=useState<BrandLook[]>([]);
   const [selected,setSelected]=useState<string[]>([]);
   const [title,setTitle]=useState("");
@@ -59,7 +59,7 @@ export function BrandLookBuilder({products}:{products:BrandProductRegistration[]
   }
 
   return <section className="registry-panel brand-look-panel" id="brand-looks">
-    <div className="registry-heading">
+    <div className={`registry-heading${compact?" compact":""}`}>
       <div><div className="eyebrow">BRAND LOOKS</div><h2>Style your own catalog.</h2><p>Build a Look from products enrolled under this account. Published Looks are labeled as Brand content everywhere they appear, so they never read as an ordinary customer post.</p></div>
       <span className="fallback-pill">{loading?"…":`${looks.length} LOOKS`}</span>
     </div>

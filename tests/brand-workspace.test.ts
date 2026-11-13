@@ -40,7 +40,7 @@ test("the workspace is three places, with a product opened from the catalog", ()
   }
   assert.match(dashboard, /function openProduct\(id:string\)/);
   assert.match(dashboard, /className="back-link" onClick=\{\(\)=>setView\("catalog"\)\}/, "a product view can be left");
-  assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\}\/>/);
+  assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\}(?: compact=\{compactHeadings\})?\/>/);
   const catalogView = dashboard.slice(dashboard.indexOf('{view==="catalog"'), dashboard.indexOf('{view==="looks"'));
   assert.match(catalogView, /BrandProductEnrollment/, "enrollment belongs with the catalog");
   assert.doesNotMatch(catalogView, /metrics\.actualWears|wearReadouts/, "and never carries wear data");
@@ -122,7 +122,7 @@ test("REGRESSION: the workspace loads its own catalog, so Overview is right on a
 
   const enrollment = read("components/brand-product-enrollment.tsx");
   assert.doesNotMatch(enrollment, /useEffect\(\(\)=>\{fetch\("\/api\/brand\/products"\)/, "the panel no longer owns the list");
-  assert.match(enrollment, /\{products,onProducts\}:\{products:BrandProductRegistration\[\];onProducts:/, "it receives the catalog");
+  assert.match(enrollment, /\{products,onProducts(?:,compact=false)?\}:\{products:BrandProductRegistration\[\];onProducts:/, "it receives the catalog");
   assert.match(enrollment, /onProducts\(\[\.\.\.enrolled,\.\.\.products\]\)/, "and hands back everything it enrolled");
-  assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\}\/>/);
+  assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\}(?: compact=\{compactHeadings\})?\/>/);
 });
