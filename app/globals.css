@@ -291,6 +291,13 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 .brand-look-preview-row img{width:96px;height:110px;object-fit:contain;background:#eeeae1;mix-blend-mode:multiply}
 .brand-look-preview-row figcaption{font-size:.75rem;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brand-look-hint{font-size:.75rem;color:var(--muted);margin:0}
+.brand-look-preview-note{display:block;font-size:.75rem;color:var(--muted);margin-top:6px}
+.brand-look-posted{border:2px solid var(--ink);background:var(--white);border-radius:var(--radius-lg);padding:16px;margin-top:16px;display:flex;flex-direction:column;gap:8px;max-width:100%}
+.brand-look-posted-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.brand-look-posted-flag{font-size:.75rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.brand-look-posted h3{margin:0}
+.brand-look-posted p{margin:0}
+.brand-look-posted small{font-size:.75rem;color:var(--muted)}
 .brand-look-preview small{font-size:.75rem;color:var(--muted)}
 .brand-look-field{display:flex;flex-direction:column;gap:6px;font-size:.75rem;font-weight:800}
 .brand-look-field input{border:1px solid var(--line);background:white;padding:12px;font-weight:500}

@@ -19,5 +19,5 @@ export default async function BrandPage({searchParams}:{searchParams:Promise<{vi
   if(status==="pending"||status==="revoked")return <BrandApprovalNotice status={status} brandName={account?.brandName??null}/>;
   // The judge guide follows the shared Judge Brand's seeded products, so a New Brand demo, which has
   // none of them, does not get it.
-  const query=await searchParams;const initialView=views.has(query.view as BrandTabView)?query.view as BrandTabView:"overview";return <>{session.demo&&<DemoNotice kind="brand" own={isDemoAccountId(session.subject)}/>}{session.demo&&!isDemoAccountId(session.subject)&&<JudgeTour kind="brand" sessionExpiresAt={session.expiresAt}/>}<BrandDashboard initialView={initialView}/></>;
+  const query=await searchParams;const initialView=views.has(query.view as BrandTabView)?query.view as BrandTabView:"overview";return <>{session.demo&&<DemoNotice kind="brand" own={isDemoAccountId(session.subject)}/>}{session.demo&&!isDemoAccountId(session.subject)&&<JudgeTour kind="brand" sessionExpiresAt={session.expiresAt}/>}<BrandDashboard initialView={initialView} previewLooks={Boolean(session.demo)}/></>;
 }

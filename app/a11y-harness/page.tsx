@@ -25,6 +25,7 @@ export default async function A11yHarnessPage({searchParams}:{searchParams:Promi
   if(screen.role==="brand"&&screen.view==="demo-settings")return <AccountSettingsPanel account={{displayName:"Fixture Brand",email:"brand@fixture.example",role:"brand",brandName:"Fixture Denim Co"}} demoBrand={{brandStatus:"approved",activity:demoActivityLog(FIXTURE_NOW),now:FIXTURE_NOW}}/>;
   // tour=1 adds the judge guide a demo session shows above its workspace (components/judge-tour.tsx).
   const tour=query.tour==="1"?<JudgeTour kind={screen.role} sessionExpiresAt={FIXTURE_NOW+86_400_000}/>:null;
-  if(screen.role==="brand")return <>{tour}<BrandDashboard initialView={screen.view as BrandTabView}/></>;
+  // With the guide, the brand is a demo too, so its Brand Looks Post is the preview a demo shows.
+  if(screen.role==="brand")return <>{tour}<BrandDashboard initialView={screen.view as BrandTabView} previewLooks={Boolean(tour)}/></>;
   return <>{tour}<ConsumerDashboard initialView={screen.view as ConsumerWorkspaceView} openAddInitially={query.add==="1"}/></>;
 }

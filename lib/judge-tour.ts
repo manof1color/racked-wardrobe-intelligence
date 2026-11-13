@@ -2,9 +2,12 @@
  * The judge guide: a short, step-by-step path through the two demo flows, shown only inside a
  * "Try the demo" session (lib/demo-session.ts) and never to a real account.
  *
- * It follows the README's two flows and nothing else:
- * - **Wardrobe:** scan a photo and confirm the pieces, then ask Hanger for an outfit.
- * - **Brand:** a product below the 25-owner threshold, one above it, then Brand Hanger.
+ * It follows the README's two flows, then one step each into the commercial loop:
+ * - **Wardrobe:** scan a photo and confirm the pieces, ask Hanger for an outfit, then browse
+ *   Community and buy a fictional piece from a look through the $0.00 demo bag.
+ * - **Brand:** a product below the 25-owner threshold, one above it, Brand Hanger, then write a
+ *   Brand Look and post it as a preview. Demo brands cannot publish to the live Community feed
+ *   (lib/demo-session.ts), so the post is shown, labelled, and never saved (owner decision 2026-11-13).
  *
  * The brand steps open exactly two products on purpose: the one below the 25-owner threshold and the
  * one above it, which together make the privacy argument. Demo brands are exempt from the product
@@ -28,13 +31,22 @@ export type JudgeTourStepId =
   | "hanger-outfit"
   | "suppressed"
   | "released"
-  | "brand-hanger";
+  | "brand-hanger"
+  | "community"
+  | "community-purchase"
+  | "brand-post";
+
+/** The only pages the guide will send a judge to. Fixed strings, never input. */
+export const JUDGE_TOUR_PATHS = ["/community"] as const;
+export type JudgeTourPath = (typeof JUDGE_TOUR_PATHS)[number];
 
 /** What the guide asks a dashboard to do. */
 export type JudgeTourRequest =
   | { action: "open-scanner" }
   | { action: "open-hanger" }
-  | { action: "open-product"; productId: string; thenHanger?: boolean };
+  | { action: "open-product"; productId: string; thenHanger?: boolean }
+  | { action: "open-looks" }
+  | { action: "go"; href: JudgeTourPath };
 
 export interface JudgeTourStep {
   id: JudgeTourStepId;
@@ -63,7 +75,7 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
   consumer: {
     kind: "consumer",
     heading: "The wardrobe side",
-    intro: "Two steps, about two minutes. A person photographs their clothes, confirms what the AI found, and gets an outfit from what they already own.",
+    intro: "Four steps, about four minutes. A person photographs their clothes, confirms what the AI found, gets an outfit from what they already own, then shops a look from Community.",
     steps: [
       {
         id: "scan",
@@ -81,13 +93,29 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
         target: "hanger",
         request: { action: "open-hanger" },
       },
+      {
+        id: "community",
+        title: "Browse Community",
+        detail: "Outfits people chose to publish, and Looks brands styled from their own products. Nothing is public until its owner presses Publish.",
+        cta: "Open Community",
+        target: "community",
+        request: { action: "go", href: "/community" },
+      },
+      {
+        id: "community-purchase",
+        title: "Buy a piece from a look",
+        detail: "On a look marked Demo, tap Shop the look, then a piece. The fictional store opens: Add to demo bag, then Complete demo purchase — $0.00. No card, and it shows the 8% commission Racked would earn.",
+        cta: "Open Community",
+        target: "community-shop",
+        request: { action: "go", href: "/community" },
+      },
     ],
     switchTo: { kind: "judge-brand", label: "See the brand side" },
   },
   brand: {
     kind: "brand",
     heading: "The brand side",
-    intro: "Three steps, about two minutes. A brand sees how its products are worn, but only as totals from 25 or more owners who opted in.",
+    intro: "Four steps, about three minutes. A brand sees how its products are worn, but only as totals from 25 or more owners who opted in, and styles its own Looks for Community.",
     steps: [
       {
         id: "suppressed",
@@ -113,6 +141,14 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
         target: "hanger",
         request: { action: "open-product", productId: JUDGE_TOUR_PRODUCTS.released.id, thenHanger: true },
       },
+      {
+        id: "brand-post",
+        title: "Write and post a Brand Look",
+        detail: "Pick pieces, give the Look a title and a styling story, and tap Post. The demo shows it exactly as Community would, labelled as a preview: nothing is published or saved.",
+        cta: "Open Brand Looks",
+        target: "brand-looks",
+        request: { action: "open-looks" },
+      },
     ],
     switchTo: { kind: "judge-consumer", label: "See the wardrobe side" },
   },
@@ -122,7 +158,7 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
 export const JUDGE_TOUR_REQUEST_EVENT = "racked:judge-tour-request";
 export const JUDGE_TOUR_PROGRESS_EVENT = "racked:judge-tour-progress";
 
-const STEP_IDS: ReadonlySet<string> = new Set<JudgeTourStepId>(["scan", "hanger-outfit", "suppressed", "released", "brand-hanger"]);
+const STEP_IDS: ReadonlySet<string> = new Set<JudgeTourStepId>(["scan", "hanger-outfit", "community", "community-purchase", "suppressed", "released", "brand-hanger", "brand-post"]);
 
 export function isJudgeTourStepId(value: unknown): value is JudgeTourStepId {
   return typeof value === "string" && STEP_IDS.has(value);
@@ -135,11 +171,16 @@ export function stepForOpenedProduct(productId: string): JudgeTourStepId | null 
   return null;
 }
 
-/** Reads a request event's detail, refusing anything that is not one of the three requests. */
+function isJudgeTourPath(value: unknown): value is JudgeTourPath {
+  return typeof value === "string" && (JUDGE_TOUR_PATHS as readonly string[]).includes(value);
+}
+
+/** Reads a request event's detail, refusing anything that is not one of the guide's own requests. */
 export function readJudgeTourRequest(detail: unknown): JudgeTourRequest | null {
   if (!detail || typeof detail !== "object") return null;
   const value = detail as Record<string, unknown>;
-  if (value.action === "open-scanner" || value.action === "open-hanger") return { action: value.action };
+  if (value.action === "open-scanner" || value.action === "open-hanger" || value.action === "open-looks") return { action: value.action };
+  if (value.action === "go") return isJudgeTourPath(value.href) ? { action: "go", href: value.href } : null;
   if (value.action === "open-product" && typeof value.productId === "string" && stepForOpenedProduct(value.productId)) {
     return { action: "open-product", productId: value.productId, ...(value.thenHanger === true ? { thenHanger: true } : {}) };
   }
@@ -157,6 +198,11 @@ export function signalJudgeTourProgress(step: JudgeTourStepId) {
 
 export function requestJudgeTour(request: JudgeTourRequest) {
   if (typeof window === "undefined") return;
+  // A step on another page navigates there; on that page already, the spotlight shows the way.
+  if (request.action === "go") {
+    if (isJudgeTourPath(request.href) && window.location.pathname !== request.href) window.location.assign(request.href);
+    return;
+  }
   window.dispatchEvent(new CustomEvent(JUDGE_TOUR_REQUEST_EVENT, { detail: request }));
 }
 

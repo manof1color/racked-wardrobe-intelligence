@@ -13,6 +13,7 @@ import {
   readJudgeTourState,
   requestJudgeTour,
   type JudgeTourState,
+  type JudgeTourStepId,
 } from "@/lib/judge-tour";
 
 // Progress lives in the browser's storage, with a copy in memory for a private window where storage
@@ -29,9 +30,12 @@ function writeStored(key: string, value: string) {
   try { window.localStorage.setItem(key, value); } catch { /* kept in memory for this visit */ }
   for (const listener of listeners) listener();
 }
+// The Community purchase finishes in the fictional store, which opens in a new tab. That tab has its
+// own guide and writes the same key, and the browser's storage event brings the change back here.
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  return () => { listeners.delete(listener); };
+  window.addEventListener("storage", listener);
+  return () => { listeners.delete(listener); window.removeEventListener("storage", listener); };
 }
 
 /** The attribute that rings the current step's target. An attribute, not a class, so React's own className updates never drop it. */
@@ -45,7 +49,7 @@ export const SPOTLIGHT_ATTRIBUTE = "data-tour-spotlight";
  * Hanger button, a product card) is ringed with a spotlight wherever it is on screen, so a judge can
  * tap it themselves or use the step's button. Dialogs and Hanger sit above it.
  */
-export function JudgeTour({ kind, sessionExpiresAt }: { kind: DemoKind; sessionExpiresAt: number }) {
+export function JudgeTour({ kind, sessionExpiresAt, visited }: { kind: DemoKind; sessionExpiresAt: number; visited?: JudgeTourStepId }) {
   const tour = JUDGE_TOURS[kind];
   const storageKey = judgeTourStorageKey(kind, sessionExpiresAt);
   const raw = useSyncExternalStore(subscribe, () => readStored(storageKey), () => null);
@@ -74,6 +78,14 @@ export function JudgeTour({ kind, sessionExpiresAt }: { kind: DemoKind; sessionE
     window.addEventListener(JUDGE_TOUR_PROGRESS_EVENT, onProgress);
     return () => window.removeEventListener(JUDGE_TOUR_PROGRESS_EVENT, onProgress);
   }, [storageKey, tour]);
+
+  // A step that is done by arriving on a page (Community) is ticked by that page's guide.
+  useEffect(() => {
+    if (!visited) return;
+    const current = readJudgeTourState(readStored(storageKey), tour);
+    const next = completeJudgeTourStep(current, tour, visited);
+    if (next !== current) writeStored(storageKey, JSON.stringify(next));
+  }, [visited, storageKey, tour]);
 
   const next = nextJudgeTourStep(state, tour);
   const target = next?.target ?? null;
