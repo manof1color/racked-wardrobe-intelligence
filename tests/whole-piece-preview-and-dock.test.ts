@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { dockShift, isTextEntry } from "../lib/viewport-dock.ts";
+import { STALE_VIEWPORT_MIN_GAP, dockShift, isTextEntry, staleViewportShift } from "../lib/viewport-dock.ts";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -76,4 +76,32 @@ test("a detection crop keeps a margin wide enough for a box that clips the garme
   assert.match(route, /const CROP_MARGIN=0\.08;/);
   assert.match(route, /bounds\.width\*imageWidth\*CROP_MARGIN/);
   assert.match(route, /bounds\.height\*imageHeight\*CROP_MARGIN/);
+});
+
+// REGRESSION (owner's phone recording, 2026-11-13): after a demo purchase in another tab and a return
+// to Community, the tab bar and the judge guide sat a keyboard's height up the screen and moved with
+// the page. iOS had kept a keyboard-shortened height for BOTH viewports, so dockShift saw two
+// viewports that agreed and moved nothing.
+test("REGRESSION: both viewports left keyboard-short with no keyboard up bring the dock back down", () => {
+  assert.equal(dockShift(482, 0, 482), 0, "dockShift alone cannot see this state");
+  assert.equal(staleViewportShift(482, 812, false), 330);
+  assert.equal(staleViewportShift(482, 812, true), 0, "a real keyboard is meant to shorten the screen");
+  assert.equal(staleViewportShift(812 - 90, 812, false), 0, "a toolbar showing is a small change, not a stranded viewport");
+  assert.equal(staleViewportShift(812 - STALE_VIEWPORT_MIN_GAP, 812, false), STALE_VIEWPORT_MIN_GAP);
+  assert.equal(staleViewportShift(812, 812, false), 0);
+  assert.equal(staleViewportShift(482, 0, false), 0, "no baseline yet: nothing to compare with");
+  assert.equal(staleViewportShift(Number.NaN, 812, false), 0);
+  const hook = read("components/use-viewport-dock.ts");
+  assert.match(hook, /if \(!coarsePointer\.matches\) return 0;/, "touch screens only");
+  assert.match(hook, /\(window\.visualViewport\?\.scale \?\? 1\) > 1\.01\) return 0;/, "never while pinch-zoomed");
+  assert.match(hook, /window\.sessionStorage\.setItem\(baselineKey\(baselineWidth\)/, "the full height survives a fresh page load");
+  for (const event of ['"visibilitychange", onReturn', '"pageshow", onReturn', '"focus", onReturn']) assert.ok(hook.includes(event), event);
+  assert.match(read("app/globals.css"), /\.judge-tour,\.judge-tour-pill\{translate:0 var\(--dock-shift,0px\)\}/, "the guide moves with the tab bar");
+});
+
+test("the viewport readout appears only on request and reads the screen, nothing else", () => {
+  const debug = read("components/viewport-debug.tsx");
+  assert.match(debug, /get\("viewport"\) !== "debug"\) return;/);
+  assert.doesNotMatch(debug, /fetch\(|localStorage|sessionStorage|sendBeacon/);
+  assert.match(read("components/app-shell.tsx"), /<ViewportDebug\/>/);
 });

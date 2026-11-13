@@ -1279,3 +1279,8 @@ h1 em,h2 em,h3 em{font-style:normal}
 .registry-heading.compact>div:first-child{flex:1 1 260px;min-width:0}
 .registry-heading.compact h2{font-size:1.45rem;margin:4px 0 0}
 .registry-heading.compact>div:first-child>p{display:none}
+
+/* The judge guide sits just above the phone tab bar, so it moves with it: when the viewport is left
+   stale (see components/use-viewport-dock.ts) both come down to the visible bottom edge together. */
+.judge-tour,.judge-tour-pill{translate:0 var(--dock-shift,0px)}
+.viewport-debug{position:fixed;top:8px;right:8px;z-index:100;margin:0;padding:8px 10px;background:rgba(14,14,12,.88);color:#fff;font:600 .75rem/1.45 ui-monospace,Menlo,monospace;border-radius:var(--radius);pointer-events:none;white-space:pre}
