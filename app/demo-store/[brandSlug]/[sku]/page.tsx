@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoPurchasePanel } from "@/components/demo-purchase-panel";
+import { JudgeTour } from "@/components/judge-tour";
+import { getSession } from "@/lib/auth";
 import { DEMO_STORE_DISCLAIMER, demoProductImagePath, demoStoreBrandPath, formatPrice, isDemoStorefrontBrand, storefrontDescription, storefrontPrice } from "@/lib/demo-storefront";
 import { listPublicBrandProducts } from "@/lib/server/production-store";
 import { stripeTestKey, testCheckoutRefusal } from "@/lib/test-checkout";
@@ -24,8 +26,13 @@ export default async function DemoStoreProduct({params}:{params:Promise<{brandSl
   const unavailable=product.availability==="unavailable"||product.availability==="discontinued";
   // Offered only with a Stripe test key, and only for a product the checkout route would itself accept.
   const testCheckout=Boolean(stripeTestKey(process.env.STRIPE_SECRET_KEY))&&testCheckoutRefusal(product)===null;
+  // A demo shopper arrives here from Community, in a new tab; the guide comes along so the purchase
+  // step ticks when the demo purchase completes, and the Community tab sees it through storage.
+  const session=await getSession();
+  const tour=session?.demo&&session.role==="consumer"?<JudgeTour kind="consumer" sessionExpiresAt={session.expiresAt}/>:null;
 
   return <main className="demo-store">
+    {tour}
     <div className="demo-store-banner" role="note"><strong>Demonstration only</strong><span>{DEMO_STORE_DISCLAIMER}</span></div>
     <header className="community-nav">
       <Link className="wordmark" href={demoStoreBrandPath(brandSlug)}>{product.brand}</Link>

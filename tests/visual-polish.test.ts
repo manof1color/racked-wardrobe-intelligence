@@ -153,7 +153,7 @@ test("brands with products get compact headings; an empty catalog keeps its expl
   assert.match(dashboard, /const compactHeadings=!catalogLoaded\|\|products\.length>0;/);
   assert.match(dashboard, /<section className=\{`workspace-heading\$\{compactHeadings\?" compact":""\}`\}>/);
   assert.match(dashboard, /<BrandProductEnrollment products=\{products\} onProducts=\{acceptProducts\} compact=\{compactHeadings\}\/>/);
-  assert.match(dashboard, /<BrandLookBuilder products=\{live\} compact=\{compactHeadings\}\/>/);
+  assert.match(dashboard, /<BrandLookBuilder products=\{live\}(?: preview=\{previewLooks\})? compact=\{compactHeadings\}\/>/);
   for (const file of ["components/brand-product-enrollment.tsx", "components/brand-look-builder.tsx"]) {
     assert.match(read(file), /className=\{`registry-heading\$\{compact\?" compact":""\}`\}/, file);
   }

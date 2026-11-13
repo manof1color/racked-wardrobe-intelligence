@@ -28,9 +28,9 @@ const linkedOwners = (id: string) => new Set(seeded.filter((item) => item.GSI1PK
 const consumer = JUDGE_TOURS.consumer;
 const brand = JUDGE_TOURS.brand;
 
-test("the guide follows the README's two flows, and nothing else", () => {
-  assert.deepEqual(consumer.steps.map((step) => step.id), ["scan", "hanger-outfit"]);
-  assert.deepEqual(brand.steps.map((step) => step.id), ["suppressed", "released", "brand-hanger"]);
+test("the guide follows the README's two flows, then one step each into Community", () => {
+  assert.deepEqual(consumer.steps.map((step) => step.id), ["scan", "hanger-outfit", "community", "community-purchase"]);
+  assert.deepEqual(brand.steps.map((step) => step.id), ["suppressed", "released", "brand-hanger", "brand-post"]);
   assert.equal(consumer.switchTo.kind, "judge-brand");
   assert.equal(brand.switchTo.kind, "judge-consumer");
 });
@@ -51,8 +51,8 @@ test("the two brand products exist in the judge seed, below and above the thresh
 test("the brand steps open only those two products: one below the threshold and one above it", () => {
   const opened = new Set(brand.steps.flatMap((step) => step.request.action === "open-product" ? [step.request.productId] : []));
   assert.deepEqual([...opened].sort(), [JUDGE_TOUR_PRODUCTS.released.id, JUDGE_TOUR_PRODUCTS.suppressed.id].sort());
-  const last = brand.steps.at(-1)!.request;
-  assert.deepEqual(last, { action: "open-product", productId: JUDGE_TOUR_PRODUCTS.released.id, thenHanger: true }, "Brand Hanger opens on the released product, which is already open");
+  const hanger = brand.steps.find((step) => step.id === "brand-hanger")!.request;
+  assert.deepEqual(hanger, { action: "open-product", productId: JUDGE_TOUR_PRODUCTS.released.id, thenHanger: true }, "Brand Hanger opens on the released product, which is already open");
 });
 
 test("a request is read only when it is one of the guide's own", () => {
@@ -83,6 +83,10 @@ test("progress keeps the tour's order, ignores the other tour's steps, and point
   assert.deepEqual(state.done, ["suppressed", "brand-hanger"]);
   assert.equal(nextJudgeTourStep(state, brand)?.id, "released");
   state = completeJudgeTourStep(state, brand, "released");
+  assert.equal(nextJudgeTourStep(state, brand)?.id, "brand-post");
+  state = completeJudgeTourStep(state, brand, "community-purchase");
+  assert.equal(nextJudgeTourStep(state, brand)?.id, "brand-post", "a shopper step never ticks the brand tour");
+  state = completeJudgeTourStep(state, brand, "brand-post");
   assert.equal(nextJudgeTourStep(state, brand), null);
 });
 
@@ -130,7 +134,11 @@ test("the home page offers the demo in one click, and the sign-in screen's demo 
 test("every step names a spotlight target that the page carries", async () => {
   const { judgeTourTargetSelector } = await import("../lib/judge-tour.ts");
   const targets = [...JUDGE_TOURS.consumer.steps, ...JUDGE_TOURS.brand.steps].map((step) => step.target);
-  assert.deepEqual(targets, ["scan", "hanger", `product-${JUDGE_TOUR_PRODUCTS.suppressed.id}`, `product-${JUDGE_TOUR_PRODUCTS.released.id}`, "hanger"]);
+  assert.deepEqual(targets, ["scan", "hanger", "community", "community-shop", `product-${JUDGE_TOUR_PRODUCTS.suppressed.id}`, `product-${JUDGE_TOUR_PRODUCTS.released.id}`, "hanger", "brand-looks"]);
+  assert.match(read("components/consumer-dashboard.tsx"), /<Link href="\/community" data-tour="community">/);
+  assert.match(read("components/workspace-mobile-nav.tsx"), /href="\/community" data-tour="community">/);
+  assert.match(read("components/brand-dashboard.tsx"), /data-tour=\{tab\.id==="looks"\?"brand-looks":undefined\}/);
+  assert.match(read("components/workspace-mobile-nav.tsx"), /data-tour=\{tab\.id==="looks"\?"brand-looks":undefined\}/);
   assert.equal(judgeTourTargetSelector("scan"), '[data-tour="scan"]');
   assert.match(read("components/consumer-dashboard.tsx"), /data-tour="scan" onClick=\{openAdd\}>\+ Add clothing/);
   assert.match(read("components/workspace-mobile-nav.tsx"), /<button type="button" data-tour="scan" onClick=\{onAdd\}>/);
@@ -141,4 +149,49 @@ test("every step names a spotlight target that the page carries", async () => {
   assert.match(component, /export const SPOTLIGHT_ATTRIBUTE = "data-tour-spotlight";/);
   assert.match(component, /return \(\) => \{ window\.clearTimeout\(first\); window\.clearInterval\(timer\); lit\?\.removeAttribute\(SPOTLIGHT_ATTRIBUTE\); setSpotlit\(false\); \};/);
   assert.match(component, /if \(!target \|\| state\.collapsed\) return;/);
+});
+
+test("the guide sends a judge only to its own fixed pages, and reads no other navigation", () => {
+  assert.deepEqual(readJudgeTourRequest({ action: "go", href: "/community" }), { action: "go", href: "/community" });
+  assert.deepEqual(readJudgeTourRequest({ action: "open-looks", extra: true }), { action: "open-looks" });
+  for (const href of ["https://example.com", "//example.com", "/consumer", "/community?x=1", "javascript:alert(1)", undefined]) {
+    assert.equal(readJudgeTourRequest({ action: "go", href }), null, String(href));
+  }
+  const lib = read("lib/judge-tour.ts");
+  assert.match(lib, /export const JUDGE_TOUR_PATHS = \["\/community"\] as const;/);
+  assert.match(lib, /if \(isJudgeTourPath\(request\.href\) && window\.location\.pathname !== request\.href\) window\.location\.assign\(request\.href\);/);
+});
+
+test("the shopper guide follows the judge into Community and the fictional store, and ticks on arrival and on the demo purchase", () => {
+  const community = read("app/community/page.tsx");
+  assert.match(community, /session\.role==="consumer"\?<JudgeTour kind="consumer" sessionExpiresAt=\{session\.expiresAt\} visited="community"\/>/);
+  assert.match(community, /!isDemoAccountId\(session\.subject\)\?<JudgeTour kind="brand"/, "a New Brand demo has no guide here either");
+  assert.match(community, /const tour=session\?\.demo\?/, "only demo sessions get the guide");
+  const store = read("app/demo-store/[brandSlug]/[sku]/page.tsx");
+  assert.match(store, /session\?\.demo&&session\.role==="consumer"\?<JudgeTour kind="consumer"/);
+  assert.match(read("components/demo-purchase-panel.tsx"), /setStep\("complete"\);\n\s*signalJudgeTourProgress\("community-purchase"\);/);
+  const component = read("components/judge-tour.tsx");
+  assert.match(component, /window\.addEventListener\("storage", listener\)/, "progress made in the store's tab reaches the Community tab");
+  assert.match(component, /const next = completeJudgeTourStep\(current, tour, visited\);/);
+});
+
+test("REGRESSION: the purchase step spotlights only a demo look, so a judge never lands on a real brand's store", () => {
+  const card = read("components/community-post-card.tsx");
+  assert.match(card, /data-tour=\{post\.dataClassification === "DEMO" \? "community-shop" : undefined\}/);
+  assert.equal((card.match(/community-shop/g) ?? []).length, 1);
+});
+
+test("a demo brand's Post shows a labelled preview and sends nothing; the server still refuses demo publishing", () => {
+  const builder = read("components/brand-look-builder.tsx");
+  const previewBranch = builder.slice(builder.indexOf("if(preview&&publish){"), builder.indexOf("setBusy(true);"));
+  assert.ok(previewBranch.length > 0, "the preview branch comes before any request");
+  assert.doesNotMatch(previewBranch, /fetch\(/, "a preview post makes no request");
+  assert.match(previewBranch, /signalJudgeTourProgress\("brand-post"\)/);
+  assert.match(builder, /Demo preview · not published/);
+  assert.match(builder, /Nothing was published or saved\./);
+  assert.match(read("app/brand/page.tsx"), /<BrandDashboard initialView=\{initialView\} previewLooks=\{Boolean\(session\.demo\)\}\/>/);
+  assert.match(read("components/brand-dashboard.tsx"), /<BrandLookBuilder products=\{live\} preview=\{previewLooks\}(?: compact=\{compactHeadings\})?\/>/);
+  assert.match(read("components/brand-dashboard.tsx"), /if\(request\?\.action==="open-looks"\)\{setView\("looks"\);setError\(""\);return;\}/);
+  // The boundary stays on the server whatever the page does.
+  assert.match(read("lib/server/production-store.ts"), /if\(demo&&input\.published\)throw new RequestRefused\(DEMO_LOOK_PUBLISH_MESSAGE,403\);/);
 });

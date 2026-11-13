@@ -67,7 +67,7 @@ function productChips(product:BrandProductRegistration){
  * would be exactly the cross-product differencing the enumeration budget exists to prevent. And the
  * budget is spent only when a person opens a product — landing on the workspace no longer costs one.
  */
-export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorkspaceView}) {
+export function BrandDashboard({initialView="overview",previewLooks=false}:{initialView?:BrandWorkspaceView;previewLooks?:boolean}) {
   const [products,setProducts]=useState<BrandProductRegistration[]>([]);
   const [productId,setProductId]=useState("");
   const [view,setView]=useState<BrandWorkspaceView>(initialView);
@@ -158,7 +158,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   // The judge guide (demo sessions only) asks for one of the two seeded products by id. Its Brand
   // Hanger step opens Hanger too; both changes land in the same render, so Hanger opens on that product.
   useEffect(()=>{
-    const onRequest=(event:Event)=>{const request=readJudgeTourRequest((event as CustomEvent).detail);if(request?.action!=="open-product")return;openProduct(request.productId);if(request.thenHanger)requestJudgeTour({action:"open-hanger"});};
+    const onRequest=(event:Event)=>{const request=readJudgeTourRequest((event as CustomEvent).detail);if(request?.action==="open-looks"){setView("looks");setError("");return;}if(request?.action!=="open-product")return;openProduct(request.productId);if(request.thenHanger)requestJudgeTour({action:"open-hanger"});};
     window.addEventListener(JUDGE_TOUR_REQUEST_EVENT,onRequest);
     return()=>window.removeEventListener(JUDGE_TOUR_REQUEST_EVENT,onRequest);
   },[]);
@@ -239,7 +239,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
 
   return <AppShell role="brand"><main className="workspace brand-workspace" id="brand-dashboard">
     <nav className="workspace-tabs brand-view-tabs" aria-label="Brand workspace views">
-      {tabs.map(tab=><button key={tab.id} type="button" className={view===tab.id||(view==="product"&&tab.id==="catalog")?"active":""} aria-current={view===tab.id?"page":undefined} onClick={()=>{setView(tab.id);setError("");}}>{tab.label}</button>)}
+      {tabs.map(tab=><button key={tab.id} type="button" className={view===tab.id||(view==="product"&&tab.id==="catalog")?"active":""} aria-current={view===tab.id?"page":undefined} data-tour={tab.id==="looks"?"brand-looks":undefined} onClick={()=>{setView(tab.id);setError("");}}>{tab.label}</button>)}
       <Link href="/community">Community</Link>
     </nav>
 
@@ -295,7 +295,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
       </section>
     </>}
 
-    {view==="looks"&&<BrandLookBuilder products={live} compact={compactHeadings}/>}
+    {view==="looks"&&<BrandLookBuilder products={live} preview={previewLooks} compact={compactHeadings}/>}
 
     {view==="product"&&product&&<section className="product-view">
       <div className="product-view-head">
