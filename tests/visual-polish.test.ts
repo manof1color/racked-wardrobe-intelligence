@@ -81,3 +81,31 @@ test("REGRESSION: the photo log's Record bar never floats over the choices", () 
   assert.doesNotMatch(css, /\.wear-photo-actions\{bottom:/);
   assert.match(css, /\.wear-photo-option input\{width:24px;height:24px;/, "radio buttons meet the 24px minimum target");
 });
+
+// Empty views used to differ from screen to screen: a bare heading, a page-sized poster, or a second
+// accent button competing with the page's own main button. They now share one quiet pattern.
+test("empty views share one pattern and never add a second main button", () => {
+  const component = read("components/empty-state.tsx");
+  assert.doesNotMatch(component, /button-accent/);
+  for (const file of ["components/consumer-dashboard.tsx", "components/saved-looks.tsx", "components/brand-look-builder.tsx"]) {
+    const source = read(file);
+    for (const match of source.matchAll(/<EmptyState [^]*?<\/EmptyState>/g)) assert.doesNotMatch(match[0], /button-accent/, `${file}: ${match[0].slice(0, 60)}`);
+  }
+  const dashboard = read("components/consumer-dashboard.tsx");
+  assert.doesNotMatch(dashboard, /No garments in this category yet|Add clothing before building an outfit/);
+  // REGRESSION: an empty closet showed six category filters with nothing to filter.
+  assert.match(dashboard, /\{items\.length>0&&<div className="filter-row"/);
+  assert.match(dashboard, /onClick=\{\(\)=>setFilter\("all"\)\}>Show everything<\/button>/, "an empty category offers a way back");
+});
+
+// REGRESSION: while the wardrobe loaded, the page showed "…" and a line of text, then jumped to a grid.
+test("loading shows placeholders shaped like the content, announced once and still under reduced motion", () => {
+  const component = read("components/empty-state.tsx");
+  assert.match(component, /role="status">\s*<span className="sr-only">\{label\}<\/span>/);
+  assert.equal((component.match(/aria-hidden="true"/g) ?? []).length, 3, "the icon and both placeholder shapes are hidden from assistive technology");
+  assert.match(read("components/consumer-dashboard.tsx"), /<LoadingPlaceholder label="Loading your private wardrobe" shape=\{activeView==="closet"\?"garments":"cards"\}/);
+  assert.match(read("components/saved-looks.tsx"), /<LoadingPlaceholder label="Loading saved looks…"/);
+  // REGRESSION: while loading, the Closet heading said "0 pieces, 0 wears logged", as if the wardrobe were empty.
+  assert.match(read("components/consumer-dashboard.tsx"), /\{!loading&&heading\.stats\.length>0&&<dl className="view-stats">/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.skeleton-card i,\.skeleton-text i\{animation:none\}\}/);
+});

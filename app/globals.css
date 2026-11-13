@@ -1173,3 +1173,25 @@ h1 em,h2 em,h3 em{font-style:normal}
 .points-log-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
 /* Today opens on what it is for: the "This week" card, where today's outfit is logged, comes first. */
 .insight-grid>.points-card{order:-1}
+
+/* ---- Empty states and loading placeholders ----
+   One empty state everywhere (components/empty-state.tsx): icon, heading, one line, at most one
+   quiet action. Placeholders take the shape of what is loading so nothing jumps when it arrives;
+   the shimmer is decoration only and stops under reduced motion. */
+.empty-state{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:28px;background:var(--white);border:1px dashed #cfc6b6;border-radius:var(--radius-lg)}
+.empty-state-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:var(--acid);color:var(--coral-dark)}
+.empty-state h2,.empty-state h3{margin:6px 0 0;font:700 1.35rem/1.25 var(--sans);text-transform:none;letter-spacing:0}
+.empty-state p{margin:0;max-width:560px;color:var(--muted);line-height:1.6;font-size:.95rem}
+.empty-state-action{margin-top:6px}
+.view-loading{margin-top:8px}
+.skeleton-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.skeleton-garments .skeleton-grid{grid-template-columns:repeat(4,1fr)}
+.skeleton-card{display:grid;gap:10px;padding:14px;background:var(--white);border:1px solid var(--line);border-radius:var(--radius-lg)}
+.skeleton-card i,.skeleton-text i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#efe9dd,#e6dfd1,#efe9dd);background-size:200% 100%;animation:metric-shimmer 1.4s ease-in-out infinite}
+.skeleton-card i:nth-child(2){width:70%}.skeleton-card i:nth-child(3){width:45%}
+.skeleton-card .skeleton-block{height:120px;width:100%;border-radius:var(--radius)}
+.skeleton-garments .skeleton-block{height:170px}
+.skeleton-text{display:grid;gap:10px;max-width:520px}.skeleton-text i:nth-child(2){width:80%}.skeleton-text i:nth-child(3){width:55%}
+@media(max-width:1050px){.skeleton-garments .skeleton-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.skeleton-grid{grid-template-columns:1fr}.skeleton-garments .skeleton-grid{grid-template-columns:repeat(2,1fr)}.empty-state{padding:22px}}
+@media(prefers-reduced-motion:reduce){.skeleton-card i,.skeleton-text i{animation:none}}
