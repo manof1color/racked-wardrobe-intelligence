@@ -47,7 +47,7 @@ test("REGRESSION: navigation and photo pickers use the shared line icons, never 
 test("REGRESSION: Today has one main button, and with clothes saved it logs today's outfit", () => {
   const dashboard = read("components/consumer-dashboard.tsx");
   const card = read("components/wear-points-card.tsx");
-  assert.match(dashboard, /activeView==="home"&&items\.length>0\s*\? <button type="button" className="button button-accent" aria-expanded=\{logOpen\} aria-controls=\{LOG_TODAY_PANEL_ID\} onClick=\{\(\)=>setLogOpen\(true\)\}>\{"Log today's outfit"\}<\/button>\s*: <button className="button button-accent" onClick=\{openAdd\}>\+ Add clothing<\/button>/);
+  assert.match(dashboard, /activeView==="home"&&items\.length>0\s*\? <button type="button" className="button button-accent" aria-expanded=\{logOpen\} aria-controls=\{LOG_TODAY_PANEL_ID\} onClick=\{\(\)=>setLogOpen\(true\)\}>\{"Log today's outfit"\}<\/button>\s*: <button className="button button-accent" data-tour="scan" onClick=\{openAdd\}>\+ Add clothing<\/button>/);
   assert.doesNotMatch(dashboard, /Scan my first look/, "the empty Today has one main button, not two");
   assert.match(dashboard, /logging=\{logOpen\} onLoggingChange=\{setLogOpen\}/);
   assert.equal((card.match(/Log today's outfit/g) ?? []).length, 2, "the card names its panel and nothing else");

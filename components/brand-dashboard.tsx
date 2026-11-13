@@ -223,7 +223,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   const progress=brandOnboardingProgress(steps);
   const showChecklist=!checklistHidden&&!brandOnboardingComplete(steps);
 
-  const productCard=(item:BrandProductRegistration)=><button type="button" key={item.id} className={`product-card ${item.archived?"retired":""}`} onClick={()=>openProduct(item.id)}>
+  const productCard=(item:BrandProductRegistration)=><button type="button" key={item.id} data-tour={`product-${item.id}`} className={`product-card ${item.archived?"retired":""}`} onClick={()=>openProduct(item.id)}>
     {item.imageUrls?.front?<img src={item.imageUrls.front} alt=""/>:<span className="product-card-blank" aria-hidden="true">{item.category}</span>}
     <span className="product-card-copy">
       <strong>{item.name}</strong>

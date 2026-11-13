@@ -94,35 +94,61 @@ test("axe: brand product metrics and Brand Hanger", async ({ page }, testInfo) =
   await expectNoSeriousViolations(page, testInfo, "Brand Hanger");
 });
 
-test("axe: the judge guide on a demo wardrobe, whose steps open the scanner and Hanger and tick themselves off", async ({ page }, testInfo) => {
+test("axe: the judge guide on a demo wardrobe is a corner dock that spotlights the step's button, opens the scanner and Hanger, and ticks steps off", async ({ page }, testInfo) => {
   await page.goto("/a11y-harness?role=consumer&view=home&tour=1");
   await expect(page.getByText("Loading your private wardrobe")).toHaveCount(0);
   const guide = page.getByRole("region", { name: "Judge guide: the wardrobe side" });
   await expect(guide.getByRole("status")).toHaveText("0 of 2 done");
+  await expect(guide.getByRole("heading", { name: "Scan a photo and confirm the pieces" })).toBeVisible();
+  // The spotlight rings the Add control that is on screen. On a phone that is the Add tab. On a computer,
+  // Today with clothes saved leads with "Log today's outfit" instead, so nothing is ringed and the dock's
+  // own button is the way in; the hint about a highlighted button then stays away.
+  const lit = page.locator("[data-tour-spotlight]");
+  if (testInfo.project.name === "mobile") {
+    await expect(lit).toHaveCount(1);
+    await expect(lit).toHaveAttribute("data-tour", "scan");
+    await expect(lit).toBeVisible();
+    await expect(guide.getByText("or tap the highlighted button")).toBeHidden(); // hidden on phones to keep the dock short
+  } else {
+    await expect(lit).toHaveCount(0);
+    await expect(guide.getByText("or tap the highlighted button")).toHaveCount(0);
+  }
+  // A dock, not a banner: it leaves most of the screen to the app.
+  const box = await guide.boundingBox();
+  const viewport = page.viewportSize();
+  expect(box && viewport && box.height < viewport.height * 0.45).toBeTruthy();
   await expectNoSeriousViolations(page, testInfo, "judge guide, wardrobe");
 
-  await guide.getByRole("button", { name: /^Open the scanner/ }).click();
+  await guide.getByRole("button", { name: "Open the scanner" }).click();
   const scanner = page.getByRole("dialog", { name: "Add clothing to your wardrobe." });
   await expect(scanner).toBeVisible();
   await scanner.getByRole("button", { name: "Close" }).click();
 
-  await guide.getByRole("button", { name: /^Open Hanger/ }).click();
+  await guide.getByRole("button", { name: "All steps" }).click();
+  await expect(guide.getByRole("listitem")).toHaveCount(2);
+  await guide.getByRole("button", { name: /^Go: Ask Hanger for an outfit/ }).click();
   const hanger = page.getByRole("dialog", { name: "Hanger AI assistant" });
   await hanger.getByRole("textbox").fill("What should I wear today?");
   await hanger.getByRole("textbox").press("Enter");
   await expect(hanger.getByText("Here is an outfit from pieces you already own")).toBeVisible();
   await hanger.getByRole("button", { name: "Close Hanger" }).click();
   await expect(guide.getByRole("status")).toHaveText("1 of 2 done");
+  await expectNoSeriousViolations(page, testInfo, "judge guide, all steps");
 
-  await guide.getByRole("button", { name: "Hide guide" }).click();
-  await expect(guide.getByRole("button", { name: "Show guide" })).toHaveAttribute("aria-expanded", "false");
-  await expect(guide.getByRole("list")).toBeHidden();
+  await guide.getByRole("button", { name: "Minimize guide" }).click();
+  const pill = page.getByRole("region", { name: "Judge guide: the wardrobe side" }).getByRole("button", { name: /^Show guide/ });
+  await expect(pill).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("[data-tour-spotlight]")).toHaveCount(0);
+  await pill.click();
+  await expect(page.getByRole("region", { name: "Judge guide: the wardrobe side" }).getByRole("status")).toHaveText("1 of 2 done");
 });
 
 test("axe: the judge guide on the demo brand", async ({ page }, testInfo) => {
   await page.goto("/a11y-harness?role=brand&view=overview&tour=1");
   await expect(page.getByText("Loading your catalog")).toHaveCount(0);
   const guide = page.getByRole("region", { name: "Judge guide: the brand side" });
+  await expect(guide.getByRole("heading", { name: "Open Judge Limited Overshirt" })).toBeVisible();
+  await guide.getByRole("button", { name: "All steps" }).click();
   await expect(guide.getByRole("listitem")).toHaveCount(3);
   await expect(guide.getByRole("button", { name: /^See the wardrobe side/ })).toBeVisible();
   await expectNoSeriousViolations(page, testInfo, "judge guide, brand");

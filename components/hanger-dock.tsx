@@ -38,7 +38,7 @@ export function HangerDock({ role, productId, brandHasProducts = false, onOpenCa
 
   return <>
     {/* Named by its visible text, both lines, so a voice command that reads the button out loud works (WCAG 2.5.3). */}
-    <button ref={launcher} type="button" className="hanger-launcher" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
+    <button ref={launcher} type="button" className="hanger-launcher" data-tour="hanger" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
       <span className="hanger-mark" aria-hidden="true"><Icon name="hanger"/></span>
       <span className="hanger-launcher-copy"><strong>Ask Hanger</strong><small>{copy.launcher}</small></span>
     </button>

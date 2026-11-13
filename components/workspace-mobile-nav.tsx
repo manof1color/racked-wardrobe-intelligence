@@ -37,6 +37,6 @@ export function WorkspaceMobileNav({role,active,onConsumerView,onBrandView,onAdd
       ? <button type="button" key={tab.id} className={active===tab.id?"active":""} onClick={()=>onConsumerView(tab.id)}><Icon name={tab.icon}/><small>{tab.label}</small></button>
       : <Link key={tab.id} className={active===tab.id?"active":""} href={consumerViewPath(tab.id)}><Icon name={tab.icon}/><small>{tab.label}</small></Link>)}
     <Link className={active==="community"?"active":""} href="/community"><Icon name="community"/><small>Community</small></Link>
-    {onAdd?<button type="button" onClick={onAdd}><Icon name="add"/><small>Add</small></button>:<Link href="/consumer?add=1"><Icon name="add"/><small>Add</small></Link>}
+    {onAdd?<button type="button" data-tour="scan" onClick={onAdd}><Icon name="add"/><small>Add</small></button>:<Link href="/consumer?add=1"><Icon name="add"/><small>Add</small></Link>}
   </nav>;
 }

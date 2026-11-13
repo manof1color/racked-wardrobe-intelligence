@@ -8,6 +8,7 @@ import {
   JUDGE_TOUR_PROGRESS_EVENT,
   JUDGE_TOURS,
   judgeTourStorageKey,
+  judgeTourTargetSelector,
   nextJudgeTourStep,
   readJudgeTourState,
   requestJudgeTour,
@@ -33,17 +34,26 @@ function subscribe(listener: () => void) {
   return () => { listeners.delete(listener); };
 }
 
+/** The attribute that rings the current step's target. An attribute, not a class, so React's own className updates never drop it. */
+export const SPOTLIGHT_ATTRIBUTE = "data-tour-spotlight";
+
 /**
- * The judge guide (lib/judge-tour.ts): a step list above a demo workspace. Each step has a button
- * that takes the judge straight there, and ticks itself off when the dashboard reports it done.
- * It sits in the page rather than floating over it, so it never covers the bottom tabs or Hanger
- * on a phone, and it can be folded to one line.
+ * The judge guide (lib/judge-tour.ts) as a small dock: the current step, its button, and progress
+ * dots, with every step one tap away. It floats over a corner instead of pushing the page down: on a
+ * phone it sits above the bottom tabs, beside the Hanger button; on a computer, in the bottom-left
+ * corner. It never dims or blocks the page. The element the current step needs (the Add button, the
+ * Hanger button, a product card) is ringed with a spotlight wherever it is on screen, so a judge can
+ * tap it themselves or use the step's button. Dialogs and Hanger sit above it.
  */
 export function JudgeTour({ kind, sessionExpiresAt }: { kind: DemoKind; sessionExpiresAt: number }) {
   const tour = JUDGE_TOURS[kind];
   const storageKey = judgeTourStorageKey(kind, sessionExpiresAt);
   const raw = useSyncExternalStore(subscribe, () => readStored(storageKey), () => null);
   const state = useMemo(() => readJudgeTourState(raw, tour), [raw, tour]);
+  const [expanded, setExpanded] = useState(false);
+  // Whether the current step's target is ringed on screen right now; the dock only says "tap the
+  // highlighted button" when there is one.
+  const [spotlit, setSpotlit] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [switchError, setSwitchError] = useState("");
 
@@ -65,6 +75,29 @@ export function JudgeTour({ kind, sessionExpiresAt }: { kind: DemoKind; sessionE
     return () => window.removeEventListener(JUDGE_TOUR_PROGRESS_EVENT, onProgress);
   }, [storageKey, tour]);
 
+  const next = nextJudgeTourStep(state, tour);
+  const target = next?.target ?? null;
+
+  // The spotlight follows the current step's target as views change (a tab switch, a product opening,
+  // the catalog loading), so it is re-checked a few times a second rather than wired into each view.
+  // Only an element actually on screen is ringed; the phone's Add tab and the desktop's Add button
+  // share a target, and whichever is showing gets the ring.
+  useEffect(() => {
+    if (!target || state.collapsed) return;
+    const selector = judgeTourTargetSelector(target);
+    let lit: Element | null = null;
+    const light = () => {
+      const shown = Array.from(document.querySelectorAll(selector)).find((element) => element.getClientRects().length > 0) ?? null;
+      if (lit && lit !== shown) lit.removeAttribute(SPOTLIGHT_ATTRIBUTE);
+      if (shown && !shown.hasAttribute(SPOTLIGHT_ATTRIBUTE)) shown.setAttribute(SPOTLIGHT_ATTRIBUTE, "");
+      lit = shown;
+      setSpotlit(shown !== null);
+    };
+    const first = window.setTimeout(light, 0);
+    const timer = window.setInterval(light, 500);
+    return () => { window.clearTimeout(first); window.clearInterval(timer); lit?.removeAttribute(SPOTLIGHT_ATTRIBUTE); setSpotlit(false); };
+  }, [target, state.collapsed]);
+
   async function switchSide() {
     setSwitching(true); setSwitchError("");
     try {
@@ -78,49 +111,65 @@ export function JudgeTour({ kind, sessionExpiresAt }: { kind: DemoKind; sessionE
     }
   }
 
-  const next = nextJudgeTourStep(state, tour);
   const doneCount = state.done.length;
   const total = tour.steps.length;
-  const bodyId = `judge-tour-${kind}-steps`;
+  const label = `Judge guide: ${tour.heading.toLowerCase()}`;
+  const listId = `judge-tour-${kind}-steps`;
+  const stepNumber = next ? tour.steps.findIndex((step) => step.id === next.id) + 1 : total;
 
-  // Named in full for assistive technology; the visible heading leaves "Judge guide" to the eyebrow above it.
-  return <section className={`judge-tour${state.collapsed ? " collapsed" : ""}`} aria-label={`Judge guide: ${tour.heading.toLowerCase()}`}>
-    <div className="judge-tour-head">
-      <div>
-        <div className="eyebrow">JUDGE GUIDE</div>
-        <h2>{tour.heading}</h2>
-      </div>
+  // Folded to a pill: one tap brings the dock back, and the spotlight is off meanwhile.
+  if (state.collapsed) return <section className="judge-tour-pill" aria-label={label}>
+    <button type="button" aria-expanded={false} onClick={() => update((current) => ({ ...current, collapsed: false }))}>
+      Show guide <span aria-hidden="true">·</span> {doneCount}/{total}
+    </button>
+  </section>;
+
+  const switchButton = (primary: boolean) => <button type="button" className={`button button-small ${primary ? "button-accent" : "judge-tour-ghost"}`} disabled={switching} onClick={switchSide}>
+    {switching ? "Opening…" : <>{tour.switchTo.label} <span aria-hidden="true">→</span></>}
+  </button>;
+
+  return <section className={`judge-tour${expanded ? " expanded" : ""}`} aria-label={label}>
+    <div className="judge-tour-bar">
+      <ol className="judge-tour-dots" aria-hidden="true">
+        {tour.steps.map((step) => <li key={step.id} className={state.done.includes(step.id) ? "done" : next?.id === step.id ? "current" : ""}/>)}
+      </ol>
       <p className="judge-tour-progress" role="status" aria-live="polite">{doneCount === total ? "All steps done" : `${doneCount} of ${total} done`}</p>
-      <button type="button" className="judge-tour-toggle" aria-expanded={!state.collapsed} aria-controls={bodyId} onClick={() => update((current) => ({ ...current, collapsed: !current.collapsed }))}>
-        {state.collapsed ? "Show guide" : "Hide guide"}
-      </button>
+      <button type="button" className="judge-tour-icon" aria-expanded={expanded} aria-controls={listId} onClick={() => setExpanded((value) => !value)}>{expanded ? "Fewer" : "All steps"}</button>
+      <button type="button" className="judge-tour-icon" aria-label="Minimize guide" onClick={() => { setExpanded(false); update((current) => ({ ...current, collapsed: true })); }}><span aria-hidden="true">–</span></button>
     </div>
-    <div id={bodyId} hidden={state.collapsed}>
-      <p className="judge-tour-intro">{tour.intro}</p>
+
+    {next
+      ? <div className="judge-tour-now">
+        <p className="judge-tour-eyebrow">Step {stepNumber} of {total} · {tour.heading}</p>
+        <h2>{next.title}</h2>
+        <p className="judge-tour-detail">{next.detail}</p>
+        <div className="judge-tour-actions">
+          <button type="button" className="button button-accent button-small" onClick={() => requestJudgeTour(next.request)}>{next.cta}</button>
+          {spotlit && <span className="judge-tour-hint">or tap the highlighted button</span>}
+        </div>
+      </div>
+      : <div className="judge-tour-now">
+        <p className="judge-tour-eyebrow">{tour.heading}</p>
+        <h2>All done here.</h2>
+        <p className="judge-tour-detail">The other side takes about two minutes too.</p>
+        <div className="judge-tour-actions">{switchButton(true)}</div>
+      </div>}
+
+    <div id={listId} className="judge-tour-all" hidden={!expanded}>
+      <p>{tour.intro}</p>
       <ol className="judge-tour-steps">
         {tour.steps.map((step, index) => {
           const done = state.done.includes(step.id);
           const current = next?.id === step.id;
           return <li key={step.id} className={done ? "done" : current ? "current" : ""} aria-current={current ? "step" : undefined}>
             <span className="judge-tour-marker" aria-hidden="true">{done ? "✓" : index + 1}</span>
-            <span className="judge-tour-copy">
-              <strong>{step.title}{done && <span className="sr-only"> (done)</span>}</strong>
-              {/* Only the step to do next explains itself, so the guide stays short on a phone. */}
-              {current && <small>{step.detail}</small>}
-            </span>
-            <button type="button" className={`button button-small ${current ? "button-accent" : "button-light"}`} onClick={() => requestJudgeTour(step.request)}>
-              {step.cta}<span className="sr-only">: {step.title}</span>
-            </button>
+            <strong>{step.title}{done && <span className="sr-only"> (done)</span>}</strong>
+            <button type="button" className="judge-tour-go" aria-label={`Go: ${step.title}`} onClick={() => requestJudgeTour(step.request)}>Go</button>
           </li>;
         })}
       </ol>
-      <div className="judge-tour-switch">
-        <p>{next ? "Short on time? The other side takes two minutes too." : "This side is done. The other side takes two more minutes."}</p>
-        <button type="button" className={`button button-small ${next ? "button-light" : "button-accent"}`} disabled={switching} onClick={switchSide}>
-          {switching ? "Opening…" : <>{tour.switchTo.label} <span aria-hidden="true">{"→"}</span></>}
-        </button>
-      </div>
-      {switchError && <div className="form-error" role="alert">{switchError}</div>}
+      {next && <div className="judge-tour-switch">{switchButton(false)}</div>}
     </div>
+    {switchError && <div className="form-error" role="alert">{switchError}</div>}
   </section>;
 }

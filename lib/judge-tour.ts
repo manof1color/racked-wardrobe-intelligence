@@ -42,6 +42,11 @@ export interface JudgeTourStep {
   detail: string;
   /** The button that takes the judge straight to this step. */
   cta: string;
+  /**
+   * The element the guide spotlights for this step: whatever carries `data-tour="<target>"` on the page
+   * (the Add button, the Hanger button, a product card). The step's button still works without it.
+   */
+  target: string;
   request: JudgeTourRequest;
 }
 
@@ -65,6 +70,7 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
         title: "Scan a photo and confirm the pieces",
         detail: "Use any photo of an outfit or a flat lay. The AI proposes each piece; nothing is saved until you confirm it.",
         cta: "Open the scanner",
+        target: "scan",
         request: { action: "open-scanner" },
       },
       {
@@ -72,6 +78,7 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
         title: "Ask Hanger for an outfit",
         detail: "Tap a suggested question. Code picks the pieces from this wardrobe; the AI only explains the choice.",
         cta: "Open Hanger",
+        target: "hanger",
         request: { action: "open-hanger" },
       },
     ],
@@ -87,6 +94,7 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
         title: `Open ${JUDGE_TOUR_PRODUCTS.suppressed.name}`,
         detail: "4 opted-in owners, below the threshold of 25, so the brand sees nothing: not zeroes, not even the count.",
         cta: "Open this product",
+        target: `product-${JUDGE_TOUR_PRODUCTS.suppressed.id}`,
         request: { action: "open-product", productId: JUDGE_TOUR_PRODUCTS.suppressed.id },
       },
       {
@@ -94,6 +102,7 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
         title: `Open ${JUDGE_TOUR_PRODUCTS.released.name}`,
         detail: "50 opted-in owners, so totals are released: an eight-week wear chart, repeat wear and what it is worn with. Never a name, photo or wardrobe.",
         cta: "Open this product",
+        target: `product-${JUDGE_TOUR_PRODUCTS.released.id}`,
         request: { action: "open-product", productId: JUDGE_TOUR_PRODUCTS.released.id },
       },
       {
@@ -101,6 +110,7 @@ export const JUDGE_TOURS: Readonly<Record<DemoKind, JudgeTour>> = {
         title: "Ask Brand Hanger for a campaign angle",
         detail: "Tap “Which metric should lead our campaign?”. Hanger sees only the released totals.",
         cta: "Open Brand Hanger",
+        target: "hanger",
         request: { action: "open-product", productId: JUDGE_TOUR_PRODUCTS.released.id, thenHanger: true },
       },
     ],
@@ -180,4 +190,9 @@ export function completeJudgeTourStep(state: JudgeTourState, tour: JudgeTour, st
 /** The step to point at next, or null when every step is done. */
 export function nextJudgeTourStep(state: JudgeTourState, tour: JudgeTour): JudgeTourStep | null {
   return tour.steps.find((step) => !state.done.includes(step.id)) ?? null;
+}
+
+/** The CSS selector for a step's spotlight target. Targets are fixed strings from this file, never user input. */
+export function judgeTourTargetSelector(target: string) {
+  return `[data-tour="${target}"]`;
 }
