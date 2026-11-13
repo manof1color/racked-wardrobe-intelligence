@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandAgentPanel, ConsumerAgentPanel } from "./agent-panels";
 import { useDialogFocus } from "./use-dialog-focus";
+import { Icon } from "./icons";
 import type { SavedOutfit } from "@/lib/types";
 
 const ROLE_COPY = {
@@ -31,13 +32,13 @@ export function HangerDock({ role, productId, brandHasProducts = false, onOpenCa
   return <>
     {/* Named by its visible text, both lines, so a voice command that reads the button out loud works (WCAG 2.5.3). */}
     <button ref={launcher} type="button" className="hanger-launcher" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
-      <span className="hanger-mark" aria-hidden="true">⌁</span>
+      <span className="hanger-mark" aria-hidden="true"><Icon name="hanger"/></span>
       <span className="hanger-launcher-copy"><strong>Ask Hanger</strong><small>{copy.launcher}</small></span>
     </button>
     <div className="hanger-backdrop" role="presentation" hidden={!open} onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
       <aside ref={drawer} className="hanger-drawer" role="dialog" aria-modal="true" aria-label="Hanger AI assistant" tabIndex={-1}>
         <header className="hanger-drawer-header">
-          <span className="hanger-mark" aria-hidden="true">⌁</span>
+          <span className="hanger-mark" aria-hidden="true"><Icon name="hanger"/></span>
           <div className="hanger-drawer-title">
             <strong>Hanger</strong>
             <small>{copy.subtitle}</small>

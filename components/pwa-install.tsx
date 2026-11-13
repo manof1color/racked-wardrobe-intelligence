@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useDialogFocus } from "./use-dialog-focus";
-import { detectInAppBrowser, detectIosBrowser, detectPwaInstallPlatform, externalBrowserUrl, pwaInstallGuidance, type InAppBrowser, type IosBrowser, type PwaInstallPlatform } from "@/lib/pwa-install";
+import { INSTALL_TIP_SESSION_KEY, INSTALL_TIP_STORAGE_KEY, detectInAppBrowser, detectIosBrowser, detectPwaInstallPlatform, externalBrowserUrl, installTipEarned, installTipPath, parseInstallTipRecord, pwaInstallGuidance, type InAppBrowser, type IosBrowser, type PwaInstallPlatform } from "@/lib/pwa-install";
 
 interface InstallPromptEvent extends Event {
   prompt():Promise<void>;
@@ -17,6 +18,22 @@ function ShareGlyph(){
   return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 11H5v10h14V11h-2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
 
+/**
+ * Counts this browser session as one visit (once), then says whether the tip has been earned.
+ * Storage can be missing or blocked (private windows); the tip then simply stays hidden.
+ */
+function countVisitAndCheckTip():boolean{
+  try{
+    const record=parseInstallTipRecord(window.localStorage.getItem(INSTALL_TIP_STORAGE_KEY));
+    if(!window.sessionStorage.getItem(INSTALL_TIP_SESSION_KEY)){
+      record.visits+=1;
+      window.sessionStorage.setItem(INSTALL_TIP_SESSION_KEY,"1");
+      window.localStorage.setItem(INSTALL_TIP_STORAGE_KEY,JSON.stringify(record));
+    }
+    return installTipEarned(record,Date.now());
+  }catch{return false;}
+}
+
 export function PwaInstall() {
   const [prompt,setPrompt]=useState<InstallPromptEvent|null>(null);
   const [platform,setPlatform]=useState<PwaInstallPlatform>("desktop");
@@ -26,10 +43,22 @@ export function PwaInstall() {
   const [hidden,setHidden]=useState(true);
   const [helpOpen,setHelpOpen]=useState(false);
   const [installing,setInstalling]=useState(false);
+  // Whether this visitor has earned the tip (see installTipEarned); null until storage is read.
+  const [earned,setEarned]=useState<boolean|null>(null);
+  const pathname=usePathname();
   const banner=useRef<HTMLElement>(null);
   const help=useRef<HTMLElement>(null);
   const closeHelp=useCallback(()=>setHelpOpen(false),[]);
   useDialogFocus(help,helpOpen,closeHelp);
+
+  function dismiss(){
+    setHidden(true);
+    setEarned(false);
+    try{
+      const record=parseInstallTipRecord(window.localStorage.getItem(INSTALL_TIP_STORAGE_KEY));
+      window.localStorage.setItem(INSTALL_TIP_STORAGE_KEY,JSON.stringify({...record,dismissedAt:Date.now()}));
+    }catch{/* nothing to remember it in */}
+  }
 
   useEffect(()=>{
     let refreshing=false;
@@ -56,6 +85,7 @@ export function PwaInstall() {
     // Some browsers never emit beforeinstallprompt: every iPhone browser, and the built-in
     // browsers inside apps. Keep Add Racked actionable with the shortest honest path instead.
     const revealTimer=window.setTimeout(()=>{
+      setEarned(countVisitAndCheckTip());
       const detected=detectPwaInstallPlatform(navigator.userAgent,navigator.maxTouchPoints);
       const app=detectInAppBrowser(navigator.userAgent);
       setPlatform(detected);
@@ -90,18 +120,19 @@ export function PwaInstall() {
   // The tip shares the bottom corner with the Hanger launcher and sits above it, which used to hide
   // the launcher completely, focus ring included. Its height is published as --install-offset so the
   // launcher rises clear of it while it shows (WCAG 2.2, 2.4.11 Focus Not Obscured).
+  const shown=!hidden&&earned===true&&installTipPath(pathname??"");
   useEffect(()=>{
     const root=document.documentElement;
     const element=banner.current;
-    if(hidden||!element){root.style.removeProperty("--install-offset");return;}
+    if(!shown||!element){root.style.removeProperty("--install-offset");return;}
     const publish=()=>root.style.setProperty("--install-offset",`${Math.ceil(element.getBoundingClientRect().height)+12}px`);
     publish();
     const observer=new ResizeObserver(publish);
     observer.observe(element);
     return()=>{observer.disconnect();root.style.removeProperty("--install-offset");};
-  },[hidden]);
+  },[shown]);
 
-  if (hidden) return null;
+  if (!shown&&!helpOpen) return null;
   const guidance=pwaInstallGuidance(platform,browser);
   const inAppOnly=Boolean(inApp)&&!prompt;
   const realBrowser=platform==="ios"?"Safari":"Chrome";
@@ -115,14 +146,14 @@ export function PwaInstall() {
         :"Your browser menu can install it. We'll show you where.";
   const inAppSteps=[`Tap ⋯ in the corner of ${inApp??"this app"}.`,`Choose Open in browser${platform==="ios"?" or Open in Safari":""}.`,"Then tap Add Racked again."];
   return <>
-    <aside ref={banner} className="pwa-install" aria-label="Install Racked on this device">
+    {shown&&<aside ref={banner} className="pwa-install" aria-label="Install Racked on this device">
       <Image src="/icon-192.png" alt="" width={44} height={44}/>
       <div><strong>{title}</strong><span>{detail}</span></div>
       {inAppOnly&&openUrl
         ? <a className="pwa-install-action" href={openUrl}>{`Open in ${realBrowser}`}</a>
         : <button type="button" className="pwa-install-action" onClick={install} disabled={installing}>{installing?"Opening…":prompt?"Install":"Show me"}</button>}
-      <button type="button" className="pwa-dismiss" aria-label="Dismiss installation tip" onClick={()=>setHidden(true)}>×</button>
-    </aside>
+      <button type="button" className="pwa-dismiss" aria-label="Dismiss installation tip" onClick={dismiss}>×</button>
+    </aside>}
     {helpOpen&&<div className="modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setHelpOpen(false);}}>
       <section ref={help} tabIndex={-1} className="modal pwa-install-help" role="dialog" aria-modal="true" aria-labelledby="pwa-install-title">
         <button type="button" className="modal-close" aria-label="Close installation steps" onClick={()=>setHelpOpen(false)}>×</button>
