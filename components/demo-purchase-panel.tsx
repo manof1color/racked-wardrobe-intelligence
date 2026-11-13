@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatPrice } from "@/lib/demo-storefront";
 import { REFERRAL_COMMISSION_RATE, referralSplit } from "@/lib/pricing";
+import { signalJudgeTourProgress } from "@/lib/judge-tour";
 import { TestCheckoutButton } from "./test-checkout-button";
 
 type DemoPurchaseStep = "product" | "bag" | "complete";
@@ -33,6 +34,7 @@ export function DemoPurchasePanel({ productId, productName, unavailable, sourceP
     } finally {
       setBusy(false);
       setStep("complete");
+      signalJudgeTourProgress("community-purchase");
     }
   }
 

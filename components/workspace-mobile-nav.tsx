@@ -22,8 +22,8 @@ const brandTabs:Array<{id:BrandTabView;label:string;icon:IconName}>=[
 export function WorkspaceMobileNav({role,active,onConsumerView,onBrandView,onAdd}:{role:Role;active?:ConsumerWorkspaceView|BrandTabView|"community"|"brand";onConsumerView?:(view:ConsumerWorkspaceView)=>void;onBrandView?:(view:BrandTabView)=>void;onAdd?:()=>void}){
   if(role==="brand")return <nav className="mobile-tab-bar brand-mobile-nav" aria-label="Mobile brand navigation">
     {brandTabs.map(tab=>onBrandView
-      ? <button type="button" key={tab.id} className={active===tab.id?"active":""} onClick={()=>onBrandView(tab.id)}><Icon name={tab.icon}/><small>{tab.label}</small></button>
-      : <Link key={tab.id} className={active===tab.id?"active":""} href={brandViewPath(tab.id)}><Icon name={tab.icon}/><small>{tab.label}</small></Link>)}
+      ? <button type="button" key={tab.id} className={active===tab.id?"active":""} data-tour={tab.id==="looks"?"brand-looks":undefined} onClick={()=>onBrandView(tab.id)}><Icon name={tab.icon}/><small>{tab.label}</small></button>
+      : <Link key={tab.id} className={active===tab.id?"active":""} href={brandViewPath(tab.id)} data-tour={tab.id==="looks"?"brand-looks":undefined}><Icon name={tab.icon}/><small>{tab.label}</small></Link>)}
     <Link className={active==="community"?"active":""} href="/community"><Icon name="community"/><small>Community</small></Link>
   </nav>;
 
@@ -31,7 +31,7 @@ export function WorkspaceMobileNav({role,active,onConsumerView,onBrandView,onAdd
     {consumerTabs.map(tab=>onConsumerView
       ? <button type="button" key={tab.id} className={active===tab.id?"active":""} onClick={()=>onConsumerView(tab.id)}><Icon name={tab.icon}/><small>{tab.label}</small></button>
       : <Link key={tab.id} className={active===tab.id?"active":""} href={consumerViewPath(tab.id)}><Icon name={tab.icon}/><small>{tab.label}</small></Link>)}
-    <Link className={active==="community"?"active":""} href="/community"><Icon name="community"/><small>Community</small></Link>
+    <Link className={active==="community"?"active":""} href="/community" data-tour="community"><Icon name="community"/><small>Community</small></Link>
     {onAdd?<button type="button" data-tour="scan" onClick={onAdd}><Icon name="add"/><small>Add</small></button>:<Link href="/consumer?add=1"><Icon name="add"/><small>Add</small></Link>}
   </nav>;
 }

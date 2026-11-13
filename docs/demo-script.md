@@ -170,7 +170,7 @@ Judges score here. Answer in two sentences, then stop.
 | The demo bag does not complete | Skip it. Say the purchase happens on the brand's own site, and show the brand dashboard's **sent to your store** readout instead. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-11-13):** 1144 tests in 137 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-11-13):** 1148 tests in 137 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 

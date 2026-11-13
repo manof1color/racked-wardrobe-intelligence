@@ -98,7 +98,7 @@ test("axe: the judge guide on a demo wardrobe is a corner dock that spotlights t
   await page.goto("/a11y-harness?role=consumer&view=home&tour=1");
   await expect(page.getByText("Loading your private wardrobe")).toHaveCount(0);
   const guide = page.getByRole("region", { name: "Judge guide: the wardrobe side" });
-  await expect(guide.getByRole("status")).toHaveText("0 of 2 done");
+  await expect(guide.getByRole("status")).toHaveText("0 of 4 done");
   await expect(guide.getByRole("heading", { name: "Scan a photo and confirm the pieces" })).toBeVisible();
   // The spotlight rings the Add control that is on screen. On a phone that is the Add tab. On a computer,
   // Today with clothes saved leads with "Log today's outfit" instead, so nothing is ringed and the dock's
@@ -125,14 +125,14 @@ test("axe: the judge guide on a demo wardrobe is a corner dock that spotlights t
   await scanner.getByRole("button", { name: "Close" }).click();
 
   await guide.getByRole("button", { name: "All steps" }).click();
-  await expect(guide.getByRole("listitem")).toHaveCount(2);
+  await expect(guide.getByRole("listitem")).toHaveCount(4);
   await guide.getByRole("button", { name: /^Go: Ask Hanger for an outfit/ }).click();
   const hanger = page.getByRole("dialog", { name: "Hanger AI assistant" });
   await hanger.getByRole("textbox").fill("What should I wear today?");
   await hanger.getByRole("textbox").press("Enter");
   await expect(hanger.getByText("Here is an outfit from pieces you already own")).toBeVisible();
   await hanger.getByRole("button", { name: "Close Hanger" }).click();
-  await expect(guide.getByRole("status")).toHaveText("1 of 2 done");
+  await expect(guide.getByRole("status")).toHaveText("1 of 4 done");
   await expectNoSeriousViolations(page, testInfo, "judge guide, all steps");
 
   await guide.getByRole("button", { name: "Minimize guide" }).click();
@@ -140,7 +140,7 @@ test("axe: the judge guide on a demo wardrobe is a corner dock that spotlights t
   await expect(pill).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator("[data-tour-spotlight]")).toHaveCount(0);
   await pill.click();
-  await expect(page.getByRole("region", { name: "Judge guide: the wardrobe side" }).getByRole("status")).toHaveText("1 of 2 done");
+  await expect(page.getByRole("region", { name: "Judge guide: the wardrobe side" }).getByRole("status")).toHaveText("1 of 4 done");
 });
 
 test("axe: the judge guide on the demo brand", async ({ page }, testInfo) => {
@@ -149,9 +149,28 @@ test("axe: the judge guide on the demo brand", async ({ page }, testInfo) => {
   const guide = page.getByRole("region", { name: "Judge guide: the brand side" });
   await expect(guide.getByRole("heading", { name: "Open Judge Limited Overshirt" })).toBeVisible();
   await guide.getByRole("button", { name: "All steps" }).click();
-  await expect(guide.getByRole("listitem")).toHaveCount(3);
+  await expect(guide.getByRole("listitem")).toHaveCount(4);
   await expect(guide.getByRole("button", { name: /^See the wardrobe side/ })).toBeVisible();
   await expectNoSeriousViolations(page, testInfo, "judge guide, brand");
+
+  // Write and post a Brand Look: in a demo, Post shows a labelled preview and sends nothing.
+  let posted = false;
+  page.on("request", (request) => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/brand/looks") posted = true; });
+  await guide.getByRole("button", { name: /^Go: Write and post a Brand Look/ }).click();
+  const builder = page.locator("#brand-looks");
+  await expect(builder.getByRole("heading", { name: "Style your own catalog." })).toBeVisible();
+  await builder.locator(".brand-look-options button").first().click();
+  await builder.getByLabel("Look title").fill("Weekend layers");
+  await builder.getByLabel("Styling story").fill("Easy pieces for a cool Saturday.");
+  await builder.getByRole("button", { name: "Post", exact: true }).click();
+  const preview = page.getByRole("article", { name: "Demo preview of your posted Look" });
+  await expect(preview).toBeVisible();
+  await expect(preview.getByText("Demo preview · not published")).toBeVisible();
+  await expect(preview.getByRole("heading", { name: "Weekend layers" })).toBeVisible();
+  await expect(page.getByText("Nothing was published or saved.", { exact: false })).toBeVisible();
+  await expect(guide.getByRole("status")).toHaveText("1 of 4 done");
+  expect(posted).toBe(false);
+  await expectNoSeriousViolations(page, testInfo, "judge guide, brand post preview");
 });
 
 test("axe: the demo brand's Settings preview, with every control disabled", async ({ page }, testInfo) => {

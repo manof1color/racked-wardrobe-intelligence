@@ -114,7 +114,8 @@ export function CommunityPostCard(props: CommunityPostCardProps) {
       {canPost
         ? <button type="button" className="button button-accent button-small" disabled={props.pendingRecreate || post.garments.length === 0} onClick={props.onRecreate}>{props.pendingRecreate ? "Checking your wardrobe…" : "Recreate with my wardrobe"}</button>
         : <Link className="button button-accent button-small" href="/login">Recreate with my wardrobe</Link>}
-      {hasShoppablePiece(post.garments) && <button type="button" className="button button-light button-small" onClick={props.onShop}>Shop the look</button>}
+      {/* The judge guide spotlights only a demo look's Shop button, so a judge buys from the fictional store, never a real brand. */}
+      {hasShoppablePiece(post.garments) && <button type="button" className="button button-light button-small" data-tour={post.dataClassification === "DEMO" ? "community-shop" : undefined} onClick={props.onShop}>Shop the look</button>}
     </div>
 
     {props.isOwn && <div className="look-owner-actions">
