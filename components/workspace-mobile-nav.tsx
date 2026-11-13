@@ -2,19 +2,14 @@
 
 import Link from "next/link";
 import type { Role } from "@/lib/types";
-import { brandViewPath, consumerViewPath } from "@/lib/workspace-navigation";
+import { CONSUMER_TABS, brandViewPath, consumerViewPath } from "@/lib/workspace-navigation";
 import { Icon, type IconName } from "./icons";
 
 export type ConsumerWorkspaceView="home"|"looks"|"closet"|"outfits";
 export type BrandWorkspaceView="overview"|"catalog"|"looks"|"product";
 export type BrandTabView=Exclude<BrandWorkspaceView,"product">;
 
-export const consumerTabs:Array<{id:ConsumerWorkspaceView;label:string;icon:IconName}>=[
-  {id:"home",label:"Today",icon:"today"},
-  {id:"looks",label:"Looks",icon:"looks"},
-  {id:"closet",label:"Closet",icon:"closet"},
-  {id:"outfits",label:"Outfits",icon:"outfits"},
-];
+export const consumerTabs=CONSUMER_TABS;
 
 // Brand tabs used to be anchor jumps into one long page: tapping "Products" scrolled, but never
 // changed what was on screen. They now switch views, the way the consumer tabs always have.

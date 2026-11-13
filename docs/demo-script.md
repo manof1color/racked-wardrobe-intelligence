@@ -175,7 +175,7 @@ Judges score here. Answer in two sentences, then stop.
 | The Stripe test page is slow, or the test button is missing | Skip it. Use the $0.00 demo bag on the same fictional product page, and say the test payment is optional and in test mode only. |
 | You are at 4:00 with two segments left | Skip "how it was built" and close. Never let the red card interrupt the close. |
 
-**Verification snapshot (2026-11-13):** 1141 tests in 137 files. Read the current README scorecard during the demo rather than memorising this dated count.
+**Verification snapshot (2026-11-13):** 1142 tests in 137 files. Read the current README scorecard during the demo rather than memorising this dated count.
 
 ## Claims discipline
 
