@@ -36,8 +36,26 @@ async function expectVisibleFocus(page: Page) {
   expect(problem).toBe("");
 }
 
-test("consumer: scan → confirm → Hanger, by keyboard alone", async ({ page }) => {
+test("consumer: Today's one main button opens the outfit log, by keyboard alone", async ({ page }) => {
   await page.goto("/a11y-harness?role=consumer&view=home");
+  await expect(page.getByText("Loading your private wardrobe")).toHaveCount(0);
+  const logToday = page.getByRole("button", { name: "Log today's outfit" });
+  await expect(logToday).toHaveCount(1);
+  await tabTo(page, logToday);
+  await page.keyboard.press("Enter");
+  const panel = page.getByRole("group", { name: "Log today's outfit" });
+  await expect(panel).toBeVisible();
+  await expect(logToday).toHaveAttribute("aria-expanded", "true");
+  expect(await panel.evaluate(element => element.contains(document.activeElement)), "focus moves into the opened panel").toBe(true);
+  await tabTo(page, panel.getByRole("button", { name: "Cancel" }), panel);
+  await page.keyboard.press("Enter");
+  await expect(panel).toHaveCount(0);
+  await expect(logToday).toHaveAttribute("aria-expanded", "false");
+});
+
+// Today's main button logs an outfit once there are clothes, so adding clothing starts from Closet.
+test("consumer: scan → confirm → Hanger, by keyboard alone", async ({ page }) => {
+  await page.goto("/a11y-harness?role=consumer&view=closet");
   await expect(page.getByText("Loading your private wardrobe")).toHaveCount(0);
 
   const addClothing = page.getByRole("button", { name: "+ Add clothing" });
