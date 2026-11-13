@@ -52,6 +52,8 @@ interface Piece extends DetectedLookGarment {
   /** Enrolled products that look like this piece; null until the brand section is first opened. */
   candidates: CatalogCandidate[] | null;
   candidatesState: "idle" | "loading" | "done" | "failed";
+  /** The other products of the brand read on the piece, whatever the scan made of its type. */
+  brandProducts: CatalogProductSummary[];
   query: string;
   results: CatalogProductSummary[];
   searching: boolean;
@@ -83,9 +85,9 @@ function statusLabel(piece: Piece) {
   return { text: "YOUR GARMENT", tone: "plain" };
 }
 
-/** Search results not already offered above as look-alikes, so one product is never listed twice. */
+/** Search results not already offered above, so one product is never listed twice. */
 function searchOnlyResults(piece: Piece) {
-  const offered = new Set((piece.candidates ?? []).map((candidate) => candidate.registryProductId));
+  const offered = new Set([...(piece.candidates ?? []), ...piece.brandProducts].map((candidate) => candidate.registryProductId));
   return piece.results.filter((result) => !offered.has(result.registryProductId));
 }
 
@@ -182,6 +184,7 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
       link: { status: "none" },
       candidates: null,
       candidatesState: "idle",
+      brandProducts: [],
       query: readBrand,
       results: [],
       searching: false,
@@ -241,11 +244,14 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ category: piece.overrides.category, subtype: piece.overrides.subtype, color: garment.color, pattern: garment.pattern, material: garment.material, style: garment.style, brandText: piece.overrides.brand }),
       });
-      const data = await readJsonResponse<{ error?: string; candidates?: CatalogCandidate[] }>(response, "The catalog returned an unreadable response.");
+      const data = await readJsonResponse<{ error?: string; candidates?: CatalogCandidate[]; brandProducts?: CatalogProductSummary[] }>(response, "The catalog returned an unreadable response.");
       if (!response.ok) throw new Error(data.error ?? "The catalog could not be searched.");
-      update(piece.id, (current) => ({ ...current, candidates: data.candidates ?? [], candidatesState: "done" }));
-      // No look-alike for a brand read on the piece: fall back to searching that brand by name.
-      if (piece.readBrand && !(data.candidates ?? []).length) searchCatalog(piece, piece.readBrand);
+      const candidates = data.candidates ?? [];
+      const brandProducts = data.brandProducts ?? [];
+      update(piece.id, (current) => ({ ...current, candidates, brandProducts, candidatesState: "done" }));
+      // The brand read on the piece is not in any catalog under that name: search it, so the
+      // person sees the answer to the search already filled in rather than an unexplained blank.
+      if (piece.readBrand && !candidates.some((candidate) => candidate.brandEvidence) && !brandProducts.length) searchCatalog(piece, piece.readBrand);
     } catch {
       update(piece.id, (current) => ({ ...current, candidates: [], candidatesState: "failed" }));
     }
@@ -451,7 +457,14 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
                               <button type="button" className="button button-dark button-small" disabled={!piece.selected} onClick={() => choose(piece, candidate)}>This is mine</button>
                             </li>)}</ul>
                           </div>}
-                          {piece.candidatesState === "done" && piece.candidates?.length === 0 && <p className="catalog-note">No enrolled product looks like this one.{piece.readBrand ? "" : " Search for the brand below."}</p>}
+                          {piece.brandProducts.length > 0 && <div className="catalog-group">
+                            <h4>{piece.candidates?.some((candidate) => candidate.brandEvidence) ? "More" : "Also"} from {piece.brandProducts[0].brand}</h4>
+                            <ul className="catalog-options">{piece.brandProducts.map((product) => <li key={product.registryProductId}>
+                              <CatalogOption product={product} />
+                              <button type="button" className="button button-dark button-small" disabled={!piece.selected} onClick={() => choose(piece, product)}>This is mine</button>
+                            </li>)}</ul>
+                          </div>}
+                          {piece.candidatesState === "done" && piece.candidates?.length === 0 && piece.brandProducts.length === 0 && <p className="catalog-note">No enrolled product looks like this one.{piece.readBrand ? "" : " Search for the brand below."}</p>}
                           <label>Search brands
                             <input type="search" value={piece.query} maxLength={80} placeholder="Brand, product name, or style code" disabled={!piece.selected}
                               onChange={(event) => searchCatalog(piece, event.target.value)} />

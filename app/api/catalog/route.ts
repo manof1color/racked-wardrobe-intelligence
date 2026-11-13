@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { rankCatalogCandidates, readCatalogPieceDescription, searchCatalog, type CatalogProductSummary } from "@/lib/catalog-match";
+import { brandCatalog, rankCatalogCandidates, readCatalogPieceDescription, searchCatalog, type CatalogProductSummary } from "@/lib/catalog-match";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { catalogImageUrl, listRegistryProducts, ProductionConfigurationError } from "@/lib/server/production-store";
 import type { BrandProductRegistration } from "@/lib/platform-types";
@@ -9,7 +9,8 @@ import type { BrandProductRegistration } from "@/lib/platform-types";
  * The brand catalog, for a person linking a garment without its label.
  *
  * GET searches it by brand, product name, or style code. POST ranks it against one scanned piece,
- * which is how a piece is recognised as a brand's product from its photo alone. Both return only
+ * which is how a piece is recognised as a brand's product from its photo alone, and lists the other
+ * products of a brand read on the piece, so a misjudged type never hides them. Both return only
  * what a brand's public page already shows, both are Consumer-only and rate limited, and neither
  * writes anything. Choosing a result links a garment as the owner's selection, never as verified.
  */
@@ -59,8 +60,12 @@ export async function POST(request: Request) {
   if (!piece) return NextResponse.json({ error: "Describe the piece with at least its category." }, { status: 400 });
   try {
     const registry = await listRegistryProducts();
+    const candidates = rankCatalogCandidates(piece, registry);
+    // The rest of the brand read on the piece, in case the scan misjudged what the piece is.
+    const brandProducts = brandCatalog(piece, registry, { exclude: candidates.map((candidate) => candidate.registryProductId) });
     return NextResponse.json({
-      candidates: await withImages(rankCatalogCandidates(piece, registry), registry),
+      candidates: await withImages(candidates, registry),
+      brandProducts: await withImages(brandProducts, registry),
       boundary: "A possible match is a suggestion from how the piece looks. Choosing it links the product as your selection; only the barcode or the brand's style code from the label verifies it.",
     });
   } catch (reason) {

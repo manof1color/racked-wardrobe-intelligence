@@ -120,14 +120,78 @@ function matchReason(key: string, score: number, piece: GarmentAppearance, produ
   return [];
 }
 
-/** Whether a brand name read off the piece names this product's brand. */
+/** At most one letter added, dropped, changed, or two neighbours swapped — the usual misread. */
+function withinOneEdit(a: string, b: string) {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) {
+    return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+  }
+  return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+/** A brand name this long can be matched with one misread letter; shorter ones must be exact. */
+export const MIN_FUZZY_BRAND_LENGTH = 5;
+
+/**
+ * Whether a brand name read off the piece names this product's brand. Spacing and punctuation
+ * never matter ("OFF WHITE" names Off-White, "LEVIS" names Levi's), extra words around the name
+ * do not either ("VERSATILE CLOTHING CO." names Versatile), and a name of five letters or more
+ * still matches with one letter misread ("VERSATLE"), since a scan reads a label, a print, or a
+ * logo, rarely all of it cleanly.
+ */
 export function brandTextNames(product: BrandProductRegistration, brandText?: string) {
   const read = normalizeIdentity(text(brandText, 100));
   if (read.length < 3) return false;
   return [product.brand, ...(product.aliases ?? [])].some((name) => {
     const candidate = normalizeIdentity(name);
-    return candidate.length >= 3 && (read === candidate || read.includes(candidate) || (read.length >= 5 && candidate.includes(read)));
+    if (candidate.length < 3) return false;
+    if (read === candidate || read.includes(candidate) || (read.length >= 5 && candidate.includes(read))) return true;
+    if (candidate.length < MIN_FUZZY_BRAND_LENGTH) return false;
+    for (let size = candidate.length - 1; size <= candidate.length + 1; size++) {
+      for (let start = 0; start + size <= read.length; start++) {
+        if (withinOneEdit(read.slice(start, start + size), candidate)) return true;
+      }
+    }
+    return false;
   });
+}
+
+export const MAX_BRAND_CATALOG_RESULTS = 8;
+
+/**
+ * Every live product of the brand read on a piece, whatever the scan made of its category or type.
+ * Look-alike ranking is strict about the garment — a hoodie is never offered as a t-shirt — so a
+ * scan that read the brand but misjudged the piece used to leave its owner with nothing, or with
+ * another brand's look-alikes, and they had to type the brand in themselves. This lists the
+ * brand's own pieces instead, those of the same category first, closest in looks first, so the
+ * person picks. A pick is still only the owner's selection, never verified identity.
+ */
+export function brandCatalog(piece: CatalogPieceDescription, registry: BrandProductRegistration[], options: { exclude?: Iterable<string>; imageUrlFor?: (product: BrandProductRegistration) => string | undefined } = {}): CatalogProductSummary[] {
+  if (!piece.brandText) return [];
+  const excluded = new Set(options.exclude ?? []);
+  const target = normalizeGarmentClassification(text(piece.category, 40), text(piece.subtype, 60));
+  const described: GarmentAppearance = {
+    category: target.category,
+    subtype: known(target.subtype),
+    color: known(text(piece.color, 40).toLowerCase()),
+    pattern: known(text(piece.pattern, 40).toLowerCase()),
+    material: known(text(piece.material, 60).toLowerCase()),
+    style: Array.isArray(piece.style) ? piece.style.map((style) => text(style, 30).toLowerCase()).filter(Boolean).slice(0, 8) : [],
+  };
+  return registry
+    .filter((product) => !product.archived && !excluded.has(product.id) && brandTextNames(product, piece.brandText))
+    .map((product) => {
+      const appearance = catalogAppearance(product);
+      const sameCategory = target.category !== "unknown" && appearance.category === target.category;
+      const looks = sameCategory ? scoreGarmentAppearance(described, appearance).score : 0;
+      return { product, sameCategory, looks };
+    })
+    .sort((a, b) => Number(b.sameCategory) - Number(a.sameCategory) || b.looks - a.looks || a.product.name.localeCompare(b.product.name) || a.product.id.localeCompare(b.product.id))
+    .slice(0, MAX_BRAND_CATALOG_RESULTS)
+    .map(({ product }) => catalogProductSummary(product, options.imageUrlFor?.(product)));
 }
 
 /**
@@ -182,26 +246,33 @@ function words(value: string) {
   return value.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 }
 
+const LABEL_NOISE = new Set(["co", "company", "inc", "ltd", "llc", "est"]);
+
 /**
  * Looks a product up by what a person remembers: the brand, the product's name, or its style code.
- * Every word typed must match something, so "northstar shirt" narrows rather than widens.
+ * Every word typed must match something, so "northstar shirt" narrows rather than widens. A brand
+ * matches however it is spaced or punctuated ("offwhite", "levis", "apc"). When no product matches
+ * every word, a query that names a brand as a whole — "Versatile Clothing Co.", as a label reads —
+ * lists that brand's products rather than nothing.
  */
 export function searchCatalog(query: string, registry: BrandProductRegistration[], options: { category?: string; imageUrlFor?: (product: BrandProductRegistration) => string | undefined } = {}): CatalogProductSummary[] {
-  const terms = words(text(query, 80)).slice(0, 6);
+  const typed = words(text(query, 80));
+  // Company-form words on a label ("Versatile Co.", "Acme Inc.") name no product, so they never narrow.
+  const terms = (typed.some((word) => !LABEL_NOISE.has(word)) ? typed.filter((word) => !LABEL_NOISE.has(word)) : typed).slice(0, 6);
   if (terms.join("").length < MIN_CATALOG_QUERY_LENGTH) return [];
   const category = options.category ? normalizeGarmentClassification(options.category, "").category : "unknown";
-  return registry
-    .filter((product) => !product.archived)
+  const live = registry.filter((product) => !product.archived && (category === "unknown" || catalogAppearance(product).category === category));
+  const strict = live
     .map((product) => {
       const appearance = catalogAppearance(product);
-      if (category !== "unknown" && appearance.category !== category) return null;
+      const brandNames = [product.brand, ...(product.aliases ?? [])].map(normalizeIdentity).filter(Boolean);
       const brandWords = words([product.brand, ...(product.aliases ?? [])].join(" "));
       const nameWords = words(product.name);
       const kindWords = words(`${appearance.category} ${appearance.subtype ?? ""}`);
       const sku = normalizeIdentity(product.sku);
       let score = 0;
       for (const term of terms) {
-        const weight = brandWords.some((word) => word.startsWith(term)) ? 3
+        const weight = brandWords.some((word) => word.startsWith(term)) || (term.length >= 3 && brandNames.some((name) => name.startsWith(term))) ? 3
           : term.length >= 3 && sku.includes(term) ? 3
             : nameWords.some((word) => word.startsWith(term)) ? 2
               : kindWords.some((word) => word.startsWith(term)) ? 1
@@ -209,9 +280,11 @@ export function searchCatalog(query: string, registry: BrandProductRegistration[
         if (weight === 0) return null;
         score += weight;
       }
-      return { product, score, appearance };
+      return { product, score };
     })
-    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+  const matched = strict.length ? strict : live.filter((product) => brandTextNames(product, query)).map((product) => ({ product, score: 3 }));
+  return matched
     .sort((a, b) => b.score - a.score || a.product.brand.localeCompare(b.product.brand) || a.product.name.localeCompare(b.product.name))
     .slice(0, MAX_CATALOG_SEARCH_RESULTS)
     .map(({ product }) => catalogProductSummary(product, options.imageUrlFor?.(product)));
