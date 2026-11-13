@@ -2,6 +2,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Icon } from "./icons";
 import type { WardrobeItem } from "@/lib/types";
 import {
   addExtra, availableExtras, finishLooks, initialLooks, looksItemIds, looksRows, removeExtra, setMode, shuffleLooks, stepRow, toggleLock,
@@ -111,7 +112,7 @@ export function LooksBuilder({ items, onSave, onWear, onAddClothing }: {
       <button type="button" className="looks-shuffle" aria-label="Shuffle the unlocked rows" title="Shuffle the unlocked rows" onClick={() => update((current) => shuffleLooks(items, current))}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" /></svg>
       </button>
-      <button type="button" className="looks-finish" onClick={() => update((current) => finishLooks(items, current))}><i aria-hidden="true">⌁</i>Finish it</button>
+      <button type="button" className="looks-finish" onClick={() => update((current) => finishLooks(items, current))}><i aria-hidden="true"><Icon name="looks" size={14}/></i>Finish it</button>
     </div>
     <div className="looks-rows">{rows.map(renderRow)}</div>
     {extras.length > 0 && <div className="looks-extras">{extras.map((key) =>

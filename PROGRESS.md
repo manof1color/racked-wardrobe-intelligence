@@ -616,7 +616,16 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - Lanes: the Codex temporary entries for security fixes B and C were removed from `AGENTS.md` on the owner's say-so.
 - Tests: `tests/pending-claim-expiry.test.ts` (5 tests).
 
-## Phase 117 — A judge guide inside the demo (2026-11-12)
+## Phase 117 — Visual polish: readable text, one font, drawn icons, a quieter install tip (2026-11-12)
+
+- The install tip appeared half a second after any page opened, first visit included. It covered the landing page's main button and, on phones, stacked between the Hanger launcher and the bottom tabs; the presentation script told presenters to dismiss it by hand. It now shows only inside the app (`/consumer`, `/brand`, `/settings`, `/community`), only from a visitor's second browser session, and a dismissal is remembered for 30 days instead of until the next page load (`installTipEarned`, `installTipPath`, `lib/pwa-install.ts`). The native install dialog and the iPhone and in-app-browser guides are unchanged.
+- 277 rules set text below 12px, down to 6.4px for score labels and 7px for the phone tab labels. Every size is now at least 12px, except the phone tab labels at 10px, the size iOS uses for tab bars, which fits "Community" on a 375px-wide phone (a 320px first-generation iPhone SE still shortens it). Checked at 320, 375 and 390px wide and at 1440px on desktop: no page scrolls sideways.
+- Inter, the body face, was named but never loaded, so body text was Segoe UI on Windows and San Francisco on Apple devices. It is now served from the site as one 48 KB variable file (SIL Open Font License, `public/fonts/OFL-Inter.txt`), like Anton.
+- Text symbols used as icons (⌂ ◇ ▦ ◫ ◎ ⌁ ▧) are replaced by one set of drawn line icons (`components/icons.tsx`), hidden from screen readers; the phone tab bar used to read the symbols aloud.
+- Log with a photo opens as a full-screen sheet on phones, and its Record bar now ends the list instead of floating over it. Stuck to the bottom of the scrolling list, the bar half-covered whichever choice sat under its edge, leaving less than 24px of a radio button to tap; which choice that was moved with text size and fonts, so the check passed locally and failed in CI. The radio buttons are now 24px, the WCAG 2.2 minimum target.
+- Tests: `tests/visual-polish.test.ts` (4 tests) and 2 new tests in `tests/pwa.test.ts`.
+
+## Phase 118 — A judge guide inside the demo (2026-11-12)
 
 - Judges had to find **Sign in**, then **Try the demo**, then know which products to open. The home page now has a **Try the demo: no sign-up** button and nav link that land on the sign-in screen's demo section.
 - Every demo session now opens with a short **judge guide** above the workspace (`components/judge-tour.tsx`, rules in `lib/judge-tour.ts`). Wardrobe side: scan and confirm, then ask Hanger for an outfit. Brand side: Judge Limited Overshirt (4 owners, suppressed), Judge Signature Tee (50 owners, released), then Brand Hanger. Each step has a button that goes straight there and ticks off when the dashboard reports it done; one more button switches to the other side.
@@ -624,7 +633,7 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - It sits in the page, not over it, so it never covers the phone's bottom tabs or Hanger. Only the step to do next shows its explanation, and the whole guide folds to one line.
 - Tests: `tests/judge-tour.test.ts` (11 tests) checks the steps against the judge seed, the request and progress parsing, and the wiring; two accessibility checks in `tests/a11y/signed-in.spec.ts` run axe on the guide and click through the wardrobe steps.
 
-## Phase 118 — Demo brands are exempt from the product budget (2026-11-13)
+## Phase 119 — Demo brands are exempt from the product budget (2026-11-13)
 
 - The six-products-a-day enumeration budget was tied to the account, and Judge Brand is one shared account, so every judge shared six opens a day. Once someone had opened six different products, every later judge met "Aggregate release is limited to 6 distinct products…" on any product they had not opened yet, an error box where the privacy feature should be.
 - Demo brands (the shared Judge Brand and every private New Brand) are now exempt (`enumerationBudgetExempt` in `lib/demo-session.ts`, applied in `getRealProductMetrics`). Their figures are synthetic, so the budget protected nobody there. Real brand accounts keep the budget unchanged: a real account id is a bare UUID, which neither check matches, and the shared demo account can only be opened as a demo.
@@ -633,4 +642,4 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 
 ## Continuous verification
 
-The phase entries above record their historical verification. The current working branch carries **1124 passing tests** in 136 files (re-verified 2026-11-13), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
+The phase entries above record their historical verification. The current working branch carries **1130 passing tests** in 137 files (re-verified 2026-11-13), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
