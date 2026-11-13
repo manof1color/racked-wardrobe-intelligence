@@ -43,7 +43,7 @@ test("the README table is generated from the tiers, between its markers", () => 
 
 test("the pricing page renders the shared tiers and declares none of its own", () => {
   const page = read("app/pricing/page.tsx");
-  assert.match(page, /import \{ PRICING_TIERS \} from "@\/lib\/pricing";/);
+  assert.match(page, /import \{ PRICING_TIERS(, [A-Za-z_, ]+)? \} from "@\/lib\/pricing";/);
   assert.match(page, /PRICING_TIERS\.map\(/);
   assert.doesNotMatch(page, /price: "\$/, "no tier is declared in the page");
 });
@@ -70,4 +70,14 @@ test("the test receipt illustrates the same commission the pricing table states,
   const receipt = read("app/test-checkout/complete/page.tsx");
   assert.match(receipt, /referralSplit\(receipt\.amount\)\.commission/);
   assert.match(receipt, /In test mode nothing is split or moved\./, "the split is labelled an illustration");
+});
+
+test("the pricing page explains the referral commission from the shared rate, and offers no checkout of its own", () => {
+  const page = read("app/pricing/page.tsx");
+  assert.match(page, /import \{ PRICING_TIERS, REFERRAL_COMMISSION_RATE, referralSplit \} from "@\/lib\/pricing";/);
+  assert.match(page, /Racked earns on referrals, not checkouts/);
+  assert.match(page, /\{REFERRAL_COMMISSION_RATE \* 100\}% referral commission/);
+  assert.match(page, /example\.commission/);
+  assert.doesNotMatch(page, /Stripe/, "the pricing page no longer points judges at the switched-off test checkout");
+  assert.deepEqual(referralSplit(100), { commission: 8, brandReceives: 92 });
 });
