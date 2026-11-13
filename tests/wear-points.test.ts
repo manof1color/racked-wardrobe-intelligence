@@ -115,7 +115,7 @@ test("each wardrobe view opens with its own heading", () => {
   assert.deepEqual(viewHeading("outfits", { pieces: 0, outfits: 0, outfitWears: 0, wears: 0 }).stats, [], "no numbers before there is anything to count");
   const css = read("app/globals.css");
   for (const view of ["home", "looks", "closet", "outfits"]) assert.match(css, new RegExp(`\\.view-${view}\\{background:`), `.view-${view} has its own colour`);
-  assert.match(read("components/consumer-dashboard.tsx"), /className=\{`workspace-heading view-heading view-\$\{activeView\}`\}/);
+  assert.match(read("components/consumer-dashboard.tsx"), /className=\{`workspace-heading view-heading view-\$\{activeView\}(?:\$\{compact\?" compact":""\})?`\}/);
 });
 
 test("points are written with the wear, and brands see each piece at most once a day", () => {
