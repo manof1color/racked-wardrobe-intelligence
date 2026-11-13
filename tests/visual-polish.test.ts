@@ -67,7 +67,14 @@ test("corners and motion come from shared values, and reduced motion turns the m
   assert.doesNotMatch(css, /button,a\{transition:\.2s ease\}/, "no blanket transition on every property");
   assert.match(css, /\.workspace-heading\.view-heading,\.empty-wardrobe,[^{]*\.wear-photo-row,[^{]*\{border-radius:var\(--radius-lg\)\}/);
   assert.match(css, /@keyframes view-in\{from\{opacity:\.4;/, "a view never starts invisible");
-  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.consumer-workspace>section,\.brand-workspace>section\{animation:none\}[^}]*\{scale:none\}\}/);
+  // REGRESSION: the reduced-motion override was less specific than the rule it overrode
+  // (".consumer-workspace>section" against "…>section:not(.workspace-heading)"), so views still faded
+  // in for people who asked for reduced motion, and axe sometimes measured text mid-fade. The override
+  // now repeats the animated selector exactly.
+  const animated = css.match(/\n([^{}\n]+)\{animation:view-in /)?.[1];
+  assert.equal(animated, ".consumer-workspace>section:not(.workspace-heading),.brand-workspace>section:not(.workspace-heading)");
+  assert.ok(css.includes(`@media(prefers-reduced-motion:reduce){${animated}{animation:none}`), "reduced motion switches off exactly what animates");
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{[^}]*\{animation:none\}[^}]*\{scale:none\}\}/);
 });
 
 // REGRESSION: Log with a photo kept its Record bar stuck over the bottom of the scrolling list. Whatever
@@ -108,4 +115,21 @@ test("loading shows placeholders shaped like the content, announced once and sti
   // REGRESSION: while loading, the Closet heading said "0 pieces, 0 wears logged", as if the wardrobe were empty.
   assert.match(read("components/consumer-dashboard.tsx"), /\{!loading&&heading\.stats\.length>0&&<dl className="view-stats">/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.skeleton-card i,\.skeleton-text i\{animation:none\}\}/);
+});
+
+// REGRESSION: on a computer, choosing Community left the workspace tab row behind, so getting back to
+// Today, Looks, Closet or Outfits took the header link or the browser's Back button (phones kept their
+// bottom tab bar). Community now carries the same row, with Community marked as the current page.
+test("REGRESSION: Community keeps the workspace tab row on a computer, for consumers and brands", () => {
+  const page = read("app/community/page.tsx");
+  assert.match(page, /\{session&&<CommunityWorkspaceTabs role=\{session\.role\}\/>\}<CommunityFeed/);
+  const tabs = read("components/workspace-tabs.tsx");
+  assert.match(tabs, /CONSUMER_TABS\.map\(tab => <Link key=\{tab\.id\} href=\{consumerViewPath\(tab\.id\)\}>/);
+  assert.match(tabs, /BRAND_TABS\.map\(tab => <Link key=\{tab\.id\} href=\{brandViewPath\(tab\.id\)\}>/);
+  assert.equal((tabs.match(/<Link className="active" href="\/community" aria-current="page">/g) ?? []).length, 2);
+  const navigation = read("lib/workspace-navigation.ts");
+  for (const label of ["Today", "Looks", "Closet", "Outfits", "Overview", "Catalog", "Brand Looks"]) assert.match(navigation, new RegExp(`label:"${label}"`));
+  assert.match(read("components/workspace-mobile-nav.tsx"), /export const consumerTabs=CONSUMER_TABS;/, "one list of views for every tab row");
+  assert.match(read("components/brand-dashboard.tsx"), /<Link href="\/community">Community<\/Link>\s*<\/nav>/, "brands reach Community from their own tab row too");
+  assert.match(css, /\.consumer-view-tabs a\.active\{/);
 });

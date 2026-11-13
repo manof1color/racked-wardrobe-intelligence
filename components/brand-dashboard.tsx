@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AppShell } from "./app-shell";
 import { BrandProductEnrollment } from "./brand-product-enrollment";
 import { BrandProductEditor } from "./brand-product-editor";
@@ -235,6 +236,7 @@ export function BrandDashboard({initialView="overview"}:{initialView?:BrandWorks
   return <AppShell role="brand"><main className="workspace brand-workspace" id="brand-dashboard">
     <nav className="workspace-tabs brand-view-tabs" aria-label="Brand workspace views">
       {tabs.map(tab=><button key={tab.id} type="button" className={view===tab.id||(view==="product"&&tab.id==="catalog")?"active":""} aria-current={view===tab.id?"page":undefined} onClick={()=>{setView(tab.id);setError("");}}>{tab.label}</button>)}
+      <Link href="/community">Community</Link>
     </nav>
 
     {view==="overview"&&<>
