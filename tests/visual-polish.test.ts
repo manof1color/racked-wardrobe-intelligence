@@ -177,3 +177,18 @@ test("REGRESSION: the demo storefront has a plain store name and the purchase ri
   assert.deepEqual([...order].sort((a, b) => a - b), order, "price, then the purchase, then the description and facts");
   assert.match(css, /\.demo-store \.demo-product-facts\{grid-template-columns:1fr 1fr\}/, "two columns of facts on a phone");
 });
+
+// REGRESSION (owner's phone screenshot): Log with a photo was drawn inside the "This week" card, so the
+// card's own rules restyled it: ".points-card strong" made "Take photo" and "Choose image" 2rem, and
+// ".metric-card p" shrank the dialog's text. The dialog is now drawn beside the card. On a phone,
+// choosing a photo is a bottom sheet sized to its content; reviewing the pieces keeps the full screen.
+test("REGRESSION: the photo log dialog sits outside the points card and is a bottom sheet on a phone", () => {
+  const card = read("components/wear-points-card.tsx");
+  const article = card.slice(card.indexOf('<article className="metric-card points-card"'), card.indexOf("</article>"));
+  assert.ok(article.length > 0);
+  assert.doesNotMatch(article, /<WearPhotoLog/, "not inside the card");
+  assert.match(card, /<\/article>\s*\{photoOpen && <WearPhotoLog /);
+  assert.match(read("components/wear-photo-log.tsx"), /className=\{`modal wear-photo-modal step-\$\{step\}`\}/);
+  assert.match(css, /\.modal-backdrop:has\(>\.wear-photo-modal:not\(\.step-review\)\)\{align-items:end\}/);
+  assert.match(css, /\.photo-source-action>strong\{font-size:\.9rem\}/);
+});
