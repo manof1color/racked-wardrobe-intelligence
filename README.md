@@ -5,20 +5,15 @@
 
 **Brands know what consumers buy. Racked shows them what consumers actually wear — without ever seeing anyone's closet.**
 
-People get a private wardrobe and an AI stylist that help them use more of what they already own. Brands get consented intelligence about which products earn repeat wear and what they are worn with, released only for groups of at least 25 people — never names, photos, or wardrobes. The result is one feedback loop for consumer value, lower-waste decisions, and better-informed products.
+People get a private wardrobe and an AI stylist that dresses them from what they already own. Brands see how their products are really worn, but only as totals from at least 25 people who opted in: never a name, photo or wardrobe.
 
-**[Start the demo](https://main.d2iv0khybuuaeh.amplifyapp.com/login) · [Judge guide](JUDGES.md) · [Evidence](#evidence-and-what-is-not-claimed) · [One-page summary](docs/one-page-summary.md)**
+**[Try the demo, no sign-up](https://main.d2iv0khybuuaeh.amplifyapp.com/login#try-the-demo) · [Judge guide](JUDGES.md) · [One-page summary](docs/one-page-summary.md) · [Evidence](#evidence-and-what-is-not-claimed)**
 
-| | |
-| --- | --- |
-| **Judges, start here** | [JUDGES.md](JUDGES.md) — one screen: the two demo flows, how to sign in, and where every piece of evidence is |
-| **Live application** | https://main.d2iv0khybuuaeh.amplifyapp.com — installable on a phone |
-| **What is deployed right now** | [`/api/version`](https://main.d2iv0khybuuaeh.amplifyapp.com/api/version) returns the exact commit Amplify built |
-| **Measured AI recognition** | **92.8% of garments placed in the right category** (272 of 293; 95% CI 89.3%–95.3%) by the live scan, on 300 independent, publicly licensed photos with answers locked before the first model call — up from 89.7% after one measured fix — [results](docs/evaluation-results-r2.md) |
-| **Stack** | Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Pro, Nova Lite) · GitHub Actions · CodeQL · Stripe Checkout (test mode only) |
-| **Security** | Audited with Cloudflare's open-source security-audit skill, a 63-check attack harness, and CodeQL on every change: [how it was tested and what stops an attacker](#security-testing-and-hardening) |
-| **Payments** | None real. The one payment step is Stripe **test mode** on fictional products: [try it with the test card](#stripe-test-mode-no-real-money) |
-| **Built for** | CUA Busch School AI Vibe Coding Contest, Fall 2026 |
+<!-- Screenshots go here: three phone screenshots from the live demo (scan → confirm, a product hidden at 4 owners, the same view released at 50), saved under docs/images/. -->
+
+- **92.8% of garments placed in the right category** by the live scan, on 300 independent photos with answers locked before the first model call ([results](docs/evaluation-results-r2.md))
+- **Nothing below 25 owners, not even a count:** the threshold runs in code before any total is computed ([privacy](#privacy-and-security))
+- **Checked on every change:** lint, type check, the full test suite, accessibility checks and CodeQL ([testing](#testing-and-ci))
 
 <!-- pilot:start (generated from data/pilot-status.json; tests/pilot-claims.test.ts) -->
 **Pilot status (2026-11-07):** Three apparel brands, **_victimdesigns**, **vversatile.usa** and **Project Qadar**, have agreed to join the Racked pilot, created brand accounts, uploaded their products and accepted pilot pricing.
@@ -36,17 +31,15 @@ Not claimed: payment. Nothing is billed.
 
 ## Judge Scorecard
 
-Each scoring category, what to look for, and where to check it.
-
 | Category | Weight | What to look for | Verify it |
 | --- | ---: | --- | --- |
-| **Problem & relevance** | 20% | Purchase data stops at checkout while wardrobes hold underused clothing. Racked helps people return owned pieces to rotation and measures confirmed wear, consented and released only at 25 or more owners | [What this is](#what-this-is) · [Sustainability and business impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
-| **Functionality** | 25% | Two flows, end to end on the live AWS app. **A person:** photograph clothes → confirm the pieces → get an outfit. **A brand:** an anonymous cohort → wear evidence → a campaign brief | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
-| **AI integration & innovation** | 20% | Nova Pro proposes garments for a person to confirm — **measured at 92.8% category accuracy on 300 locked, independent photos**; Hanger is a **tool-using agent** with a tested stylist knowledge base. It won **11 of 12 decided blind holdout comparisons** against a random valid outfit, with 8 ties; Brand Hanger sees only privacy-released totals | [How AI is used](#how-ai-is-used) · [Recognition results](docs/evaluation-results-r2.md) · [Hanger holdout results](#hanger-outfit-recommendations--blind-holdout-evaluation) · [`hanger-agent.ts`](lib/hanger-agent.ts) · [AI use log](docs/ai-use-log.md) |
-| **Code, docs & GitHub** | 15% | **1133 tests** in 137 files; CI runs audit, lint, type check, tests, build, [accessibility checks](docs/accessibility.md) and CodeQL on every change; **231 merged PRs** counted on 2026-11-12 before this documentation merge; build log through Phase 120 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
-| **UX & polish** | 10% | Mobile-first installable app, bottom tabs, a swipe-through Looks builder, whole-piece previews, honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
-| **Business impact** | 10% | Three real apparel brands have joined the pilot and uploaded products, and one chose the $40 Pro plan in writing. Brands can use post-purchase wear and pairing evidence to inform restocking, production, merchandising and campaigns; an illustrative break-even on the $40 Pro plan equals 20 excess units at a $25 landed cost | [Impact case and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
-| **Bonus** | — | Explicit consent, `k ≥ 25`, a daily enumeration budget, private encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [Security testing](#security-testing-and-hardening) · [SECURITY.md](SECURITY.md) |
+| **Problem & relevance** | 20% | A sale is where a brand stops seeing; Racked measures confirmed wear, released only at 25 or more owners | [What this is](#what-this-is) · [Impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
+| **Functionality** | 25% | Two live flows: **scan → confirm → outfit**, and **anonymous cohort → wear evidence → campaign brief** | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
+| **AI integration & innovation** | 20% | **92.8%** category accuracy on 300 locked photos; Hanger, a tool-using agent, won **11 of 12 decided** blind comparisons with a random valid outfit (8 ties); Brand Hanger sees released totals only | [How AI is used](#how-ai-is-used) · [Recognition](docs/evaluation-results-r2.md) · [Hanger holdout](#hanger-outfit-recommendations--blind-holdout-evaluation) · [AI use log](docs/ai-use-log.md) |
+| **Code, docs & GitHub** | 15% | **1133 tests** in 137 files; CI with accessibility checks and CodeQL; **231 merged PRs** counted on 2026-11-12 before this documentation merge; build log through Phase 120 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
+| **UX & polish** | 10% | Mobile-first installable app; a step-by-step judge guide inside the demo; honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
+| **Business impact** | 10% | Three real brands joined the pilot and uploaded products; one chose the $40 Pro plan in writing. Illustrative break-even: 20 excess units at a $25 landed cost | [Impact and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
+| **Bonus** | — | Consent, `k ≥ 25`, a daily enumeration budget, encrypted storage, two-step sign-in for brands, owner-scoped deletion | [Privacy and security](#privacy-and-security) · [Security testing](#security-testing-and-hardening) · [SECURITY.md](SECURITY.md) |
 
 Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checklist.md).
 
@@ -54,25 +47,25 @@ Per-criterion evidence: [docs/competition-checklist.md](docs/competition-checkli
 
 ## Five-Minute Judge Path
 
-Open the [sign-in page](https://main.d2iv0khybuuaeh.amplifyapp.com/login) (or press **Try the demo: no sign-up** on the home page) and use **Try the demo**: choose **Judge Consumer** for the first flow, then **Judge Brand** for the second. A short **judge guide** at the top of each demo lists the steps below, opens each one in a click, and ticks it off when done. The demo is two flows and nothing else. Everything outside them is built and working, and listed under [Additional Live Features](#additional-live-features).
+Open the [sign-in page](https://main.d2iv0khybuuaeh.amplifyapp.com/login) (or **Try the demo: no sign-up** on the home page) and use **Try the demo**: choose **Judge Consumer** for the first flow, then **Judge Brand** for the second. A **judge guide** at the top of each demo opens every step below in one click and ticks it off when done. Everything outside these two flows is built and working: see [Additional Live Features](#additional-live-features).
 
-**A person: scan → confirm → recommendation** (2½ minutes) — **Judge Consumer** on the sign-in screen
+**A person: scan → confirm → recommendation** (2½ minutes) — **Judge Consumer**
 
-1. **Scan.** Tap **+** and photograph a garment — the one you are wearing works. Amazon Bedrock (Nova Pro) looks for visible pieces in the photo and proposes their categories and types.
-2. **Confirm.** Check each card and save. When the AI is unsure, the **Type** field asks instead of guessing; nothing reaches the wardrobe until the person confirms.
-3. **Recommendation.** Open **Hanger** (the button at the bottom) and ask *"What should I wear with this today?"* Hanger builds the outfit from pieces this account owns — the new one included — as photo cards with Save and Record.
+1. **Scan.** Tap **+** and photograph a garment. Amazon Bedrock (Nova Pro) proposes each visible piece's category and type.
+2. **Confirm.** Check each card and save. When the AI is unsure, the **Type** field asks instead of guessing; nothing is saved unconfirmed.
+3. **Recommendation.** Open **Hanger** and ask *"What should I wear with this today?"* It dresses you only from pieces this account owns.
 
-**A brand: anonymous cohort → wear evidence → campaign brief** (2½ minutes) — **Judge Brand** on the sign-in screen
+**A brand: anonymous cohort → wear evidence → campaign brief** (2½ minutes) — **Judge Brand**
 
-4. **The privacy gate.** Open **Judge Limited Overshirt**: 4 opted-in owners, below `k ≥ 25`, so the brand sees nothing — not zeroes, not even the count — and the page says why.
-5. **The anonymous cohort.** Open **Judge Signature Tee**: 50 consented owners, so the aggregate is released — an eight-week wear chart, repeat wear, and what it is worn with. No name, photo, wardrobe, or owner ID is ever shown.
-6. **The campaign brief.** Ask **Brand Hanger** *"Write me a campaign brief for this product."* It works only from the released aggregate; on the suppressed product it declines and makes no model call.
+4. **The privacy gate.** Open **Judge Limited Overshirt**: 4 opted-in owners, below `k ≥ 25`, so the brand sees nothing, not even the count.
+5. **The anonymous cohort.** Open **Judge Signature Tee**: 50 consented owners, so totals are released: an eight-week wear chart, repeat wear, and what it is worn with.
+6. **The campaign brief.** Ask **Brand Hanger** *"Write me a campaign brief for this product."* It uses only the released totals; on the hidden product it declines and makes no model call.
 
 ---
 
 ## Demo Access
 
-**One click, no password.** The sign-in screen's **Try the demo** offers the four accounts below, one button each. **Judge Consumer** is a fresh private copy of the lived-in wardrobe, so every judge starts in the same place, and **New Consumer** an empty one; **Judge Brand** opens the shared demo brand read-only, Brand Hanger included; **New Brand** is a private, empty brand of the judge's own that can enrol up to 5 products. Everything a judge adds is gone after a day. Signing in to one of these addresses with its password opens the same thing, so nobody can change the shared originals. Demo sessions cannot publish to Community, change sign-in settings, edit the shared brand, or reach any real brand's numbers; a New Brand's products never reach the public product list or anyone's label match; and demos have a smaller AI allowance and may use at most 80% of the day's AI calls, so real accounts always keep the rest (`lib/demo-session.ts`).
+**One click, no password.** The sign-in screen's **Try the demo** opens any of the four accounts below. Judge Consumer is a fresh private copy of a lived-in wardrobe; Judge Brand is the shared demo brand, read-only; the two **New** accounts start empty. Everything a judge adds is gone after a day, and no demo can reach a real person or brand ([rules](lib/demo-session.ts), [details](docs/judge-accounts.md)).
 
 | Account | Address | What it shows |
 | --- | --- | --- |
@@ -150,6 +143,16 @@ flowchart TB
 </details>
 
 Amplify deploys `main` automatically; DynamoDB is one on-demand table; S3 is private and encrypted with public access blocked; Bedrock runs in `us-east-2` from the app's own AWS account, so no AI key reaches a browser. Details: [docs/architecture.md](docs/architecture.md), including a module map, and every route in [docs/backend-api.md](docs/backend-api.md).
+
+
+**At a glance**
+
+| | |
+| --- | --- |
+| **Stack** | Next.js 15 · React 19 · TypeScript · AWS Amplify (SSR) · DynamoDB · private S3 · Amazon Bedrock (Nova Pro, Nova Lite) · GitHub Actions · CodeQL · Stripe Checkout (test mode only) |
+| **Payments** | None real. The one payment step is Stripe **test mode** on fictional products: [try it with the test card](#stripe-test-mode-no-real-money) |
+| **Security** | Audited with Cloudflare's open-source security-audit skill, a 63-check attack harness, and CodeQL on every change: [how it was tested and what stops an attacker](#security-testing-and-hardening) |
+| **What is deployed right now** | [`/api/version`](https://main.d2iv0khybuuaeh.amplifyapp.com/api/version) returns the exact commit Amplify built |
 
 ---
 
@@ -425,6 +428,6 @@ Nothing needs installing to try Racked: open the live app and use the demo accou
 
 ---
 
-**Last updated:** 2026-11-13 — a step-by-step judge guide now runs inside every demo session, and the home page opens the demo in one click; test totals and coverage re-measured
+**Last updated:** 2026-11-13 — a step-by-step judge guide now runs inside every demo session, the home page opens the demo in one click, and the opening is shorter; test totals and coverage re-measured
 **Repository:** https://github.com/manof1color/racked-wardrobe-intelligence
 **Competition:** CUA Busch School AI Vibe Coding Contest, Fall 2026
