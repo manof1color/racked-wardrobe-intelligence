@@ -6,6 +6,7 @@ import type { AgentChatTurn, AgentReply } from "@/lib/platform-types";
 import { roundCoordinate } from "@/lib/weather";
 import { wearRequestBody } from "@/lib/wear-client";
 import type { SavedOutfit } from "@/lib/types";
+import { signalJudgeTourProgress } from "@/lib/judge-tour";
 
 type AgentAction = AgentReply["actions"][number];
 type ChatEntry = AgentChatTurn & { id: string; reply?: AgentReply };
@@ -173,6 +174,7 @@ export function ConsumerAgentPanel({ onWearRecorded, onOutfitSaved }: { onWearRe
       const reply = data.reply as AgentReply;
       setEntries((current) => [...current, { id: id(), role: "assistant", content: reply.message, reply }]);
       if (typeof data.remembered === "string") setRemembered(data.remembered);
+      signalJudgeTourProgress("hanger-outfit");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Hanger could not respond.");
     } finally { setBusy(false); }
@@ -281,6 +283,7 @@ export function BrandAgentPanel({ productId }: { productId: string }) {
       if (!response.ok) throw new Error(data.error ?? "Hanger could not respond.");
       const reply = data.reply as AgentReply;
       setEntries((current) => [...current, { id: id(), role: "assistant", content: reply.message, reply }]);
+      signalJudgeTourProgress("brand-hanger");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Hanger could not respond.");
     } finally { setBusy(false); }

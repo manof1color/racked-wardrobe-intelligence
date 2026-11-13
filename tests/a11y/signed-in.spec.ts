@@ -94,6 +94,40 @@ test("axe: brand product metrics and Brand Hanger", async ({ page }, testInfo) =
   await expectNoSeriousViolations(page, testInfo, "Brand Hanger");
 });
 
+test("axe: the judge guide on a demo wardrobe, whose steps open the scanner and Hanger and tick themselves off", async ({ page }, testInfo) => {
+  await page.goto("/a11y-harness?role=consumer&view=home&tour=1");
+  await expect(page.getByText("Loading your private wardrobe")).toHaveCount(0);
+  const guide = page.getByRole("region", { name: "Judge guide: the wardrobe side" });
+  await expect(guide.getByRole("status")).toHaveText("0 of 2 done");
+  await expectNoSeriousViolations(page, testInfo, "judge guide, wardrobe");
+
+  await guide.getByRole("button", { name: /^Open the scanner/ }).click();
+  const scanner = page.getByRole("dialog", { name: "Add clothing to your wardrobe." });
+  await expect(scanner).toBeVisible();
+  await scanner.getByRole("button", { name: "Close" }).click();
+
+  await guide.getByRole("button", { name: /^Open Hanger/ }).click();
+  const hanger = page.getByRole("dialog", { name: "Hanger AI assistant" });
+  await hanger.getByRole("textbox").fill("What should I wear today?");
+  await hanger.getByRole("textbox").press("Enter");
+  await expect(hanger.getByText("Here is an outfit from pieces you already own")).toBeVisible();
+  await hanger.getByRole("button", { name: "Close Hanger" }).click();
+  await expect(guide.getByRole("status")).toHaveText("1 of 2 done");
+
+  await guide.getByRole("button", { name: "Hide guide" }).click();
+  await expect(guide.getByRole("button", { name: "Show guide" })).toHaveAttribute("aria-expanded", "false");
+  await expect(guide.getByRole("list")).toBeHidden();
+});
+
+test("axe: the judge guide on the demo brand", async ({ page }, testInfo) => {
+  await page.goto("/a11y-harness?role=brand&view=overview&tour=1");
+  await expect(page.getByText("Loading your catalog")).toHaveCount(0);
+  const guide = page.getByRole("region", { name: "Judge guide: the brand side" });
+  await expect(guide.getByRole("listitem")).toHaveCount(3);
+  await expect(guide.getByRole("button", { name: /^See the wardrobe side/ })).toBeVisible();
+  await expectNoSeriousViolations(page, testInfo, "judge guide, brand");
+});
+
 test("axe: the demo brand's Settings preview, with every control disabled", async ({ page }, testInfo) => {
   await page.goto("/a11y-harness?role=brand&view=demo-settings");
   await expect(page.getByRole("heading", { name: "Two-step sign-in." })).toBeVisible();
