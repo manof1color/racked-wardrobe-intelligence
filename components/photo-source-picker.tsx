@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
+import { Icon } from "./icons";
 
 /**
  * Two deliberate doors: the camera, and the photo library.
@@ -35,13 +36,13 @@ export function PhotoSourcePicker({
   return <div className={`photo-source-picker ${compact?"compact":""}`} role="group" aria-label={label}>
     <label className="photo-source-action camera">
       <input type="file" accept={accept} capture="environment" onChange={choose}/>
-      <span aria-hidden="true">◎</span>
+      <span aria-hidden="true"><Icon name="camera" size={24}/></span>
       <strong>Take photo</strong>
       {!compact&&<small>Open your camera</small>}
     </label>
     <label className="photo-source-action library">
       <input type="file" accept={accept} multiple={multiple} onChange={choose}/>
-      <span aria-hidden="true">▧</span>
+      <span aria-hidden="true"><Icon name="image" size={24}/></span>
       <strong>{multiple?"Choose images":"Choose image"}</strong>
       {!compact&&<small>{multiple?"Pick several at once":"Use your photo library"}</small>}
     </label>

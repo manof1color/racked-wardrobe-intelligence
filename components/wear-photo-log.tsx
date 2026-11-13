@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PhotoSourcePicker } from "./photo-source-picker";
 import { useDialogFocus } from "./use-dialog-focus";
+import { Icon } from "./icons";
 import { prepareImageForUpload, readJsonResponse } from "@/lib/upload-client";
 import { MAX_WEAR_PIECES, type WearPhotoSuggestion } from "@/lib/wear-photo-match";
 import { chooseForRow, chosenItemIds, startReview, statusLine, toggleExtra, usedElsewhere, type ReviewState } from "@/lib/wear-photo-review";
@@ -99,7 +100,7 @@ export function WearPhotoLog({ items, onRecord, onClose }: { items: WardrobeItem
       </>}
 
       {step === "scanning" && <div className="wear-photo-scanning" role="status">
-        <span aria-hidden="true">◎</span>
+        <span aria-hidden="true"><Icon name="camera" size={40}/></span>
         <p>Reading your photo and checking your closet…</p>
         <button type="button" className="text-button" onClick={() => { scan.current?.abort(); scan.current = null; pickByHand(""); }}>Choose pieces by hand instead</button>
       </div>}
