@@ -46,8 +46,38 @@ export function wearHeadline(metrics: BrandMetrics): { statement: string; suppor
   };
 }
 
+/** The brand's own listing, as far as these readouts need it. */
+export interface ReadoutListing { price?: number; currency?: string; productUrl?: string; affiliateUrl?: string }
+
+function money(value: number, currency: string | undefined) {
+  const code = /^[A-Z]{3}$/.test(currency ?? "") ? currency! : "USD";
+  try { return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(value); }
+  catch { return `${value.toFixed(2)} ${code}`; }
+}
+
+/**
+ * "What does each wear cost a typical owner?" — the brand's own listed price divided by the
+ * released median wear count. Both inputs are already on the brand's screen, so this releases
+ * nothing new; it only does the arithmetic. It is the listed price, never what anyone paid.
+ */
+export function costPerWearReadout(metrics: BrandMetrics, listing?: ReadoutListing): BusinessReadout | null {
+  const price = listing?.price;
+  if (metrics.suppressed || typeof price !== "number" || !Number.isFinite(price) || price <= 0) return null;
+  const median = metrics.medianWearsPerOwner;
+  const question = "What does each wear cost a typical owner?";
+  if (median === null || median === undefined) return { question, value: "Withheld", detail: "The median wear count is withheld to protect a small group, so cost per wear is too.", tone: "neutral" };
+  if (median <= 0) return { question, value: "Not yet", detail: `The typical owner has not recorded a wear yet, so the ${money(price, listing?.currency)} listed price has not been spread over any wears.`, tone: "watch" };
+  const perWear = price / median;
+  return {
+    question,
+    value: money(perWear, listing?.currency),
+    detail: `Your ${money(price, listing?.currency)} listed price over the median ${median} wears. Racked never sees what anyone actually paid.`,
+    tone: perWear <= price / 6 ? "strong" : "neutral",
+  };
+}
+
 /** The private, consent-filtered wear questions, released only above the threshold. */
-export function wearReadouts(metrics: BrandMetrics): BusinessReadout[] {
+export function wearReadouts(metrics: BrandMetrics, listing?: ReadoutListing): BusinessReadout[] {
   if (metrics.suppressed) return [];
   // A null figure was withheld to protect a small group (lib/metrics.ts releaseWearAnalytics). It
   // is said so, in words — never read as zero, and never turned into a tone.
@@ -65,16 +95,26 @@ export function wearReadouts(metrics: BrandMetrics): BusinessReadout[] {
     { question: "How often does a typical owner reach for it?", value: metrics.medianWearsPerOwner==null ? "Withheld" : `${metrics.medianWearsPerOwner}×`, detail: metrics.averageWearsPerOwner === null ? "Median and average summarize wears per eligible owner. Small groups can limit what is shown." : `Median wears per eligible owner; the average is ${metrics.averageWearsPerOwner ?? 0}×.`, tone: "neutral" },
     { question: "Who bought it but never wore it?", value: owners(zero), detail: zero === null ? why : "An education or styling opportunity. Racked cannot tell you who they are, and you cannot contact them.", tone: zero === null ? "neutral" : zero > 0 ? "watch" : "strong" },
     { question: "When was it last worn?", value: metrics.lastWearAt ? new Date(metrics.lastWearAt).toLocaleDateString([], { timeZone: "UTC" }) : "No events yet", detail: "The day of the most recent confirmed wear in the eligible cohort — a day, never a time.", tone: "neutral" },
+    ...[costPerWearReadout(metrics, listing)].filter((readout): readout is BusinessReadout => readout !== null),
   ];
 }
 
+/** Where Racked's "Shop" button sends people, in the brand's words, so they can see what a click is worth to them. */
+function storeVisitDetail(listing?: ReadoutListing) {
+  const disclaimer = "A click is not a sale — Racked does not observe what happens on your site.";
+  if (!listing) return `Clicks through Racked's controlled outbound link. ${disclaimer}`;
+  if (listing.affiliateUrl) return `Clicks through your affiliate link, so your affiliate program can credit these visits to Racked. ${disclaimer}`;
+  if (listing.productUrl) return `Clicks to your product page. Add an affiliate link under "Edit or retire" so these visits can be credited to Racked. ${disclaimer}`;
+  return `This product has no store link yet, so Racked cannot send anyone. Add one under "Edit or retire". ${disclaimer}`;
+}
+
 /** The public, intentionally-shared questions. Separate data path from wear. */
-export function communityReadouts(metrics: BrandCommunityMetrics): BusinessReadout[] {
+export function communityReadouts(metrics: BrandCommunityMetrics, listing?: ReadoutListing): BusinessReadout[] {
   return [
     { question: "Is it showing up in outfits people share?", value: `${metrics.publicOutfitAppearances}`, detail: `${metrics.consumerOutfitAppearances} published by people, ${metrics.brandLookAppearances} styled by you.`, tone: metrics.publicOutfitAppearances > 0 ? "strong" : "neutral" },
     { question: "Do those looks resonate?", value: `${metrics.inspirationCount}`, detail: "Inspirations saved on public Looks featuring this product.", tone: metrics.inspirationCount > 0 ? "strong" : "neutral" },
     { question: "Does it make people check their own closet?", value: `${metrics.recreateLookRequests}`, detail: "Identity-free 'recreate this look' requests on Looks featuring this product.", tone: metrics.recreateLookRequests > 0 ? "strong" : "neutral" },
-    { question: "Does it send people to your product page?", value: `${metrics.outboundProductClicks}`, detail: "Clicks through Racked's controlled outbound link. A click is not a sale — Racked does not observe what happens on your site.", tone: metrics.outboundProductClicks > 0 ? "strong" : "neutral" },
+    { question: "How many shoppers has Racked sent to your store?", value: `${metrics.outboundProductClicks}`, detail: storeVisitDetail(listing), tone: metrics.outboundProductClicks > 0 ? "strong" : "neutral" },
     // Deliberately phrased as a demonstration count. This is a $0.00 simulation on a
     // fictional storefront; calling it a purchase, an order, or revenue would be false.
     { question: "How many demo checkouts have been completed?", value: `${metrics.demoPurchaseSimulations}`, detail: "Completed $0.00 purchase simulations on the fictional demo storefront. Nothing was charged and no order exists — this is a demonstration count, not a sale.", tone: "neutral" },
