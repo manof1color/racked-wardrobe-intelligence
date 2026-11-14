@@ -29,3 +29,20 @@ export function isTextEntry(element: { tagName?: string; type?: string; isConten
   if (tag !== "INPUT") return false;
   return !NON_TEXT_INPUTS.has((element.type || "text").toLowerCase());
 }
+
+/**
+ * The other stranded state: after the keyboard closes, or after the app is left and resumed, iOS can
+ * keep reporting a keyboard-shortened height for BOTH the layout and the visual viewport. `dockShift`
+ * then sees two viewports that agree and moves nothing, so the tab bar and the dock above it sit a
+ * keyboard's height up the screen and travel with the page. `baseline` is the tallest height this
+ * screen has reported while nobody was typing (kept per width, so rotation and split view reset it).
+ * A shortfall of a keyboard's size with no keyboard up is that stale state, and the dock is moved
+ * down by it. Smaller differences are browser toolbars showing and hiding, and are left alone.
+ */
+export const STALE_VIEWPORT_MIN_GAP = 150;
+
+export function staleViewportShift(visibleBottom: number, baseline: number, typing: boolean): number {
+  if (typing || ![visibleBottom, baseline].every(Number.isFinite) || visibleBottom <= 0 || baseline <= 0) return 0;
+  const gap = Math.round(baseline - visibleBottom);
+  return gap >= STALE_VIEWPORT_MIN_GAP && gap < baseline ? gap : 0;
+}

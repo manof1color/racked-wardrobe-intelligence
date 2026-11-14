@@ -353,7 +353,7 @@ a.look-handle:hover{color:var(--coral-dark);text-decoration:underline}
 @media(max-width:760px){.mobile-tab-bar .active{color:var(--acid)}.brand-mobile-nav{grid-template-columns:repeat(4,1fr)}}
 
 /* Explicit camera/library choice and simplified account navigation */
-.photo-source-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(100%,520px);margin-top:18px}.photo-source-action{position:relative;min-height:76px;border:1px solid var(--ink);padding:12px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:9px;align-items:center;text-align:left;cursor:pointer;background:var(--white);color:var(--ink)}.photo-source-action.camera{background:var(--ink);color:white}.photo-source-action>input{position:absolute!important;opacity:0!important;pointer-events:none!important}.photo-source-action>span{grid-row:1/-1;font-size:1.35rem}.photo-source-action>strong{font-size:.75rem}.photo-source-action>small{font-size:.75rem;color:var(--muted)}.photo-source-action.camera>small{color:#c9cbc3}.photo-source-picker.compact{margin:7px 10px 10px;width:calc(100% - 20px);position:relative;z-index:3}.photo-source-picker.compact .photo-source-action{min-height:48px;padding:8px;grid-template-rows:1fr}.photo-source-picker.compact .photo-source-action>span{font-size:.9rem}.verification-boundary-note{display:flex;gap:12px;align-items:flex-start;background:#fff7d9;border-left:4px solid #d99a2b;padding:12px 14px;margin:-8px 0 16px}.verification-boundary-note strong{font-size:.75rem;white-space:nowrap}.verification-boundary-note span{font-size:.75rem;line-height:1.5;color:var(--muted)}.app-menu-trigger .account-dot{width:4px;height:4px;border-radius:50%}.account-menu-popover{width:min(285px,calc(100vw - 24px))}.account-menu-note{font-size:.75rem;line-height:1.5;color:var(--muted);padding:12px;margin:0;border-bottom:1px solid #ece8df}
+.photo-source-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(100%,520px);margin-top:18px}.photo-source-action{position:relative;min-height:76px;border:1px solid var(--ink);padding:12px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:9px;align-items:center;text-align:left;cursor:pointer;background:var(--white);color:var(--ink)}.photo-source-action.camera{background:var(--ink);color:white}.photo-source-action>input{position:absolute!important;opacity:0!important;pointer-events:none!important}.photo-source-action>span{grid-row:1/-1;font-size:1.35rem}.photo-source-action>strong{font-size:.9rem}.photo-source-action>small{font-size:.75rem;color:var(--muted)}.photo-source-action.camera>small{color:#c9cbc3}.photo-source-picker.compact{margin:7px 10px 10px;width:calc(100% - 20px);position:relative;z-index:3}.photo-source-picker.compact .photo-source-action{min-height:48px;padding:8px;grid-template-rows:1fr}.photo-source-picker.compact .photo-source-action>span{font-size:.9rem}.verification-boundary-note{display:flex;gap:12px;align-items:flex-start;background:#fff7d9;border-left:4px solid #d99a2b;padding:12px 14px;margin:-8px 0 16px}.verification-boundary-note strong{font-size:.75rem;white-space:nowrap}.verification-boundary-note span{font-size:.75rem;line-height:1.5;color:var(--muted)}.app-menu-trigger .account-dot{width:4px;height:4px;border-radius:50%}.account-menu-popover{width:min(285px,calc(100vw - 24px))}.account-menu-note{font-size:.75rem;line-height:1.5;color:var(--muted);padding:12px;margin:0;border-bottom:1px solid #ece8df}
 .forgot-link{display:block;text-align:right;margin:-5px 0 14px;color:var(--coral-dark);font-size:.75rem;font-weight:800}.settings-page{min-height:100vh;padding:34px;background:var(--ink)}.settings-page>.wordmark{color:white}.settings-card{width:min(100%,680px);margin:45px auto;background:var(--white);padding:46px}.settings-card h1{font:400 3.4rem var(--display);margin:14px 0;text-transform:uppercase}.settings-card>p{color:var(--muted);line-height:1.6}.settings-readonly{display:flex;flex-direction:column;gap:5px;background:#eeebe3;padding:15px;margin:20px 0}.settings-readonly small{font-size:.75rem;letter-spacing:.12em}.settings-readonly span{font-size:.75rem;color:var(--muted)}.settings-return{display:block;margin-top:18px;text-align:center;font-size:.75rem;font-weight:800}.app-menu-settings{display:flex!important;flex-direction:column;align-items:flex-start!important;gap:3px!important;padding:12px;border:1px solid var(--line);font-size:.75rem!important}.app-menu-settings small{color:var(--muted);font-weight:500}.account-menu-popover .app-menu-settings{width:100%}
 
 /* Working, non-charging fictional purchase simulation */
@@ -1279,3 +1279,31 @@ h1 em,h2 em,h3 em{font-style:normal}
 .registry-heading.compact>div:first-child{flex:1 1 260px;min-width:0}
 .registry-heading.compact h2{font-size:1.45rem;margin:4px 0 0}
 .registry-heading.compact>div:first-child>p{display:none}
+
+/* Fictional demo storefronts: a store header in the store's own plain type (the Racked wordmark's
+   brackets and wide tracking wrapped onto two lines on a phone and ran into the links), the purchase
+   right under the price, and compact product facts. */
+.demo-store-name{font:800 1.1rem/1.2 var(--sans);letter-spacing:.01em;color:var(--ink);text-decoration:none}
+.demo-store .community-nav{gap:10px 24px}
+.demo-store .demo-product-price{margin:4px 0 16px}
+.demo-store .demo-product-description{margin:18px 0 0}
+.demo-store .demo-product-facts{margin:18px 0}
+.demo-store .demo-product-copy .text-link{display:inline-block;margin-top:4px}
+@media(max-width:760px){
+  .demo-store .community-nav{height:auto;padding:14px 0;flex-direction:column;align-items:flex-start}
+  .demo-store .community-nav nav{flex-direction:row;flex-wrap:wrap;gap:6px 18px}
+  .demo-store .demo-product-facts{grid-template-columns:1fr 1fr}
+  .demo-store .demo-product-copy h1{margin:6px 0}
+}
+
+/* The judge guide sits just above the phone tab bar, so it moves with it: when the viewport is left
+   stale (see components/use-viewport-dock.ts) both come down to the visible bottom edge together. */
+.judge-tour,.judge-tour-pill{translate:0 var(--dock-shift,0px)}
+.viewport-debug{position:fixed;top:8px;right:8px;z-index:100;margin:0;padding:8px 10px;background:rgba(14,14,12,.88);color:#fff;font:600 .75rem/1.45 ui-monospace,Menlo,monospace;border-radius:var(--radius);pointer-events:none;white-space:pre}
+
+/* Log with a photo on a phone: choosing a photo, or waiting for it to be read, is a sheet that rises
+   from the bottom and is only as tall as its content; reviewing the pieces keeps the full screen. */
+@media(max-width:760px){
+  .modal-backdrop:has(>.wear-photo-modal:not(.step-review)){align-items:end}
+  .wear-photo-modal:not(.step-review){min-height:0;max-height:92dvh;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding-bottom:max(22px,env(safe-area-inset-bottom))}
+}

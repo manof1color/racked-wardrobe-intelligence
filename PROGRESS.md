@@ -708,13 +708,30 @@ A judge-facing summary of how Racked was built. Historical phases are sourced fr
 - Fixed in passing: hiding the line break joined two words ("productsare"); the heading now has a real space before the break.
 - Tests: 1 more in `tests/visual-polish.test.ts`; prop checks in `tests/brand-workspace.test.ts` and `tests/judge-tour.test.ts` now allow the compact prop. Checked with axe on all three brand views, with products and with an empty catalog, at desktop and phone sizes.
 
-## Phase 130 — A brand read on the garment is found without typing it in (2026-11-13)
+## Phase 130 — The fictional demo storefront, tidied for phones (2026-11-13)
 
-- Reported: a brand on Racked, read off the piece by the scan, still had to be looked up by hand. Look-alike ranking is strict about the garment, so a misjudged shade, type or category ruled out every product of that brand; the owner saw nothing, or only another brand's look-alikes, which also stopped the fallback search from running.
-- `/api/catalog` POST now also returns `brandProducts`: the read brand's other live products, same category first, closest in looks first (`brandCatalog` in `lib/catalog-match.ts`). The intake lists them under "Also from …"; a pick is still the owner's selection, never verified.
-- Brand names match despite spacing and punctuation ("OFF WHITE", "levis"), extra label words ("Versatile Clothing Co."), and one misread letter in names of five letters or more. Search ignores company-form words and, when nothing matches every word, lists the brand the whole query names.
-- Tests: 5 more in `tests/scan-brand-suggestion.test.ts`; one intake assertion updated for the new fallback condition.
+- The owner reported it from a phone. The storefront header set the store's name in the Racked wordmark style (wide tracking and brackets), so on a phone "Judge Demo Atelier" wrapped onto two lines and its bracket ran into the links. The store name is now plain bold type on the product page and the store's product list, with the links in one row beneath it on a phone.
+- On a product page the purchase now sits right under the price (price, Add to demo bag, then the description and product facts), instead of after the description and four rows of facts. The facts are two columns on a phone.
+- Nothing about what the simulation does or records changed; the demonstration banner and every disclaimer are unchanged.
+- Tests: 1 more in `tests/visual-polish.test.ts`. Checked with screenshots of each step (product, bag, confirmation) at phone and desktop sizes.
+
+## Phase 131 — The phone tab bar stays on the bottom edge after a return (2026-11-13)
+
+- The owner's phone recording: after a demo purchase in another tab and a return to Community, the tab bar and the judge guide sat about a keyboard's height up the screen and moved with the page. iOS can keep a keyboard-shortened height for both the layout and the visual viewport after the keyboard closes or the app is resumed. The existing correction (`dockShift`) only handles the two viewports disagreeing, so it saw nothing to fix.
+- The dock now remembers the tallest height the screen has shown while nobody was typing, per width and for the browser session, and moves the bottom controls down by any keyboard-sized shortfall (150px or more) with no keyboard up (`staleViewportShift`, `lib/viewport-dock.ts`). It applies to touch screens only, never while pinch-zoomed or typing; toolbar-sized changes are left alone.
+- It also re-measures, and asks iOS to re-synchronise, when the page is shown again: a switch back from another app or tab, a Back-button restore, or focus.
+- The judge guide moves with the tab bar, so the two cannot drift apart.
+- Diagnostics: adding `?viewport=debug` to a signed-in page shows a read-only readout of the viewport numbers, so a recurrence on a real phone can be reported with a screenshot. It reads the screen only and sends nothing.
+- Not verified on a real iPhone; the stranded state was imposed in a mobile browser and corrected.
+- Tests: 2 more in `tests/whole-piece-preview-and-dock.test.ts`, and `tests/a11y/viewport-dock.spec.ts`, which strands the viewport at a keyboard-shortened height in a mobile browser and checks the correction, the real-keyboard and toolbar exceptions, and that a desktop window never moves.
+
+## Phase 132 — Log with a photo matches on every screen (2026-11-13)
+
+- The owner's phone screenshot: "Take photo" and "Choose image" were set at 32px. The dialog was drawn inside the "This week" card, so the card's own rules restyled it: `.points-card strong` (the 2rem points figure) enlarged the buttons' labels, and `.metric-card p` shrank the dialog's text. It happened on a computer too. The dialog is now drawn beside the card, so it looks as designed everywhere, the same as the Add clothing photo picker.
+- On a phone, choosing a photo (and waiting while it is read) is now a bottom sheet sized to its content, instead of a full screen of empty space under two buttons. Reviewing the suggested pieces keeps the full screen, which the Record step needs.
+- The photo picker's labels are 0.9rem rather than 0.75rem, in this dialog and in Add clothing alike.
+- Tests: 1 more in `tests/visual-polish.test.ts`. Checked at phone and desktop sizes, and the photo-log accessibility tests still pass.
 
 ## Continuous verification
 
-The phase entries above record their historical verification. The current working branch carries **1155 passing tests** in 137 files (re-verified 2026-11-13), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.
+The phase entries above record their historical verification. The current working branch carries **1154 passing tests** in 137 files (re-verified 2026-11-13), including session branch coverage at 97.96%. Recognition remains the synchronous scan's only remote vision stage; names are normalized, footwear estimates use a controlled generic reference, and crop IoU is not recognition accuracy. Pair-aware recognition still needs a physical-phone production retest on a crowded real shoe rack, and recognition accuracy on the live scan path is now measured (92.8% category correct on 300 fresh, locked independent photos after one fix, up from 89.7%; docs/evaluation-results-r2.md). SES-backed reset delivery, a live production-table match run, and a Brand-session return-path check remain explicit environment follow-ups. No new live-account or Bedrock smoke test was performed in this documentation pass.

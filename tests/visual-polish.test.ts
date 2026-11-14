@@ -162,3 +162,33 @@ test("brands with products get compact headings; an empty catalog keeps its expl
   assert.match(css, /\.brand-workspace>\.workspace-heading\.compact h1 br,\.brand-workspace>\.workspace-heading\.compact p\{display:none\}/);
   assert.match(css, /\.registry-heading\.compact>div:first-child>p\{display:none\}/);
 });
+
+// REGRESSION: on a phone, the fictional storefront's header set the store name in the Racked wordmark
+// style (wide tracking and brackets), so it wrapped onto two lines and its bracket ran into the links,
+// and the purchase came only after the description and four rows of product facts.
+test("REGRESSION: the demo storefront has a plain store name and the purchase right under the price", () => {
+  const product = read("app/demo-store/[brandSlug]/[sku]/page.tsx");
+  const brand = read("app/demo-store/[brandSlug]/page.tsx");
+  for (const page of [product, brand]) assert.doesNotMatch(page, /className="wordmark"/);
+  assert.match(product, /className="demo-store-name"/);
+  assert.match(brand, /className="demo-store-name"/);
+  const order = ["demo-product-price", "<DemoPurchasePanel", "demo-product-description", "demo-product-facts"].map(marker => product.indexOf(marker));
+  assert.ok(order.every(index => index > 0), "every part is on the page");
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "price, then the purchase, then the description and facts");
+  assert.match(css, /\.demo-store \.demo-product-facts\{grid-template-columns:1fr 1fr\}/, "two columns of facts on a phone");
+});
+
+// REGRESSION (owner's phone screenshot): Log with a photo was drawn inside the "This week" card, so the
+// card's own rules restyled it: ".points-card strong" made "Take photo" and "Choose image" 2rem, and
+// ".metric-card p" shrank the dialog's text. The dialog is now drawn beside the card. On a phone,
+// choosing a photo is a bottom sheet sized to its content; reviewing the pieces keeps the full screen.
+test("REGRESSION: the photo log dialog sits outside the points card and is a bottom sheet on a phone", () => {
+  const card = read("components/wear-points-card.tsx");
+  const article = card.slice(card.indexOf('<article className="metric-card points-card"'), card.indexOf("</article>"));
+  assert.ok(article.length > 0);
+  assert.doesNotMatch(article, /<WearPhotoLog/, "not inside the card");
+  assert.match(card, /<\/article>\s*\{photoOpen && <WearPhotoLog /);
+  assert.match(read("components/wear-photo-log.tsx"), /className=\{`modal wear-photo-modal step-\$\{step\}`\}/);
+  assert.match(css, /\.modal-backdrop:has\(>\.wear-photo-modal:not\(\.step-review\)\)\{align-items:end\}/);
+  assert.match(css, /\.photo-source-action>strong\{font-size:\.9rem\}/);
+});

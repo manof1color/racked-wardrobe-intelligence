@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Role } from "@/lib/types";
 import { workspaceHome } from "@/lib/workspace-navigation";
 import { useViewportDock } from "./use-viewport-dock";
+import { ViewportDebug } from "./viewport-debug";
 
 export function AppShell({ role, children }: { role:Role; children:ReactNode }) {
   useViewportDock();
@@ -30,6 +31,7 @@ export function AppShell({ role, children }: { role:Role; children:ReactNode }) 
     } catch { setSigningOut(false); }
   }
   return <div className="app-shell">
+    <ViewportDebug/>
     <header className="app-header">
       <Link className="wordmark" href={workspaceHome(role)} aria-label={`Racked ${role} home`}>RACKED<span>.</span></Link>
       <div className={`mode-badge ${role}`}><i /> {role === "consumer" ? "CONSUMER MODE" : "BRAND MODE"}</div>
