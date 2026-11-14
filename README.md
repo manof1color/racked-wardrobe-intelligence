@@ -7,9 +7,16 @@
 
 People get a private wardrobe and an AI stylist that dresses them from what they already own. Brands see how their products are really worn, but only as totals from at least 25 people who opted in: never a name, photo or wardrobe.
 
+I started Racked after seeing the consequences of clothing waste in Kenya. It works before disposal: it keeps clothes in use, and shows their makers which ones earned it.
+
 **[Try the demo, no sign-up](https://main.d2iv0khybuuaeh.amplifyapp.com/login#try-the-demo) · [Judge guide](JUDGES.md) · [One-page summary](docs/one-page-summary.md) · [Evidence](#evidence-and-what-is-not-claimed)**
 
-<!-- Screenshots go here: three phone screenshots from the live demo (scan → confirm, a product hidden at 4 owners, the same view released at 50), saved under docs/images/. -->
+| 1. Scan, then confirm | 2. Four owners: hidden | 3. Fifty owners: released |
+| :---: | :---: | :---: |
+| <img src="docs/images/scan-confirm.jpg" width="250" alt="Racked on a phone: one photo of a cream sherpa jacket becomes one proposed piece, with the heading 'Check each piece before it joins your closet' and an editable name."> | <img src="docs/images/brand-hidden-at-4-owners.jpg" width="250" alt="The brand view of Judge Limited Overshirt, tagged Too few owners, with a padlock and 'Not enough opted-in owners yet to say anything about wear.' No count is shown."> | <img src="docs/images/brand-released-at-50-owners.jpg" width="250" alt="The brand view of Judge Signature Tee, tagged Wear data open: 368 confirmed wears from 50 eligible owners."> |
+| Nothing joins the wardrobe until the person checks it | Below 25 opted-in owners the brand sees nothing, not even the count | At 50 owners, totals are released; never a name, photo or closet |
+
+<sub>The demo's own synthetic accounts, on a local production build at phone size. For the scan picture the AI's answer was supplied locally instead of by Amazon Bedrock; the live demo calls Bedrock.</sub>
 
 - **92.8% of garments placed in the right category** by the live scan, on 300 independent photos with answers locked before the first model call ([results](docs/evaluation-results-r2.md))
 - **Nothing below 25 owners, not even a count:** the threshold runs in code before any total is computed ([privacy](#privacy-and-security))
@@ -35,7 +42,7 @@ Not claimed: payment. Nothing is billed.
 | --- | ---: | --- | --- |
 | **Problem & relevance** | 20% | A sale is where a brand stops seeing; Racked measures confirmed wear, released only at 25 or more owners | [What this is](#what-this-is) · [Impact](#why-this-matters-more-wear-less-waste) · [One-page summary](docs/one-page-summary.md) |
 | **Functionality** | 25% | Two live flows: **scan → confirm → outfit**, and **anonymous cohort → wear evidence → campaign brief** | [Live app](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Demo path](#five-minute-judge-path) · [Judge accounts](docs/judge-accounts.md) |
-| **AI integration & innovation** | 20% | **92.8%** category accuracy on 300 locked photos; Hanger, a tool-using agent, won **11 of 12 decided** blind comparisons with a random valid outfit (8 ties); Brand Hanger sees released totals only | [How AI is used](#how-ai-is-used) · [Recognition](docs/evaluation-results-r2.md) · [Hanger holdout](#hanger-outfit-recommendations--blind-holdout-evaluation) · [AI use log](docs/ai-use-log.md) |
+| **AI integration & innovation** | 20% | **92.8%** category accuracy on 300 locked photos; Hanger, a tool-using agent: two blind raters preferred its outfit to a random one from the same closet **11 times**, the random one **once**, and 8 were ties or split votes; Brand Hanger sees released totals only | [How AI is used](#how-ai-is-used) · [Recognition](docs/evaluation-results-r2.md) · [Hanger holdout](#hanger-outfit-recommendations--blind-holdout-evaluation) · [AI use log](docs/ai-use-log.md) |
 | **Code, docs & GitHub** | 15% | **1153 tests** in 137 files; CI with accessibility checks and CodeQL; **231 merged PRs** counted on 2026-11-12 before this documentation merge; build log through Phase 131 | [Testing](#testing-and-ci) · [Architecture](#architecture-overview) · [PROGRESS.md](PROGRESS.md) |
 | **UX & polish** | 10% | Mobile-first installable app; a step-by-step judge guide inside the demo; honest empty and suppressed states | [Open it on a phone](https://main.d2iv0khybuuaeh.amplifyapp.com) · [Brand UX review](docs/brand-ux-review.md) |
 | **Business impact** | 10% | Three real brands joined the pilot and uploaded products; one chose the $40 Pro plan in writing. Illustrative break-even: 20 excess units at a $25 landed cost | [Impact and assumptions](docs/sustainability-and-business-impact.md) · [Pricing](#business-model--pricing-proposed--not-currently-billed) |
@@ -65,7 +72,7 @@ Open the [sign-in page](https://main.d2iv0khybuuaeh.amplifyapp.com/login) (or **
 
 ## Demo Access
 
-**One click, no password.** The sign-in screen's **Try the demo** opens any of the four accounts below. Judge Consumer is a fresh private copy of a lived-in wardrobe; Judge Brand is the shared demo brand, read-only; the two **New** accounts start empty. Everything a judge adds is gone after a day, and no demo can reach a real person or brand ([rules](lib/demo-session.ts), [details](docs/judge-accounts.md)).
+**One click, no password, no email.** The sign-in screen's **Try the demo** opens any of the four accounts below. Judge Consumer is a fresh private copy of a lived-in wardrobe; Judge Brand is the shared demo brand, read-only; the two **New** accounts start empty. Everything a judge adds is gone after a day, and no demo can reach a real person or brand ([rules](lib/demo-session.ts), [details](docs/judge-accounts.md)).
 
 | Account | Address | What it shows |
 | --- | --- | --- |
@@ -74,7 +81,7 @@ Open the [sign-in page](https://main.d2iv0khybuuaeh.amplifyapp.com/login) (or **
 | New Consumer | `judge.newconsumer@racked.local` | Empty on purpose: scan a real photo and see the first-run states |
 | New Brand | `judge.newbrand@racked.local` | No products: enrol one from a single photo with **Fill in from photo** (a private brand per judge, up to 5 products) |
 
-**Passwords are deliberately not in this repository.** It is public, and a committed password would let anyone alter the demo before it is reviewed; credentials reach judges privately. Every seeded record is classified `DEMO` and every seeded image is marked `SYNTHETIC DEMO`. The accounts describe repeatable seed expectations, not a live-table audit or real-user statistics. Tour, seeding and the read-only checker (`pnpm verify:judge`): [docs/judge-accounts.md](docs/judge-accounts.md).
+**A judge never needs a password.** The addresses above are for the record. Only if **Try the demo** itself fails is there a fallback, a named sign-in whose passwords are sent privately with the submission. Passwords are deliberately not in this repository: it is public, and a committed password would let anyone alter the demo before it is reviewed. Every seeded record is classified `DEMO` and every seeded image is marked `SYNTHETIC DEMO`. The accounts describe repeatable seed expectations, not a live-table audit or real-user statistics. Tour, seeding and the read-only checker (`pnpm verify:judge`): [docs/judge-accounts.md](docs/judge-accounts.md).
 
 ---
 
@@ -233,7 +240,9 @@ Both rounds together cost **$3.51 of Bedrock time** as counted (with a 1.5× saf
 
 ### Hanger outfit recommendations — blind holdout evaluation
 
-**Hanger won 11 head-to-head comparisons, lost 1, and tied 8** across 20 answerable requests. It won **91.7% of decided comparisons** against randomly assembled valid outfits from the same closets (11 of 12 decided cases, 95% confidence interval: 64.6%–98.5%).
+On 20 requests, two blind raters compared Hanger's outfit with a random valid outfit from the same closet. Taking their two verdicts together, **they preferred Hanger's 11 times and the random one once; 8 were ties or split votes.**
+
+The comparison is with a random outfit, not a human stylist, and the two raters agreed with each other on 15 of all 24 requests (Cohen's kappa 0.27, weak agreement), so this shows Hanger beats chance, not that it matches a person. For statisticians: 11 of 12 decided, 95% Wilson interval 64.6%–98.5%.
 
 | Check | Result |
 | --- | --- |

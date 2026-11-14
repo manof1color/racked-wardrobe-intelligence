@@ -16,17 +16,17 @@ made-up demo brand (Flow 2), read-only so nobody can change it for the next judg
 Everything is gone after a day, and none of them can publish, change sign-in settings, or reach a
 real brand.
 
-## Or sign in to a named account
+That is the whole sign-in. You never need an email or a password.
 
-| Account | Address | Use it for |
-| --- | --- | --- |
-| Consumer | `judge.consumer@racked.local` | Flow 1: a lived-in wardrobe |
-| Brand | `judge.brand@racked.local` | Flow 2: one released product, one suppressed |
-| New consumer | `judge.newconsumer@racked.local` | A first run from an empty wardrobe |
-| New brand | `judge.newbrand@racked.local` | Enrolling a product from one photo |
+<details>
+<summary>Fallback, only if the Try the demo buttons do not load</summary>
 
-Passwords are sent privately with the submission and are never in this repository. If one doesn't
-work, the [judge accounts guide](docs/judge-accounts.md) explains how they are seeded and checked.
+The same four accounts can be signed in to by name (`judge.consumer@racked.local`,
+`judge.brand@racked.local`, `judge.newconsumer@racked.local`, `judge.newbrand@racked.local`).
+Their passwords are sent privately with the submission and are never in this public repository. The
+[judge accounts guide](docs/judge-accounts.md) explains how the accounts are seeded and checked.
+
+</details>
 
 ## Flow 1 — a person: scan, confirm, recommendation (2½ minutes)
 
