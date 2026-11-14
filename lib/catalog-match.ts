@@ -160,6 +160,23 @@ export function brandTextNames(product: BrandProductRegistration, brandText?: st
 }
 
 export const MAX_BRAND_CATALOG_RESULTS = 8;
+/** A brand-read match this strong, with no rival from the same brand close behind, is picked for the owner. */
+export const AUTO_PICK_SCORE = 75;
+export const AUTO_PICK_MARGIN = 10;
+
+/**
+ * The one candidate clear enough to link for the owner, so a snapped photo of a brand's piece
+ * arrives already linked: the brand was read on the piece, it clears AUTO_PICK_SCORE, and no
+ * other product of that brand is within AUTO_PICK_MARGIN of it. Anything less clear is offered,
+ * not picked. A pick is shown on the card with one tap to change it, and is saved as the
+ * owner's selection, never as verified identity and never into brand wear aggregates.
+ */
+export function confidentBrandPick(candidates: CatalogCandidate[]): CatalogCandidate | null {
+  const branded = candidates.filter((candidate) => candidate.brandEvidence);
+  const [top, next] = branded;
+  if (!top || top !== candidates[0] || top.score < AUTO_PICK_SCORE) return null;
+  return next && top.score - next.score < AUTO_PICK_MARGIN ? null : top;
+}
 
 /**
  * Every live product of the brand read on a piece, whatever the scan made of its category or type.

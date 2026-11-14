@@ -22,6 +22,8 @@ interface DetectionInput {
   model?:string;
   region?:string;
   image?:{width:number;height:number};
+  /** Enrolled brand names, a reading aid for the model (lib/look-garment-detection.ts). */
+  brandNames?:string[];
 }
 
 interface DetectionDependencies {

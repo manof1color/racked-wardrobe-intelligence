@@ -8,7 +8,9 @@ import { metered } from "@/lib/ai-budget";
 import { detectLookOrManualReview, prepareSimpleLookDisplay } from "@/lib/look-scan-resilience";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { siteModelCallFor, spendAiAllowance } from "@/lib/server/abuse-guard";
-import { privateImageUrl, ProductionConfigurationError, putScanImage, signGarmentConfirmation } from "@/lib/server/production-store";
+import { listRegistryProducts, privateImageUrl, ProductionConfigurationError, putScanImage, signGarmentConfirmation } from "@/lib/server/production-store";
+import { brandTextNames } from "@/lib/catalog-match";
+import type { BrandProductRegistration } from "@/lib/platform-types";
 
 export const runtime="nodejs";
 
@@ -29,6 +31,16 @@ function pixelCrop(bounds:NormalizedBounds,imageWidth:number,imageHeight:number)
   return {left,top,width:Math.max(1,right-left),height:Math.max(1,bottom-top)};
 }
 
+/**
+ * Shows a brand read on a piece in the spelling its brand enrolled under ("VVERSATILE" → the
+ * catalog's name), so the brand field and the catalog lookup agree. It stays a suggestion.
+ */
+function canonicalReadBrand(label:{brand:string;matchMethod?:string},registry:BrandProductRegistration[]) {
+  if(label.matchMethod!=="ai-label-text")return;
+  const product=registry.find(entry=>brandTextNames(entry,label.brand));
+  if(product)label.brand=product.brand;
+}
+
 export async function POST(request:Request) {
   const session=await getSession();
   if(!session)return NextResponse.json({error:"Sign in is required."},{status:401});
@@ -46,6 +58,9 @@ export async function POST(request:Request) {
     if(file.size>MAX_UPLOAD_BYTES)throw new UploadValidationError("The look photo must be no more than 5 MB.",413);
     if((process.env.AI_PROVIDER??"").toLowerCase()!=="bedrock")return NextResponse.json({error:"Multi-piece AI scanning is not configured. Add the private Amazon Bedrock provider configuration first."},{status:503});
 
+    // The enrolled brands, read in parallel with the photo: a reading aid for the model, and the
+    // spelling a read brand is shown in. A registry that cannot be read never blocks a scan.
+    const registryLoad:Promise<BrandProductRegistration[]>=listRegistryProducts().then(products=>products.filter(product=>!product.archived)).catch(()=>[]);
     const prepared=await sharp(Buffer.from(await file.arrayBuffer()),{limitInputPixels:MAX_INPUT_PIXELS})
       .rotate()
       .resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true})
@@ -56,12 +71,15 @@ export async function POST(request:Request) {
     const allowance=await spendAiAllowance("scan",session.subject);
     if(!allowance.allowed)return NextResponse.json({error:allowance.message},{status:allowance.scope==="account"?429:503,headers:{"retry-after":String(allowance.retryAfterSeconds)}});
     stage="recognition";
+    const registry=await registryLoad;
     const recognition=await detectLookOrManualReview({
       base64:prepared.data.toString("base64"),
       contentType:"image/jpeg",
       image:{width:prepared.info.width,height:prepared.info.height},
+      brandNames:registry.flatMap(product=>[product.brand,...(product.aliases??[])]),
     },{detect:metered(siteModelCallFor(session),detectGarmentsInLook)});
     const detections=recognition.detections;
+    for(const detection of detections)canonicalReadBrand(detection.analysis.label,registry);
 
     stage="storage";
     // Nothing is kept yet: these photos wait under temp/ and expire unless a piece is kept

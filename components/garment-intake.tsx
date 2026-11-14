@@ -36,7 +36,7 @@ type LinkState =
   | { status: "none" }
   | { status: "checking" }
   | { status: "verified"; product: { registryProductId: string; name: string; brand: string; sku: string }; matchMethod: string }
-  | { status: "selected"; product: CatalogProductSummary }
+  | { status: "selected"; product: CatalogProductSummary; picked?: "racked" }
   | { status: "unverified"; reason: string; boundary: string };
 
 interface Piece extends DetectedLookGarment {
@@ -244,11 +244,19 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ category: piece.overrides.category, subtype: piece.overrides.subtype, color: garment.color, pattern: garment.pattern, material: garment.material, style: garment.style, brandText: piece.overrides.brand }),
       });
-      const data = await readJsonResponse<{ error?: string; candidates?: CatalogCandidate[]; brandProducts?: CatalogProductSummary[] }>(response, "The catalog returned an unreadable response.");
+      const data = await readJsonResponse<{ error?: string; candidates?: CatalogCandidate[]; brandProducts?: CatalogProductSummary[]; autoPick?: string | null }>(response, "The catalog returned an unreadable response.");
       if (!response.ok) throw new Error(data.error ?? "The catalog could not be searched.");
       const candidates = data.candidates ?? [];
       const brandProducts = data.brandProducts ?? [];
-      update(piece.id, (current) => ({ ...current, candidates, brandProducts, candidatesState: "done" }));
+      const autoPick = candidates.find((candidate) => candidate.registryProductId === data.autoPick);
+      update(piece.id, (current) => ({
+        ...current, candidates, brandProducts, candidatesState: "done",
+        // Snap and save: one clear match for the brand read on the piece is linked for the owner,
+        // unless they have already linked or are checking something themselves.
+        ...(autoPick && current.link.status === "none"
+          ? { link: { status: "selected" as const, product: autoPick, picked: "racked" as const }, overrides: { ...current.overrides, brand: autoPick.brand, sku: autoPick.sku } }
+          : {}),
+      }));
       // The brand read on the piece is not in any catalog under that name: search it, so the
       // person sees the answer to the search already filled in rather than an unexplained blank.
       if (piece.readBrand && !candidates.some((candidate) => candidate.brandEvidence) && !brandProducts.length) searchCatalog(piece, piece.readBrand);
@@ -443,11 +451,11 @@ export function GarmentIntake({ onConfirmed }: { onConfirmed: (pieces: GarmentIn
                     {piece.link.status === "selected"
                       ? <div className="catalog-picked">
                           <CatalogOption product={piece.link.product} />
-                          <p>Linked as your pick, visible only to you. Add the code from its care label below to verify it.</p>
+                          <p>{piece.link.picked === "racked" ? `Racked matched this from the ${piece.link.product.brand} catalog because it read ${piece.readBrand || piece.link.product.brand} on the piece. If it is not yours, choose a different product.` : "Linked as your pick, visible only to you."} Add the code from its care label below to verify it.</p>
                           <button type="button" className="button button-light button-small" onClick={() => update(piece.id, (current) => ({ ...current, link: { status: "none" } }))}>Choose a different product</button>
                         </div>
                       : <>
-                          {piece.readBrand && <p className="catalog-read-brand" role="status">Hanger read <strong>{piece.readBrand}</strong> on this piece. Check the match below — nothing is linked until you choose it.</p>}
+                          {piece.readBrand && <p className="catalog-read-brand" role="status">Hanger read <strong>{piece.readBrand}</strong> on this piece. Check the match below — nothing is linked until you choose it or Racked finds one clear match.</p>}
                           <p className="catalog-note">Linked pieces show their product details in your Closet, and their cost per wear where the brand lists a price.</p>
                           {piece.candidatesState === "loading" && <p className="catalog-note" role="status">Looking through brand catalogs…</p>}
                           {piece.candidates && piece.candidates.length > 0 && <div className="catalog-group">

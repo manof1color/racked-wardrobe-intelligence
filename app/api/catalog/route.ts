@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { brandCatalog, rankCatalogCandidates, readCatalogPieceDescription, searchCatalog, type CatalogProductSummary } from "@/lib/catalog-match";
+import { brandCatalog, confidentBrandPick, rankCatalogCandidates, readCatalogPieceDescription, searchCatalog, type CatalogProductSummary } from "@/lib/catalog-match";
 import { consumeRateLimit, RATE_LIMIT_RULES } from "@/lib/rate-limit";
 import { catalogImageUrl, listRegistryProducts, ProductionConfigurationError } from "@/lib/server/production-store";
 import type { BrandProductRegistration } from "@/lib/platform-types";
@@ -66,6 +66,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       candidates: await withImages(candidates, registry),
       brandProducts: await withImages(brandProducts, registry),
+      // Linked for the owner only when the read brand leaves one clear answer; they can change it.
+      autoPick: confidentBrandPick(candidates)?.registryProductId ?? null,
       boundary: "A possible match is a suggestion from how the piece looks. Choosing it links the product as your selection; only the barcode or the brand's style code from the label verifies it.",
     });
   } catch (reason) {
