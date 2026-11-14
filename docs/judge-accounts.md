@@ -102,8 +102,10 @@ Every date the seed writes is counted back from the day it runs: the accounts ar
 and the wears, looks and public activity are recent. That is what keeps `Judge Signature Tee`'s
 eight-week chart full; with a fixed date it went blank once the weeks moved past it. The chart is
 the current week and the seven before it, and a week with fewer than 5 wears is withheld, so the
-seed gives every owner of the released product a wear every week for three to twelve weeks back,
-each owner on at least three different days.
+seed gives most owners of the released product a wear every week for up to twelve weeks back, each
+wear on its own day. Not every owner wears it: of the 50, 6 never have and 5 once, so the dashboard
+reads 88% active and 78% repeat rather than a staged 100%. Every wear bucket holds at least 5
+owners, so nothing on the dashboard is withheld.
 
 Re-seed **once after this change merges**, and again on **18 or 19 November**, just before judging.
 `pnpm verify:judge` fails if the newest wear on the released product is more than 7 days old, or if

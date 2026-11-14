@@ -52,7 +52,7 @@ Their passwords are sent privately with the submission and are never in this pub
 | Which steps call an AI model, and which are plain code? | [What calls a model](README.md#what-calls-a-model-and-what-does-not) |
 | How is privacy enforced? | [Privacy and security](README.md#privacy-and-security) · [SECURITY.md](SECURITY.md) |
 | How was it attacked and hardened? | [Security testing and hardening](README.md#security-testing-and-hardening) |
-| How accurate is the AI? | **92.8% garment category** on 300 locked, independent photos, up from 89.7% after one measured fix — [results](docs/evaluation-results-r2.md) |
+| How accurate is the AI? | Of 300 independent photos whose answers were locked before the test, the scan answered 293 and put **272 in the right garment category (92.8%)**; the other 7 timed out and the person entered the piece by hand. One measured fix raised it from 89.7% — [results](docs/evaluation-results-r2.md) |
 | What is measured, and what is not claimed? | [Evidence](README.md#evidence-and-what-is-not-claimed) |
 | Is any real money involved? | No. Shoppers buy on the brand's own site, and fictional products end in a $0.00 demo purchase that shows the 8% commission split. Racked's Stripe test checkout is switched off: [how purchases work](README.md#purchases-the-brands-own-site) |
 | Do the tests pass? | [CI runs](https://github.com/manof1color/racked-wardrobe-intelligence/actions/workflows/ci.yml) · [Testing](README.md#testing-and-ci) |

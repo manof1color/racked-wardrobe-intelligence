@@ -97,12 +97,24 @@ const RELEASED_OWNER_TARGET = 50;
 
 /**
  * Wears per cohort owner of the released product, one a week from the most recent back. Every owner
- * wears it on at least three separate days, so each counts as established; the longer histories
- * reach back past eight weeks, so every week of the chart clears the five-wear cell minimum
- * whatever weekday the seed runs on. The longest, 12 weekly wears from 7 days back, ends 84 days
- * back, well inside the accounts' 120.
+ * once wore it at least three times, so the dashboard read "100% active, 100% repeat": a figure no
+ * real product reaches and a judge reads as staged. The cohort is now a believable spread. With the
+ * judge consumer's own 5 wears, the 50 owners split 6 never / 5 once / 9 two or three times /
+ * 10 four or five / 20 six or more: 88% active, 78% repeat. Every bucket holds at least
+ * MINIMUM_CELL_SIZE (5) owners and every complement too, so nothing on the dashboard is withheld.
+ * The longer histories still reach back past eight weeks, so every week of the chart clears the
+ * five-wear cell minimum whatever weekday the seed runs on; the longest, 12 weekly wears from 7 days
+ * back, ends 84 days back, well inside the accounts' 120. Interleaved so recency varies by bucket.
  */
-export const RELEASED_WEAR_PATTERN = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+export const RELEASED_COHORT_WEARS = [
+  0, 6, 2, 12, 4, 1, 9, 3, 7, 5,
+  0, 10, 2, 8, 4, 1, 11, 3, 6, 5,
+  0, 12, 2, 7, 4, 1, 9, 3, 10, 5,
+  0, 8, 2, 11, 4, 1, 6, 3, 12, 5,
+  0, 7, 3, 9, 4, 1, 10, 0, 8,
+];
+/** The judge consumer's own wears of the released product (seedConsumer). */
+export const JUDGE_CONSUMER_RELEASED_WEARS = 5;
 
 const CONSUMER_ID = "judge-consumer-account";
 const CONSUMER_EMAIL = "judge.consumer@racked.local";
@@ -322,7 +334,7 @@ async function seedConsumer(products) {
   const verifiedId = "judge-garment-verified-tee";
   ids.verified = verifiedId;
   imageKeys.verified = await putObject(`wardrobe/${CONSUMER_ID}/${verifiedId}.webp`, photoBytes(productPhotoName(products.released.sku, "front")), CONSUMER_ID);
-  await linkVerified({ ownerId: CONSUMER_ID, product: PRODUCTS[0], garmentId: verifiedId, wearCount: 5, lastWornDays: 3, imageKey: imageKeys.verified });
+  await linkVerified({ ownerId: CONSUMER_ID, product: PRODUCTS[0], garmentId: verifiedId, wearCount: JUDGE_CONSUMER_RELEASED_WEARS, lastWornDays: 3, imageKey: imageKeys.verified });
 
   const founderId = "judge-garment-verified-founder";
   ids.founder = founderId;
@@ -430,14 +442,14 @@ async function seedCommunity({ imageKeys }, products) {
 async function seedCohortLinks(products, ownerIds) {
   let wearEvents = 0;
   for (const [index, ownerId] of ownerIds.entries()) {
-    const wearCount = RELEASED_WEAR_PATTERN[index % RELEASED_WEAR_PATTERN.length];
+    const wearCount = RELEASED_COHORT_WEARS[index % RELEASED_COHORT_WEARS.length];
     await linkVerified({ ownerId, product: PRODUCTS[0], garmentId: `judge-linked-${PRODUCTS[0].sku}-${index + 1}`, wearCount, lastWornDays: (index % 7) + 1, imageKey: `wardrobe/${ownerId}/judge-linked-${PRODUCTS[0].sku}.png` });
     wearEvents += wearCount;
   }
   for (const product of EXTRA_RELEASED) {
     for (const [index, ownerId] of ownerIds.entries()) {
       // Offset so each product's owners differ in how much they wear it.
-      const wearCount = RELEASED_WEAR_PATTERN[(index + product.sku.length + Number(product.sku.slice(-1))) % RELEASED_WEAR_PATTERN.length];
+      const wearCount = RELEASED_COHORT_WEARS[(index + product.sku.length + Number(product.sku.slice(-1))) % RELEASED_COHORT_WEARS.length];
       await linkVerified({ ownerId, product, garmentId: `judge-linked-${product.sku}-${index + 1}`, wearCount, lastWornDays: ((index + 3) % 7) + 1, imageKey: `wardrobe/${ownerId}/judge-linked-${product.sku}.png` });
       wearEvents += wearCount;
     }
