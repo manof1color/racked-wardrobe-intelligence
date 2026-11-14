@@ -67,7 +67,9 @@ export function WearPointsCard({ items, outfits, refreshKey, logging, onLoggingC
   }
   const toggle = (id: string) => setChosen((current) => (current.includes(id) ? current.filter((entry) => entry !== id) : current.length >= 10 ? current : [...current, id]));
 
-  return (
+  // The photo dialog is drawn beside the card, not inside it: inside, the card's own type rules
+  // (its 2rem points figure, its small paragraphs) restyled the dialog's buttons and text.
+  return (<>
     <article className="metric-card points-card" aria-labelledby={`${panelId}-title`}>
       <span className="metric-icon coral-bg" aria-hidden="true">★</span>
       <small id={`${panelId}-title`}>THIS WEEK</small>
@@ -84,7 +86,6 @@ export function WearPointsCard({ items, outfits, refreshKey, logging, onLoggingC
         {/* The same wear, found from a photo: the person confirms every piece before it is recorded. */}
         <button type="button" className="button button-dark" onClick={() => { onLoggingChange(false); setPhotoOpen(true); }}>Log with a photo</button>
       </div>
-      {photoOpen && <WearPhotoLog items={items} onRecord={onWearPieces} onClose={() => setPhotoOpen(false)} />}
       {logging && <div ref={panel} id={LOG_TODAY_PANEL_ID} className="points-log" role="group" aria-label="Log today's outfit">
         {outfits.length > 0 && <fieldset><legend>Wore a saved outfit?</legend>
           <ul>{outfits.slice(0, 6).map((outfit) => <li key={outfit.id}><button type="button" disabled={busy} onClick={() => run(() => onWearOutfit(outfit))}>{outfit.name}</button></li>)}</ul>
@@ -98,5 +99,6 @@ export function WearPointsCard({ items, outfits, refreshKey, logging, onLoggingC
         </div>
       </div>}
     </article>
-  );
+    {photoOpen && <WearPhotoLog items={items} onRecord={onWearPieces} onClose={() => setPhotoOpen(false)} />}
+  </>);
 }

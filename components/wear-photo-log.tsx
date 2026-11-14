@@ -87,7 +87,7 @@ export function WearPhotoLog({ items, onRecord, onClose }: { items: WardrobeItem
   }
 
   return <div className="modal-backdrop" role="presentation">
-    <section ref={dialog} tabIndex={-1} className="modal wear-photo-modal" role="dialog" aria-modal="true" aria-labelledby="wear-photo-title">
+    <section ref={dialog} tabIndex={-1} className={`modal wear-photo-modal step-${step}`} role="dialog" aria-modal="true" aria-labelledby="wear-photo-title">
       <button className="modal-close" aria-label="Close" onClick={close}>×</button>
       <div className="eyebrow">LOG WITH A PHOTO</div>
       <h2 id="wear-photo-title">Log today&rsquo;s outfit from a photo.</h2>
